@@ -117,22 +117,56 @@ export default function AdminEventsPage() {
               </div>
               {showReprogramForm && selectedEvent && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                  <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                    <h3 className="text-lg font-bold mb-4">Reprogrammer l'événement</h3>
+                  <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
+                    <h3 className="text-lg font-bold mb-4">Reprogrammer et modifier l'événement</h3>
                     <form onSubmit={async e => {
                       e.preventDefault()
                       const formData = new FormData(e.target as HTMLFormElement)
-                      const newDate = formData.get("date") as string
-                      // Appel API pour dupliquer l'événement avec toutes ses données sur la nouvelle date
+                      const payload = {
+                        date: formData.get("date"),
+                        title: formData.get("title"),
+                        description: formData.get("description"),
+                        image: formData.get("image"),
+                        location: formData.get("location"),
+                        price: formData.get("price"),
+                        max_participants: formData.get("max_participants"),
+                        category: formData.get("category"),
+                        prix_personne_seule: formData.get("prix_personne_seule"),
+                        prix_couple: formData.get("prix_couple"),
+                        payment_mode: formData.get("payment_mode"),
+                        conditions: formData.get("conditions")
+                      }
                       await fetch(`/api/admin/events/${selectedEvent.id}/duplicate`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ date: newDate })
+                        body: JSON.stringify(payload)
                       })
                       setShowReprogramForm(false)
                     }}>
                       <label className="block mb-2">Nouvelle date</label>
                       <input type="datetime-local" name="date" defaultValue={selectedEvent.event_date?.slice(0,16)} className="mb-4 w-full border px-2 py-1 rounded" required />
+                      <label className="block mb-2">Titre</label>
+                      <input type="text" name="title" defaultValue={selectedEvent.title} className="mb-4 w-full border px-2 py-1 rounded" required />
+                      <label className="block mb-2">Description</label>
+                      <textarea name="description" defaultValue={selectedEvent.description} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Image (URL)</label>
+                      <input type="text" name="image" defaultValue={selectedEvent.image} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Lieu</label>
+                      <input type="text" name="location" defaultValue={selectedEvent.location} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Prix</label>
+                      <input type="number" name="price" defaultValue={selectedEvent.price} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Nombre max de participants</label>
+                      <input type="number" name="max_participants" defaultValue={selectedEvent.max_participants} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Catégorie</label>
+                      <input type="text" name="category" defaultValue={selectedEvent.category} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Prix personne seule</label>
+                      <input type="number" name="prix_personne_seule" defaultValue={selectedEvent.prix_personne_seule} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Prix couple</label>
+                      <input type="number" name="prix_couple" defaultValue={selectedEvent.prix_couple} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Mode de paiement</label>
+                      <input type="text" name="payment_mode" defaultValue={selectedEvent.payment_mode} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <label className="block mb-2">Conditions</label>
+                      <textarea name="conditions" defaultValue={selectedEvent.conditions} className="mb-4 w-full border px-2 py-1 rounded" />
                       <div className="flex gap-2 justify-end">
                         <Button type="button" variant="outline" onClick={() => setShowReprogramForm(false)}>Annuler</Button>
                         <Button type="submit">Valider</Button>
