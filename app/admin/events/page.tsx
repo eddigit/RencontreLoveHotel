@@ -123,8 +123,8 @@ export default function AdminEventsPage() {
                       e.preventDefault()
                       const formData = new FormData(e.target as HTMLFormElement)
                       const newDate = formData.get("date") as string
-                      // Appel API pour mettre à jour la date
-                      await fetch(`/api/admin/events/${selectedEvent.id}/reprogram`, {
+                      // Appel API pour dupliquer l'événement avec toutes ses données sur la nouvelle date
+                      await fetch(`/api/admin/events/${selectedEvent.id}/duplicate`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ date: newDate })
