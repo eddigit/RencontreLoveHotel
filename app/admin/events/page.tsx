@@ -117,33 +117,37 @@ export default function AdminEventsPage() {
               </div>
               {showReprogramForm && selectedEvent && (
                 <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                  <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-lg">
-                    <h3 className="text-lg font-bold mb-4">Reprogrammer et modifier l'événement</h3>
-                    <form onSubmit={async e => {
-                      e.preventDefault()
-                      const formData = new FormData(e.target as HTMLFormElement)
-                      const payload = {
-                        date: formData.get("date"),
-                        title: formData.get("title"),
-                        description: formData.get("description"),
-                        image: formData.get("image"),
-                        location: formData.get("location"),
-                        price: formData.get("price"),
-                        max_participants: formData.get("max_participants"),
-                        category: formData.get("category"),
-                        prix_personne_seule: formData.get("prix_personne_seule"),
-                        prix_couple: formData.get("prix_couple"),
-                        payment_mode: formData.get("payment_mode"),
-                        conditions: formData.get("conditions")
-                      }
-                      await fetch(`/api/admin/events/${selectedEvent.id}/duplicate`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                      })
-                      setShowReprogramForm(false)
-                    }}>
-                      <label className="block mb-2">Nouvelle date</label>
+                  <div className="bg-gray-900 p-0 rounded-lg shadow-lg w-full max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
+                    <h3 className="text-lg font-bold mb-2 px-8 pt-8 text-white">Reprogrammer et modifier l'événement</h3>
+                    <form
+                      onSubmit={async e => {
+                        e.preventDefault()
+                        const formData = new FormData(e.target as HTMLFormElement)
+                        const payload = {
+                          date: formData.get("date"),
+                          title: formData.get("title"),
+                          description: formData.get("description"),
+                          image: formData.get("image"),
+                          location: formData.get("location"),
+                          price: formData.get("price"),
+                          max_participants: formData.get("max_participants"),
+                          category: formData.get("category"),
+                          prix_personne_seule: formData.get("prix_personne_seule"),
+                          prix_couple: formData.get("prix_couple"),
+                          payment_mode: formData.get("payment_mode"),
+                          conditions: formData.get("conditions")
+                        }
+                        await fetch(`/api/admin/events/${selectedEvent.id}/duplicate`, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(payload)
+                        })
+                        setShowReprogramForm(false)
+                      }}
+                      className="overflow-auto px-8 pb-4 flex-1 text-white"
+                      style={{ maxHeight: 'calc(90vh - 60px)' }}
+                    >
+                      <label className="block mb-2 mt-4">Nouvelle date</label>
                       <input type="datetime-local" name="date" defaultValue={selectedEvent.event_date?.slice(0,16)} className="mb-4 w-full border px-2 py-1 rounded" required />
                       <label className="block mb-2">Titre</label>
                       <input type="text" name="title" defaultValue={selectedEvent.title} className="mb-4 w-full border px-2 py-1 rounded" required />
@@ -167,11 +171,11 @@ export default function AdminEventsPage() {
                       <input type="text" name="payment_mode" defaultValue={selectedEvent.payment_mode} className="mb-4 w-full border px-2 py-1 rounded" />
                       <label className="block mb-2">Conditions</label>
                       <textarea name="conditions" defaultValue={selectedEvent.conditions} className="mb-4 w-full border px-2 py-1 rounded" />
-                      <div className="flex gap-2 justify-end">
-                        <Button type="button" variant="outline" onClick={() => setShowReprogramForm(false)}>Annuler</Button>
-                        <Button type="submit">Valider</Button>
-                      </div>
                     </form>
+                    <div className="flex gap-2 justify-end px-8 pb-6 bg-gray-900 sticky bottom-0 border-t border-gray-800">
+                      <Button type="button" variant="outline" onClick={() => setShowReprogramForm(false)}>Annuler</Button>
+                      <Button type="submit" form="reprogram-form">Valider</Button>
+                    </div>
                   </div>
                 </div>
               )}
