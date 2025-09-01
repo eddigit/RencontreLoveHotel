@@ -183,7 +183,7 @@ importers:
         specifier: ^0.9.6
         version: 0.9.9(@types/react-dom@19.1.5(@types/react@19.1.5))(@types/react@19.1.5)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       zod:
-        specifier: ^3.24.1
+        specifier: ^3.25.20
         version: 3.25.20
     devDependencies:
       '@testing-library/jest-dom':

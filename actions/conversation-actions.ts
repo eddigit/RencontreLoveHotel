@@ -3,8 +3,34 @@
 import { sql } from "@/lib/db"
 import { log } from "../utils/logger"
 import { createNotification } from "@/actions/notification-actions"
+import { messageSchema, getMessagesSchema, createConversationSchema, validateSchema } from "@/lib/validation"
+import { getServerSession } from "next-auth/next"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
-export async function getUserConversations(userId: string) {
+// Helper pour vérifier l'authentification
+async function requireAuth() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    throw new Error('Authentification requise')
+  }
+  return session.user
+}
+
+export async function getUserConversations(userId?: string) {
+  // Vérifier l'authentification
+  const currentUser = await requireAuth()
+  
+  // Utiliser l'ID de l'utilisateur connecté si non fourni
+  const targetUserId = userId || currentUser.id
+  
+  // Vérifier que l'utilisateur ne peut accéder qu'à ses propres conversations
+  if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative d\'accès aux conversations d\'un autre utilisateur', { 
+      currentUserId: currentUser.id, 
+      targetUserId 
+    })
+    throw new Error('Accès non autorisé aux conversations')
+  }
   const query = `
     WITH user_conversations AS (
       SELECT
@@ -62,24 +88,42 @@ export async function getUserConversations(userId: string) {
     ORDER BY lm.created_at DESC NULLS LAST
   `
 
-  const conversations = await sql.query(query, [userId])
+  const conversations = await sql.query(query, [targetUserId])
   return conversations || []
 }
 
 export async function getConversationMessages(conversationId: string, userId?: string) {
-  // First, verify that the user is a participant in this conversation
-  if (userId) {
-    const participants = await sql.query(
-      `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
-      [conversationId, userId]
-    )
-    const [participant] = participants
+  // Validation des paramètres
+  const validation = validateSchema(getMessagesSchema, { conversationId, userId })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
 
-    if (!participant) {
-  // Log details to help debugging (conversationId and userId)
-  log('warn', 'Access denied reading conversation', { conversationId, userId })
-  throw new Error('Access denied: You are not a participant in this conversation')
-    }
+  // Vérifier l'authentification
+  const currentUser = await requireAuth()
+  
+  // Utiliser l'ID de l'utilisateur connecté si non fourni
+  const targetUserId = userId || currentUser.id
+
+  // Vérifier que l'utilisateur ne peut accéder qu'à ses propres messages
+  if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative d\'accès aux messages d\'un autre utilisateur', { 
+      currentUserId: currentUser.id, 
+      targetUserId 
+    })
+    throw new Error('Accès non autorisé aux messages')
+  }
+
+  // Vérifier que l'utilisateur est participant de cette conversation
+  const participants = await sql.query(
+    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    [conversationId, targetUserId]
+  )
+  const [participant] = participants
+
+  if (!participant) {
+    log('warn', 'Access denied reading conversation', { conversationId, userId: targetUserId })
+    throw new Error('Access denied: You are not a participant in this conversation')
   }
 
   const messages = await sql.query(
@@ -95,6 +139,23 @@ export async function sendMessage({ conversationId, senderId, content }: {
   senderId: string;
   content: string;
 }) {
+  // Validation des paramètres
+  const validation = validateSchema(messageSchema, { conversationId, senderId, content })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
+
+  // Vérifier l'authentification
+  const currentUser = await requireAuth()
+  
+  // Vérifier que l'utilisateur ne peut envoyer des messages qu'en son nom
+  if (senderId !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative d\'envoi de message au nom d\'un autre utilisateur', { 
+      currentUserId: currentUser.id, 
+      senderId 
+    })
+    throw new Error('Vous ne pouvez envoyer des messages qu\'en votre nom')
+  }
   // Verify that the sender is a participant in this conversation
   const participantRows = await sql.query(
     `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
@@ -135,6 +196,24 @@ export async function sendMessage({ conversationId, senderId, content }: {
 }
 
 export async function findOrCreateConversation(userId1: string, userId2: string) {
+  // Validation des paramètres
+  const validation = validateSchema(createConversationSchema, { userId1, userId2 })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
+
+  // Vérifier l'authentification
+  const currentUser = await requireAuth()
+  
+  // Vérifier que l'utilisateur ne peut créer des conversations qu'avec lui-même comme participant
+  if (userId1 !== currentUser.id && userId2 !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative de création de conversation sans être participant', { 
+      currentUserId: currentUser.id, 
+      userId1,
+      userId2 
+    })
+    throw new Error('Vous devez être participant de la conversation que vous créez')
+  }
   // Check if a conversation already exists between the two users
   const existingRows = await sql.query(
     `SELECT c.id FROM conversations c JOIN conversation_participants cp1 ON c.id = cp1.conversation_id JOIN conversation_participants cp2 ON c.id = cp2.conversation_id WHERE (cp1.user_id = $1 AND cp2.user_id = $2) OR (cp1.user_id = $2 AND cp2.user_id = $1);`,
