@@ -29,7 +29,10 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await verifyUserCredentials(credentials.email, credentials.password);
         if (user) {
-          // Autoriser la connexion pour tous les comptes, même non vérifiés
+          // Vérification souple : autorise si email_verified est true, null ou undefined (bloque seulement si === false)
+          if (user.email_verified === false) {
+            return null;
+          }
           return {
             id: user.id,
             name: user.name,
