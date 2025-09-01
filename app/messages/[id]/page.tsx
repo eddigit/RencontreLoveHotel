@@ -44,6 +44,7 @@ export default function ConversationPage ({
   const [conversationDetails, setConversationDetails] =
     useState<ConversationDetails | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -59,7 +60,7 @@ export default function ConversationPage ({
       if (session?.user?.id && id) {
         setLoading(true)
         try {
-          const fetchedMessages = await getConversationMessages(id)
+          const fetchedMessages = await getConversationMessages(id, session.user.id)
           setMessages(fetchedMessages as Message[])
 
           const userConversations = await getUserConversations(session.user.id)
@@ -75,6 +76,11 @@ export default function ConversationPage ({
           }
         } catch (error) {
           console.error('Failed to fetch conversation data:', error)
+          if (error instanceof Error && error.message.includes('Access denied')) {
+            setError('Vous n\'avez pas accès à cette conversation.')
+          } else {
+            setError('Une erreur est survenue lors du chargement de la conversation.')
+          }
         } finally {
           setLoading(false)
         }
@@ -125,10 +131,10 @@ export default function ConversationPage ({
     )
   }
 
-  if (!conversationDetails) {
+  if (error || !conversationDetails) {
     return (
       <div className='min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]'>
-        <p className='text-white'>Conversation not found or access denied.</p>
+        <p className='text-white'>{error || 'Conversation not found or access denied.'}</p>
         <Link href='/messages' className='text-pink-400 hover:underline mt-2'>
           Back to messages
         </Link>

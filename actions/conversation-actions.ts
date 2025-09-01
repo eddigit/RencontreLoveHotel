@@ -1,28 +1,28 @@
 "use server"
 
 import { sql } from "@/lib/db"
+import { log } from "../utils/logger"
 import { createNotification } from "@/actions/notification-actions"
 
 export async function getUserConversations(userId: string) {
-  const conversations = await sql`
+  const query = `
     WITH user_conversations AS (
       SELECT
         c.id,
         c.created_at,
         c.updated_at,
-        cp.user_id AS participant_user_id -- We need the other participant's ID here
+        cp.user_id AS participant_user_id
       FROM conversations c
       JOIN conversation_participants cp ON c.id = cp.conversation_id
-      WHERE cp.user_id = ${userId}
+      WHERE cp.user_id = $1
     ),
-    -- Filter these conversations to only include those with an accepted match
     valid_conversations AS (
       SELECT uc.id, uc.created_at, uc.updated_at
       FROM user_conversations uc
-      JOIN conversation_participants cp_other ON uc.id = cp_other.conversation_id AND cp_other.user_id != ${userId}
+      JOIN conversation_participants cp_other ON uc.id = cp_other.conversation_id AND cp_other.user_id != $1
       JOIN user_matches um ON
-        ((um.user_id_1 = ${userId} AND um.user_id_2 = cp_other.user_id) OR
-         (um.user_id_1 = cp_other.user_id AND um.user_id_2 = ${userId}))
+        ((um.user_id_1 = $1 AND um.user_id_2 = cp_other.user_id) OR
+         (um.user_id_1 = cp_other.user_id AND um.user_id_2 = $1))
         AND um.status = 'accepted'
     ),
     last_messages AS (
@@ -33,7 +33,7 @@ export async function getUserConversations(userId: string) {
         m.sender_id,
         ROW_NUMBER() OVER (PARTITION BY m.conversation_id ORDER BY m.created_at DESC) as rn
       FROM messages m
-      JOIN valid_conversations vc ON m.conversation_id = vc.id -- Join with valid_conversations
+      JOIN valid_conversations vc ON m.conversation_id = vc.id
     ),
     conversation_users AS (
       SELECT
@@ -43,8 +43,8 @@ export async function getUserConversations(userId: string) {
         u.avatar
       FROM conversation_participants cp
       JOIN users u ON cp.user_id = u.id
-      WHERE cp.user_id != ${userId}
-        AND cp.conversation_id IN (SELECT id FROM valid_conversations) -- Ensure we only get users for valid conversations
+      WHERE cp.user_id != $1
+        AND cp.conversation_id IN (SELECT id FROM valid_conversations)
     )
     SELECT
       vc.id,
@@ -62,20 +62,30 @@ export async function getUserConversations(userId: string) {
     ORDER BY lm.created_at DESC NULLS LAST
   `
 
+  const conversations = await sql.query(query, [userId])
   return conversations || []
 }
 
-export async function getConversationMessages(conversationId: string) {
-  const messages = await sql`
-    SELECT
-      m.*,
-      u.name as sender_name,
-      u.avatar as sender_avatar
-    FROM messages m
-    JOIN users u ON m.sender_id = u.id
-    WHERE m.conversation_id = ${conversationId}
-    ORDER BY m.created_at ASC
-  `
+export async function getConversationMessages(conversationId: string, userId?: string) {
+  // First, verify that the user is a participant in this conversation
+  if (userId) {
+    const participants = await sql.query(
+      `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+      [conversationId, userId]
+    )
+    const [participant] = participants
+
+    if (!participant) {
+  // Log details to help debugging (conversationId and userId)
+  log('warn', 'Access denied reading conversation', { conversationId, userId })
+  throw new Error('Access denied: You are not a participant in this conversation')
+    }
+  }
+
+  const messages = await sql.query(
+    `SELECT m.*, u.name as sender_name, u.avatar as sender_avatar FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.conversation_id = $1 ORDER BY m.created_at ASC`,
+    [conversationId]
+  )
 
   return messages || []
 }
@@ -85,25 +95,32 @@ export async function sendMessage({ conversationId, senderId, content }: {
   senderId: string;
   content: string;
 }) {
+  // Verify that the sender is a participant in this conversation
+  const participantRows = await sql.query(
+    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    [conversationId, senderId]
+  )
+  const [participant] = participantRows
+
+  if (!participant) {
+  log('warn', 'Access denied sending message', { conversationId, senderId })
+  throw new Error('Access denied: You are not a participant in this conversation')
+  }
+
   // Insert the new message
-  const [newMessage] = await sql`
-    INSERT INTO messages (conversation_id, sender_id, content, read)
-    VALUES (${conversationId}, ${senderId}, ${content}, false)
-    RETURNING *;
-  `
+  const [newMessage] = await sql.query(
+    `INSERT INTO messages (conversation_id, sender_id, content, read) VALUES ($1, $2, $3, false) RETURNING *;`,
+    [conversationId, senderId, content]
+  )
 
   // Update the conversation's updated_at timestamp
-  await sql`
-    UPDATE conversations
-    SET updated_at = CURRENT_TIMESTAMP
-    WHERE id = ${conversationId};
-  `
+  await sql.query(`UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1;`, [conversationId])
 
   // Notify all recipients except the sender
-  const recipients = await sql`
-    SELECT user_id FROM conversation_participants
-    WHERE conversation_id = ${conversationId} AND user_id != ${senderId}
-  `
+  const recipients = await sql.query(
+    `SELECT user_id FROM conversation_participants WHERE conversation_id = $1 AND user_id != $2`,
+    [conversationId, senderId]
+  )
   for (const recipient of recipients) {
     await createNotification({
       userId: recipient.user_id,
@@ -119,29 +136,24 @@ export async function sendMessage({ conversationId, senderId, content }: {
 
 export async function findOrCreateConversation(userId1: string, userId2: string) {
   // Check if a conversation already exists between the two users
-  const [existingConversation] = await sql`
-    SELECT c.id
-    FROM conversations c
-    JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
-    JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
-    WHERE cp1.user_id = ${userId1} AND cp2.user_id = ${userId2}
-       OR cp1.user_id = ${userId2} AND cp2.user_id = ${userId1};
-  `
+  const existingRows = await sql.query(
+    `SELECT c.id FROM conversations c JOIN conversation_participants cp1 ON c.id = cp1.conversation_id JOIN conversation_participants cp2 ON c.id = cp2.conversation_id WHERE (cp1.user_id = $1 AND cp2.user_id = $2) OR (cp1.user_id = $2 AND cp2.user_id = $1);`,
+    [userId1, userId2]
+  )
+  const [existingConversation] = existingRows
 
   if (existingConversation) {
     return existingConversation.id;
   }
 
   // If not, create a new conversation
-  const [newConversation] = await sql`
-    INSERT INTO conversations DEFAULT VALUES RETURNING id;
-  `
+  const [newConversation] = await sql.query(`INSERT INTO conversations DEFAULT VALUES RETURNING id;`)
 
   // Add participants to the new conversation
-  await sql`
-    INSERT INTO conversation_participants (conversation_id, user_id)
-    VALUES (${newConversation.id}, ${userId1}), (${newConversation.id}, ${userId2});
-  `
+  await sql.query(
+    `INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2), ($1, $3);`,
+    [newConversation.id, userId1, userId2]
+  )
 
   return newConversation.id;
 }
