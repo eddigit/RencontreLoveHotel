@@ -30,10 +30,10 @@ export const authOptions: NextAuthOptions = {
         // Use your existing user-service to verify credentials
         const user = await verifyUserCredentials(credentials.email, credentials.password)
         if (user) {
-          // Enforce email verification
-          if (user.email_verified !== true) {
-            return null
-          }
+          // Temporarily disabled email verification check to restore login access
+          // if (user.email_verified !== true) {
+          //   return null
+          // }
           // user object from verifyUserCredentials includes onboarding_completed
           return {
             id: user.id,
