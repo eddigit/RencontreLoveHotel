@@ -51,6 +51,13 @@ export default async function ProfilePage ({
   // Properly await the params object
   const { id } = await params
 
+  // Validate that id is a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!id || !uuidRegex.test(id)) {
+    console.error('Invalid user ID format:', id)
+    notFound()
+  }
+
   // Fetch user profile by ID
   const userProfileData = await getUserProfile(id)
   if (!userProfileData || !userProfileData.user) {

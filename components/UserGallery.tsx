@@ -14,13 +14,42 @@ export function UserGallery ({ userId }: { userId: string }) {
   const [viewerIndex, setViewerIndex] = useState(0)
 
   useEffect(() => {
-    async function fetchPhotos () {
-      setLoading(true)
-      const res = await fetch(`/api/photos/list?userId=${userId}`)
-      const data = await res.json()
-      setPhotos(data.photos || [])
-      setLoading(false)
+    const fetchPhotos = async () => {
+      try {
+        // Vérifier que userId est un UUID valide
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        if (!userId || !uuidRegex.test(userId)) {
+          console.error('Invalid userId format:', userId)
+          setPhotos([])
+          setLoading(false)
+          return
+        }
+
+        const response = await fetch(`/api/photos/list?userId=${userId}`)
+        
+        if (!response.ok) {
+          console.error('API response error:', response.status, response.statusText)
+          setPhotos([])
+          setLoading(false)
+          return
+        }
+
+        const data = await response.json()
+        
+        if (data.error) {
+          console.error('API error:', data.error, data.details)
+          setPhotos([])
+        } else {
+          setPhotos(data.photos || [])
+        }
+      } catch (error) {
+        console.error('Error fetching photos:', error)
+        setPhotos([])
+      } finally {
+        setLoading(false)
+      }
     }
+
     fetchPhotos()
   }, [userId])
 

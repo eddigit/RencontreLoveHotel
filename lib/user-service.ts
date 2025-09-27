@@ -145,7 +145,7 @@ export async function getUserById(id: string): Promise<User | null> {
 export async function getUserByEmail(email: string): Promise<User | null> {
   try {
     const query = `
-      SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      SELECT id, email, name, role, avatar, onboarding_completed, email_verified, created_at, updated_at
       FROM users
       WHERE email = $1
     `
