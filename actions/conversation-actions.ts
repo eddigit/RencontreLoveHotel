@@ -170,7 +170,7 @@ export async function sendMessage({ conversationId, senderId, content }: {
 
   // Insert the new message
   const [newMessage] = await sql.query(
-    `INSERT INTO messages (conversation_id, sender_id, content, read) VALUES ($1, $2, $3, false) RETURNING *;`,
+    `INSERT INTO messages (conversation_id, sender_id, content, is_read) VALUES ($1, $2, $3, false) RETURNING *;`,
     [conversationId, senderId, content]
   )
 

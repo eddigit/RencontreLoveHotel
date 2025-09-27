@@ -182,7 +182,7 @@ async function importConversations(testMode = false) {
 
           // Create message
           await executeQuery(
-            `INSERT INTO messages (conversation_id, sender_id, content, read, created_at, updated_at)
+            `INSERT INTO messages (conversation_id, sender_id, content, is_read, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6)`,
             [
               conversationId,
