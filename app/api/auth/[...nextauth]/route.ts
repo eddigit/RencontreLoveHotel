@@ -29,10 +29,11 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) return null;
         const user = await verifyUserCredentials(credentials.email, credentials.password);
         if (user) {
-          // Vérification souple : autorise si email_verified est true, null ou undefined (bloque seulement si === false)
-          if (user.email_verified === false) {
-            return null;
-          }
+          // TEMPORAIRE : Désactivation de la vérification email pour permettre la connexion
+          // TODO: Réactiver après avoir corrigé les statuts email_verified en base
+          // if (user.email_verified === false) {
+          //   return null;
+          // }
           return {
             id: user.id,
             name: user.name,
