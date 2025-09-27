@@ -26,6 +26,7 @@ export default function RootLayout ({
     <html lang='fr' suppressHydrationWarning>
       <body
         className={`${inter.className} bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]`}
+        suppressHydrationWarning
       >
         <Providers>
           {children}

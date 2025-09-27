@@ -26,25 +26,23 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
-        // Use your existing user-service to verify credentials
-        const user = await verifyUserCredentials(credentials.email, credentials.password)
+        if (!credentials?.email || !credentials?.password) return null;
+        const user = await verifyUserCredentials(credentials.email, credentials.password);
         if (user) {
-          // Enforce email verification
-          if (user.email_verified !== true) {
-            return null
+          // Vérification souple : autorise si email_verified est true, null ou undefined (bloque seulement si === false)
+          if (user.email_verified === false) {
+            return null;
           }
-          // user object from verifyUserCredentials includes onboarding_completed
           return {
             id: user.id,
             name: user.name,
             email: user.email,
             avatar: user.avatar,
             role: user.role,
-            onboarding_completed: user.onboarding_completed, // Pass it through
-          }
+            onboarding_completed: user.onboarding_completed,
+          };
         }
-        return null
+        return null;
       },
     }),
   ],
