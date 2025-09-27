@@ -62,7 +62,8 @@ export const sql = createSqlProxy()
 export async function executeQuery<T = any>(query: string, params: any[] = []): Promise<T> {
   try {
     const s = initSql()
-    const rows = await s(query, params)
+    // Utiliser sql.query() pour les requêtes avec paramètres
+    const rows = await s.query(query, params)
     return rows as T
   } catch (error) {
     console.error("Erreur lors de l'exécution de la requête SQL:", error)

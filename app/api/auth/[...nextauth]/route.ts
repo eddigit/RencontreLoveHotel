@@ -7,8 +7,8 @@ import { verifyUserCredentials, getUserById, getOrCreateOAuthUser, getUserByEmai
 export const authOptions: NextAuthOptions = {
   // Configuration explicite pour la production
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
-  // URL explicite pour éviter les problèmes de redirection
-  url: process.env.NEXTAUTH_URL || "https://rencontrelovehotel.com",
+  // URL adaptée selon l'environnement
+  url: process.env.NEXTAUTH_URL || (process.env.NODE_ENV === "development" ? "http://localhost:3000" : "https://rencontrelovehotel.com"),
   // Configuration de debug pour la production
   debug: process.env.NODE_ENV === "development",
   providers: [
