@@ -5,6 +5,12 @@ import FacebookProvider from "next-auth/providers/facebook"
 import { verifyUserCredentials, getUserById, getOrCreateOAuthUser, getUserByEmail } from "@/lib/user-service" // Added getUserById and getUserByEmail
 
 export const authOptions: NextAuthOptions = {
+  // Configuration explicite pour la production
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  // URL explicite pour éviter les problèmes de redirection
+  url: process.env.NEXTAUTH_URL || "https://rencontrelovehotel.com",
+  // Configuration de debug pour la production
+  debug: process.env.NODE_ENV === "development",
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -20,30 +26,37 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
     }),
     CredentialsProvider({
-      name: "Credentials",
+      id: "credentials", // ID explicite pour éviter les conflits
+      name: "credentials", // Nom en minuscules pour la compatibilité
+      type: "credentials", // Type explicite
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null;
-        const user = await verifyUserCredentials(credentials.email, credentials.password);
-        if (user) {
-          // TEMPORAIRE : Désactivation de la vérification email pour permettre la connexion
-          // TODO: Réactiver après avoir corrigé les statuts email_verified en base
-          // if (user.email_verified === false) {
-          //   return null;
-          // }
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            avatar: user.avatar,
-            role: user.role,
-            onboarding_completed: user.onboarding_completed,
-          };
+        try {
+          if (!credentials?.email || !credentials?.password) return null;
+          const user = await verifyUserCredentials(credentials.email, credentials.password);
+          if (user) {
+            // TEMPORAIRE : Désactivation de la vérification email pour permettre la connexion
+            // TODO: Réactiver après avoir corrigé les statuts email_verified en base
+            // if (user.email_verified === false) {
+            //   return null;
+            // }
+            return {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              avatar: user.avatar,
+              role: user.role,
+              onboarding_completed: user.onboarding_completed,
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error("Erreur dans authorize:", error);
+          return null;
         }
-        return null;
       },
     }),
   ],
