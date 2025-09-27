@@ -78,27 +78,45 @@ export const authOptions: NextAuthOptions = {
       return session
     },
     async jwt({ token, user, account, profile, trigger, session: sessionFromUpdate }) {
-      // Toujours récupérer l'utilisateur depuis la base par email pour obtenir le vrai UUID
-      if (user?.email) {
-        const dbUser = await getUserByEmail(user.email) // <-- FIX: fetch by email, not by id
-        if (dbUser) {
-          token.sub = dbUser.id // Toujours le vrai UUID
-          token.role = dbUser.role
-          token.avatar = dbUser.avatar
-          token.onboardingCompleted = dbUser.onboarding_completed
-          token.email_verified = dbUser.email_verified // Add email_verified to JWT
+      try {
+        // Toujours récupérer l'utilisateur depuis la base par email pour obtenir le vrai UUID
+        if (user?.email) {
+          const dbUser = await getUserByEmail(user.email) // <-- FIX: fetch by email, not by id
+          if (dbUser) {
+            token.sub = dbUser.id // Toujours le vrai UUID
+            token.role = dbUser.role
+            token.avatar = dbUser.avatar
+            token.onboardingCompleted = dbUser.onboarding_completed
+            token.email_verified = dbUser.email_verified // Add email_verified to JWT
+          } else {
+            // Fallback si la DB n'est pas accessible : utiliser les données du user
+            console.warn("Impossible de récupérer l'utilisateur depuis la DB, utilisation des données de base")
+            token.sub = user.id || token.sub
+            token.role = token.role || "user"
+            token.onboardingCompleted = token.onboardingCompleted || false
+            token.email_verified = token.email_verified || true // Assume verified for fallback
+          }
         }
-      }
-      // If session was updated (e.g., by calling useSession().update())
-      // and we want to refresh data from the DB:
-      if (trigger === "update" && token.sub) {
-        const dbUser = await getUserById(token.sub as string)
-        if (dbUser) {
-          token.name = dbUser.name
-          token.role = dbUser.role
-          token.avatar = dbUser.avatar
-          token.onboardingCompleted = dbUser.onboarding_completed
-          token.email_verified = dbUser.email_verified // Add email_verified to JWT
+        // If session was updated (e.g., by calling useSession().update())
+        // and we want to refresh data from the DB:
+        if (trigger === "update" && token.sub) {
+          const dbUser = await getUserById(token.sub as string)
+          if (dbUser) {
+            token.name = dbUser.name
+            token.role = dbUser.role
+            token.avatar = dbUser.avatar
+            token.onboardingCompleted = dbUser.onboarding_completed
+            token.email_verified = dbUser.email_verified // Add email_verified to JWT
+          }
+        }
+      } catch (error) {
+        console.error("Erreur dans le callback JWT:", error)
+        // En cas d'erreur, on garde le token existant ou on utilise des valeurs par défaut
+        if (user) {
+          token.sub = user.id || token.sub
+          token.role = token.role || "user"
+          token.onboardingCompleted = token.onboardingCompleted || false
+          token.email_verified = token.email_verified || true
         }
       }
       return token

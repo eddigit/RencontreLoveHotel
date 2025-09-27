@@ -46,7 +46,10 @@ export default function LoginPage (props: any) {
           description: 'Bienvenue !',
           variant: 'default'
         })
-        router.push('/discover')
+        // Attendre un peu pour que la session soit mise à jour
+        setTimeout(() => {
+          router.push('/discover')
+        }, 100)
       } else {
         toast({
           title: 'Erreur de connexion',
