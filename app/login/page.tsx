@@ -26,13 +26,14 @@ export default function LoginPage (props: any) {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { isLoading } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
     try {
       const result = await signIn('credentials', {
         email,
@@ -59,6 +60,8 @@ export default function LoginPage (props: any) {
         description: "Une erreur s'est produite lors de la connexion",
         variant: 'destructive'
       })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -139,9 +142,9 @@ export default function LoginPage (props: any) {
                   <Button
                     type='submit'
                     className='w-full h-11'
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   >
-                    {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+                    {isSubmitting ? 'Connexion en cours...' : 'Se connecter'}
                   </Button>
                 </form>
 
