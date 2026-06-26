@@ -153,7 +153,7 @@ export default function DiscoverPage () {
     )
   }, [profiles, searchQuery])
 
-  const onlineProfiles = filteredProfiles.filter(profile => profile.online).slice(0, 10)
+  const onlineProfiles = filteredProfiles.filter(profile => profile.online)
   const newProfiles = filteredProfiles.slice(0, 8)
   const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
@@ -229,20 +229,20 @@ export default function DiscoverPage () {
                   <p className='text-xs text-[#94ffc9]'>Profil actif</p>
                 </div>
               </div>
-              <dl className='mt-5 space-y-3 text-sm'>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Profils visibles</dt>
-                  <dd className='font-bold'>{filteredProfiles.length}</dd>
-                </div>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Vos matchs</dt>
-                  <dd className='font-bold'>{matches.length}</dd>
-                </div>
-                <div className='flex justify-between'>
-                  <dt className='text-white/58'>Événements</dt>
-                  <dd className='font-bold'>{events.length}</dd>
-                </div>
-              </dl>
+              <div className='mt-5 space-y-3 text-sm'>
+                <Link href='#new-profiles' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
+                  <span className='text-white/58'>Profils visibles</span>
+                  <span className='font-bold'>{filteredProfiles.length}</span>
+                </Link>
+                <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
+                  <span className='text-white/58'>Vos matchs</span>
+                  <span className='font-bold'>{matches.length}</span>
+                </Link>
+                <Link href='/events' className='flex justify-between rounded-xl transition hover:bg-white/[0.04]'>
+                  <span className='text-white/58'>Événements</span>
+                  <span className='font-bold'>{events.length}</span>
+                </Link>
+              </div>
             </div>
 
             <CommunityFeedbackWidget />
@@ -250,21 +250,21 @@ export default function DiscoverPage () {
 
           <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
             <div className='grid gap-3 md:grid-cols-3'>
-              <div className='rounded-2xl border border-white/10 bg-white/[0.05] p-4'>
+              <Link href='#online-now' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
                 <div className='text-2xl font-black'>{onlineProfiles.length}</div>
                 <div className='text-sm text-white/56'>En ligne maintenant</div>
-              </div>
-              <div className='rounded-2xl border border-white/10 bg-white/[0.05] p-4'>
+              </Link>
+              <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>
                 <Heart className='mb-3 h-5 w-5 text-[#ff8cc8]' />
                 <div className='text-2xl font-black'>{matches.length}</div>
                 <div className='text-sm text-white/56'>Vos matchs</div>
-              </div>
-              <div className='rounded-2xl border border-white/10 bg-white/[0.05] p-4'>
+              </Link>
+              <Link href='/events' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ffd166]/45 hover:bg-white/[0.075]'>
                 <CalendarHeart className='mb-3 h-5 w-5 text-[#ffd166]' />
                 <div className='text-2xl font-black'>{events.length}</div>
                 <div className='text-sm text-white/56'>Événements à venir</div>
-              </div>
+              </Link>
             </div>
 
             <div className='relative'>
@@ -284,18 +284,22 @@ export default function DiscoverPage () {
               </div>
             )}
 
-            <section className='rounded-2xl border border-white/10 bg-black/16 p-4'>
+            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
               <div className='mb-4 flex items-center justify-between gap-3'>
                 <div>
                   <h2 className='text-xl font-black'>En ligne maintenant</h2>
-                  <p className='text-sm text-white/56'>Des membres disponibles pour échanger tout de suite.</p>
+                  <p className='text-sm text-white/56'>
+                    {onlineProfiles.length > 0
+                      ? 'Des membres disponibles pour échanger tout de suite.'
+                      : 'Aucun membre vu dans les dernières minutes.'}
+                  </p>
                 </div>
                 <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
                   <Link href='/messages'>Messages</Link>
                 </Button>
               </div>
               <div className='flex gap-3 overflow-x-auto pb-2'>
-                {(onlineProfiles.length ? onlineProfiles : newProfiles).slice(0, 10).map((profile, index) => (
+                {onlineProfiles.map((profile, index) => (
                   <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
                     <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
@@ -370,7 +374,7 @@ export default function DiscoverPage () {
               </div>
             </section>
 
-            <section>
+            <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-center justify-between'>
                 <h2 className='text-xl font-black'>Nouveaux profils</h2>
                 <span className='text-sm text-white/52'>{loading ? 'Actualisation...' : `${newProfiles.length} profils`}</span>
@@ -565,7 +569,10 @@ export default function DiscoverPage () {
                 <UsersRound className='h-5 w-5 text-[#94ffc9]' />
               </div>
               <div className='space-y-3'>
-                {(onlineProfiles.length ? onlineProfiles : newProfiles).slice(0, 6).map(profile => (
+                {onlineProfiles.length === 0 && (
+                  <p className='text-sm text-white/58'>Aucun membre vu récemment.</p>
+                )}
+                {onlineProfiles.slice(0, 6).map(profile => (
                   <Link key={profile.id} href={`/profile/${profile.id}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
                     <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}

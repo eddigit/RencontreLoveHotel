@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { SessionProvider } from "next-auth/react"
 import { LoolyyBWidget } from "@/components/loolyyb-widget"
 import { NoSSR } from "@/components/no-ssr"
+import { PresenceHeartbeat } from "@/components/presence-heartbeat"
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -12,6 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
         <SessionProvider>
           <AuthProvider>
+            <PresenceHeartbeat />
             <NotificationProvider>
               {children}
               <LoolyyBWidget />

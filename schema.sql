@@ -26,8 +26,10 @@ CREATE TABLE users
     -- Added for password reset token expiry
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Made nullable
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Made nullable
+    last_seen_at TIMESTAMPTZ NULL
+    -- Last authenticated activity for online presence
 );
 
 -- Table des profils utilisateurs

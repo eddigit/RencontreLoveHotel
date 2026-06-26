@@ -1,0 +1,2 @@
+export const ONLINE_USER_WINDOW_MINUTES = 10
+export const PRESENCE_HEARTBEAT_MS = 60_000

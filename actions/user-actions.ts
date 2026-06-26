@@ -5,6 +5,11 @@ import { calculateMatchScore } from "@/utils/matching-algorithm"
 import { createNotification } from "@/actions/notification-actions"
 import { FilterOptions } from "@/components/advanced-filters";
 import type { UserProfile } from "@/utils/matching-algorithm"
+import {
+  ensurePresenceSchema,
+  isUserRecentlySeen,
+  onlinePresenceCondition
+} from "@/lib/presence"
 import { requireAdmin, requireSameUserOrAdmin } from "@/lib/server-auth"
 
 export async function getUserProfile(userId: string) {
@@ -54,7 +59,7 @@ function buildMatchingProfile(profile: any): UserProfile | null {
     age: Number(profile.user.age || 0),
     location: profile.user.location || '',
     image: profile.user.avatar || '',
-    online: true,
+    online: isUserRecentlySeen(profile.user.last_seen_at),
     featured: Boolean(profile.user.featured),
     preferences: {
       status: profile.user.status,
@@ -117,6 +122,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
   let currentUserProfileGender: string | undefined;
   let currentUserProfileOrientation: string | undefined;
+  const hasPresenceColumn = await ensurePresenceSchema();
+  const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at';
+  const onlineCondition = onlinePresenceCondition(presenceColumn);
   // console.log(`[getDiscoverProfiles] Initializing currentUserProfileGender and currentUserProfileOrientation.`);
 
   try {
@@ -218,6 +226,11 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   }
 
   if (filters) {
+    // Age Range Filter
+    if (filters.onlineOnly) {
+      whereClauses.push(onlineCondition);
+    }
+
     // Age Range Filter
     if (filters.ageRange) {
       // console.log(`[getDiscoverProfiles] Applying ageRange filter: ${filters.ageRange[0]} - ${filters.ageRange[1]}`);
@@ -332,12 +345,14 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       umt_filter.libertine,
       umt_filter.open_to_other_couples,
       umt_filter.specific_preferences,
-      true as online,
+      ${hasPresenceColumn ? 'u.last_seen_at,' : 'NULL as last_seen_at,'}
+      ${onlineCondition} as online,
       false as featured,
       (SELECT COUNT(*) FROM user_matches WHERE (user_id_1 = u.id OR user_id_2 = u.id) AND status = 'accepted') as match_count
     ${baseFromClause}
     ${whereCondition}
     ORDER BY
+      (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
       (CASE WHEN u.avatar IS NOT NULL AND u.avatar != '' THEN 1 ELSE 0 END) DESC,
       match_count DESC,
       u.created_at DESC
@@ -382,7 +397,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         age: Number(profile.age || 0),
         location: profile.location || '',
         image: profile.image || '',
-        online: true,
+        online: Boolean(profile.online),
         featured: Boolean(profile.featured),
         preferences: preferences as UserProfile['preferences']
       };
