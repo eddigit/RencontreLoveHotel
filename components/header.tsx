@@ -38,8 +38,15 @@ export function Header ({ session, user }: HeaderProps) {
     pathname === '/login' ||
     pathname === '/register' ||
     pathname === '/rencontres' ||
+    pathname === '/conciergerie' ||
     pathname === '/en-direct' ||
-    pathname === '/premium'
+    pathname === '/premium' ||
+    pathname === '/discover' ||
+    pathname === '/messages' ||
+    pathname.startsWith('/messages/') ||
+    pathname === '/matches' ||
+    pathname === '/profile' ||
+    pathname.startsWith('/profile/')
 
   if (isPresentationPage) {
     return null
@@ -57,13 +64,12 @@ export function Header ({ session, user }: HeaderProps) {
   return (
     <>
       <header className='border-b border-purple-800/30 sticky top-0 z-40 bg-[#1a0d2e]/95 backdrop-blur-md'>
-        <div className='container flex items-center justify-between h-16'>
+        <div className='w-full px-4 sm:px-5 lg:px-6 flex h-16 items-center justify-between'>
           <Link
             href={isLoggedIn ? '/discover' : '/'}
-            className='flex items-center gap-2 z-10'
+            className='z-10'
           >
-            <Heart className='h-5 w-5 text-[#ff3b8b]' />
-            <span className='font-bold text-lg'>Love Hotel</span>
+            <span className='font-bold text-lg'>Love Hotel rencontre</span>
           </Link>
           {isLoggedIn ? (
             <>
@@ -86,13 +92,13 @@ export function Header ({ session, user }: HeaderProps) {
                     Événements
                   </Button>
                 </Link>
-                <Link href='/love-rooms'>
+                <Link href='/conciergerie'>
                   <Button
                     variant='ghost'
                     size='sm'
-                    className={pathname === '/love-rooms' ? 'text-[#ff3b8b]' : ''}
+                    className={pathname === '/conciergerie' ? 'text-[#ff3b8b]' : ''}
                   >
-                    Escapade
+                    Conciergerie
                   </Button>
                 </Link>
                 <Link href='/messages'>
@@ -300,17 +306,17 @@ export function Header ({ session, user }: HeaderProps) {
                 <span>Événements</span>
               </Link>
               <Link
-                href='/love-rooms'
+                href='/conciergerie'
                 className={cn(
                   'flex items-center gap-3 p-3 rounded-lg',
-                  pathname === '/love-rooms'
+                  pathname === '/conciergerie'
                     ? 'bg-[#ff3b8b]/10 text-[#ff3b8b]'
                     : 'hover:bg-[#2d1155]/50'
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Heart className='h-5 w-5' />
-                <span>Escapade</span>
+                <span>Conciergerie</span>
               </Link>
               <Link
                 href='/messages'
