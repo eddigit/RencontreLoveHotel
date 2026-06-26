@@ -18,6 +18,9 @@ describe('conciergerie workflow', () => {
     const form = readFileSync('components/ConciergerieForm.tsx', 'utf8')
 
     expect(form).toContain('Conciergerie coquine')
+    expect(form).toContain('/conciergerie-service.jpg')
+    expect(form).toContain('Conciergerie privée Love Hotel')
+    expect(form).not.toContain('/images/conciergerie-service.jpg')
     expect(form).toContain('Choisissez le point de départ')
     expect(form).toContain("responsePreference: 'email'")
     expect(form).toContain('venuePreference')
@@ -37,14 +40,21 @@ describe('conciergerie workflow', () => {
     const header = readFileSync('components/header.tsx', 'utf8')
     const shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
     const page = readFileSync('app/conciergerie/page.tsx', 'utf8')
+    const discover = readFileSync('app/discover/page.tsx', 'utf8')
 
     expect(header).toContain("href='/conciergerie'")
     expect(header).toContain('Conciergerie')
     expect(header).not.toContain('Escapade')
     expect(shell).toContain("href: '/conciergerie'")
     expect(page).toContain('Conciergerie coquine')
+    expect(page).toContain('/conciergerie-service.jpg')
+    expect(page).toContain('Conciergerie privée Love Hotel')
+    expect(page).not.toContain('/images/conciergerie-service.jpg')
     expect(page).toContain('Faire une demande')
     expect(page).toContain('ConciergerieForm')
+    expect(discover).toContain('/conciergerie-service.jpg')
+    expect(discover).toContain('Soirée sur mesure')
+    expect(discover).not.toContain('/images/conciergerie-service.jpg')
   })
 
   it('surfaces the preferred response channel in the admin concierge backend', () => {

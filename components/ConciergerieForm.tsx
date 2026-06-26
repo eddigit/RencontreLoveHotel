@@ -11,6 +11,8 @@ import {
 const inputClass =
   'w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-white placeholder:text-white/45 outline-none transition focus:border-[#ff4fa3] focus:ring-2 focus:ring-[#ff4fa3]/30'
 
+const conciergerieImageUrl = '/conciergerie-service.jpg'
+
 const requestTypes = [
   {
     value: 'custom_evening',
@@ -134,8 +136,8 @@ export default function ConciergerieForm() {
       <div className='grid w-full gap-6 overflow-hidden rounded-3xl border border-white/15 bg-[#26002f]/80 shadow-2xl lg:grid-cols-[0.9fr_1.1fr]'>
         <div className='relative min-h-[360px] overflow-hidden bg-[#130018]'>
           <img
-            src='https://res.cloudinary.com/dniurvpzd/image/upload/v1781270530/ChatGPT_Image_12_juin_2026_15_21_00_a4k94d.png'
-            alt='Ambiance rideaux ouverts Love Hotel'
+            src={conciergerieImageUrl}
+            alt='Conciergerie privée Love Hotel'
             className='absolute inset-0 h-full w-full object-cover opacity-75'
           />
           <div className='absolute inset-0 bg-gradient-to-t from-[#18001e] via-[#18001e]/40 to-transparent' />

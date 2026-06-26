@@ -37,6 +37,8 @@ const possibilities = [
   }
 ]
 
+const conciergerieImageUrl = '/conciergerie-service.jpg'
+
 export default async function ConciergeriePage() {
   const session = await getServerSession(authOptions)
   const user = session?.user
@@ -60,8 +62,8 @@ export default async function ConciergeriePage() {
               <div className='grid min-h-[430px] lg:grid-cols-[0.95fr_1.05fr]'>
                 <div className='relative min-h-[320px] overflow-hidden'>
                   <img
-                    src='https://res.cloudinary.com/dniurvpzd/image/upload/v1781270530/ChatGPT_Image_12_juin_2026_15_21_00_a4k94d.png'
-                    alt='Rideaux ouverts Love Hotel'
+                    src={conciergerieImageUrl}
+                    alt='Conciergerie privée Love Hotel'
                     className='absolute inset-0 h-full w-full object-cover'
                   />
                   <div className='absolute inset-0 bg-gradient-to-t from-[#16031f] via-[#16031f]/28 to-transparent' />
