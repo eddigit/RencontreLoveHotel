@@ -3,7 +3,7 @@ config({ path: '.env.local' });
 
 import fs from 'fs';
 import path from 'path';
-import { executeQuery } from './db.ts';
+import { executeQuery } from './db';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 

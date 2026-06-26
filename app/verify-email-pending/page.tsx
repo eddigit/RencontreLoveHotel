@@ -23,12 +23,12 @@ export default function VerifyEmailPendingPage () {
       })
       const data = await res.json()
       if (data.success) {
-        setMessage('Un nouvel email de vérification a été envoyé.')
+        setMessage('Votre demande a été prise en compte.')
       } else {
-        setMessage(data.error || "Erreur lors de l'envoi de l'email.")
+        setMessage(data.error || "L'envoi automatique de vérification est désactivé.")
       }
     } catch (e) {
-      setMessage("Erreur lors de l'envoi de l'email.")
+      setMessage("L'envoi automatique de vérification est désactivé.")
     }
     setLoading(false)
   }
@@ -41,16 +41,16 @@ export default function VerifyEmailPendingPage () {
             Vérification de l'email requise
           </h1>
           <p className='mb-4 text-purple-200'>
-            Un e-mail de vérification vient de vous être envoyé à <b>{email}</b>
-            .<br />
-            Merci de vérifier votre boîte de réception.
+            Les emails automatiques de vérification sont désactivés sur cette
+            version. Les nouveaux comptes email/mot de passe sont activés
+            directement.
           </p>
           <Button
             onClick={handleResend}
             disabled={loading}
             className='w-full mb-2'
           >
-            {loading ? 'Envoi...' : "Renvoyer l'email de vérification"}
+            {loading ? 'Contrôle...' : 'Contrôler le statut'}
           </Button>
           {message && <div className='text-purple-100 mt-2'>{message}</div>}
         </div>

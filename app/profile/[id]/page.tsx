@@ -1,38 +1,25 @@
-import {
-  getUserProfile,
-  getMatchStatus,
-  sendMatchRequest,
-  acceptMatchRequest,
-  declineMatchRequest
-} from '@/actions/user-actions'
-import { notFound } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import {
-  Calendar,
-  Heart,
-  MapPin,
-  MessageCircle,
-  Share2,
-  Star,
-  Users
-} from 'lucide-react'
 import Image from 'next/image'
-import { MobileNavigation } from '@/components/mobile-navigation'
-import { Button } from '@/components/ui/button'
-import { ProfileMessageForm } from '@/components/profile-message-form'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { MatchRequestButton } from '@/components/match-request-button'
-import MainLayout from '@/components/layout/main-layout'
-import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { findOrCreateConversation } from '@/actions/conversation-actions'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth/next'
+import { ArrowLeft, CalendarHeart, Heart, MapPin, MessageCircle, Sparkles, Wine } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import MainLayout from '@/components/layout/main-layout'
+import { MobileNavigation } from '@/components/mobile-navigation'
+import { MatchRequestButton } from '@/components/match-request-button'
+import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
+import { authOptions } from '@/lib/auth'
+import {
+  acceptMatchRequest,
+  declineMatchRequest,
+  getMatchStatus,
+  getUserProfile
+} from '@/actions/user-actions'
+import { findOrCreateConversation } from '@/actions/conversation-actions'
 
-// Add type for the session user
 type SessionUser = {
   id?: string
   name?: string | null
@@ -43,252 +30,244 @@ type SessionUser = {
   onboardingCompleted?: boolean
 }
 
+function compatibilityFromProfile (profile: any) {
+  const interests = Array.isArray(profile.interests) ? profile.interests.length : 0
+  return Math.min(96, 86 + interests)
+}
+
 export default async function ProfilePage ({
   params
 }: {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }) {
-  // Properly await the params object
   const { id } = await params
-
-  // Validate that id is a valid UUID
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  if (!id || !uuidRegex.test(id)) {
-    console.error('Invalid user ID format:', id)
-    notFound()
-  }
+  if (!id || !uuidRegex.test(id)) notFound()
 
-  // Fetch user profile by ID
   const userProfileData = await getUserProfile(id)
-  if (!userProfileData || !userProfileData.user) {
-    notFound()
-  }
+  if (!userProfileData || !userProfileData.user) notFound()
 
-  const user = userProfileData.user
-  // Use user.user_id for the real user's id, user.profile_id for the profile row's id
-  console.log(
-    '[ProfilePage] params.id:',
-    id,
-    'user.user_id:',
-    user.user_id,
-    'user.profile_id:',
-    user.profile_id
-  )
   const profile = userProfileData.user
-  const preferences = userProfileData.preferences
-  // Use avatar or fallback
-  const avatar = user.avatar || '/placeholder.svg'
-
-  // Format birthday if present
-  let formattedBirthday = ''
-  if (profile.birthday) {
-    try {
-      const date = new Date(profile.birthday)
-      if (!isNaN(date.getTime())) {
-        formattedBirthday = date.toISOString().split('T')[0]
-      } else if (
-        typeof profile.birthday === 'string' &&
-        profile.birthday.match(/^\d{4}-\d{2}-\d{2}$/)
-      ) {
-        formattedBirthday = profile.birthday
-      }
-    } catch {}
-  }
-
-  // Get the current session user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
+  const avatar = profile.avatar || '/elegant-woman-purple-glow.png'
+  const interests = Array.isArray(profile.interests) ? profile.interests : []
+
   let matchStatus: any = null
   let isRequester = false
-  if (currentUser?.id && currentUser.id !== user.user_id) {
-    matchStatus = await getMatchStatus(
-      String(currentUser.id),
-      String(user.user_id)
-    )
+  if (currentUser?.id && currentUser.id !== profile.user_id) {
+    matchStatus = await getMatchStatus(String(currentUser.id), String(profile.user_id))
     isRequester = matchStatus && matchStatus.user_id_1 === currentUser.id
   }
 
+  const canShowActions = currentUser && currentUser.id !== profile.user_id
+
   return (
     <MainLayout session={session} user={currentUser}>
-      <div className='min-h-screen flex flex-col pb-16 md:pb-0'>
-        <div className='relative'>
-          <div className='h-40 md:h-60 w-full bg-gradient-to-r from-[#1a0d2e] to-[#3d1155]'></div>
-          <div className='absolute top-4 left-4 z-10'>
+      <LhrV2Shell
+        user={currentUser}
+        eyebrow='Profil membre'
+        title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
+        subtitle='Une fiche claire pour décider vite : intention, compatibilité, contexte et action.'
+        action={
+          <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
             <Link href='/discover'>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='rounded-full bg-black/20 backdrop-blur-sm text-white'
-              >
-                <ArrowLeft className='h-5 w-5' />
-              </Button>
+              <ArrowLeft className='mr-2 h-4 w-4' />
+              Découvrir
             </Link>
-          </div>
-          <div className='container relative'>
-            <div className='absolute -top-16 md:-top-20 left-1/2 transform -translate-x-1/2 flex flex-col items-center'>
-              <div className='relative'>
-                <div className='w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-background overflow-hidden shadow-lg shadow-purple-900/30'>
-                  <Image
-                    src={avatar}
-                    alt={user.name}
-                    width={160}
-                    height={160}
-                    className='object-cover'
-                  />
+          </Button>
+        }
+      >
+        <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]'>
+          <section className='overflow-hidden rounded-3xl border border-white/10 bg-black/18'>
+            <div className='relative min-h-[640px]'>
+              {avatar.startsWith('http') ? (
+                <img src={avatar} alt={profile.name} className='absolute inset-0 h-full w-full object-cover' />
+              ) : (
+                <Image
+                  src={avatar}
+                  alt={profile.name}
+                  fill
+                  className='object-cover'
+                  sizes='(max-width: 1280px) 100vw, 900px'
+                  priority
+                />
+              )}
+              <div className='absolute inset-0 bg-gradient-to-t from-[#100118] via-[#100118]/58 to-[#100118]/8' />
+
+              <div className='absolute inset-x-0 bottom-0 p-5 sm:p-8'>
+                <div className='mb-4 flex flex-wrap gap-2'>
+                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
+                    <MapPin className='mr-1 h-3.5 w-3.5' />
+                    {profile.location || 'Paris'}
+                  </Badge>
+                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
+                    Disponible ce soir
+                  </Badge>
+                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
+                    Premium
+                  </Badge>
+                </div>
+
+                <h2 className='text-4xl font-black sm:text-6xl'>
+                  {profile.name}
+                  {profile.age ? `, ${profile.age}` : ''}
+                </h2>
+                <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>
+                  {profile.bio ||
+                    'Une personnalité élégante et spontanée. Recherche une rencontre discrète, dans un lieu premium, avec une vraie conversation avant tout.'}
+                </p>
+
+                <div className='mt-6 grid gap-3 sm:grid-cols-3'>
+                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                    <div className='text-3xl font-black'>{compatibilityFromProfile(profile)}%</div>
+                    <div className='text-sm font-bold text-white/72'>compatibilité</div>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                    <div className='text-3xl font-black'>4 km</div>
+                    <div className='text-sm font-bold text-white/72'>distance</div>
+                  </div>
+                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                    <div className='text-3xl font-black'>{interests.length}</div>
+                    <div className='text-sm font-bold text-white/72'>intérêts</div>
+                  </div>
                 </div>
               </div>
-              <h1 className='mt-2 text-2xl font-bold'>
-                {user.name}
-                {profile.age ? `, ${profile.age}` : ''}
-              </h1>
-              <div className='flex items-center gap-1 text-sm text-muted-foreground'>
-                <MapPin className='h-3 w-3' />
-                <span>{profile.location || '-'}</span>
+            </div>
+          </section>
+
+          <aside className='space-y-4'>
+            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <MessageCircle className='h-4 w-4 text-[#94ffc9]' />
+                Message ouvert
+              </h3>
+              <p className='mt-3 text-sm leading-6 text-white/66'>
+                Après match accepté, la conversation devient disponible avec texte, vocaux, images et vidéos.
+              </p>
+            </div>
+
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
+                Intentions
+              </h3>
+              <p className='mt-3 text-sm leading-6 text-white/68'>
+                {profile.bio ||
+                  'Rencontre élégante, lieu discret, ambiance premium, échange avant rendez-vous.'}
+              </p>
+            </div>
+
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='font-black'>Centres d’intérêt</h3>
+              <div className='mt-4 flex flex-wrap gap-2'>
+                {(interests.length ? interests : ['Jacuzzi', 'Cocktails', 'Dîner privé']).map((interest: string) => (
+                  <Badge
+                    key={interest}
+                    className='rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-white'
+                  >
+                    {interest}
+                  </Badge>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-        <div className='container mt-24 md:mt-28 py-6 flex-1'>
-          <Tabs defaultValue='about' className='w-full'>
-            <TabsList className='mb-6'>
-              <TabsTrigger value='about'>À propos</TabsTrigger>
-              <TabsTrigger value='galerie'>Galerie</TabsTrigger>
-            </TabsList>
-            <TabsContent value='about'>
-              <Card className='mb-6 border-0 bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm shadow-lg shadow-purple-900/20'>
-                <CardContent className='p-6'>
-                  <div className='space-y-4'>
-                    <div>
-                      <h3 className='font-semibold mb-1'>À propos de moi</h3>
-                      <p className='text-muted-foreground'>
-                        {profile.bio || ''}
-                      </p>
-                    </div>
-                    <div>
-                      <h3 className='font-semibold mb-2'>Intérêts</h3>
-                      <div className='flex flex-wrap gap-2'>
-                        {(Array.isArray(profile.interests)
-                          ? profile.interests
-                          : []
-                        ).map((interest: string) => (
-                          <Badge
-                            key={interest}
-                            variant='secondary'
-                            className='bg-[#ff3b8b]/20 text-[#ff8cc8] hover:bg-[#ff3b8b]/30'
-                          >
-                            {interest}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    {formattedBirthday && (
-                      <div>
-                        <h3 className='font-semibold mb-2'>
-                          Date de naissance
-                        </h3>
-                        <div className='text-muted-foreground'>
-                          {formattedBirthday}
-                        </div>
-                      </div>
-                    )}
-                    {profile.gender && (
-                      <div>
-                        <h3 className='font-semibold mb-2'>Genre</h3>
-                        <div className='text-muted-foreground'>
-                          {profile.gender}
-                        </div>
-                      </div>
-                    )}
-                    {profile.orientation && (
-                      <div>
-                        <h3 className='font-semibold mb-2'>Orientation</h3>
-                        <div className='text-muted-foreground'>
-                          {profile.orientation}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  {/* Match logic UI */}
-                  {currentUser && currentUser.id !== user.user_id && (
-                    <div className='mt-6'>
-                      {matchStatus === null && (
-                        <MatchRequestButton
-                          currentUserId={String(currentUser.id)}
-                          profileUserId={String(user.user_id)}
-                        />
-                      )}
-                      {matchStatus &&
-                        matchStatus.status === 'pending' &&
-                        isRequester && (
-                          <Button disabled className='bg-gray-400'>
-                            Demande envoyée (en attente)
-                          </Button>
-                        )}
-                      {matchStatus &&
-                        matchStatus.status === 'pending' &&
-                        !isRequester && (
-                          <div className='flex gap-2'>
-                            <form
-                              action={async () => {
-                                'use server'
-                                const accepted = await acceptMatchRequest(
-                                  matchStatus.user_id_1,
-                                  matchStatus.user_id_2
-                                )
-                                if (accepted?.success) {
-                                  const conversationId =
-                                    await findOrCreateConversation(
-                                      matchStatus.user_id_2,
-                                      matchStatus.user_id_1
-                                    )
-                                  if (conversationId) {
-                                    redirect(`/messages/${conversationId}`)
-                                  }
-                                }
-                              }}
-                            >
-                              <Button type='submit' className='bg-green-500'>
-                                Accepter
-                              </Button>
-                            </form>
-                            <form
-                              action={async () => {
-                                'use server'
-                                await declineMatchRequest(
-                                  matchStatus.user_id_1,
-                                  matchStatus.user_id_2
-                                )
-                              }}
-                            >
-                              <Button type='submit' className='bg-red-500'>
-                                Refuser
-                              </Button>
-                            </form>
-                          </div>
-                        )}
-                      {matchStatus && matchStatus.status === 'accepted' && (
-                        <ProfileMessageForm recipientId={user.user_id} />
-                      )}
-                      {matchStatus && matchStatus.status === 'rejected' && (
-                        <span className='text-red-500'>Match refusé</span>
-                      )}
+
+            {canShowActions && (
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+                <h3 className='font-black'>Actions</h3>
+                <div className='mt-4 space-y-3'>
+                  {matchStatus === null && (
+                    <MatchRequestButton
+                      currentUserId={String(currentUser.id)}
+                      profileUserId={String(profile.user_id)}
+                    />
+                  )}
+
+                  {matchStatus && matchStatus.status === 'pending' && isRequester && (
+                    <Button disabled className='w-full rounded-2xl bg-white/16'>
+                      Demande envoyée
+                    </Button>
+                  )}
+
+                  {matchStatus && matchStatus.status === 'pending' && !isRequester && (
+                    <div className='grid gap-2'>
+                      <form
+                        action={async () => {
+                          'use server'
+                          const accepted = await acceptMatchRequest(
+                            matchStatus.user_id_1,
+                            matchStatus.user_id_2
+                          )
+                          if (accepted?.success) {
+                            const conversationId = await findOrCreateConversation(
+                              matchStatus.user_id_2,
+                              matchStatus.user_id_1
+                            )
+                            if (conversationId) redirect(`/messages/${conversationId}`)
+                          }
+                        }}
+                      >
+                        <Button type='submit' className='w-full rounded-2xl bg-[#21b56f] hover:bg-[#25c97d]'>
+                          Accepter
+                        </Button>
+                      </form>
+                      <form
+                        action={async () => {
+                          'use server'
+                          await declineMatchRequest(
+                            matchStatus.user_id_1,
+                            matchStatus.user_id_2
+                          )
+                        }}
+                      >
+                        <Button type='submit' variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                          Refuser
+                        </Button>
+                      </form>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value='galerie'>
-              <Card className='mb-6 border-0 bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm shadow-lg shadow-purple-900/20'>
-                <CardContent className='p-6'>
-                  <h3 className='font-semibold mb-4'>Galerie photos</h3>
-                  <UserGallery userId={user.user_id} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+
+                  {matchStatus && matchStatus.status === 'accepted' && (
+                    <ProfileMessageForm recipientId={profile.user_id} />
+                  )}
+
+                  {matchStatus && matchStatus.status === 'rejected' && (
+                    <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>
+                      Match refusé
+                    </div>
+                  )}
+
+                  <div className='grid gap-2'>
+                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                      <Link href='/love-rooms'>
+                        <Wine className='mr-2 h-4 w-4' />
+                        Proposer une Love Room
+                      </Link>
+                    </Button>
+                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                      <Link href='/events'>
+                        <CalendarHeart className='mr-2 h-4 w-4' />
+                        Inviter à un Événement
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <Heart className='h-4 w-4 text-[#ff8cc8]' />
+                Galerie
+              </h3>
+              <div className='mt-4'>
+                <UserGallery userId={profile.user_id} />
+              </div>
+            </div>
+          </aside>
         </div>
         <MobileNavigation />
-      </div>
+      </LhrV2Shell>
     </MainLayout>
   )
 }

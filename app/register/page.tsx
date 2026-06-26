@@ -18,10 +18,11 @@ import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 import { registerUser } from '@/app/actions'
 import MainLayout from '@/components/layout/main-layout'
 
-export default function RegisterPage (props) {
+export default function RegisterPage () {
   const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
@@ -52,10 +53,13 @@ export default function RegisterPage (props) {
       )
 
       if (result.success) {
-        // Rediriger vers la page de vérification email
-        router.push(
-          '/verify-email-pending?email=' + encodeURIComponent(formData.email)
-        )
+        const signInResult = await signIn('credentials', {
+          email: formData.email,
+          password: formData.password,
+          redirect: false
+        })
+
+        router.push(signInResult?.ok ? '/onboarding' : '/login')
       } else {
         // Gérer l'erreur ici (afficher un message, etc.)
         console.error("Erreur lors de l'inscription:", result.error)

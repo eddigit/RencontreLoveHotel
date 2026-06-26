@@ -11,7 +11,7 @@ import { saveUserPreferences } from '@/app/actions'
 import { toast } from '@/components/ui/use-toast'
 import MainLayout from '@/components/layout/main-layout'
 
-export default function OnboardingPage (props) {
+export default function OnboardingPage () {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,7 +41,7 @@ export default function OnboardingPage (props) {
       toast({
         title: 'Profil complété avec succès !',
         description: 'Vos préférences ont été enregistrées.',
-        variant: 'success'
+        variant: 'default'
       })
 
       // Rediriger vers la page de découverte

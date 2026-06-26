@@ -6,7 +6,6 @@ import { getOption } from "@/actions/user-actions";
 
 export async function POST(req: NextRequest) {
   const requestBody = await req.json();
-  console.log("Incoming request body:", requestBody); // Debugging log
 
   const { email } = requestBody;
   if (!email) {
@@ -42,8 +41,7 @@ export async function POST(req: NextRequest) {
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
-    },
-    tls: { rejectUnauthorized: false },
+    }
   });
 
   await transporter.sendMail({

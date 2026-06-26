@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { neon } from '@neondatabase/serverless'
+import { authOptions } from '@/lib/auth'
+import { sql } from '@/lib/db'
 import { put } from '@vercel/blob'
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,6 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
     const countRes = await sql`SELECT COUNT(*) FROM photos WHERE user_id = ${user.id}`
     if (parseInt(countRes[0].count) >= 10) {
       return NextResponse.json({ error: 'Maximum 10 photos autorisées' }, { status: 400 })

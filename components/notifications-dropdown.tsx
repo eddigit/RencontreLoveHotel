@@ -26,6 +26,10 @@ export type Notification = {
   description: string
   time: string
   read: boolean
+  priority?: "low" | "normal" | "high" | "critical"
+  category?: string | null
+  audience?: "user" | "admin"
+  metadata?: Record<string, unknown>
   image?: string
   link?: string
 }
@@ -41,6 +45,9 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
   const router = useRouter()
 
   const unreadCount = notifications.filter((n) => !n.read).length
+  const urgentCount = notifications.filter(
+    (n) => !n.read && (n.priority === "high" || n.priority === "critical")
+  ).length
 
   const handleNotificationClick = (notification: Notification) => {
     if (onMarkAsRead && !notification.read) {
@@ -69,7 +76,7 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
                 className="absolute -top-1 -right-1"
               >
                 <Badge variant="secondary" className="h-5 w-5 flex items-center justify-center p-0 text-xs">
-                  {unreadCount > 9 ? "9+" : unreadCount}
+                  {urgentCount > 0 ? "!" : unreadCount > 9 ? "9+" : unreadCount}
                 </Badge>
               </motion.div>
             )}
@@ -130,7 +137,19 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm">{notification.title}</p>
                       <p className="text-xs text-muted-foreground line-clamp-2">{notification.description}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>{notification.time}</span>
+                        {(notification.priority === "high" || notification.priority === "critical") && (
+                          <span className="rounded-full bg-[#ff3b8b]/15 px-2 py-0.5 text-[#ff7db8]">
+                            {notification.priority}
+                          </span>
+                        )}
+                        {notification.audience === "admin" && (
+                          <span className="rounded-full bg-white/10 px-2 py-0.5">
+                            admin
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </DropdownMenuItem>
                 </motion.div>

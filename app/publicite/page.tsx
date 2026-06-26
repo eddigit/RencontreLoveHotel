@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import MainLayout from "@/components/layout/main-layout"
 
-export default function PublicitePage(props) {
+export default function PublicitePage() {
   // Calculs de visibilité
   const visiteursJour = 1200
   const visiteursParMois = visiteursJour * 30

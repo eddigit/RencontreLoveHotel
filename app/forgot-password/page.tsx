@@ -22,12 +22,6 @@ export default function ForgotPasswordPage () {
     e.preventDefault()
     setIsSubmitting(true)
 
-    console.log('Request payload:', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    }) // Debugging log
-
     try {
       const response = await fetch('/api/account/request-password-reset', {
         method: 'POST',
@@ -84,7 +78,6 @@ export default function ForgotPasswordPage () {
                   placeholder='exemple@email.com'
                   value={email}
                   onChange={e => {
-                    console.log('Email input value:', e.target.value) // Debugging log
                     setEmail(e.target.value)
                   }}
                   required

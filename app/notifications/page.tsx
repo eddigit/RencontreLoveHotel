@@ -335,6 +335,24 @@ function NotificationCard ({
               <p className='text-xs md:text-sm text-muted-foreground line-clamp-2'>
                 {notification.description}
               </p>
+              <div className='mt-2 flex flex-wrap gap-2 text-xs'>
+                {(notification.priority === 'high' ||
+                  notification.priority === 'critical') && (
+                  <span className='rounded-full bg-[#ff3b8b]/15 px-2 py-1 text-[#ff7db8]'>
+                    {notification.priority}
+                  </span>
+                )}
+                {notification.audience === 'admin' && (
+                  <span className='rounded-full bg-white/10 px-2 py-1 text-muted-foreground'>
+                    admin
+                  </span>
+                )}
+                {notification.category && (
+                  <span className='rounded-full bg-white/10 px-2 py-1 text-muted-foreground'>
+                    {notification.category}
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

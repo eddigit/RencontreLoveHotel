@@ -171,7 +171,8 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   }
 
   const isEventFull = participantCount >= event.max_participants
-  const isEventPast = new Date(event.event_date) < new Date()
+  const eventDateTime = new Date(`${String(event.event_date).slice(0, 10)}T${event.event_time || '23:59:59'}`)
+  const isEventPast = Number.isFinite(eventDateTime.getTime()) && eventDateTime < new Date()
 
   if (!user) {
     return null // Évite le flash avant la redirection
@@ -192,7 +193,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
         {/* Image de l'événement */}
         <div className="relative h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
           <img 
-            src={event.image || '/placeholder-event.jpg'} 
+            src={event.image || '/placeholder.svg'}
             alt={event.title}
             className="w-full h-full object-cover"
           />

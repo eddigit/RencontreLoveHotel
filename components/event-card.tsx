@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, MapPin, Users } from 'lucide-react'
+import { Calendar, MapPin, Sparkles, Users } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -19,8 +19,23 @@ interface EventCardProps {
   creatorId?: string
   currentUserId?: string
   isAdmin?: boolean
+  venue?: 'pigalle' | 'chatelet' | string
+  experienceType?: string
+  maxParticipants?: number
+  createdByRole?: string
+  publicationStatus?: string
   onEdit?: () => void
   onDelete?: () => void
+}
+
+const venueLabels: Record<string, string> = {
+  pigalle: 'Pigalle',
+  chatelet: 'Châtelet'
+}
+
+const experienceLabels: Record<string, string> = {
+  jacuzzi: 'Apéro jacuzzi',
+  open_curtains: 'Rideaux ouverts'
 }
 
 export function EventCard ({
@@ -38,11 +53,18 @@ export function EventCard ({
   creatorId,
   currentUserId,
   isAdmin,
+  venue,
+  experienceType,
+  maxParticipants,
+  createdByRole,
+  publicationStatus,
   onEdit,
   onDelete
 }: EventCardProps) {
   const canEdit =
     isAdmin || (creatorId && currentUserId && creatorId === currentUserId)
+  const singlePrice = prix_personne_seule ?? 0
+  const couplePrice = prix_couple ?? 0
   return (
     <Card className='overflow-hidden card-hover border-0 shadow-lg shadow-purple-900/20'>
       <div className='relative h-48 sm:h-56'>
@@ -63,6 +85,29 @@ export function EventCard ({
         </div>
       </div>
       <CardContent className='p-4 space-y-4 bg-gradient-to-br from-[#2d1155]/90 to-[#3d1155]/80'>
+        <div className='flex flex-wrap gap-2 text-xs font-semibold'>
+          {experienceType && (
+            <span className='inline-flex items-center gap-1 rounded-full bg-[#ff3b8b]/18 px-3 py-1 text-[#ff8cc8]'>
+              <Sparkles className='h-3 w-3' />
+              {experienceLabels[experienceType] || 'Format en standby'}
+            </span>
+          )}
+          {venue && (
+            <span className='rounded-full bg-white/10 px-3 py-1 text-white/80'>
+              {venueLabels[venue] || venue}
+            </span>
+          )}
+          {createdByRole === 'member' && (
+            <span className='rounded-full bg-white/10 px-3 py-1 text-white/70'>
+              Communauté
+            </span>
+          )}
+          {publicationStatus === 'published' && (
+            <span className='rounded-full bg-emerald-400/12 px-3 py-1 text-emerald-200'>
+              Publié en bêta
+            </span>
+          )}
+        </div>
         <div className='flex items-center justify-between flex-wrap gap-y-2'>
           <div className='flex items-center gap-1 text-sm text-gray-300'>
             <Calendar className='h-3 w-3 flex-shrink-0' />
@@ -70,16 +115,16 @@ export function EventCard ({
           </div>
           <div className='flex items-center gap-1 text-sm text-gray-300'>
             <Users className='h-3 w-3 flex-shrink-0' />
-            <span>{attendees} participants</span>
+            <span>{attendees}{maxParticipants ? `/${maxParticipants}` : ''} participants</span>
           </div>
         </div>
-        {(prix_personne_seule > 0 || prix_couple > 0) && (
+        {(singlePrice > 0 || couplePrice > 0) && (
           <div className='flex flex-col gap-1 text-pink-300 font-semibold'>
-            {prix_personne_seule > 0 && <span>Pers. seule : {prix_personne_seule}€</span>}
-            {prix_couple > 0 && <span>Couple : {prix_couple}€</span>}
+            {singlePrice > 0 && <span>Pers. seule : {singlePrice}€</span>}
+            {couplePrice > 0 && <span>Couple : {couplePrice}€</span>}
           </div>
         )}
-        {((!prix_personne_seule || prix_personne_seule === 0) && (!prix_couple || prix_couple === 0) && price) && (
+        {singlePrice === 0 && couplePrice === 0 && price && (
           <div className='text-pink-300 font-semibold'>{price}€</div>
         )}
         <Button

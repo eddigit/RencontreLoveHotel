@@ -96,13 +96,21 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
   }
 
   const updateNestedFormData = (parent: string, field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent as keyof OnboardingData],
-        [field]: value,
-      },
-    }))
+    setFormData((prev) => {
+      const currentValue = prev[parent as keyof OnboardingData]
+      const currentObject =
+        typeof currentValue === 'object' && currentValue !== null
+          ? currentValue
+          : {}
+
+      return {
+        ...prev,
+        [parent]: {
+          ...currentObject,
+          [field]: value,
+        },
+      }
+    })
   }
 
   // Modifier la fonction nextStep pour sauvegarder les données dans la base de données à la dernière étape

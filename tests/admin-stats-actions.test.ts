@@ -85,10 +85,23 @@ describe('Admin Stats Actions', () => {
       expect(sql.query).toHaveBeenCalledTimes(17)
     })
 
-    it('should handle database errors gracefully', async () => {
+    it('should return zeroed stats when database queries fail', async () => {
       ;(sql.query as any).mockRejectedValue(new Error('Database error'))
 
-      await expect(getAdminDashboardStats()).rejects.toThrow('Impossible de charger les statistiques')
+      const stats = await getAdminDashboardStats()
+
+      expect(stats.totalUsers).toBe(0)
+      expect(stats.usersToday).toBe(0)
+      expect(stats.totalMessages).toBe(0)
+      expect(stats.totalEvents).toBe(0)
+      expect(stats.totalConversations).toBe(0)
+      expect(stats.usersByGender).toEqual({ male: 0, female: 0, couple: 0, other: 0 })
+      expect(stats.recentActivity).toEqual({
+        newUsersToday: 0,
+        messagesLast24h: 0,
+        eventSubscriptionsLast24h: 0,
+        conversationsLast24h: 0
+      })
     })
   })
 

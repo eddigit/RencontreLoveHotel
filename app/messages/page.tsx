@@ -1,25 +1,42 @@
 'use client'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+
+import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MobileNavigation } from '@/components/mobile-navigation'
-import { useNotifications } from '@/contexts/notification-context'
-import { useEffect, useState } from 'react'
-import MainLayout from '@/components/layout/main-layout'
-import { getUserConversations } from '@/actions/conversation-actions'
-import { useSession } from 'next-auth/react'
-import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
+import { MessageCircle, Plus, Search } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import MainLayout from '@/components/layout/main-layout'
+import { MobileNavigation } from '@/components/mobile-navigation'
+import { useAuth } from '@/contexts/auth-context'
+import { useNotifications } from '@/contexts/notification-context'
+import { getUserConversations } from '@/actions/conversation-actions'
 
-// Define a type for our conversation data for better type safety
 interface Conversation {
   id: string
   other_user_name: string
   last_message: string | null
   last_message_date: string | null
   other_user_avatar: string | null
+}
+
+function formatMessageDate (date: Date): string {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
+  const timeString = date.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  if (date >= today) return timeString
+  if (date >= yesterday) return `Hier`
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
 
 export default function MessagesPage () {
@@ -29,24 +46,26 @@ export default function MessagesPage () {
   const { markAsRead } = useNotifications()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Redirect if not logged in
-  if (!authUser?.id) {
-    if (typeof window !== 'undefined') {
-      router.replace('/login')
-    }
-    return null
-  }
+  const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
-    async function fetchConversations () {
-      if (session?.user?.id) {
-        try {
-          setLoading(true)
-          const fetchedConversations = await getUserConversations(
-            session.user.id
-          )
-          const mappedConversations = fetchedConversations.map(conv => ({
+    if (!authUser?.id) router.replace('/login')
+  }, [authUser?.id, router])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function fetchConversations (showLoader = false) {
+      if (!session?.user?.id) return
+
+      try {
+        if (showLoader) setLoading(true)
+        setError(null)
+        const fetchedConversations = await getUserConversations(session.user.id)
+        if (cancelled) return
+        setConversations(
+          fetchedConversations.map((conv: any) => ({
             id: conv.id,
             other_user_name: conv.other_user_name,
             last_message: conv.last_message,
@@ -55,135 +74,200 @@ export default function MessagesPage () {
               : '',
             other_user_avatar: conv.other_user_avatar
           }))
-          setConversations(mappedConversations as Conversation[])
-        } catch (error) {
-          console.error('Failed to fetch conversations:', error)
-        } finally {
-          setLoading(false)
-        }
+        )
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error)
+        if (!cancelled) setError('Impossible de charger vos conversations pour le moment.')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
     }
 
-    if (session) {
-      fetchConversations()
-    }
-  }, [session, markAsRead])
-
-  // Format dates in a user-friendly way
-  function formatMessageDate (date: Date): string {
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const twoDaysAgo = new Date(today)
-    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2)
-
-    const timeString = date.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-
-    if (date >= today) {
-      // Today: just show the time
-      return timeString
-    } else if (date >= yesterday) {
-      // Yesterday: show "Hier à HH:MM"
-      return `Hier à ${timeString}`
-    } else if (date >= twoDaysAgo) {
-      // Two days ago: show "Avant-hier à HH:MM"
-      return `Avant-hier à ${timeString}`
-    } else {
-      // Calculate difference in days, months, and years
-      const daysDiff = Math.floor(
-        (today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
-      )
-      const monthsDiff =
-        (today.getFullYear() - date.getFullYear()) * 12 +
-        today.getMonth() -
-        date.getMonth()
-      const yearsDiff = today.getFullYear() - date.getFullYear()
-
-      if (yearsDiff >= 1) {
-        // More than a year ago: "Il y a # ans"
-        return yearsDiff === 1 ? `Il y a 1 an` : `Il y a ${yearsDiff} ans`
-      } else if (monthsDiff >= 1) {
-        // More than a month ago: "Il y a # mois"
-        return monthsDiff === 1 ? `Il y a 1 mois` : `Il y a ${monthsDiff} mois`
-      } else {
-        // Less than a month ago: "Il y a # jours"
-        return daysDiff === 1 ? `Il y a 1 jour` : `Il y a ${daysDiff} jours`
+    fetchConversations(true)
+    const interval = setInterval(() => {
+      if (document.visibilityState !== 'hidden') {
+        fetchConversations(false)
       }
-    }
-  }
+    }, 8000)
 
-  if (loading && !conversations.length) {
-    return (
-      <MainLayout user={authUser}>
-        <div className='min-h-screen flex flex-col pb-16 md:pb-0 bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]'>
-          <div className='container py-4 md:py-6 flex-1'>
-            <h1 className='text-2xl md:text-3xl font-bold mb-4'>Messages</h1>
-            <p>Loading conversations...</p>
-          </div>
-          <MobileNavigation />
-        </div>
-      </MainLayout>
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [session?.user?.id, markAsRead])
+
+  const filteredConversations = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    if (!query) return conversations
+    return conversations.filter(conversation =>
+      conversation.other_user_name?.toLowerCase().includes(query) ||
+      conversation.last_message?.toLowerCase().includes(query)
     )
-  }
+  }, [conversations, search])
+
+  if (!authUser?.id) return null
+
+  const activeConversation = filteredConversations[0]
 
   return (
     <MainLayout user={authUser}>
-      <div className='min-h-screen flex flex-col pb-16 md:pb-0 bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]'>
-        <div className='container py-4 md:py-6 flex-1'>
-          <h1 className='text-2xl md:text-3xl font-bold mb-4'>Messages</h1>
+      <LhrV2Shell
+        user={authUser}
+        eyebrow='Messagerie V2'
+        title='Messages'
+        subtitle='Une messagerie claire, stable et présentable pour un produit de rencontre moderne.'
+        action={
+          <Button className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
+            <Plus className='mr-2 h-4 w-4' />
+            Nouveau message
+          </Button>
+        }
+      >
+        <div className='grid min-h-[680px] overflow-hidden rounded-2xl border border-white/10 bg-black/16 lg:grid-cols-[360px_minmax(0,1fr)_300px]'>
+          <section className='border-b border-white/10 p-4 lg:border-b-0 lg:border-r'>
+            <div className='relative mb-4'>
+              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/38' />
+              <Input
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                placeholder='Rechercher une conversation'
+                className='h-12 rounded-2xl border-white/10 bg-white/[0.06] pl-11 text-white placeholder:text-white/38'
+              />
+            </div>
 
-          <div className='relative mb-4 md:mb-6'>
-            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground' />
-            <Input
-              placeholder='Rechercher dans les messages'
-              className='pl-10 bg-[#2d1155]/50 border-purple-800/30 focus:border-[#ff3b8b]'
-            />
-          </div>
+            {loading && (
+              <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/62'>
+                Chargement des conversations...
+              </div>
+            )}
 
-          <div className='space-y-2'>
-            {conversations.map(conversation => (
-              <Link href={`/messages/${conversation.id}`} key={conversation.id}>
-                <Card className='hover:bg-[#2d1155]/70 transition-colors card-hover border-0 bg-[#2d1155]/50 backdrop-blur-sm shadow-lg shadow-purple-900/20'>
-                  <CardContent className='p-3 md:p-4 flex items-center gap-3 md:gap-4'>
-                    <div className='relative flex-shrink-0'>
+            {error && (
+              <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100'>
+                {error}
+              </div>
+            )}
+
+            {!loading && !error && filteredConversations.length === 0 && (
+              <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center'>
+                <MessageCircle className='mx-auto h-8 w-8 text-white/38' />
+                <h2 className='mt-3 font-bold'>Aucune conversation</h2>
+                <p className='mt-2 text-sm text-white/56'>
+                  Vos conversations apparaîtront ici après un match accepté.
+                </p>
+              </div>
+            )}
+
+            <div className='space-y-2'>
+              {filteredConversations.map((conversation, index) => (
+                <Link
+                  href={`/messages/${conversation.id}`}
+                  key={conversation.id}
+                  className={[
+                    'flex items-center gap-3 rounded-2xl p-3 transition hover:bg-white/8',
+                    index === 0 ? 'bg-white/10' : 'bg-transparent'
+                  ].join(' ')}
+                >
+                  <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                    <Image
+                      src={conversation.other_user_avatar || '/purple-haze-chat.png'}
+                      alt={conversation.other_user_name || 'Profil'}
+                      fill
+                      className='object-cover'
+                      sizes='56px'
+                    />
+                  </div>
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex items-center justify-between gap-3'>
+                      <h3 className='truncate font-black'>
+                        {conversation.other_user_name}
+                      </h3>
+                      <span className='shrink-0 text-xs font-bold text-white/54'>
+                        {conversation.last_message_date}
+                      </span>
+                    </div>
+                    <p className='mt-1 truncate text-sm text-white/56'>
+                      {conversation.last_message || 'Conversation ouverte'}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+
+          <section className='flex min-h-[520px] flex-col justify-between p-5'>
+            {activeConversation ? (
+              <>
+                <div className='flex items-center justify-between border-b border-white/10 pb-4'>
+                  <div className='flex items-center gap-3'>
+                    <div className='relative h-12 w-12 overflow-hidden rounded-full bg-white/10'>
                       <Image
-                        src={
-                          conversation.other_user_avatar || '/placeholder.svg'
-                        }
-                        alt={conversation.other_user_name || 'User'}
-                        width={50}
-                        height={50}
-                        className='rounded-full object-cover'
+                        src={activeConversation.other_user_avatar || '/purple-haze-chat.png'}
+                        alt={activeConversation.other_user_name}
+                        fill
+                        className='object-cover'
+                        sizes='48px'
                       />
                     </div>
-                    <div className='flex-1 min-w-0'>
-                      <div className='flex items-center justify-between'>
-                        <h3 className='font-semibold truncate'>
-                          {conversation.other_user_name}
-                        </h3>
-                        <span className='text-xs text-muted-foreground ml-2 flex-shrink-0'>
-                          {conversation.last_message_date}
-                        </span>
-                      </div>
-                      <div className='flex items-center justify-between'>
-                        <p className='text-sm text-muted-foreground truncate'>
-                          {conversation.last_message}
-                        </p>
-                      </div>
+                    <div>
+                      <h2 className='font-black'>{activeConversation.other_user_name}</h2>
+                      <p className='text-xs text-[#94ffc9]'>Conversation disponible</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
+                  </div>
+                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
+                    <Link href={`/messages/${activeConversation.id}`}>Ouvrir</Link>
+                  </Button>
+                </div>
 
+                <div className='mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 py-8'>
+                  <div className='max-w-[78%] rounded-2xl rounded-bl-md bg-white/10 p-4 text-sm leading-6'>
+                    {activeConversation.last_message ||
+                      'Ouvrez cette conversation pour reprendre l’échange.'}
+                  </div>
+                  <div className='ml-auto max-w-[78%] rounded-2xl rounded-br-md bg-[#ff4fa3] p-4 text-sm leading-6'>
+                    La conversation complète est prête dans l’écran dédié.
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className='flex h-full flex-col items-center justify-center text-center'>
+                <MessageCircle className='h-10 w-10 text-white/32' />
+                <h2 className='mt-4 text-xl font-black'>Sélectionnez une conversation</h2>
+                <p className='mt-2 max-w-sm text-sm leading-6 text-white/56'>
+                  La messagerie V2 mettra ici les échanges, les états d’envoi et le contexte relationnel.
+                </p>
+              </div>
+            )}
+          </section>
+
+          <aside className='border-t border-white/10 p-5 lg:border-l lg:border-t-0'>
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='font-black'>Contexte relation</h3>
+              <dl className='mt-4 space-y-3 text-sm'>
+                <div className='flex justify-between border-b border-white/8 pb-3'>
+                  <dt className='text-white/58'>Conversations</dt>
+                  <dd className='font-bold'>{conversations.length}</dd>
+                </div>
+                <div className='flex justify-between border-b border-white/8 pb-3'>
+                  <dt className='text-white/58'>Statut</dt>
+                  <dd className='font-bold'>stable</dd>
+                </div>
+                <div className='flex justify-between'>
+                  <dt className='text-white/58'>Version</dt>
+                  <dd className='font-bold'>V2</dd>
+                </div>
+              </dl>
+            </div>
+            <div className='mt-4 rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='font-black'>Architecture cible</h3>
+              <p className='mt-3 text-sm leading-6 text-white/62'>
+                API messages, service métier, repository SQL, lecture par participant,
+                erreurs explicites et états d’envoi visibles.
+              </p>
+            </div>
+          </aside>
+        </div>
         <MobileNavigation />
-      </div>
+      </LhrV2Shell>
     </MainLayout>
   )
 }

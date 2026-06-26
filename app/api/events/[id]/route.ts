@@ -3,11 +3,12 @@ import { sql } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Validation de l'ID (UUID)
-    const eventId = params.id
+    const { id } = await params
+    const eventId = id
     if (!eventId || typeof eventId !== 'string') {
       return NextResponse.json({ error: 'ID événement invalide' }, { status: 400 })
     }

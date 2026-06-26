@@ -1,0 +1,66 @@
+name: pod-lhr
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: pod-lhr-postgres
+    environment:
+      POSTGRES_USER: lhr_app
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: lhr
+    volumes:
+      - pod-lhr-pg-data:/var/lib/postgresql/data
+      - ./secrets/postgres_password:/run/secrets/postgres_password:ro
+    networks:
+      - pod-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lhr_app -d lhr"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ENABLE_OAUTH: "true"
+        NEXT_PUBLIC_BASE_URL: "https://rencontrelovehotel.com"
+        NEXT_PUBLIC_APP_URL: "https://rencontrelovehotel.com"
+    container_name: pod-lhr-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./app.env
+    environment:
+      DATABASE_URL: postgresql://lhr_app:${LHR_POSTGRES_PASSWORD}@postgres:5432/lhr
+      POSTGRES_URL: postgresql://lhr_app:${LHR_POSTGRES_PASSWORD}@postgres:5432/lhr
+      DATABASE_SSL: "false"
+      NEXT_TELEMETRY_DISABLED: "1"
+      PORT: "3000"
+    networks:
+      - pod-net
+    ports:
+      - "127.0.0.1:${LHR_APP_PORT:-3190}:3000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+        ]
+      interval: 20s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+networks:
+  pod-net:
+    name: pod-lhr-net
+    driver: bridge
+
+volumes:
+  pod-lhr-pg-data:
+    name: pod-lhr-pg-data

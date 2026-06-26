@@ -18,6 +18,25 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ChangeEvent } from 'react'
 
+const activeEventCategoriesFallback =
+  'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
+const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
+
+function parseActiveEventCategories(raw?: string | null) {
+  return (raw || activeEventCategoriesFallback)
+    .split("\n")
+    .map((line: string) => line.trim())
+    .filter(Boolean)
+    .map((line: string) => {
+      const [value, label] = line.split("|")
+      return value && label ? { value: value.trim(), label: label.trim() } : null
+    })
+    .filter(
+      (category): category is { value: string; label: string } =>
+        category !== null && activeEventCategoryValues.has(category.value)
+    )
+}
+
 // Définition du type pour le formulaire
 interface Form {
   title: string
@@ -85,23 +104,13 @@ export default function AdminEditEventPage() {
     if (eventId) fetchEvent()
   }, [eventId])
 
-  useEffectReact(() => {
-    async function fetchCategories() {
-      const raw = await getOption("event_categories")
-      const lines = (raw || "speed-dating|Speed Dating\njacuzzi|Jacuzzi\nrestaurant|Restaurant").split("\n")
-      setCategories(
-        lines
-          .map((line: string) => line.trim())
-          .filter(Boolean)
-          .map((line: string) => {
-            const [value, label] = line.split("|")
-            return value && label ? { value: value.trim(), label: label.trim() } : null
-          })
-          .filter(Boolean) as { value: string; label: string }[]
-      )
-    }
-    fetchCategories()
-  }, [])
+	  useEffectReact(() => {
+	    async function fetchCategories() {
+	      const raw = await getOption("event_categories")
+	      setCategories(parseActiveEventCategories(raw))
+	    }
+	    fetchCategories()
+	  }, [])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target

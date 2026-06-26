@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Camera, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,6 +39,7 @@ export function UserProfileEditor ({
     }
     return {
       name: user.name || '',
+      status: user.status || '',
       bio: user.bio || '',
       location: user.location || '',
       age: user.age || '',
@@ -101,19 +103,27 @@ export function UserProfileEditor ({
   }
 
   return (
-    <div className='rounded-lg border bg-card text-card-foreground shadow-sm p-6'>
+    <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6 text-white'>
       <form onSubmit={handleSubmit} className='space-y-6'>
-        <div className='flex flex-col items-center gap-4'>
-          <div className='relative'>
+        <div className='grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]'>
+          <div className='space-y-4'>
+            <div>
+              <h3 className='text-xl font-black'>Identité visible</h3>
+              <p className='mt-2 text-sm leading-6 text-white/58'>
+                Ces informations structurent la découverte et la compatibilité.
+              </p>
+            </div>
+            <div className='relative mx-auto w-fit'>
             <button
               type='button'
               onClick={() => setForm({ ...form, avatar: '' })}
-              className='absolute bottom-4 right-4 bg-red-500 text-white rounded-full px-2'
+              className='absolute bottom-3 right-3 z-10 rounded-full bg-red-500 p-2 text-white'
               style={{ display: form.avatar.length > 0 ? 'block' : 'none' }}
+              aria-label='Retirer la photo'
             >
-              X
+              <X className='h-4 w-4' />
             </button>
-            <div className='w-32 h-32 md:w-60 md:h-60 rounded-full border-4 border-background overflow-hidden shadow-lg shadow-purple-900/30'>
+            <div className='h-48 w-48 overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-lg shadow-purple-900/30'>
               <Image
                 src={form.avatar || '/logo-web-love-hotel.png'}
                 alt={form.name}
@@ -128,9 +138,14 @@ export function UserProfileEditor ({
             accept='image/*'
             onChange={handleImageChange}
             disabled={uploading}
-            className='text-2xl font-bold text-center max-w-sm inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2'
-            style={{ display: form.avatar.length > 0 ? 'none' : 'block' }}
+            className='border-white/10 bg-white/[0.06] text-white file:text-white'
           />
+          <p className='flex items-center gap-2 text-xs text-white/48'>
+            <Camera className='h-3.5 w-3.5' />
+            Une photo claire augmente fortement les demandes.
+          </p>
+          </div>
+          <div className='grid gap-4 sm:grid-cols-2'>
           {/* Admin-only: Switch to control display_profile */}
           {user.role === 'admin' && (
             <div className='flex items-center gap-2 max-w-sm'>
@@ -152,15 +167,30 @@ export function UserProfileEditor ({
             name='name'
             value={form.name}
             onChange={handleChange}
-            className='text-2xl font-bold text-center max-w-sm'
-            placeholder='Nom'
+            className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
+            placeholder='Nom public'
           />
+          <div>
+            <Select
+              value={form.status}
+              onValueChange={value => handleSelectChange('status', value)}
+            >
+              <SelectTrigger id='status' className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'>
+                <SelectValue placeholder='Statut relationnel' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='single_male'>Homme seul</SelectItem>
+                <SelectItem value='single_female'>Femme seule</SelectItem>
+                <SelectItem value='couple'>Couple</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className='w-full max-w-sm'>
             <Select
               value={form.gender}
               onValueChange={value => handleSelectChange('gender', value)}
             >
-              <SelectTrigger id='gender'>
+              <SelectTrigger id='gender' className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'>
                 <SelectValue placeholder='Sélectionner le genre' />
               </SelectTrigger>
               <SelectContent>
@@ -175,22 +205,22 @@ export function UserProfileEditor ({
             type='date'
             value={form.birthday}
             onChange={handleChange}
-            className='max-w-sm'
+            className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'
             placeholder='Date de naissance'
           />
           <Input
             name='location'
             value={form.location}
             onChange={handleChange}
-            className='max-w-sm'
-            placeholder='Ville'
+            className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
+            placeholder='Ville ou quartier'
           />
           <Input
             name='age'
             type='number'
             value={form.age}
             onChange={handleChange}
-            className='max-w-sm'
+            className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
             placeholder='Âge'
             min={18}
           />
@@ -199,7 +229,7 @@ export function UserProfileEditor ({
               value={form.orientation}
               onValueChange={value => handleSelectChange('orientation', value)}
             >
-              <SelectTrigger id='orientation'>
+              <SelectTrigger id='orientation' className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'>
                 <SelectValue placeholder="Sélectionner l'orientation" />
               </SelectTrigger>
               <SelectContent>
@@ -213,22 +243,23 @@ export function UserProfileEditor ({
             name='bio'
             value={form.bio}
             onChange={handleChange}
-            className='max-w-sm'
-            placeholder='À propos de moi'
+            className='min-h-32 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40 sm:col-span-2'
+            placeholder='À propos de moi, mes envies, mon style de rencontre...'
             rows={4}
           />
-          <div>
+          <div className='sm:col-span-2'>
+            <h4 className='mb-2 font-black'>Centres d’intérêt matching</h4>
             <div className='flex flex-wrap gap-2 mb-2'>
               {form.interests.map((interest: string) => (
                 <span
                   key={interest}
-                  className='inline-flex items-center bg-gray-800 rounded px-2 py-1 text-sm'
+                  className='inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-sm'
                 >
                   {interest}
                   <button
                     type='button'
                     onClick={() => handleRemoveInterest(interest)}
-                    className='ml-1 text-red-500'
+                    className='ml-2 text-red-200'
                   >
                     ×
                   </button>
@@ -239,21 +270,25 @@ export function UserProfileEditor ({
               <Input
                 value={newInterest}
                 onChange={e => setNewInterest(e.target.value)}
-                placeholder='Ajouter un intérêt'
-                className='w-40'
+                placeholder='Jacuzzi, cocktails, champagne...'
+                className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
               />
               <Button
                 type='button'
                 onClick={handleAddInterest}
-                variant='secondary'
+                variant='outline'
+                className='h-12 rounded-2xl border-white/12 bg-white/[0.04]'
               >
+                <Plus className='mr-2 h-4 w-4' />
                 Ajouter
               </Button>
             </div>
           </div>
+          </div>
         </div>
         <div className='flex justify-end'>
-          <Button type='submit' disabled={saving}>
+          <Button type='submit' disabled={saving} className='rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+            <Save className='mr-2 h-4 w-4' />
             {saving ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
         </div>

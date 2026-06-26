@@ -3,33 +3,36 @@ import { getUserByEmail, updateUserResetToken } from '@/lib/user-service';
 import { getOption } from '@/actions/user-actions'; // Assuming getOption is for email templates
 import { v4 as uuidv4 } from 'uuid';
 import nodemailer from 'nodemailer'; // For sending email
+import { canSendEmailForPurpose } from '@/lib/email-policy';
 
 export async function POST(req: NextRequest) {
-  console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  console.log("!!! /api/account/request-password-reset HANDLER EXECUTED !!!");
-  console.log("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-  console.log("Request Method:", req.method);
-
   try {
     const body = await req.json();
-    console.log("Request Body (parsed by Next.js):", body);
-    console.log("Request Headers (Content-Type):", req.headers.get('content-type'));
 
     const { email } = body;
 
     if (!email) {
-      console.log("Email is missing in POST request body.");
       return NextResponse.json({ message: "Email is required" }, { status: 400 });
     }
-
-    console.log(`Email received: ${email}`);
 
     const user = await getUserByEmail(email);
 
     if (!user) {
       // User not found. For security reasons, don't reveal if the email is registered or not.
       // Send a generic success message.
-      console.log(`User with email ${email} not found. Sending generic response.`);
+      return NextResponse.json({ message: "If your email is registered, you will receive a password reset link." }, { status: 200 });
+    }
+
+    const emailDecision = canSendEmailForPurpose({
+      purpose: 'password_reset',
+      requestedByUser: true,
+      user: {
+        status: user.status,
+        isBanned: user.is_banned
+      }
+    });
+
+    if (!emailDecision.allowed) {
       return NextResponse.json({ message: "If your email is registered, you will receive a password reset link." }, { status: 200 });
     }
 
@@ -38,7 +41,6 @@ export async function POST(req: NextRequest) {
 
     // Update user with reset token and expiry
     await updateUserResetToken(user.id, resetToken, resetTokenExpires);
-    console.log(`Reset token generated and saved for user ${user.id}: ${resetToken}`);
 
     // Fetch email templates
     // You'll need to ensure these option names match what's in your admin setup and database
@@ -60,9 +62,6 @@ export async function POST(req: NextRequest) {
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false // Necessary for some local/dev environments
       }
     });
 
@@ -74,11 +73,9 @@ export async function POST(req: NextRequest) {
       html: emailBody,
     });
 
-    console.log(`Password reset email sent to ${user.email}`);
-
     return NextResponse.json({ message: "Password reset email sent." }, { status: 200 });
   } catch (error) {
-    console.error("Error in password reset request handler:", error);
+    console.error("Error in password reset request handler");
     let message = "Error processing request";
     // It's good practice to not expose too much detail in error messages to the client
     if (error instanceof SyntaxError) {

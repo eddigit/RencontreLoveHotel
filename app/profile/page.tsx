@@ -1,16 +1,21 @@
 import type { Metadata } from 'next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import MainLayout from '@/components/layout/main-layout'
-import { neon } from '@neondatabase/serverless'
+import { sql } from '@/lib/db'
 import { put } from '@vercel/blob'
 import { revalidatePath } from 'next/cache'
-import { ok } from 'assert'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/auth'
 import { UserProfileEditor } from '@/components/UserProfileEditor'
 import { PreferencesEditor } from '@/components/PreferencesEditor'
 import { UserPhotosManager } from '@/components/UserPhotosManager'
+import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { MobileNavigation } from '@/components/mobile-navigation'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -43,9 +48,6 @@ async function uploadProfileImage (formData: FormData) {
       }
     )
 
-    // Update the database with the new photo URL
-    const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
-
     // Update the photo column in the users table
     await sql`
       UPDATE users
@@ -70,8 +72,6 @@ async function updateUserProfile (userData: any) {
     redirect('/login')
   }
 
-  const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
-
   // Update user table
   await sql`
     UPDATE users
@@ -88,6 +88,7 @@ async function updateUserProfile (userData: any) {
     await sql`
       UPDATE user_profiles
       SET
+        status = ${userData.status || null},
         age = ${userData.age || null},
         location = ${userData.location || null},
         orientation = ${userData.orientation || null},
@@ -111,7 +112,7 @@ async function updateUserProfile (userData: any) {
       userData.gender || null
     }, ${userData.birthday ? userData.birthday : null}, ${JSON.stringify(
       userData.interests || []
-    )}, 'active', false, ${
+    )}, ${userData.status || 'single_male'}, false, ${
       typeof userData.display_profile === 'boolean'
         ? userData.display_profile
         : true
@@ -128,8 +129,6 @@ async function updateUserPreferences (preferencesData: any) {
   if (!user) {
     redirect('/login')
   }
-
-  const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
 
   // Update or insert user_preferences
   const existingPreferences = await sql`
@@ -224,7 +223,6 @@ async function uploadUserPhoto (formData: FormData) {
       file,
       { access: 'public' }
     )
-    const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
     // Count current photos
     const countRes =
       await sql`SELECT COUNT(*) FROM photos WHERE user_id = ${user.id}`
@@ -248,7 +246,6 @@ async function deleteUserPhoto (photoId: string) {
   const session = await getServerSession(authOptions)
   const user = session?.user
   if (!user) redirect('/login')
-  const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
   // Only allow deleting user's own photo
   await sql`DELETE FROM photos WHERE id = ${photoId} AND user_id = ${user.id}`
   revalidatePath('/profile')
@@ -261,8 +258,6 @@ export default async function ProfilePage () {
   if (!sessionUser) {
     redirect('/login')
   }
-
-  const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
 
   // Fetch the latest user data directly from the database
   const dbUserResult = await sql`
@@ -345,6 +340,7 @@ export default async function ProfilePage () {
     avatar: dbUser.avatar, // CRITICAL: Use avatar from dbUser
     role: dbUser.role, // <-- Add role to userData
     bio: profile.bio,
+    status: profile.status,
     age: profile.age,
     location: profile.location,
     orientation: profile.orientation,
@@ -394,16 +390,90 @@ export default async function ProfilePage () {
     is_primary: p.is_primary
   }))
 
+  const completionItems = [
+    Boolean(userData.avatar),
+    Boolean(userData.name),
+    Boolean(userData.status),
+    Boolean(userData.age),
+    Boolean(userData.orientation),
+    Boolean(userData.gender),
+    Boolean(userData.bio),
+    userData.interests.length > 0,
+    Boolean(preferences.interested_in_dating || preferences.interested_in_events),
+    Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains),
+    userPhotos.length > 0
+  ]
+  const profileScore = Math.round(
+    (completionItems.filter(Boolean).length / completionItems.length) * 100
+  )
+
   return (
     <MainLayout user={dbUser}>
-      <div className='container max-w-screen-xl mx-auto px-4 py-8'>
-        <h1 className='text-3xl font-bold mb-6'>Mon Profil</h1>
-        <Tabs defaultValue='profile' className='w-full'>
-          <TabsList className='mb-6'>
-            <TabsTrigger value='profile'>Profil</TabsTrigger>
-            <TabsTrigger value='preferences'>Préférences</TabsTrigger>
-            <TabsTrigger value='photos'>Photos</TabsTrigger>
-          </TabsList>
+      <LhrV2Shell
+        user={dbUser}
+        eyebrow='Espace membre'
+        title='Profil matching'
+        subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations Love Hotel.'
+        action={
+          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+            <Link href='/discover'>
+              <Sparkles className='mr-2 h-4 w-4' />
+              Voir la communauté
+            </Link>
+          </Button>
+        }
+      >
+        <div className='grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_300px]'>
+          <aside className='space-y-4'>
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <div className='flex items-center gap-3'>
+                <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ff3b8b]/18'>
+                  <UserRound className='h-6 w-6 text-[#ff8cc8]' />
+                </div>
+                <div>
+                  <h2 className='font-black'>{dbUser.name}</h2>
+                  <p className='text-xs text-[#94ffc9]'>Profil actif</p>
+                </div>
+              </div>
+              <div className='mt-5'>
+                <div className='flex items-end justify-between'>
+                  <span className='text-sm text-white/58'>Score profil</span>
+                  <span className='text-4xl font-black'>{profileScore}%</span>
+                </div>
+                <div className='mt-3 h-2 rounded-full bg-white/10'>
+                  <div
+                    className='h-full rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#94ffc9]'
+                    style={{ width: `${profileScore}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='font-black'>Ce qui aide à matcher</h3>
+              <div className='mt-4 flex flex-wrap gap-2'>
+                <Badge className='rounded-full bg-white/10 text-white'>Statut clair</Badge>
+                <Badge className='rounded-full bg-white/10 text-white'>Photos récentes</Badge>
+                <Badge className='rounded-full bg-white/10 text-white'>Intentions</Badge>
+                <Badge className='rounded-full bg-white/10 text-white'>Disponibilités</Badge>
+                <Badge className='rounded-full bg-white/10 text-white'>Rideaux ouverts</Badge>
+              </div>
+            </div>
+          </aside>
+
+          <section>
+            <Tabs defaultValue='profile' className='w-full'>
+              <TabsList className='mb-5 grid h-auto grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
+                <TabsTrigger value='profile' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  Identité
+                </TabsTrigger>
+                <TabsTrigger value='preferences' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  Matching
+                </TabsTrigger>
+                <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  Photos
+                </TabsTrigger>
+              </TabsList>
           <TabsContent value='profile'>
             <div className='space-y-6'>
               <UserProfileEditor
@@ -414,8 +484,8 @@ export default async function ProfilePage () {
             </div>
           </TabsContent>
           <TabsContent value='preferences'>
-            <div className='rounded-lg border bg-card text-card-foreground shadow-sm p-6'>
-              <h3 className='text-lg font-medium'>Préférences de rencontre</h3>
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6'>
+              <h3 className='text-lg font-black'>Préférences de rencontre</h3>
               {/* PreferencesEditor will handle the form for preferences and meeting types */}
               <PreferencesEditor
                 preferences={preferences}
@@ -426,22 +496,64 @@ export default async function ProfilePage () {
             </div>
           </TabsContent>
           <TabsContent value='photos'>
-            <div className='rounded-lg border bg-card text-card-foreground shadow-sm p-6'>
-              <h3 className='text-lg font-medium mb-4'>Mes photos</h3>
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6'>
+              <h3 className='mb-4 flex items-center gap-2 text-lg font-black'>
+                <Camera className='h-5 w-5 text-[#ff8cc8]' />
+                Mes photos
+              </h3>
               {/* UserPhotosManager handles upload/delete UI */}
               <UserPhotosManager photos={userPhotos} maxPhotos={10} />
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-      <div className='mt-8 text-center'>
-        <a
-          href='/unsubscribe'
-          className='text-red-600 underline hover:text-red-800'
-        >
-          Se désinscrire / Supprimer mon compte
-        </a>
-      </div>
+          </section>
+
+          <aside className='space-y-4'>
+            <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <Wine className='h-4 w-4 text-[#ff8cc8]' />
+                Love Rooms
+              </h3>
+              <p className='mt-3 text-sm leading-6 text-white/64'>
+                Vos préférences aident à proposer une chambre, un apéro jacuzzi ou une bouteille de champagne au bon moment.
+              </p>
+              <Button asChild variant='outline' className='mt-4 w-full border-white/12 bg-white/[0.04]'>
+                <Link href='/love-rooms'>Voir les expériences</Link>
+              </Button>
+            </div>
+
+            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <CalendarHeart className='h-4 w-4 text-[#94ffc9]' />
+                Événements
+              </h3>
+              <p className='mt-3 text-sm leading-6 text-white/64'>
+                Activez les bons champs pour remonter dans les recommandations d’apéros, soirées et rideaux ouverts.
+              </p>
+              <Button asChild variant='outline' className='mt-4 w-full border-white/12 bg-white/[0.04]'>
+                <Link href='/events'>Voir l’agenda</Link>
+              </Button>
+            </div>
+
+            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <HeartHandshake className='h-4 w-4 text-[#ffd166]' />
+                Règle d’échange
+              </h3>
+              <p className='mt-3 text-sm leading-6 text-white/64'>
+                Les messages restent ouverts uniquement après match accepté. Le profil sert donc à obtenir des demandes qualifiées.
+              </p>
+            </div>
+
+            <div className='text-center'>
+              <a href='/unsubscribe' className='text-sm text-red-200 underline hover:text-red-100'>
+                Se désinscrire / Supprimer mon compte
+              </a>
+            </div>
+          </aside>
+        </div>
+        <MobileNavigation />
+      </LhrV2Shell>
     </MainLayout>
   )
 }

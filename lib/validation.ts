@@ -4,17 +4,29 @@ import { z } from 'zod'
 // SCHÉMAS DE VALIDATION POUR LES MESSAGES
 // ==============================
 
+export const messageAttachmentSchema = z.object({
+  url: z.string().url('URL de piece jointe invalide'),
+  mediaType: z.enum(['image', 'audio', 'video']),
+  fileName: z.string().max(255).optional(),
+  mimeType: z.string().max(120),
+  sizeBytes: z.number().int().positive().max(75 * 1024 * 1024),
+  durationSeconds: z.number().int().positive().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional()
+})
+
 export const messageSchema = z.object({
   content: z.string()
-    .min(1, 'Le message ne peut pas être vide')
     .max(1000, 'Le message ne peut pas dépasser 1000 caractères')
-    .refine(
-      (content) => content.trim().length > 0,
-      'Le message ne peut pas contenir uniquement des espaces'
-    ),
+    .optional()
+    .default(''),
   conversationId: z.string().uuid('ID de conversation invalide'),
-  senderId: z.string().uuid('ID d\'expéditeur invalide')
-})
+  senderId: z.string().uuid('ID d\'expéditeur invalide'),
+  attachments: z.array(messageAttachmentSchema).max(4).optional().default([])
+}).refine(
+  data => data.content.trim().length > 0 || data.attachments.length > 0,
+  'Le message doit contenir du texte ou une piece jointe'
+)
 
 export const getMessagesSchema = z.object({
   conversationId: z.string().uuid('ID de conversation invalide'),
@@ -133,6 +145,7 @@ export const paginationSchema = z.object({
 // ==============================
 
 export type MessageInput = z.infer<typeof messageSchema>
+export type MessageAttachmentInput = z.infer<typeof messageAttachmentSchema>
 export type ConversationInput = z.infer<typeof conversationSchema>
 export type UserRegistrationInput = z.infer<typeof userRegistrationSchema>
 export type UserLoginInput = z.infer<typeof userLoginSchema>

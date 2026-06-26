@@ -4,6 +4,8 @@ import { sql } from "@/lib/db"
 import { calculateMatchScore } from "@/utils/matching-algorithm"
 import { createNotification } from "@/actions/notification-actions"
 import { FilterOptions } from "@/components/advanced-filters";
+import type { UserProfile } from "@/utils/matching-algorithm"
+import { requireAdmin, requireSameUserOrAdmin } from "@/lib/server-auth"
 
 export async function getUserProfile(userId: string) {
   const user = await sql`
@@ -29,15 +31,58 @@ export async function getUserProfile(userId: string) {
     WHERE user_id = ${userId}
   `
 
+  const additionalOptions = await sql`
+    SELECT * FROM user_additional_options
+    WHERE user_id = ${userId}
+  `
+
   return {
     user: user[0] || null,
     photos: photos || [],
     preferences: preferences[0] || null,
     meetingTypes: meetingTypes[0] || null,
+    additionalOptions: additionalOptions[0] || null,
+  }
+}
+
+function buildMatchingProfile(profile: any): UserProfile | null {
+  if (!profile?.user) return null
+
+  return {
+    id: profile.user.user_id || profile.user.id,
+    name: profile.user.name || '',
+    age: Number(profile.user.age || 0),
+    location: profile.user.location || '',
+    image: profile.user.avatar || '',
+    online: true,
+    featured: Boolean(profile.user.featured),
+    preferences: {
+      status: profile.user.status,
+      orientation: profile.user.orientation,
+      gender: profile.user.gender,
+      age: profile.user.age,
+      interested_in_restaurant: profile.preferences?.interested_in_restaurant,
+      interested_in_events: profile.preferences?.interested_in_events,
+      interested_in_dating: profile.preferences?.interested_in_dating,
+      prefer_curtain_open: profile.preferences?.prefer_curtain_open,
+      interested_in_lolib: profile.preferences?.interested_in_lolib,
+      suggestions: profile.preferences?.suggestions,
+      meetingTypes: profile.meetingTypes || {},
+      open_to_other_couples: profile.meetingTypes?.open_to_other_couples,
+      join_exclusive_events: profile.additionalOptions?.join_exclusive_events,
+      premium_access: profile.additionalOptions?.premium_access,
+      specific_preferences: profile.meetingTypes?.specific_preferences
+    }
   }
 }
 
 export async function getUserMatches(userId: string) {
+  try {
+    await requireSameUserOrAdmin(userId)
+  } catch {
+    return []
+  }
+
   const matches = await sql`
     SELECT
       um.*,
@@ -275,6 +320,18 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       up.birthday,
       up.bio,
       up.interests,
+      upref_filter.interested_in_restaurant,
+      upref_filter.interested_in_events,
+      upref_filter.interested_in_dating,
+      upref_filter.prefer_curtain_open,
+      upref_filter.interested_in_lolib,
+      umt_filter.friendly,
+      umt_filter.romantic,
+      umt_filter.playful,
+      umt_filter.open_curtains,
+      umt_filter.libertine,
+      umt_filter.open_to_other_couples,
+      umt_filter.specific_preferences,
       true as online,
       false as featured,
       (SELECT COUNT(*) FROM user_matches WHERE (user_id_1 = u.id OR user_id_2 = u.id) AND status = 'accepted') as match_count
@@ -293,19 +350,52 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   const profilesData = profilesResult || [];
   console.log(`[getDiscoverProfiles] Fetched ${profilesData.length} raw profiles from DB.`);
 
-  const mappedProfiles = profilesData.map((profile: any) => ({
-    ...profile,
-    interests: profile.interests ? JSON.parse(profile.interests) : [],
-    // preferences object structure for ProfileCard compatibility, might not reflect all actual user_preferences
-    preferences: {
-      status: profile.status,
-      age: profile.age,
-      orientation: profile.orientation,
-      meetingTypes: {}, // Placeholder, actual meeting types are filtered in query
-      // other preference fields if needed by ProfileCard and available
-    },
-    popularity: profile.match_count || 0
-  }));
+  const currentMatchingProfile = buildMatchingProfile(await getUserProfile(currentUserId));
+  const mappedProfiles = profilesData
+    .map((profile: any) => {
+      const preferences = {
+        status: profile.status,
+        age: profile.age,
+        orientation: profile.orientation,
+        gender: profile.gender,
+        interested_in_restaurant: profile.interested_in_restaurant,
+        interested_in_events: profile.interested_in_events,
+        interested_in_dating: profile.interested_in_dating,
+        prefer_curtain_open: profile.prefer_curtain_open,
+        interested_in_lolib: profile.interested_in_lolib,
+        open_to_other_couples: profile.open_to_other_couples,
+        specific_preferences: profile.specific_preferences,
+        meetingTypes: {
+          friendly: profile.friendly,
+          romantic: profile.romantic,
+          playful: profile.playful,
+          openCurtains: profile.open_curtains,
+          open_curtains: profile.open_curtains,
+          libertine: profile.libertine,
+          open_to_other_couples: profile.open_to_other_couples,
+          specific_preferences: profile.specific_preferences
+        }
+      };
+      const matchingProfile: UserProfile = {
+        id: profile.id,
+        name: profile.name || '',
+        age: Number(profile.age || 0),
+        location: profile.location || '',
+        image: profile.image || '',
+        online: true,
+        featured: Boolean(profile.featured),
+        preferences: preferences as UserProfile['preferences']
+      };
+
+      return {
+        ...profile,
+        interests: profile.interests ? JSON.parse(profile.interests) : [],
+        preferences,
+        matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
+        popularity: profile.match_count || 0
+      };
+    })
+    .sort((a: any, b: any) => Number(b.matchScore || 0) - Number(a.matchScore || 0));
   console.log(`[getDiscoverProfiles] Mapped ${mappedProfiles.length} profiles for client.`);
 
   const result = {
@@ -321,7 +411,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
 // Send a match request (creates a pending match if not already exists)
 export async function sendMatchRequest(requesterId: string, receiverId: string) {
-  console.log("sendMatchRequest called", { requesterId, receiverId })
+  await requireSameUserOrAdmin(requesterId)
+
   if (requesterId === receiverId) return { success: false, error: "Vous ne pouvez pas vous matcher vous-même." }
   // Check if receiver exists
   const receiverExists = await sql`SELECT 1 FROM users WHERE id = ${receiverId} LIMIT 1`
@@ -346,28 +437,8 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     const requesterProfile = await getUserProfile(requesterId)
     const receiverProfile = await getUserProfile(receiverId)
     let matchScore = null
-    // Build UserProfile objects for matching algorithm
-    function buildUserProfile(profile: any): import("@/utils/matching-algorithm").UserProfile | null {
-      if (!profile.user || !profile.preferences) return null;
-      // Merge meetingTypes into preferences
-      const preferences = {
-        ...profile.preferences,
-        meetingTypes: profile.meetingTypes || {}
-      };
-      return {
-        id: profile.user.id,
-        name: profile.user.name,
-        age: profile.user.age,
-        location: profile.user.location,
-        image: profile.user.avatar || "",
-        online: true,
-        preferences,
-        lastActive: undefined,
-        featured: false
-      };
-    }
-    const requester = buildUserProfile(requesterProfile);
-    const receiver = buildUserProfile(receiverProfile);
+    const requester = buildMatchingProfile(requesterProfile);
+    const receiver = buildMatchingProfile(receiverProfile);
     if (requester && receiver) {
       matchScore = calculateMatchScore(requester, receiver)
     }
@@ -394,6 +465,8 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
 
 // Accept a match request (receiver accepts request from requester)
 export async function acceptMatchRequest(requesterId: string, receiverId: string) {
+  await requireSameUserOrAdmin(receiverId)
+
   try {
     const result = await sql`
       UPDATE user_matches
@@ -419,6 +492,8 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
 
 // Decline a match request (receiver declines request from requester)
 export async function declineMatchRequest(requesterId: string, receiverId: string) {
+  await requireSameUserOrAdmin(receiverId)
+
   try {
     const result = await sql`
       UPDATE user_matches
@@ -436,6 +511,14 @@ export async function declineMatchRequest(requesterId: string, receiverId: strin
 
 // Remove an existing match (either user can initiate)
 export async function removeMatch(userId1: string, userId2: string) {
+  const currentUser = await requireSameUserOrAdmin(
+    userId1,
+    'Action limitée à votre propre compte ou à un compte en match avec vous'
+  )
+  if (currentUser.id !== userId1 && currentUser.id !== userId2 && currentUser.role !== 'admin') {
+    throw new Error('Action limitée à votre propre compte ou à un compte en match avec vous')
+  }
+
   try {
     // It doesn't matter who is userId1 or userId2 in the table, so check both combinations
     const result = await sql`
@@ -471,6 +554,12 @@ export async function getMatchStatus(userA: string, userB: string) {
 
 // Get all incoming match requests for a user (where they are the receiver and status is pending)
 export async function getIncomingMatchRequests(userId: string) {
+  try {
+    await requireSameUserOrAdmin(userId)
+  } catch {
+    return []
+  }
+
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_2 = ${userId} AND status = 'pending'
@@ -480,6 +569,12 @@ export async function getIncomingMatchRequests(userId: string) {
 
 // Get all outgoing match requests for a user (where they are the requester and status is pending)
 export async function getOutgoingMatchRequests(userId: string) {
+  try {
+    await requireSameUserOrAdmin(userId)
+  } catch {
+    return []
+  }
+
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_1 = ${userId} AND status = 'pending'
@@ -488,6 +583,8 @@ export async function getOutgoingMatchRequests(userId: string) {
 }
 
 export async function getAllUsers() {
+  await requireAdmin()
+
   const users = await sql`
     SELECT u.id, u.name, u.email, u.role, u.avatar, up.location, up.age, u.is_banned, u.status
     FROM users u
@@ -498,6 +595,8 @@ export async function getAllUsers() {
 }
 
 export async function getTotalUsersCount() {
+  await requireAdmin()
+
   try {
     const result = await sql`SELECT COUNT(*) as count FROM users`;
     return result[0].count as number;
@@ -508,7 +607,8 @@ export async function getTotalUsersCount() {
 }
 
 export async function getUserCountsByGender(): Promise<{ gender: string; count: number }[] | null> {
-  console.log('Récupération des comptes utilisateurs par genre');
+  await requireAdmin()
+
   try {
     const result = await sql`
       SELECT 
@@ -520,7 +620,6 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
       GROUP BY up.gender
       ORDER BY up.gender;
     `;
-    console.log('Comptes par genre récupérés:', result);
     // La structure de 'result' peut varier selon votre client SQL.
     // Si 'result' est un tableau directement, utilisez-le. Si c'est un objet avec une propriété 'rows', utilisez result.rows.
     // Pour cet exemple, je suppose que 'result' est directement le tableau des lignes.
@@ -535,6 +634,8 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
 }
 
 export async function updateUserByAdmin(userId: string, { name, email, role, avatar }: { name?: string, email?: string, role?: string, avatar?: string }) {
+  await requireAdmin()
+
   const [user] = await sql`
     UPDATE users
     SET
@@ -549,6 +650,8 @@ export async function updateUserByAdmin(userId: string, { name, email, role, ava
 }
 
 export async function deleteUserByAdmin(userId: string) {
+  await requireAdmin()
+
   await sql`
     DELETE FROM users WHERE id = ${userId}
   `
@@ -557,6 +660,8 @@ export async function deleteUserByAdmin(userId: string) {
 
 // Get new users count grouped by day/week/month
 export async function getNewUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
+  await requireAdmin()
+
   let dateTrunc;
   if (scale === "day") {
     dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
@@ -578,6 +683,8 @@ export async function getNewUsersStats({ startDate, endDate, scale }: { startDat
 
 // Get active users (users who sent a message) grouped by day/week/month
 export async function getActiveUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
+  await requireAdmin()
+
   let dateTrunc;
   if (scale === "day") {
     dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
@@ -599,6 +706,8 @@ export async function getActiveUsersStats({ startDate, endDate, scale }: { start
 
 // Get new matches grouped by day/week/month
 export async function getMatchesStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
+  await requireAdmin()
+
   let dateTrunc;
   if (scale === "day") {
     dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
@@ -618,18 +727,36 @@ export async function getMatchesStats({ startDate, endDate, scale }: { startDate
   return stats;
 }
 
+async function ensureOptionsTable() {
+  await sql.query(
+    `
+      CREATE TABLE IF NOT EXISTS options (
+        name TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `,
+    []
+  )
+}
+
 // Get an option by name
 export async function getOption(name: string) {
+  await ensureOptionsTable()
   const [option] = await sql`SELECT value FROM options WHERE name = ${name}`
   return option?.value || null
 }
 
 // Set an option by name
 export async function setOption(name: string, value: string) {
+  await requireAdmin()
+  await ensureOptionsTable()
+
   await sql`
     INSERT INTO options (name, value)
     VALUES (${name}, ${value})
-    ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value
+    ON CONFLICT (name) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP
   `
   return { success: true }
 }

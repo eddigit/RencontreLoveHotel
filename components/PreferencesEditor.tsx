@@ -1,9 +1,19 @@
 "use client"
 
 import React, { useState } from "react"
+import { CalendarHeart, HeartHandshake, Save, Sparkles, Wine } from "lucide-react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Checkbox } from "./ui/checkbox"
+
+const matchingOptions = [
+  { key: "friendly", label: "Rencontre amicale", hint: "Prendre un verre, discuter, découvrir." },
+  { key: "romantic", label: "Romantique", hint: "Dîner, chambre élégante, moment intime." },
+  { key: "playful", label: "Ludique", hint: "Ambiance légère, flirt, surprise." },
+  { key: "open_curtains", label: "Rideaux ouverts", hint: "Événements et expériences plus ouvertes." },
+  { key: "libertine", label: "Libertinage soft", hint: "Cadre assumé, élégant, consenti." },
+  { key: "open_to_other_couples", label: "Ouvert aux couples", hint: "Rencontres entre couples compatibles." },
+] as const
 
 export function PreferencesEditor({ preferences, meetingTypes, additionalOptions, onSave }: any) {
   const [form, setForm] = useState({
@@ -27,11 +37,8 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
   const [success, setSuccess] = useState(false)
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const { name, type, checked, value } = e.target
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }))
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -66,86 +73,116 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <h4 className="font-semibold mb-2">Préférences générales</h4>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2">
-              <Checkbox name="interested_in_restaurant" checked={form.interested_in_restaurant} onCheckedChange={v => setForm(f => ({ ...f, interested_in_restaurant: v as boolean }))} />
-              Intéressé(e) par les restaurants
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="interested_in_events" checked={form.interested_in_events} onCheckedChange={v => setForm(f => ({ ...f, interested_in_events: v as boolean }))} />
-              Intéressé(e) par les évènements
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="interested_in_dating" checked={form.interested_in_dating} onCheckedChange={v => setForm(f => ({ ...f, interested_in_dating: v as boolean }))} />
-              Intéressé(e) par les rencontres
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="prefer_curtain_open" checked={form.prefer_curtain_open} onCheckedChange={v => setForm(f => ({ ...f, prefer_curtain_open: v as boolean }))} />
-              Préfère rideaux ouverts
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="interested_in_lolib" checked={form.interested_in_lolib} onCheckedChange={v => setForm(f => ({ ...f, interested_in_lolib: v as boolean }))} />
-              Intéressé(e) par le Lolib
-            </label>
-            <label className="flex items-center gap-2">
-              Suggestions :
-              <Input name="suggestions" value={form.suggestions} onChange={handleChange} className="ml-2" />
-            </label>
-          </div>
+    <form onSubmit={handleSubmit} className="mt-5 space-y-6 text-white">
+      <section className="grid gap-4 md:grid-cols-3">
+        <PreferenceTile
+          icon={<HeartHandshake className="h-5 w-5 text-[#ff8cc8]" />}
+          title="Rencontres"
+          checked={form.interested_in_dating}
+          onCheckedChange={value => setForm(f => ({ ...f, interested_in_dating: value }))}
+        />
+        <PreferenceTile
+          icon={<CalendarHeart className="h-5 w-5 text-[#94ffc9]" />}
+          title="Événements"
+          checked={form.interested_in_events}
+          onCheckedChange={value => setForm(f => ({ ...f, interested_in_events: value }))}
+        />
+        <PreferenceTile
+          icon={<Wine className="h-5 w-5 text-[#ffd166]" />}
+          title="Restaurant / bar"
+          checked={form.interested_in_restaurant}
+          onCheckedChange={value => setForm(f => ({ ...f, interested_in_restaurant: value }))}
+        />
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-[#ff8cc8]" />
+          <h4 className="font-black">Intentions de rencontre</h4>
         </div>
-        <div>
-          <h4 className="font-semibold mb-2">Types de rencontres recherchées</h4>
-          <div className="flex flex-col gap-2">
-            <label className="flex items-center gap-2">
-              <Checkbox name="friendly" checked={form.friendly} onCheckedChange={v => setForm(f => ({ ...f, friendly: v as boolean }))} />
-              Amicales
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {matchingOptions.map(option => (
+            <label key={option.key} className="flex gap-3 rounded-2xl border border-white/10 bg-black/10 p-4">
+              <Checkbox
+                checked={Boolean(form[option.key])}
+                onCheckedChange={value => setForm(f => ({ ...f, [option.key]: value as boolean }))}
+              />
+              <span>
+                <span className="block font-bold">{option.label}</span>
+                <span className="mt-1 block text-sm leading-5 text-white/54">{option.hint}</span>
+              </span>
             </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="romantic" checked={form.romantic} onCheckedChange={v => setForm(f => ({ ...f, romantic: v as boolean }))} />
-              Romantiques
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="playful" checked={form.playful} onCheckedChange={v => setForm(f => ({ ...f, playful: v as boolean }))} />
-              Ludiques
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="open_curtains" checked={form.open_curtains} onCheckedChange={v => setForm(f => ({ ...f, open_curtains: v as boolean }))} />
-              Rideaux ouverts
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="libertine" checked={form.libertine} onCheckedChange={v => setForm(f => ({ ...f, libertine: v as boolean }))} />
-              Libertines
-            </label>
-            <label className="flex items-center gap-2">
-              <Checkbox name="open_to_other_couples" checked={form.open_to_other_couples} onCheckedChange={v => setForm(f => ({ ...f, open_to_other_couples: v as boolean }))} />
-              Ouvert aux autres couples
-            </label>
-            <label className="flex items-center gap-2">
-              Préférences spécifiques :
-              <Input name="specific_preferences" value={form.specific_preferences} onChange={handleChange} className="ml-2" />
-            </label>
-          </div>
+          ))}
         </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <label className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <Checkbox
+            checked={form.prefer_curtain_open}
+            onCheckedChange={value => setForm(f => ({ ...f, prefer_curtain_open: value as boolean }))}
+          />
+          <span>
+            <span className="block font-bold">Rideaux ouverts</span>
+            <span className="text-sm text-white/54">Intéressé par les soirées où les chambres peuvent être ouvertes.</span>
+          </span>
+        </label>
+        <label className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+          <Checkbox
+            checked={form.join_exclusive_events}
+            onCheckedChange={value => setForm(f => ({ ...f, join_exclusive_events: value as boolean }))}
+          />
+          <span>
+            <span className="block font-bold">Apéro jacuzzi</span>
+            <span className="text-sm text-white/54">Invitations champagne, jacuzzi, couples et petits groupes.</span>
+          </span>
+        </label>
+      </section>
+
+      <section className="grid gap-3">
+        <Input
+          name="specific_preferences"
+          value={form.specific_preferences}
+          onChange={handleChange}
+          className="h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40"
+          placeholder="Préférences spécifiques : champagne, Love Room, horaires, limites..."
+        />
+        <Input
+          name="suggestions"
+          value={form.suggestions}
+          onChange={handleChange}
+          className="h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40"
+          placeholder="Suggestions ou envies à proposer à l’équipe Love Hotel"
+        />
+      </section>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={saving} className="rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white">
+          <Save className="mr-2 h-4 w-4" />
+          {saving ? "Enregistrement..." : "Enregistrer le matching"}
+        </Button>
+        {success && <div className="text-sm text-[#94ffc9]">Préférences enregistrées.</div>}
       </div>
-      <div>
-        <h4 className="font-semibold mb-2">Options supplémentaires</h4>
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2">
-            <Checkbox name="join_exclusive_events" checked={form.join_exclusive_events} onCheckedChange={v => setForm(f => ({ ...f, join_exclusive_events: v as boolean }))} />
-            Participer aux évènements exclusifs
-          </label>
-          <label className="flex items-center gap-2">
-            <Checkbox name="premium_access" checked={form.premium_access} onCheckedChange={v => setForm(f => ({ ...f, premium_access: v as boolean }))} />
-            Accès premium
-          </label>
-        </div>
-      </div>
-      <Button type="submit" disabled={saving}>{saving ? "Enregistrement..." : "Enregistrer les préférences"}</Button>
-      {success && <div className="text-green-600 mt-2">Préférences enregistrées !</div>}
     </form>
+  )
+}
+
+function PreferenceTile({
+  icon,
+  title,
+  checked,
+  onCheckedChange,
+}: {
+  icon: React.ReactNode
+  title: string
+  checked: boolean
+  onCheckedChange: (value: boolean) => void
+}) {
+  return (
+    <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <Checkbox checked={checked} onCheckedChange={value => onCheckedChange(value as boolean)} />
+      {icon}
+      <span className="font-bold">{title}</span>
+    </label>
   )
 }

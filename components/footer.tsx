@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
+import { DeploymentStamp } from './deployment-stamp'
 
 export function Footer () {
   return (
@@ -38,9 +39,12 @@ export function Footer () {
             </Link>*/}
           </nav>
 
-          <div className='text-sm text-muted-foreground'>
-            &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
-            réservés.
+          <div className='flex flex-col items-center gap-1 text-sm text-muted-foreground md:items-end'>
+            <span>
+              &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
+              réservés.
+            </span>
+            <DeploymentStamp />
           </div>
         </div>
       </div>

@@ -9,6 +9,25 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { getOption } from "@/actions/user-actions"
 import { useAuth } from "@/contexts/auth-context" // Ajouté pour récupérer l'admin connecté
 
+const activeEventCategoriesFallback =
+  'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
+const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
+
+function parseActiveEventCategories(raw?: string | null) {
+  return (raw || activeEventCategoriesFallback)
+    .split("\n")
+    .map((line: string) => line.trim())
+    .filter(Boolean)
+    .map((line: string) => {
+      const [value, label] = line.split("|")
+      return value && label ? { value: value.trim(), label: label.trim() } : null
+    })
+    .filter(
+      (category): category is { value: string; label: string } =>
+        category !== null && activeEventCategoryValues.has(category.value)
+    )
+}
+
 export default function AdminCreateEventPage() {
   const router = useRouter()
   const { user } = useAuth() // Récupère l'utilisateur/admin connecté
@@ -17,7 +36,7 @@ export default function AdminCreateEventPage() {
     location: "",
     date: "",
     image: "",
-    category: "",
+    category: "jacuzzi",
     description: "",
     prix_personne_seule: 0,
     prix_couple: 0
@@ -26,25 +45,17 @@ export default function AdminCreateEventPage() {
   const [error, setError] = useState("")
   const [categories, setCategories] = useState<{ value: string; label: string }[]>([])
 
-  useEffect(() => {
-    async function fetchCategories() {
-      const raw = await getOption("event_categories")
-      const lines = (raw || "speed-dating|Speed Dating\njacuzzi|Jacuzzi\nrestaurant|Restaurant").split("\n")
-      setCategories(
-        lines
-          .map(line => line.trim())
-          .filter(Boolean)
-          .map(line => {
-            const [value, label] = line.split("|")
-            return value && label ? { value: value.trim(), label: label.trim() } : null
-          })
-          .filter(Boolean) as { value: string; label: string }[]
-      )
-    }
-    fetchCategories()
-  }, [])
+	  useEffect(() => {
+	    async function fetchCategories() {
+	      const raw = await getOption("event_categories")
+	      setCategories(parseActiveEventCategories(raw))
+	    }
+	    fetchCategories()
+	  }, [])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
@@ -63,7 +74,8 @@ export default function AdminCreateEventPage() {
         location: form.location,
         date: form.date,
         image: form.image,
-        category: form.category,
+	        category: form.category,
+	        experience_type: form.category,
         description: form.description,
         prix_personne_seule: form.prix_personne_seule,
         prix_couple: form.prix_couple,

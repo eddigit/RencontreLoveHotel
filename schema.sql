@@ -1,5 +1,8 @@
 -- Schéma SQL pour le système de matching du Love Hôtel
 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Table des utilisateurs
 CREATE TABLE users
 (
@@ -50,6 +53,8 @@ CREATE TABLE user_profiles
     -- Explicitly NULL, Storing as JSON string
     featured BOOLEAN DEFAULT FALSE NULL,
     -- Added column
+    display_profile BOOLEAN DEFAULT TRUE NULL,
+    -- Controls whether the profile appears in discovery/search
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Explicitly NULL
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL
@@ -144,6 +149,207 @@ CREATE TABLE messages
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Table des pieces jointes de messagerie
+CREATE TABLE IF NOT EXISTS message_attachments
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+    url TEXT NOT NULL,
+    media_type TEXT NOT NULL CHECK (media_type IN ('image', 'audio', 'video')),
+    file_name TEXT,
+    mime_type TEXT NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    duration_seconds INTEGER,
+    width INTEGER,
+    height INTEGER,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des notifications in-app
+CREATE TABLE IF NOT EXISTS notifications
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(100) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    image VARCHAR(500),
+    link VARCHAR(500),
+    read BOOLEAN DEFAULT FALSE,
+    priority TEXT NOT NULL DEFAULT 'normal'
+        CHECK (priority IN ('low', 'normal', 'high', 'critical')),
+    category TEXT,
+    audience TEXT NOT NULL DEFAULT 'user'
+        CHECK (audience IN ('user', 'admin')),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    read_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Preferences et exclusions email
+CREATE TABLE IF NOT EXISTS email_preferences
+(
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    campaign_opt_in BOOLEAN NOT NULL DEFAULT FALSE,
+    campaign_opt_in_at TIMESTAMPTZ,
+    opted_out_at TIMESTAMPTZ,
+    source TEXT NOT NULL DEFAULT 'default',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT email_preferences_opt_in_timestamp_check
+        CHECK (campaign_opt_in = FALSE OR campaign_opt_in_at IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS email_suppression_list
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT NOT NULL UNIQUE,
+    reason TEXT NOT NULL DEFAULT 'manual',
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Paramètres applicatifs administrables
+CREATE TABLE IF NOT EXISTS options
+(
+    name TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Templates et campagnes email admin
+CREATE TABLE IF NOT EXISTS email_templates
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    purpose TEXT NOT NULL DEFAULT 'campaign'
+        CHECK (purpose IN ('campaign', 'password_reset')),
+    subject TEXT NOT NULL,
+    preheader TEXT,
+    body_html TEXT NOT NULL,
+    body_text TEXT,
+    cta_label TEXT,
+    cta_url TEXT,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS email_campaigns
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    template_id UUID REFERENCES email_templates(id) ON DELETE SET NULL,
+    name TEXT NOT NULL,
+    audience_filter JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status TEXT NOT NULL DEFAULT 'draft'
+        CHECK (status IN ('draft', 'tested', 'ready', 'sending', 'sent', 'cancelled', 'failed')),
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    tested_at TIMESTAMPTZ,
+    scheduled_at TIMESTAMPTZ,
+    sent_at TIMESTAMPTZ,
+    eligible_count INTEGER NOT NULL DEFAULT 0,
+    skipped_count INTEGER NOT NULL DEFAULT 0,
+    sent_count INTEGER NOT NULL DEFAULT 0,
+    error_count INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS email_campaign_recipients
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    campaign_id UUID NOT NULL REFERENCES email_campaigns(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    email TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'queued'
+        CHECK (status IN ('queued', 'skipped_opt_out', 'skipped_no_consent', 'skipped_suppressed', 'skipped_banned', 'sent', 'error')),
+    skip_reason TEXT,
+    sent_at TIMESTAMPTZ,
+    error_message TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT email_campaign_recipient_unique UNIQUE (campaign_id, email)
+);
+
+CREATE TABLE IF NOT EXISTS email_send_logs
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    campaign_id UUID REFERENCES email_campaigns(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    email TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('sent', 'blocked', 'error')),
+    provider_message_id TEXT,
+    error_message TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Moderation, audit et logs techniques admin
+CREATE TABLE IF NOT EXISTS moderation_keywords
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    keyword TEXT NOT NULL UNIQUE,
+    severity TEXT NOT NULL DEFAULT 'medium'
+        CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    action TEXT NOT NULL DEFAULT 'flag'
+        CHECK (action IN ('flag', 'hide', 'escalate')),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS moderation_queue
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    source_type TEXT NOT NULL
+        CHECK (source_type IN ('message', 'profile', 'event', 'user')),
+    source_id UUID,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+    severity TEXT NOT NULL DEFAULT 'medium'
+        CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+    status TEXT NOT NULL DEFAULT 'new'
+        CHECK (status IN ('new', 'in_review', 'ignored', 'actioned', 'escalated')),
+    reason TEXT NOT NULL,
+    matched_keywords TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    excerpt TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+    resolved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    resolved_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit_log
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    action TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id UUID,
+    reason TEXT,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS auth_logs
+(
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    email TEXT,
+    level TEXT NOT NULL DEFAULT 'info'
+        CHECK (level IN ('info', 'warn', 'error')),
+    event TEXT NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Table des photos utilisateurs
 CREATE TABLE photos
 (
@@ -181,17 +387,26 @@ CREATE TABLE event_participants
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_event_participation UNIQUE (event_id, user_id)
 );
 
 -- Table des demandes de conciergerie
 CREATE TABLE IF NOT EXISTS conciergerie_requests (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   nom VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL,
+  phone VARCHAR(100),
+  request_type VARCHAR(100) NOT NULL DEFAULT 'custom_evening',
+  response_preference VARCHAR(20) NOT NULL DEFAULT 'email',
+  conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
   besoin TEXT NOT NULL,
   budget VARCHAR(100),
-  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  email_sent BOOLEAN NOT NULL DEFAULT FALSE,
+  admin_notified_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index pour améliorer les performances
@@ -204,7 +419,16 @@ CREATE INDEX idx_user_matches_user_id_2 ON user_matches(user_id_2);
 CREATE INDEX idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
 CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(user_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
+CREATE INDEX IF NOT EXISTS idx_message_attachments_message_id ON message_attachments(message_id, sort_order, created_at);
 CREATE INDEX idx_messages_sender_id ON messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read_created ON notifications(user_id, read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_admin_unread ON notifications(audience, read, priority, created_at DESC) WHERE audience = 'admin';
+CREATE INDEX IF NOT EXISTS idx_email_campaign_recipients_campaign_status ON email_campaign_recipients(campaign_id, status);
+CREATE INDEX IF NOT EXISTS idx_moderation_queue_status_created ON moderation_queue(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_moderation_queue_user ON moderation_queue(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target ON admin_audit_log(target_type, target_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_level_created ON auth_logs(level, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conciergerie_requests_created ON conciergerie_requests(created_at DESC);
 CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_creator ON events(creator_id);
 CREATE INDEX idx_event_participants_event_id ON event_participants(event_id);

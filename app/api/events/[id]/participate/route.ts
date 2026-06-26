@@ -1,23 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth/next'
 import { sql } from '@/lib/db'
+import { authOptions } from '@/lib/auth'
+import { notifyEventReservationAdmins } from '@/lib/event-reservation-notifications'
 import { randomUUID } from 'crypto'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+    }
+
     // Validation de l'ID (UUID)
-    const eventId = params.id
+    const { id } = await params
+    const eventId = id
     if (!eventId || typeof eventId !== 'string') {
       return NextResponse.json({ error: 'ID événement invalide' }, { status: 400 })
     }
 
     const body = await request.json()
-    const { userId, action } = body
+    const { userId: requestedUserId, action } = body
+    const userId = session.user.role === 'admin' && requestedUserId
+      ? requestedUserId
+      : session.user.id
 
-    // Validation des données
-    if (!userId || typeof userId !== 'string') {
-      return NextResponse.json({ error: 'ID utilisateur requis' }, { status: 400 })
+    if (
+      requestedUserId &&
+      requestedUserId !== session.user.id &&
+      session.user.role !== 'admin'
+    ) {
+      return NextResponse.json({ error: 'Action non autorisée' }, { status: 403 })
     }
 
     if (!action || !['join', 'leave'].includes(action)) {
@@ -65,7 +80,7 @@ export async function POST(
         WHERE event_id = ${eventId}
       `
 
-      if (participantCount.count >= event.max_participants) {
+      if (Number(participantCount.count) >= Number(event.max_participants)) {
         return NextResponse.json({ error: 'Événement complet' }, { status: 409 })
       }
 
@@ -75,6 +90,7 @@ export async function POST(
         INSERT INTO event_participants (id, event_id, user_id, joined_at)
         VALUES (${participantId}, ${eventId}, ${userId}, NOW())
       `
+      await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
 
       return NextResponse.json({ 
         success: true, 
@@ -88,6 +104,7 @@ export async function POST(
         DELETE FROM event_participants 
         WHERE event_id = ${eventId} AND user_id = ${userId}
       `
+      await notifyEventReservationAdmins({ eventId, userId, action: 'leave' })
 
       return NextResponse.json({ 
         success: true, 

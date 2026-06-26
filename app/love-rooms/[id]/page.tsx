@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { use, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -36,7 +36,8 @@ interface LoveRoomTimeSlot {
   }[]
 }
 
-export default function LoveRoomDetailPage({ params }: { params: { id: string } }) {
+export default function LoveRoomDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null)
@@ -44,7 +45,7 @@ export default function LoveRoomDetailPage({ params }: { params: { id: string } 
 
   // Simuler des données de Love Room
   const loveRoom = {
-    id: Number.parseInt(params.id),
+    id: Number.parseInt(id),
     name: "Suite Romantique Deluxe",
     description:
       "Notre Suite Romantique Deluxe est l'endroit parfait pour un moment d'intimité inoubliable. Profitez d'un jacuzzi privatif, d'un lit king-size et d'une ambiance tamisée pour créer des souvenirs mémorables.",
@@ -158,7 +159,7 @@ export default function LoveRoomDetailPage({ params }: { params: { id: string } 
 
       // Rediriger vers une page de confirmation
       router.push(
-        `/love-rooms/reservation-confirmation?room=${params.id}&date=${selectedDate}&slot=${selectedTimeSlot}`,
+        `/love-rooms/reservation-confirmation?room=${id}&date=${selectedDate}&slot=${selectedTimeSlot}`,
       )
     }
   }

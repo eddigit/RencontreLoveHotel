@@ -4,8 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProtectedRoute } from "@/components/protected-route"
-import { getUpcomingEvents, deleteEvent } from "@/actions/event-actions"
-import { sql } from "@/lib/db"
+import { getUpcomingEvents, deleteEvent, resetAllEvents } from "@/actions/event-actions"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import MainLayout from "@/components/layout/main-layout"
@@ -19,6 +18,7 @@ export default function AdminEventsPage() {
   const [loading, setLoading] = useState(true)
   const [showReprogramForm, setShowReprogramForm] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
+  const [status, setStatus] = useState("")
 
   useEffect(() => {
     async function fetchEvents() {
@@ -41,18 +41,40 @@ export default function AdminEventsPage() {
     setEvents(events.filter(e => e.id !== eventId))
   }
 
+  const handleResetAllEvents = async () => {
+    const confirmed = window.confirm(
+      "Mettre tous les événements à zéro ? Cette action supprime tous les événements et leurs participations."
+    )
+    if (!confirmed) return
+
+    const result = await resetAllEvents()
+    setEvents([])
+    setPastEvents([])
+    setStatus(`${result.deletedCount} événement(s) supprimé(s).`)
+  }
+
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
       <MainLayout user={user}>
         <div className="container py-10">
           <AdminHeader user={user} />
           <AdminTabs />
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-8">
             <h1 className="text-2xl font-bold">Gestion des événements</h1>
-            <Button asChild>
-              <Link href="/admin/events/new">Créer un événement</Link>
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="destructive" onClick={handleResetAllEvents}>
+                Mettre à zéro
+              </Button>
+              <Button asChild>
+                <Link href="/admin/events/new">Créer un événement</Link>
+              </Button>
+            </div>
           </div>
+          {status && (
+            <div className="mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white">
+              {status}
+            </div>
+          )}
           {loading ? (
             <div>Chargement...</div>
           ) : (

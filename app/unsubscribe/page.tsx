@@ -1,7 +1,7 @@
 import MainLayout from '@/components/layout/main-layout'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { neon } from '@neondatabase/serverless'
+import { authOptions } from '@/lib/auth'
+import { sql } from '@/lib/db'
 import { redirect } from 'next/navigation'
 
 export default async function UnsubscribePage () {
@@ -10,18 +10,18 @@ export default async function UnsubscribePage () {
   if (!user) {
     redirect('/login')
   }
+  const currentUser = user
 
   async function handleDeleteAccount () {
     'use server'
-    const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL || '')
     // Delete user from users table and related tables (cascade or manual)
-    await sql`DELETE FROM users WHERE id = ${user.id}`
+    await sql`DELETE FROM users WHERE id = ${currentUser.id}`
     // Optionally: sign out user or redirect
     redirect('/goodbye')
   }
 
   return (
-    <MainLayout user={user}>
+    <MainLayout user={currentUser}>
       <div className='container max-w-screen-md mx-auto px-4 py-8'>
         <h1 className='text-2xl font-bold mb-4'>
           Se désinscrire / Supprimer mon compte

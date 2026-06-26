@@ -14,6 +14,7 @@ export type User = {
   role: UserRole
   avatar: string
   onboardingCompleted?: boolean
+  email_verified?: boolean
 }
 
 // Utilisateurs de test prédéfinis
@@ -58,7 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status, update } = useSession() // Added update from useSession
   const router = useRouter()
   const isLoading = status === "loading"
-  const user = session?.user ?? null
+  const user =
+    session?.user?.id && session.user.email && session.user.name
+      ? {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+          role: (session.user.role === 'admin' ? 'admin' : 'user') as UserRole,
+          avatar: session.user.avatar || '',
+          onboardingCompleted: Boolean(session.user.onboardingCompleted),
+          email_verified: session.user.email_verified ?? true
+        }
+      : null
 
   // Login with NextAuth.js
   const login = async (email: string, password: string) => {

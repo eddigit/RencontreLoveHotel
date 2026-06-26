@@ -6,7 +6,7 @@ import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import MainLayout from "@/components/layout/main-layout"
 
-export default function UnauthorizedPage(props) {
+export default function UnauthorizedPage() {
   const { user } = useAuth()
 
   return (

@@ -122,18 +122,23 @@ describe('Reproduction du problème plebreton', () => {
       { user_id: '550e8400-e29b-41d4-a716-446655440002', conversation_id: '550e8400-e29b-41d4-a716-446655440001' }
     ])
     
-    // Deuxième requête: insertion du message
+    // Deuxième requête: récupération des destinataires
+    ;(sql.query as any).mockResolvedValueOnce([
+      { user_id: '550e8400-e29b-41d4-a716-446655440006' }
+    ])
+
+    // Troisième requête: vérification du match accepté
+    ;(sql.query as any).mockResolvedValueOnce([
+      { ok: true }
+    ])
+
+    // Quatrième requête: insertion du message
     ;(sql.query as any).mockResolvedValueOnce([
       { id: '550e8400-e29b-41d4-a716-446655440005' }
     ])
     
-    // Troisième requête: mise à jour de la conversation
+    // Cinquième requête: mise à jour de la conversation
     ;(sql.query as any).mockResolvedValueOnce([])
-    
-    // Quatrième requête: récupération des destinataires pour notifications
-    ;(sql.query as any).mockResolvedValueOnce([
-      { user_id: '550e8400-e29b-41d4-a716-446655440006' }
-    ])
     
     // Test: plebreton envoie un message
     const result = await sendMessage({
@@ -144,10 +149,10 @@ describe('Reproduction du problème plebreton', () => {
     
     // Vérifications
     expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440005')
-    expect(sql.query).toHaveBeenCalledTimes(4)
+    expect(sql.query).toHaveBeenCalledTimes(5)
     
     // Vérification de l'insertion du message
-    expect(sql.query).toHaveBeenNthCalledWith(2,
+    expect(sql.query).toHaveBeenNthCalledWith(4,
       expect.stringContaining('INSERT INTO messages'),
       expect.arrayContaining(['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'Mon message'])
     )

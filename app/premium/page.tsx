@@ -9,7 +9,7 @@ import Link from "next/link"
 import { LandingHeader } from "@/components/landing-header"
 import MainLayout from "@/components/layout/main-layout"
 
-export default function PremiumPage(props) {
+export default function PremiumPage() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-[#120821]">

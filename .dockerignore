@@ -1,0 +1,10 @@
+node_modules
+.next
+.git
+.vercel
+.env*
+backups
+npm-debug.log*
+yarn-error.log*
+.DS_Store
+*.tsbuildinfo

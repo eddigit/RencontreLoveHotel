@@ -5,19 +5,28 @@ import type { OnboardingData } from "@/components/onboarding-form"
 import { saveOnboardingData } from "@/lib/onboarding-service"
 import { createUser, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
+import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 
 export async function getNotifications(userId: string) {
+  const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
+  if (!isValidUUID) {
+    return { notifications: [] }
+  }
+
   try {
-    // Only query if userId is a valid UUID
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
-    if (!isValidUUID) {
-      return { notifications: [] }
-    }
+    await requireSameUserOrAdmin(userId)
+  } catch {
+    return { notifications: [] }
+  }
+
+  try {
     // Fetch notifications for the user from the database
     const rows = await sql`
-      SELECT id, user_id, type, title, description, image, link, read, created_at
+      SELECT id, user_id, type, title, description, image, link, read,
+             priority, category, audience, metadata, read_at, created_at
       FROM notifications
       WHERE user_id = ${userId}
+        AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY created_at DESC
       LIMIT 50
     `
@@ -30,6 +39,11 @@ export async function getNotifications(userId: string) {
       image: row.image,
       link: row.link,
       read: row.read,
+      priority: row.priority || 'normal',
+      category: row.category,
+      audience: row.audience || 'user',
+      metadata: row.metadata || {},
+      readAt: row.read_at,
       time: new Date(row.created_at).toLocaleString(),
     }))
     return { notifications }
@@ -40,23 +54,38 @@ export async function getNotifications(userId: string) {
 }
 
 export async function markNotificationAsRead(id: string) {
+  const currentUser = await requireCurrentUser()
   // Check if the ID is a valid UUID (matches UUID format)
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
   if (isValidUUID) {
-    await sql`
-      UPDATE notifications
-      SET read = true
-      WHERE id = ${id}
-    `;
+    if (currentUser.role === 'admin') {
+      await sql`
+        UPDATE notifications
+        SET read = true,
+            read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+        WHERE id = ${id}
+      `;
+    } else {
+      await sql`
+        UPDATE notifications
+        SET read = true,
+            read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+        WHERE id = ${id}
+          AND user_id = ${currentUser.id}
+      `;
+    }
   }
   return { success: true };
 }
 
 export async function markAllNotificationsAsRead(userId: string) {
+  await requireSameUserOrAdmin(userId)
+
   await sql`
     UPDATE notifications
-    SET read = true
+    SET read = true,
+        read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
     WHERE user_id = ${userId}
   `
   return { success: true }
@@ -64,6 +93,8 @@ export async function markAllNotificationsAsRead(userId: string) {
 
 // Fonction pour sauvegarder les préférences utilisateur (utilise maintenant la base de données)
 export async function saveUserPreferences(userId: string, data: OnboardingData) {
+  await requireSameUserOrAdmin(userId)
+
   try {
     const success = await saveOnboardingData(userId, data)
     return { success }
@@ -97,6 +128,8 @@ export async function loginUser(email: string, password: string) {
 
 // Fonction pour accepter un match
 export async function acceptMatch(userId: string, matchId: string) {
+  await requireSameUserOrAdmin(userId)
+
   try {
     await executeQuery(
       `
@@ -116,6 +149,8 @@ export async function acceptMatch(userId: string, matchId: string) {
 
 // Fonction pour refuser un match
 export async function rejectMatch(userId: string, matchId: string) {
+  await requireSameUserOrAdmin(userId)
+
   try {
     await executeQuery(
       `
@@ -135,6 +170,8 @@ export async function rejectMatch(userId: string, matchId: string) {
 
 // Fonction pour supprimer un match
 export async function removeMatch(userId: string, matchId: string) {
+  await requireSameUserOrAdmin(userId)
+
   try {
     await executeQuery(
       `

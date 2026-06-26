@@ -1,3 +1,5 @@
+'use server'
+
 import { sql } from '@/lib/db'
 
 export interface AdminStatsData {
@@ -77,6 +79,7 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
       usersWeek,
       usersMonth,
       genderResults,
+      activeUsersToday,
       totalMessages,
       messagesToday,
       messagesWeek,
@@ -84,43 +87,41 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
       totalEvents,
       eventsToday,
       upcomingEvents,
+      eventSubscriptionsToday,
       totalConversations,
-      conversationsToday
+      conversationsToday,
+      activeConversationsToday
     ] = await Promise.all([
       safeQuery(`SELECT COUNT(*) as count FROM users`),
       safeQuery(`SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = DATE(NOW())`),
-      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`),
-      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`),
+      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '30 days'`),
       safeGenderQuery(),
+      safeQuery(`
+        SELECT COUNT(DISTINCT sender_id) as count
+        FROM messages
+        WHERE DATE(created_at) = DATE(NOW())
+      `),
       safeQuery(`SELECT COUNT(*) as count FROM messages`),
       safeQuery(`SELECT COUNT(*) as count FROM messages WHERE DATE(created_at) = DATE(NOW())`),
-      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`),
-      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)`),
+      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= NOW() - INTERVAL '30 days'`),
       safeQuery(`SELECT COUNT(*) as count FROM events`),
       safeQuery(`SELECT COUNT(*) as count FROM events WHERE DATE(created_at) = DATE(NOW())`),
-      safeQuery(`SELECT COUNT(*) as count FROM events WHERE date >= NOW()`),
+      safeQuery(`SELECT COUNT(*) as count FROM events WHERE event_date >= NOW()`),
+      safeQuery(`
+        SELECT COUNT(*) as count
+        FROM event_participants
+        WHERE DATE(created_at) = DATE(NOW())
+      `),
       safeQuery(`SELECT COUNT(*) as count FROM conversations`),
-      safeQuery(`SELECT COUNT(*) as count FROM conversations WHERE DATE(created_at) = DATE(NOW())`)
+      safeQuery(`SELECT COUNT(*) as count FROM conversations WHERE DATE(created_at) = DATE(NOW())`),
+      safeQuery(`
+        SELECT COUNT(DISTINCT conversation_id) as count
+        FROM messages
+        WHERE DATE(created_at) = DATE(NOW())
+      `)
     ])
-
-    // Requêtes optionnelles avec fallback plus gracieux
-    const activeUsersToday = await safeQuery(`
-      SELECT COUNT(DISTINCT sender_id) as count
-      FROM messages 
-      WHERE DATE(created_at) = DATE(NOW())
-    `)
-
-    const eventSubscriptionsToday = await safeQuery(`
-      SELECT COUNT(*) as count 
-      FROM event_participants 
-      WHERE DATE(created_at) = DATE(NOW())
-    `)
-
-    const activeConversationsToday = await safeQuery(`
-      SELECT COUNT(DISTINCT conversation_id) as count
-      FROM messages 
-      WHERE DATE(created_at) = DATE(NOW())
-    `)
 
     // Agrégation des données de genre avec fallback
     const genderStats = (genderResults || []).reduce((acc: any, row: any) => {
@@ -219,18 +220,23 @@ export async function getRealTimeMetrics() {
       safeQuery(`
         SELECT COUNT(DISTINCT sender_id) as count
         FROM messages 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+        WHERE created_at >= NOW() - INTERVAL '5 minutes'
       `),
       
       // Messages dans les 5 dernières minutes
       safeQuery(`
         SELECT COUNT(*) as count
         FROM messages 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 5 MINUTE)
+        WHERE created_at >= NOW() - INTERVAL '5 minutes'
       `),
-      
-      // Pour l'instant, pas de table d'erreurs - on met 0
-      Promise.resolve(0)
+
+      // Table absente sur la beta actuelle : fallback automatique à 0.
+      safeQuery(`
+        SELECT COUNT(*) as count
+        FROM auth_logs
+        WHERE level = 'error'
+          AND created_at >= NOW() - INTERVAL '5 minutes'
+      `)
     ])
 
     return {

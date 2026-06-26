@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server"
+import { getServerSession } from "next-auth/next"
 import { sql } from "@/lib/db"
+import { authOptions } from "@/lib/auth"
 import { randomUUID } from "crypto"
 
 import type { NextRequest } from "next/server"
-export async function POST(request: NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params
+export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Authentification requise" }, { status: 401 })
+  }
+  if (session.user.role !== "admin") {
+    return NextResponse.json({ error: "Accès administrateur requis" }, { status: 403 })
+  }
+
+  const { id } = await context.params
   const body = await request.json()
   // Récupérer l'événement original
   const [original] = await sql`SELECT * FROM events WHERE id = ${id}`

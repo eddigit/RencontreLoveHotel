@@ -1,6 +1,7 @@
 'use server'
 
 import { executeQuery } from '@/lib/db'; // Correctly import executeQuery
+import { requireAdmin } from '@/lib/server-auth';
 
 // --- Database types (adjust based on your actual schema and where you define types) ---
 export type MessageFromDB = {
@@ -29,6 +30,8 @@ export type ModerationMessage = MessageFromDB & {
  * Includes sender information and other protagonists in the conversation.
  */
 export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; limit?: number }): Promise<{ messages: ModerationMessage[], total: number }> {
+  await requireAdmin();
+
   try {
     const offset = (page - 1) * limit;
 
@@ -90,6 +93,8 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
  * (Soft delete: updates content and timestamp)
  */
 export async function deleteMessage(messageId: string): Promise<void> {
+  await requireAdmin();
+
   try {
     const moderatedContent = "Le contenu de ce message a été supprimé par le modérateur";
     const query = `
@@ -109,6 +114,8 @@ export async function deleteMessage(messageId: string): Promise<void> {
  * Bans a user.
  */
 export async function banUser(userId: string): Promise<void> {
+  await requireAdmin();
+
   try {
     const query = 'UPDATE users SET is_banned = TRUE, status = \'banned\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
@@ -124,6 +131,8 @@ export async function banUser(userId: string): Promise<void> {
  * Unbans a user.
  */
 export async function unbanUser(userId: string): Promise<void> {
+  await requireAdmin();
+
   try {
     const query = 'UPDATE users SET is_banned = FALSE, status = \'active\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
@@ -143,6 +152,8 @@ export async function unbanUser(userId: string): Promise<void> {
  * @param limit Pagination (optionnel)
  */
 export async function searchMessagesByKeywords({ keywords, page = 1, limit = 50 }: { keywords: string[], page?: number, limit?: number }): Promise<{ messages: ModerationMessage[], total: number }> {
+  await requireAdmin();
+
   if (!keywords || keywords.length === 0) return { messages: [], total: 0 };
   const offset = (page - 1) * limit;
   // Construction de la clause WHERE pour chaque mot-clé (insensible à la casse)

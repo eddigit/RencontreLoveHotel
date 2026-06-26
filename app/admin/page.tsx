@@ -9,7 +9,7 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { ProtectedRoute } from '@/components/protected-route'
-import { Users, Calendar, Settings, MessageSquare, BarChart3, TrendingUp } from 'lucide-react'
+import { Users, Calendar, Settings, MessageSquare, BarChart3, TrendingUp, ListChecks } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import MainLayout from '@/components/layout/main-layout'
@@ -20,11 +20,13 @@ import { getUpcomingEvents } from '@/actions/event-actions'
 import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
 import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
+import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
 
 export default function AdminPage () {
   const { user } = useAuth()
   const [userCount, setUserCount] = useState(0)
   const [eventCount, setEventCount] = useState(0)
+  const roadmapSummary = getRoadmapSummary(roadmapItems)
 
   useEffect(() => {
     async function fetchDashboardData () {
@@ -115,6 +117,41 @@ export default function AdminPage () {
                   </p>
                   <Button className='w-full' asChild>
                     <Link href='/admin/messages'>Gérer les messages</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className='pb-2'>
+                  <CardTitle className='flex items-center'>
+                    <ListChecks className='mr-2 h-5 w-5' />
+                    Roadmap
+                  </CardTitle>
+                  <CardDescription>
+                    Suivre les points OK, pas bons, développés et à traiter
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className='mb-4 grid grid-cols-4 gap-2 text-center text-xs'>
+                    <div className='rounded border border-emerald-500/20 bg-emerald-500/10 px-2 py-2'>
+                      <div className='font-bold text-emerald-300'>{roadmapSummary.ok}</div>
+                      <div className='text-muted-foreground'>OK</div>
+                    </div>
+                    <div className='rounded border border-red-500/20 bg-red-500/10 px-2 py-2'>
+                      <div className='font-bold text-red-300'>{roadmapSummary.issue}</div>
+                      <div className='text-muted-foreground'>Pas bons</div>
+                    </div>
+                    <div className='rounded border border-pink-500/20 bg-pink-500/10 px-2 py-2'>
+                      <div className='font-bold text-pink-300'>{roadmapSummary.developed}</div>
+                      <div className='text-muted-foreground'>Livrés</div>
+                    </div>
+                    <div className='rounded border border-sky-500/20 bg-sky-500/10 px-2 py-2'>
+                      <div className='font-bold text-sky-300'>{roadmapSummary.planned}</div>
+                      <div className='text-muted-foreground'>À faire</div>
+                    </div>
+                  </div>
+                  <Button className='w-full' asChild>
+                    <Link href='/admin/roadmap'>Ouvrir la roadmap</Link>
                   </Button>
                 </CardContent>
               </Card>

@@ -35,12 +35,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   })
 
   useEffect(() => {
-    if (!user?.id) return;
+    const userId = user?.id
+    if (!userId) return;
+    const currentUserId = userId
     let isMounted = true;
     let interval: NodeJS.Timeout;
     async function loadNotifications() {
       try {
-        const { notifications } = await getNotifications(user.id)
+        const { notifications } = await getNotifications(currentUserId)
         if (isMounted) setNotifications(notifications)
       } catch (error) {
         if (isMounted) console.error("Failed to load notifications:", error)

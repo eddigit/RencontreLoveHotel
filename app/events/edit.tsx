@@ -13,6 +13,27 @@ import { getOption } from '@/actions/user-actions'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 
+const activeEventCategoriesFallback =
+  'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
+const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
+
+function parseActiveEventCategories(raw?: string | null) {
+  return (raw || activeEventCategoriesFallback)
+    .split('\n')
+    .map((line: string) => line.trim())
+    .filter(Boolean)
+    .map((line: string) => {
+      const [value, label] = line.split('|')
+      return value && label
+        ? { value: value.trim(), label: label.trim() }
+        : null
+    })
+    .filter(
+      (category): category is { value: string; label: string } =>
+        category !== null && activeEventCategoryValues.has(category.value)
+    )
+}
+
 export default function EditEventPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -69,23 +90,7 @@ export default function EditEventPage() {
 
     async function fetchCategories() {
       const raw = await getOption('event_categories')
-      const lines = (
-        raw ||
-        'speed-dating|Speed Dating\njacuzzi|Jacuzzi\nrestaurant|Restaurant'
-      ).split('\n')
-      
-      setCategories(
-        lines
-          .map((line: string) => line.trim())
-          .filter(Boolean)
-          .map((line: string) => {
-            const [value, label] = line.split('|')
-            return value && label
-              ? { value: value.trim(), label: label.trim() }
-              : null
-          })
-          .filter(Boolean) as { value: string; label: string }[]
-      )
+      setCategories(parseActiveEventCategories(raw))
     }
 
     fetchEvent()

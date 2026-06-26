@@ -1,5 +1,5 @@
-import { neon } from '@neondatabase/serverless'
 import { NextRequest, NextResponse } from 'next/server'
+import { sql } from '@/lib/db'
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,15 +10,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 })
     }
 
-    // Vérifier que l'URL de la base de données est configurée
-    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL
-    if (!databaseUrl) {
-      console.error('Database URL not configured')
-      return NextResponse.json({ error: 'Database configuration error' }, { status: 500 })
-    }
-
-    const sql = neon(databaseUrl)
-    
     // Exécuter la requête avec gestion d'erreur
     const photos = await sql`SELECT id, url, is_primary FROM photos WHERE user_id = ${userId} ORDER BY created_at ASC`
     

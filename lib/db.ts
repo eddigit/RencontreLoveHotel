@@ -1,70 +1,75 @@
 import { config } from 'dotenv';
 config();
 
-import { neon } from "@neondatabase/serverless"
+import { Pool } from 'pg'
 
-// Créer une instance de connexion à la base de données de façon sûre
-// On évite d'appeler `neon()` au chargement du module si la variable
-// d'environnement n'est pas définie, ce qui empêche Next.js de planter
-// pendant le build/collect phase. Si l'app tente d'exécuter une requête
-// sans configuration, une erreur descriptive sera levée à l'exécution.
-let _sql: any = null
+let pool: Pool | null = null
 
-function initSql() {
-  if (_sql) return _sql
-  const databaseUrl = process.env.DATABASE_URL
-  if (!databaseUrl) {
-    // Fournir un stub qui provoque une erreur uniquement lorsque quelqu'un
-    // tente d'exécuter une requête. Cela permet au build Next de se terminer
-    // sans que `neon()` soit appelé.
-    const errorFunction = async () => {
-      throw new Error(
-        'DATABASE_URL non défini. Pour exécuter des opérations serveur, créez un fichier .env.local avec DATABASE_URL ou configurez la variable d\'environnement.'
-      )
-    }
-    
-    // Support des template literals et .query()
-    _sql = Object.assign(errorFunction, {
-      query: errorFunction
-    })
-    return _sql
-  }
-
-  _sql = neon(databaseUrl)
-  return _sql
+type SqlProxy = {
+  (strings: TemplateStringsArray, ...values: any[]): Promise<any[]>
+  query<T = any>(query: string, params?: any[]): Promise<T>
 }
 
-// Exposer `sql` qui initialise la connexion à la demande
-// Support des template literals ET de sql.query()
-function createSqlProxy() {
-  // Fonction principale pour template literals: sql`SELECT...`
-  const sqlFunction = (...args: any[]) => {
-    const s = initSql()
-    return s(...args)
+function initPool() {
+  if (pool) return pool
+  const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL non défini. Pour exécuter des opérations serveur, créez un fichier .env.local avec DATABASE_URL ou configurez la variable d\'environnement.'
+    )
   }
-  
-  // Méthode query pour: sql.query(query, params)
-  sqlFunction.query = async (...args: any[]) => {
-    const s = initSql()
-    if (typeof s.query === 'function') {
-      return s.query(...args)
-    }
-    // Fallback si neon ne supporte que template literals
-    return s(...args)
+
+  pool = new Pool({
+    connectionString: databaseUrl,
+    ssl:
+      process.env.DATABASE_SSL === 'true'
+        ? {
+            rejectUnauthorized:
+              process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'
+          }
+        : false
+  })
+
+  return pool
+}
+
+function buildParameterizedQuery(
+  strings: TemplateStringsArray,
+  values: any[]
+) {
+  let text = strings[0]
+
+  for (let index = 0; index < values.length; index += 1) {
+    text += `$${index + 1}${strings[index + 1]}`
   }
-  
-  return sqlFunction
+
+  return { text, values }
+}
+
+function createSqlProxy(): SqlProxy {
+  const sqlFunction = async (
+    strings: TemplateStringsArray,
+    ...values: any[]
+  ) => {
+    const query = buildParameterizedQuery(strings, values)
+    return executeQuery(query.text, query.values)
+  }
+
+  const proxy = sqlFunction as SqlProxy
+  proxy.query = async <T = any>(query: string, params: any[] = []) => {
+    return executeQuery<T>(query, params)
+  }
+
+  return proxy
 }
 
 export const sql = createSqlProxy()
 
-// Fonction générique pour exécuter des requêtes SQL
 export async function executeQuery<T = any>(query: string, params: any[] = []): Promise<T> {
   try {
-    const s = initSql()
-    // Utiliser sql.query() pour les requêtes avec paramètres
-    const rows = await s.query(query, params)
-    return rows as T
+    const db = initPool()
+    const result = await db.query(query, params)
+    return result.rows as T
   } catch (error) {
     console.error("Erreur lors de l'exécution de la requête SQL:", error)
     throw error

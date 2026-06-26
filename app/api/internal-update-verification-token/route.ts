@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { executeQuery } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { logSecurityEvent } from "@/utils/logger";
 
 export async function POST(req: NextRequest) {
   try {
-    // SÉCURITÉ: Cette route interne doit être limitée
-    // En production, ajoutez une clé API ou restriction IP
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ success: false, error: "Authentification requise." }, { status: 401 });
+    }
+    if (session.user.role !== 'admin') {
+      return NextResponse.json({ success: false, error: "Accès administrateur requis." }, { status: 403 });
+    }
+
     const { userId, token } = await req.json();
     
     if (!userId || !token) {
