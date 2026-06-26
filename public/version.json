@@ -1,8 +1,8 @@
 {
   "version": "0.1.0",
-  "buildNumber": 16,
-  "lastCommit": "9963e3a4322564401046fc2e476346d74ae273ab",
-  "lastCommitDate": "2026-06-26T19:03:35+02:00",
-  "deploymentDate": "2026-06-26T18:43:31.603Z",
-  "lastCommitMessage": "Add concierge main navigation and request form"
+  "buildNumber": 17,
+  "lastCommit": "157006d9043bcbb3880ad56e6fd7bbe4a98d3148",
+  "lastCommitDate": "2026-06-26T22:19:50+02:00",
+  "deploymentDate": "2026-06-26T20:20:13.544Z",
+  "lastCommitMessage": "fix: make community presence live and clickable"
 }
