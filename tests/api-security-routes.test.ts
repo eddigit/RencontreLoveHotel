@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { existsSync } from 'fs'
 
 const getServerSessionMock = vi.hoisted(() => vi.fn())
 const acceptMatchRequestMock = vi.hoisted(() => vi.fn())
@@ -7,6 +8,7 @@ const notifyEventReservationAdminsMock = vi.hoisted(() => vi.fn())
 const sqlMock = vi.hoisted(() => vi.fn())
 const executeQueryMock = vi.hoisted(() => vi.fn())
 const logSecurityEventMock = vi.hoisted(() => vi.fn())
+const blobPutMock = vi.hoisted(() => vi.fn())
 
 vi.mock('next-auth/next', () => ({
   getServerSession: getServerSessionMock
@@ -33,6 +35,10 @@ vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
 }))
 
+vi.mock('@vercel/blob', () => ({
+  put: blobPutMock
+}))
+
 vi.mock('@/utils/logger', () => ({
   logSecurityEvent: logSecurityEventMock
 }))
@@ -42,6 +48,15 @@ function jsonPost(url: string, body: unknown) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body)
+  }) as any
+}
+
+function photoPost(file: File) {
+  const formData = new FormData()
+  formData.set('photo', file)
+  return new Request('https://example.test/api/photos/upload', {
+    method: 'POST',
+    body: formData
   }) as any
 }
 
@@ -55,6 +70,7 @@ describe('sensitive API routes', () => {
     sqlMock.mockReset()
     executeQueryMock.mockReset()
     logSecurityEventMock.mockReset()
+    blobPutMock.mockReset()
   })
 
   it('blocks anonymous match acceptance before touching match data', async () => {
@@ -214,16 +230,11 @@ describe('sensitive API routes', () => {
     expect(executeQueryMock).not.toHaveBeenCalled()
   })
 
-  it('requires an admin session before creating test events', async () => {
-    getServerSessionMock.mockResolvedValue({
-      user: { id: 'user-1', role: 'user' }
-    })
-
-    const { POST } = await import('@/app/api/events/test/route')
-    const response = await POST()
-
-    expect(response.status).toBe(403)
-    expect(sqlMock).not.toHaveBeenCalled()
+  it('does not expose the test event creation API in the app router', () => {
+    expect(existsSync('app/api/events/test/route.ts')).toBe(false)
+    expect(existsSync('app/admin/create-test-events/page.tsx')).toBe(false)
+    expect(existsSync('app/admin/create-single-test-event/page.tsx')).toBe(false)
+    expect(existsSync('actions/create-test-event.ts')).toBe(false)
   })
 
   it('requires an admin session before duplicating an event', async () => {
@@ -274,5 +285,67 @@ describe('sensitive API routes', () => {
 
     expect(response.status).toBe(403)
     expect(sqlMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects photo uploads with unsupported MIME types before storage', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+
+    const { POST } = await import('@/app/api/photos/upload/route')
+    const response = await POST(
+      photoPost(
+        new File(['<svg><script>alert(1)</script></svg>'], 'avatar.svg', {
+          type: 'image/svg+xml'
+        })
+      )
+    )
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.error).toContain('Format')
+    expect(sqlMock).not.toHaveBeenCalled()
+    expect(blobPutMock).not.toHaveBeenCalled()
+  })
+
+  it('rejects photo uploads when file bytes do not match the declared image type', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+
+    const { POST } = await import('@/app/api/photos/upload/route')
+    const response = await POST(
+      photoPost(new File(['not an image'], 'avatar.jpg', { type: 'image/jpeg' }))
+    )
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.error).toContain('invalide')
+    expect(sqlMock).not.toHaveBeenCalled()
+    expect(blobPutMock).not.toHaveBeenCalled()
+  })
+
+  it('stores valid photo uploads with a server-controlled extension', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+    sqlMock.mockResolvedValueOnce([{ count: '0' }]).mockResolvedValueOnce([])
+    blobPutMock.mockResolvedValue({ url: 'https://blob.example/photo.png' })
+
+    const { POST } = await import('@/app/api/photos/upload/route')
+    const response = await POST(
+      photoPost(
+        new File(
+          [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+          'profile.html',
+          { type: 'image/png' }
+        )
+      )
+    )
+
+    expect(response.status).toBe(200)
+    expect(blobPutMock.mock.calls[0][0]).toMatch(
+      /^user-photos\/user-1-\d+\.png$/
+    )
   })
 })

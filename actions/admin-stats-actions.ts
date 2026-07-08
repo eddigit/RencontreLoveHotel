@@ -1,6 +1,7 @@
 'use server'
 
 import { sql } from '@/lib/db'
+import { requireAdmin } from '@/lib/server-auth'
 
 export interface AdminStatsData {
   // Utilisateurs
@@ -43,6 +44,8 @@ export interface AdminStatsData {
 }
 
 export async function getAdminDashboardStats(): Promise<AdminStatsData> {
+  await requireAdmin()
+
   try {
     // Helper pour exécuter une requête avec fallback
     const safeQuery = async (query: string, fallback = 0) => {
@@ -199,6 +202,8 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
 
 // Fonction pour obtenir des statistiques de performance en temps réel
 export async function getRealTimeMetrics() {
+  await requireAdmin()
+
   try {
     // Helper pour requêtes sécurisées
     const safeQuery = async (query: string, fallback = 0) => {

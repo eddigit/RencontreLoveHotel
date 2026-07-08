@@ -1,12 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const requireAdminMock = vi.hoisted(() => vi.fn())
+
 vi.mock('@/lib/db', () => ({
   sql: {
     query: vi.fn()
   }
 }))
 
+vi.mock('@/lib/server-auth', () => ({
+  requireAdmin: requireAdminMock
+}))
+
 import {
+  createEmailCampaignDraft,
+  createEmailTemplate,
+  listEmailCampaigns,
+  listEmailTemplates,
   prepareCampaignRecipients,
   previewEmailAudience
 } from '../actions/email-campaign-actions'
@@ -16,6 +26,37 @@ import { sql } from '@/lib/db'
 describe('email campaign actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
+    requireAdminMock.mockReset()
+    requireAdminMock.mockResolvedValue({ id: 'admin-1', role: 'admin' })
+  })
+
+  it('requires admin access before touching campaign data', async () => {
+    requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
+
+    await expect(
+      previewEmailAudience({ audience: 'all_active' })
+    ).rejects.toThrow('administrateur')
+    await expect(listEmailTemplates()).rejects.toThrow('administrateur')
+    await expect(listEmailCampaigns()).rejects.toThrow('administrateur')
+    await expect(
+      createEmailTemplate({
+        name: 'Relance',
+        slug: 'relance',
+        subject: 'Bonjour',
+        bodyHtml: '<p>Bonjour</p>'
+      })
+    ).rejects.toThrow('administrateur')
+    await expect(
+      createEmailCampaignDraft({
+        name: 'Campagne',
+        audienceFilter: { audience: 'all_active' }
+      })
+    ).rejects.toThrow('administrateur')
+    await expect(prepareCampaignRecipients('campaign-1')).rejects.toThrow(
+      'administrateur'
+    )
+
+    expect(sql.query).not.toHaveBeenCalled()
   })
 
   it('previews eligible and excluded campaign recipients without sending email', async () => {

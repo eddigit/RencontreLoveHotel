@@ -6,7 +6,8 @@ describe('conciergerie workflow', () => {
     const route = readFileSync('app/api/conciergerie/route.ts', 'utf8')
 
     expect(route).toContain('CONCIERGERIE_RECIPIENT_EMAIL')
-    expect(route).toContain('loolyyb@gmail.com')
+    expect(route).not.toContain('loolyyb@gmail.com')
+    expect(route).toContain('getConciergerieRecipientEmail')
     expect(route).not.toContain('lovehotelaparis@gmail.com')
     expect(route).toContain('response_preference')
     expect(route).toContain('conversation_id')

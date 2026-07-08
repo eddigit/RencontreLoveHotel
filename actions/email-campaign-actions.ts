@@ -5,6 +5,7 @@ import {
   canSendEmailForPurpose,
   type EmailPolicyReason
 } from '@/lib/email-policy'
+import { requireAdmin } from '@/lib/server-auth'
 
 export type EmailAudience =
   | 'all_active'
@@ -154,6 +155,8 @@ function summarizeAudience(rows: AudienceRow[]): EmailAudiencePreview {
 export async function previewEmailAudience(
   input: EmailAudiencePreviewInput
 ): Promise<EmailAudiencePreview> {
+  await requireAdmin()
+
   try {
     const rows = await fetchAudienceRows(input)
     return summarizeAudience(rows)
@@ -169,6 +172,8 @@ export async function previewEmailAudience(
 }
 
 export async function listEmailTemplates(): Promise<EmailTemplateSummary[]> {
+  await requireAdmin()
+
   return sql.query<EmailTemplateSummary[]>(`
     SELECT id, name, slug, subject, created_at
     FROM email_templates
@@ -179,6 +184,8 @@ export async function listEmailTemplates(): Promise<EmailTemplateSummary[]> {
 }
 
 export async function listEmailCampaigns(): Promise<EmailCampaignSummary[]> {
+  await requireAdmin()
+
   return sql.query<EmailCampaignSummary[]>(`
     SELECT id, name, status, eligible_count, skipped_count, sent_count,
            error_count, created_at
@@ -199,6 +206,8 @@ export async function createEmailTemplate(input: {
   ctaUrl?: string
   createdBy?: string
 }) {
+  await requireAdmin()
+
   const [template] = await sql.query(
     `
       INSERT INTO email_templates (
@@ -230,6 +239,8 @@ export async function createEmailCampaignDraft(input: {
   audienceFilter: EmailAudiencePreviewInput
   createdBy?: string
 }) {
+  await requireAdmin()
+
   const preview = await previewEmailAudience(input.audienceFilter)
   const [campaign] = await sql.query(
     `
@@ -254,6 +265,8 @@ export async function createEmailCampaignDraft(input: {
 }
 
 export async function prepareCampaignRecipients(campaignId: string) {
+  await requireAdmin()
+
   const campaigns = await sql.query<Array<{ audience_filter: EmailAudiencePreviewInput }>>(
     'SELECT audience_filter FROM email_campaigns WHERE id = $1 LIMIT 1',
     [campaignId]

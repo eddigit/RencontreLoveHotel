@@ -7,8 +7,7 @@ import { sql } from '@/lib/db'
 const CONCIERGERIE_RECIPIENT_EMAIL =
   process.env.CONCIERGERIE_RECIPIENT_EMAIL ||
   process.env.ADMIN_NOTIFICATION_EMAIL ||
-  process.env.FEEDBACK_RECIPIENT_EMAIL ||
-  'loolyyb@gmail.com'
+  process.env.FEEDBACK_RECIPIENT_EMAIL
 
 type ResponsePreference = 'chat' | 'email'
 
@@ -70,6 +69,14 @@ function escapeHtml(value: unknown) {
 
 function cleanText(value: unknown, maxLength: number) {
   return String(value || '').trim().slice(0, maxLength)
+}
+
+function getConciergerieRecipientEmail() {
+  if (!CONCIERGERIE_RECIPIENT_EMAIL) {
+    throw new Error('Configuration conciergerie manquante: email destinataire requis.')
+  }
+
+  return CONCIERGERIE_RECIPIENT_EMAIL
 }
 
 function normalizePayload(
@@ -180,7 +187,10 @@ async function ensureConciergerieSchema() {
   )
 }
 
-async function findConciergerieAdmin(requesterId?: string | null) {
+async function findConciergerieAdmin(
+  requesterId: string | null | undefined,
+  recipientEmail: string
+) {
   const directRows = await sql.query<{ id: string; email: string; role: string }[]>(
     `
       SELECT id, email, role
@@ -190,7 +200,7 @@ async function findConciergerieAdmin(requesterId?: string | null) {
         AND COALESCE(status, 'active') = 'active'
       LIMIT 1
     `,
-    [CONCIERGERIE_RECIPIENT_EMAIL]
+    [recipientEmail]
   )
   const directAdmin = directRows.find(
     user => user.id !== requesterId && user.role === 'admin'
@@ -209,7 +219,7 @@ async function findConciergerieAdmin(requesterId?: string | null) {
       ORDER BY lower(email) = lower($2) DESC, created_at ASC
       LIMIT 1
     `,
-    [requesterId || null, CONCIERGERIE_RECIPIENT_EMAIL]
+    [requesterId || null, recipientEmail]
   )
 
   return fallbackRows[0] || null
@@ -243,17 +253,19 @@ function buildConciergerieMessage(
 async function createConciergerieConversation({
   request,
   requestId,
-  requesterId
+  requesterId,
+  recipientEmail
 }: {
   request: NormalizedConciergerieRequest
   requestId: string
   requesterId?: string | null
+  recipientEmail: string
 }) {
   if (request.responsePreference !== 'chat' || !requesterId) {
     return null
   }
 
-  const admin = await findConciergerieAdmin(requesterId)
+  const admin = await findConciergerieAdmin(requesterId, recipientEmail)
   if (!admin?.id || admin.id === requesterId) {
     return null
   }
@@ -319,7 +331,8 @@ function smtpReady() {
 async function sendConciergerieEmail(
   request: NormalizedConciergerieRequest,
   requestId: string,
-  conversationId?: string | null
+  conversationId: string | null | undefined,
+  recipientEmail: string
 ) {
   if (!smtpReady()) {
     console.warn('SMTP non configuré: demande conciergerie stockée sans email.')
@@ -348,7 +361,7 @@ async function sendConciergerieEmail(
 
     await transporter.sendMail({
       from: process.env.SMTP_FROM || 'noreply@rencontrelovehotel.com',
-      to: CONCIERGERIE_RECIPIENT_EMAIL,
+      to: recipientEmail,
       replyTo: request.email,
       subject: `[Love Hotel Rencontre] Conciergerie érotique - ${request.requestTypeLabel}`,
       html: `
@@ -412,13 +425,15 @@ async function createConciergerieAdminNotifications({
   requestId,
   requesterId,
   conversationId,
-  emailSent
+  emailSent,
+  recipientEmail
 }: {
   request: NormalizedConciergerieRequest
   requestId: string
   requesterId?: string | null
   conversationId?: string | null
   emailSent: boolean
+  recipientEmail: string
 }) {
   const admins = await sql.query<{ id: string }[]>(
     `
@@ -432,7 +447,7 @@ async function createConciergerieAdminNotifications({
         AND COALESCE(status, 'active') = 'active'
       ORDER BY id
     `,
-    [CONCIERGERIE_RECIPIENT_EMAIL]
+    [recipientEmail]
   )
   const link = conversationId ? `/messages/${conversationId}` : '/admin/conciergerie'
 
@@ -474,7 +489,7 @@ async function createConciergerieAdminNotifications({
           partySize: request.partySize || null,
           mood: request.mood || null,
           requesterEmail: request.email,
-          recipientEmail: CONCIERGERIE_RECIPIENT_EMAIL,
+          recipientEmail,
           conversationId: conversationId || null,
           emailSent
         }),
@@ -488,6 +503,22 @@ async function createConciergerieAdminNotifications({
 
 export async function POST(request: Request) {
   try {
+    let recipientEmail: string
+    try {
+      recipientEmail = getConciergerieRecipientEmail()
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Configuration conciergerie manquante.'
+        },
+        { status: 500 }
+      )
+    }
+
     const session = await getServerSession(authOptions)
     const payload = (await request.json()) as ConciergeriePayload
     let conciergeRequest: NormalizedConciergerieRequest
@@ -543,12 +574,14 @@ export async function POST(request: Request) {
     const conversationId = await createConciergerieConversation({
       request: conciergeRequest,
       requestId,
-      requesterId
+      requesterId,
+      recipientEmail
     })
     const emailSent = await sendConciergerieEmail(
       conciergeRequest,
       requestId,
-      conversationId
+      conversationId,
+      recipientEmail
     )
 
     await sql.query(
@@ -570,7 +603,8 @@ export async function POST(request: Request) {
         requestId,
         requesterId,
         conversationId,
-        emailSent
+        emailSent,
+        recipientEmail
       })
     } catch (error) {
       console.warn('Notification admin conciergerie indisponible:', error)

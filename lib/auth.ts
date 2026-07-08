@@ -102,8 +102,8 @@ export const authOptions: NextAuthOptions = {
             )
             token.sub = user.id || token.sub
             token.role = token.role || 'user'
-            token.onboardingCompleted = token.onboardingCompleted || false
-            token.email_verified = token.email_verified || true
+            token.onboardingCompleted = token.onboardingCompleted ?? false
+            token.email_verified = token.email_verified ?? false
           }
         }
 
@@ -122,8 +122,8 @@ export const authOptions: NextAuthOptions = {
         if (user) {
           token.sub = user.id || token.sub
           token.role = token.role || 'user'
-          token.onboardingCompleted = token.onboardingCompleted || false
-          token.email_verified = token.email_verified || true
+          token.onboardingCompleted = token.onboardingCompleted ?? false
+          token.email_verified = token.email_verified ?? false
         }
       }
       return token

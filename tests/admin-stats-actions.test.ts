@@ -1,10 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+const requireAdminMock = vi.hoisted(() => vi.fn())
+
 // Mock des dépendances
 vi.mock('@/lib/db', () => ({
   sql: {
     query: vi.fn()
   }
+}))
+
+vi.mock('@/lib/server-auth', () => ({
+  requireAdmin: requireAdminMock
 }))
 
 import { getAdminDashboardStats, getRealTimeMetrics } from '../actions/admin-stats-actions'
@@ -13,9 +19,19 @@ import { sql } from '@/lib/db'
 describe('Admin Stats Actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
+    requireAdminMock.mockReset()
+    requireAdminMock.mockResolvedValue({ id: 'admin-1', role: 'admin' })
   })
 
   describe('getAdminDashboardStats', () => {
+    it('requires admin access before loading dashboard statistics', async () => {
+      requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
+
+      await expect(getAdminDashboardStats()).rejects.toThrow('administrateur')
+
+      expect(sql.query).not.toHaveBeenCalled()
+    })
+
     it('should return complete admin statistics', async () => {
       // Mock des réponses SQL pour toutes les requêtes
       const mockQueries = [
@@ -106,6 +122,14 @@ describe('Admin Stats Actions', () => {
   })
 
   describe('getRealTimeMetrics', () => {
+    it('requires admin access before loading real-time metrics', async () => {
+      requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
+
+      await expect(getRealTimeMetrics()).rejects.toThrow('administrateur')
+
+      expect(sql.query).not.toHaveBeenCalled()
+    })
+
     it('should return real-time activity metrics', async () => {
       const mockMetrics = [
         [{ count: 5 }],  // connectionsLast5Min
