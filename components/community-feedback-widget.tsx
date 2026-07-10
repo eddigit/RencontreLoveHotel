@@ -93,7 +93,7 @@ export function CommunityFeedbackWidget() {
           minLength={8}
           maxLength={2000}
           required
-          className='min-h-28 rounded-2xl border-white/10 bg-black/18 text-white placeholder:text-white/35 focus-visible:ring-[#ff62a8]'
+          className='min-h-28 rounded-2xl border-[#ff8cc8]/22 bg-[#170321]/95 text-white placeholder:text-[#d8c6e8]/48 shadow-inner shadow-black/20 focus-visible:ring-[#ff62a8]'
         />
 
         {status && (

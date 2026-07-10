@@ -261,7 +261,7 @@ export default function AdminMessagesPage () {
                             </div>
                           </div>
                           <p
-                            className={`text-sm p-3 rounded mt-2 whitespace-pre-wrap bg-[#333333]  ${
+                            className={`text-sm p-3 rounded mt-2 whitespace-pre-wrap bg-[#170321]  ${
                               message.content ===
                               'Le contenu de ce message a été supprimé par le modérateur'
                                 ? 'italic text-red-500'
@@ -383,7 +383,7 @@ export default function AdminMessagesPage () {
                         </div>
                       </div>
                       <p
-                        className={`text-sm p-3 rounded mt-2 whitespace-pre-wrap bg-[#333333]  ${
+                        className={`text-sm p-3 rounded mt-2 whitespace-pre-wrap bg-[#170321]  ${
                           message.content ===
                           'Le contenu de ce message a été supprimé par le modérateur'
                             ? 'italic text-red-500'
