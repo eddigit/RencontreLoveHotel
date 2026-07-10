@@ -262,7 +262,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   }
 
   return (
-    <section id='community-wall' className='scroll-mt-24 rounded-2xl border border-[#94ffc9]/20 bg-black/20 p-4'>
+    <section id='community-wall' className='scroll-mt-24 rounded-2xl border border-[#ff8cc8]/24 bg-[linear-gradient(135deg,rgba(23,3,33,0.98),rgba(43,13,64,0.92),rgba(10,3,18,0.98))] p-4 shadow-xl shadow-black/25'>
       <div className='mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
         <div>
           <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#94ffc9]'>

@@ -285,8 +285,6 @@ export default function DiscoverPage () {
               </div>
             )}
 
-            <CommunityWall currentUserId={user.id} />
-
             <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
               <div className='mb-4 flex items-center justify-between gap-3'>
                 <div>
@@ -316,6 +314,8 @@ export default function DiscoverPage () {
                 ))}
               </div>
             </section>
+
+            <CommunityWall currentUserId={user.id} />
 
             <section className='rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-4'>
               <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
