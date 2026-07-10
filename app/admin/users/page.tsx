@@ -18,7 +18,7 @@ import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { ChevronLeft, ChevronRight, RotateCcw, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search, X } from 'lucide-react'
 
 // Define a more specific type for user data, including ban status
 interface AdminUser {
@@ -70,8 +70,10 @@ export default function AdminUsersPage () {
     onboarding: 'all',
     visibility: 'all'
   })
+  const [appliedFilters, setAppliedFilters] = useState<AdminUserSearchFilters>(filters)
+  const [filtersOpen, setFiltersOpen] = useState(true)
 
-  const fetchAdminData = async (nextPage = 1, nextFilters = filters) => {
+  const fetchAdminData = async (nextPage = 1, nextFilters = appliedFilters) => {
     setLoading(true)
     setLoadingGenderCounts(true)
 
@@ -104,11 +106,17 @@ export default function AdminUsersPage () {
 
 
   useEffect(() => {
-    void fetchAdminData(1)
+    void fetchAdminData(1, appliedFilters)
   }, [])
 
+  const applyFilters = (nextFilters: AdminUserSearchFilters) => {
+    setFilters(nextFilters)
+    setAppliedFilters(nextFilters)
+    void fetchAdminData(1, nextFilters)
+  }
+
   const runSearch = () => {
-    void fetchAdminData(1, filters)
+    applyFilters({ ...filters })
   }
 
   const resetSearch = () => {
@@ -123,14 +131,13 @@ export default function AdminUsersPage () {
       onboarding: 'all',
       visibility: 'all'
     }
-    setFilters(nextFilters)
-    void fetchAdminData(1, nextFilters)
+    applyFilters(nextFilters)
   }
 
   const handleDelete = async (userId: string) => {
     if (!window.confirm('Supprimer cet utilisateur ?')) return
     await deleteUserByAdmin(userId)
-    await fetchAdminData(page)
+    await fetchAdminData(page, appliedFilters)
   }
 
   // Handler for banning/unbanning a user
@@ -154,7 +161,7 @@ export default function AdminUsersPage () {
         alert(`Utilisateur ${userName || userId} banni.`)
       }
       // Refresh user list to show updated status
-      await fetchAdminData(page)
+      await fetchAdminData(page, appliedFilters)
     } catch (err) {
       console.error(`Error ${action} user:`, err)
       alert(`Erreur lors de la tentative de ${action} l'utilisateur.`)
@@ -205,6 +212,33 @@ export default function AdminUsersPage () {
     }
     return orientation ? labels[orientation] || orientation : 'Orientation non renseignée'
   }
+
+  const activeFilterCount = [
+    filters.search?.trim(),
+    filters.accountStatus !== 'all' ? filters.accountStatus : '',
+    filters.profileStatus !== 'all' ? filters.profileStatus : '',
+    filters.gender !== 'all' ? filters.gender : '',
+    filters.orientation !== 'all' ? filters.orientation : '',
+    filters.meetingCriterion !== 'all' ? filters.meetingCriterion : '',
+    filters.onboarding !== 'all' ? filters.onboarding : '',
+    filters.visibility !== 'all' ? filters.visibility : ''
+  ].filter(Boolean).length
+
+  const appliedCriteria = [
+    appliedFilters.search?.trim() ? `Recherche : « ${appliedFilters.search.trim()} »` : null,
+    appliedFilters.profileStatus !== 'all' ? getProfileStatusLabel(appliedFilters.profileStatus) : null,
+    appliedFilters.gender !== 'all' ? getGenderLabel(appliedFilters.gender || '') : null,
+    appliedFilters.orientation !== 'all' ? getOrientationLabel(appliedFilters.orientation) : null,
+    appliedFilters.meetingCriterion === 'open_couples' ? 'Ouverts aux couples' : null,
+    appliedFilters.meetingCriterion === 'open_curtains' ? 'Rideaux ouverts' : null,
+    appliedFilters.meetingCriterion === 'libertine' ? 'Libertin' : null,
+    appliedFilters.accountStatus === 'active' ? 'Comptes actifs' : null,
+    appliedFilters.accountStatus === 'banned' ? 'Comptes bannis' : null,
+    appliedFilters.onboarding === 'complete' ? 'Parcours terminés' : null,
+    appliedFilters.onboarding === 'incomplete' ? 'Parcours incomplets' : null,
+    appliedFilters.visibility === 'visible' ? 'Profils visibles' : null,
+    appliedFilters.visibility === 'hidden' ? 'Profils masqués' : null
+  ].filter((criterion): criterion is string => Boolean(criterion))
   
   const genderChartData = genderCounts.map(item => ({
     name: getGenderLabel(item.gender),
@@ -274,22 +308,45 @@ export default function AdminUsersPage () {
             </CardContent>
           </Card>
 
-          <section id='directory' className='mb-6 rounded-2xl border border-border bg-card p-5 shadow-sm'>
-            <div className='mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between'>
+          <section id='directory' className='mb-6 rounded-2xl border-2 border-primary/30 bg-card p-5 shadow-sm'>
+            <div className='mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
               <div>
-                <p className='text-xs font-semibold uppercase tracking-wide text-primary'>Répertoire complet</p>
-                <h2 className='text-xl font-semibold'>Ensemble des inscrits</h2>
+                <p className='text-xs font-semibold uppercase tracking-wide text-primary'>Annuaire des membres</p>
+                <h2 className='text-xl font-semibold'>
+                  {appliedCriteria.length > 0 ? 'Résultats de la recherche' : 'Tous les profils'}
+                </h2>
                 <p className='text-sm text-muted-foreground'>
-                  {directoryTotal} résultat{directoryTotal > 1 ? 's' : ''} correspondant aux critères
-                  {totalPages > 0 ? ` · page ${page} sur ${totalPages}` : ''}
+                  {directoryTotal} résultat{directoryTotal > 1 ? 's' : ''}
+                  {totalPages > 0 ? ` · page ${page} sur ${totalPages}` : ''} · 24 comptes par page
                 </p>
               </div>
-              <span className='text-sm text-muted-foreground'>24 comptes par page</span>
+              <div className='flex items-center gap-2 self-end sm:self-start'>
+                {activeFilterCount > 0 && (
+                  <span className='text-xs text-muted-foreground'>
+                    {activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''}
+                  </span>
+                )}
+                <Button
+                  type='button'
+                  variant={filtersOpen ? 'default' : 'outline'}
+                  onClick={() => setFiltersOpen(open => !open)}
+                  aria-expanded={filtersOpen}
+                  title='Afficher ou masquer les filtres'
+                >
+                  <Filter className='mr-2 h-4 w-4' />
+                  Filtrer
+                  {activeFilterCount > 0 && (
+                    <span className='ml-2 rounded-full bg-background/20 px-1.5 py-0.5 text-xs'>
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </div>
             </div>
 
-            <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
+            <div className='grid gap-3 md:grid-cols-[minmax(0,1fr)_230px_auto] md:items-end'>
               <label className='text-sm font-medium'>
-                Recherche
+                Rechercher dans les profils
                 <div className='relative mt-1'>
                   <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                   <input
@@ -306,23 +363,10 @@ export default function AdminUsersPage () {
               </label>
 
               <label className='text-sm font-medium'>
-                Compte
-                <select
-                  value={filters.accountStatus || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, accountStatus: event.target.value as AdminUserSearchFilters['accountStatus'] }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Tous les comptes</option>
-                  <option value='active'>Actifs</option>
-                  <option value='banned'>Bannis</option>
-                </select>
-              </label>
-
-              <label className='text-sm font-medium'>
-                Type de profil
+                Profil recherché
                 <select
                   value={filters.profileStatus || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, profileStatus: event.target.value }))}
+                  onChange={event => applyFilters({ ...filters, profileStatus: event.target.value })}
                   className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
                 >
                   <option value='all'>Tous les profils</option>
@@ -337,90 +381,128 @@ export default function AdminUsersPage () {
                 </select>
               </label>
 
-              <label className='text-sm font-medium'>
-                Orientation
-                <select
-                  value={filters.orientation || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, orientation: event.target.value }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Toutes les orientations</option>
-                  <option value='hetero'>Hétéro</option>
-                  <option value='bi'>Bi</option>
-                  <option value='bisexual'>Bisexuel</option>
-                  <option value='homo'>Homo</option>
-                  <option value='gay'>Gay</option>
-                  <option value='lesbian'>Lesbienne</option>
-                  <option value='pansexual'>Pansexuel</option>
-                </select>
-              </label>
-
-              <label className='text-sm font-medium'>
-                Genre
-                <select
-                  value={filters.gender || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, gender: event.target.value }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Tous les genres</option>
-                  <option value='male'>Homme</option>
-                  <option value='female'>Femme</option>
-                  <option value='couple_mf'>Couple H/F</option>
-                  <option value='other'>Autre</option>
-                </select>
-              </label>
-
-              <label className='text-sm font-medium'>
-                Critère de rencontre
-                <select
-                  value={filters.meetingCriterion || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, meetingCriterion: event.target.value as AdminUserSearchFilters['meetingCriterion'] }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Tous les critères</option>
-                  <option value='open_couples'>Ouverts aux couples</option>
-                  <option value='open_curtains'>Rideaux ouverts</option>
-                  <option value='libertine'>Libertin</option>
-                </select>
-              </label>
-
-              <label className='text-sm font-medium'>
-                Parcours
-                <select
-                  value={filters.onboarding || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, onboarding: event.target.value as AdminUserSearchFilters['onboarding'] }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Tous les parcours</option>
-                  <option value='complete'>Parcours terminé</option>
-                  <option value='incomplete'>À compléter</option>
-                </select>
-              </label>
-
-              <label className='text-sm font-medium'>
-                Visibilité du profil
-                <select
-                  value={filters.visibility || 'all'}
-                  onChange={event => setFilters(current => ({ ...current, visibility: event.target.value as AdminUserSearchFilters['visibility'] }))}
-                  className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
-                >
-                  <option value='all'>Toutes les visibilités</option>
-                  <option value='visible'>Profil visible</option>
-                  <option value='hidden'>Profil masqué</option>
-                </select>
-              </label>
-            </div>
-
-            <div className='mt-5 flex flex-col gap-3 sm:flex-row sm:items-center'>
               <Button type='button' onClick={runSearch} disabled={loading}>
                 <Search className='mr-2 h-4 w-4' />
                 Rechercher
               </Button>
-              <Button type='button' variant='outline' onClick={resetSearch} disabled={loading}>
-                <RotateCcw className='mr-2 h-4 w-4' />
-                Réinitialiser
-              </Button>
-              <span className='text-xs text-muted-foreground'>La recherche s’effectue côté serveur sur l’ensemble des inscrits.</span>
+            </div>
+
+            {filtersOpen && (
+              <div className='mt-4 rounded-xl border border-border bg-muted/20 p-4'>
+                <div className='mb-3 flex items-center justify-between'>
+                  <p className='text-sm font-semibold'>Filtres avancés</p>
+                  <Button type='button' variant='ghost' size='sm' onClick={resetSearch} disabled={loading}>
+                    <RotateCcw className='mr-2 h-4 w-4' />
+                    Réinitialiser
+                  </Button>
+                </div>
+
+                <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+                  <label className='text-sm font-medium'>
+                    Compte
+                    <select
+                      value={filters.accountStatus || 'all'}
+                      onChange={event => applyFilters({ ...filters, accountStatus: event.target.value as AdminUserSearchFilters['accountStatus'] })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Tous les comptes</option>
+                      <option value='active'>Actifs</option>
+                      <option value='banned'>Bannis</option>
+                    </select>
+                  </label>
+
+                  <label className='text-sm font-medium'>
+                    Orientation
+                    <select
+                      value={filters.orientation || 'all'}
+                      onChange={event => applyFilters({ ...filters, orientation: event.target.value })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Toutes les orientations</option>
+                      <option value='hetero'>Hétéro</option>
+                      <option value='bi'>Bi</option>
+                      <option value='bisexual'>Bisexuel</option>
+                      <option value='homo'>Homo</option>
+                      <option value='gay'>Gay</option>
+                      <option value='lesbian'>Lesbienne</option>
+                      <option value='pansexual'>Pansexuel</option>
+                    </select>
+                  </label>
+
+                  <label className='text-sm font-medium'>
+                    Genre
+                    <select
+                      value={filters.gender || 'all'}
+                      onChange={event => applyFilters({ ...filters, gender: event.target.value })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Tous les genres</option>
+                      <option value='male'>Homme</option>
+                      <option value='female'>Femme</option>
+                      <option value='couple_mf'>Couple H/F</option>
+                      <option value='other'>Autre</option>
+                    </select>
+                  </label>
+
+                  <label className='text-sm font-medium'>
+                    Critère de rencontre
+                    <select
+                      value={filters.meetingCriterion || 'all'}
+                      onChange={event => applyFilters({ ...filters, meetingCriterion: event.target.value as AdminUserSearchFilters['meetingCriterion'] })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Tous les critères</option>
+                      <option value='open_couples'>Ouverts aux couples</option>
+                      <option value='open_curtains'>Rideaux ouverts</option>
+                      <option value='libertine'>Libertin</option>
+                    </select>
+                  </label>
+
+                  <label className='text-sm font-medium'>
+                    Parcours
+                    <select
+                      value={filters.onboarding || 'all'}
+                      onChange={event => applyFilters({ ...filters, onboarding: event.target.value as AdminUserSearchFilters['onboarding'] })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Tous les parcours</option>
+                      <option value='complete'>Parcours terminé</option>
+                      <option value='incomplete'>À compléter</option>
+                    </select>
+                  </label>
+
+                  <label className='text-sm font-medium'>
+                    Visibilité du profil
+                    <select
+                      value={filters.visibility || 'all'}
+                      onChange={event => applyFilters({ ...filters, visibility: event.target.value as AdminUserSearchFilters['visibility'] })}
+                      className='mt-1 h-10 w-full rounded-md border border-input bg-background px-3 text-sm'
+                    >
+                      <option value='all'>Toutes les visibilités</option>
+                      <option value='visible'>Profil visible</option>
+                      <option value='hidden'>Profil masqué</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            <div className='mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
+              <div className='flex flex-wrap gap-2'>
+                {appliedCriteria.length > 0 ? appliedCriteria.map(criterion => (
+                  <span key={criterion} className='rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary'>
+                    {criterion}
+                  </span>
+                )) : (
+                  <span className='text-xs text-muted-foreground'>Tous les profils, sans filtre</span>
+                )}
+              </div>
+              {appliedCriteria.length > 0 && (
+                <Button type='button' variant='ghost' size='sm' onClick={resetSearch} disabled={loading}>
+                  <X className='mr-2 h-4 w-4' />
+                  Effacer la recherche
+                </Button>
+              )}
             </div>
           </section>
 
@@ -517,7 +599,7 @@ export default function AdminUsersPage () {
                   type='button'
                   variant='outline'
                   disabled={page <= 1 || loading}
-                  onClick={() => void fetchAdminData(page - 1)}
+                  onClick={() => void fetchAdminData(page - 1, appliedFilters)}
                 >
                   <ChevronLeft className='mr-2 h-4 w-4' />
                   Précédente
@@ -526,7 +608,7 @@ export default function AdminUsersPage () {
                   type='button'
                   variant='outline'
                   disabled={page >= totalPages || loading}
-                  onClick={() => void fetchAdminData(page + 1)}
+                  onClick={() => void fetchAdminData(page + 1, appliedFilters)}
                 >
                   Suivante
                   <ChevronRight className='ml-2 h-4 w-4' />
