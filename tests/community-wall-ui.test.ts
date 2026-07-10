@@ -7,6 +7,9 @@ describe('community wall UI integration', () => {
 
     expect(discoverSource).toContain('@/components/community-wall')
     expect(discoverSource).toContain('<CommunityWall currentUserId={user.id}')
+    expect(discoverSource.indexOf("id='online-now'")).toBeLessThan(
+      discoverSource.indexOf('<CommunityWall currentUserId={user.id}')
+    )
   })
 
   it('ships the expected wall controls for members', () => {
@@ -19,6 +22,8 @@ describe('community wall UI integration', () => {
     expect(componentSource).toContain('getWallComments')
     expect(componentSource).toContain('Rideaux ouverts')
     expect(componentSource).toContain('Soyez le premier')
+    expect(componentSource).toContain('bg-[linear-gradient(135deg,rgba(23,3,33,0.98)')
+    expect(componentSource).not.toContain('bg-black/20')
   })
 
   it('keeps public landing wall content anonymized and static', () => {
