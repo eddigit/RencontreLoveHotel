@@ -7,7 +7,7 @@ describe('community home UI', () => {
 
     expect(page).toContain('Communauté')
     expect(page).toContain('En ligne maintenant')
-    expect(page).toContain('Nouveaux profils')
+    expect(page).toContain('Nouveaux membres')
     expect(page).toContain('Vos matchs')
     expect(page).toContain('Événements à venir')
     expect(page).toContain('Love Rooms')

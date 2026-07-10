@@ -232,8 +232,8 @@ export default function DiscoverPage () {
               </div>
               <div className='mt-5 space-y-3 text-sm'>
                 <Link href='#new-profiles' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>Profils visibles</span>
-                  <span className='font-bold'>{filteredProfiles.length}</span>
+                  <span className='text-white/58'>Nouveaux membres</span>
+                  <span className='font-bold'>{newProfiles.length}</span>
                 </Link>
                 <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
                   <span className='text-white/58'>Vos matchs</span>
@@ -251,10 +251,10 @@ export default function DiscoverPage () {
 
           <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
             <div className='grid gap-3 md:grid-cols-3'>
-              <Link href='#online-now' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
+              <Link href='#new-profiles' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
-                <div className='text-2xl font-black'>{onlineProfiles.length}</div>
-                <div className='text-sm text-white/56'>En ligne maintenant</div>
+                <div className='text-2xl font-black'>{newProfiles.length}</div>
+                <div className='text-sm text-white/56'>Nouveaux membres</div>
               </Link>
               <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>
                 <Heart className='mb-3 h-5 w-5 text-[#ff8cc8]' />
@@ -285,6 +285,40 @@ export default function DiscoverPage () {
               </div>
             )}
 
+            <section id='new-profiles' className='scroll-mt-24'>
+              <div className='mb-4 flex items-center justify-between'>
+                <h2 className='text-xl font-black'>Nouveaux membres</h2>
+                <span className='text-sm text-white/52'>{loading ? 'Actualisation...' : `${newProfiles.length} profils`}</span>
+              </div>
+              <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
+                {newProfiles.map((profile, index) => (
+                  <Link
+                    key={profile.id}
+                    href={`/profile/${profile.id}`}
+                    className='group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] transition hover:-translate-y-0.5 hover:bg-white/[0.07]'
+                  >
+                    <div className='relative aspect-[4/5] bg-white/10'>
+                      {mediaImage(profileImage(profile), profile.name)}
+                      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
+                      <div className='absolute bottom-3 left-3 right-3'>
+                        <div className='text-lg font-black'>
+                          {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                        </div>
+                        <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
+                      </div>
+                    </div>
+                    <div className='p-3'>
+                      <p className='line-clamp-2 text-sm leading-5 text-white/62'>
+                        {profile.bio || 'Profil disponible pour une rencontre élégante autour du Love Hotel.'}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            <CommunityWall currentUserId={user.id} />
+
             <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
               <div className='mb-4 flex items-center justify-between gap-3'>
                 <div>
@@ -314,8 +348,6 @@ export default function DiscoverPage () {
                 ))}
               </div>
             </section>
-
-            <CommunityWall currentUserId={user.id} />
 
             <section className='rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-4'>
               <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
@@ -374,38 +406,6 @@ export default function DiscoverPage () {
                     <Link href='/events'>Agenda</Link>
                   </Button>
                 </div>
-              </div>
-            </section>
-
-            <section id='new-profiles' className='scroll-mt-24'>
-              <div className='mb-4 flex items-center justify-between'>
-                <h2 className='text-xl font-black'>Nouveaux profils</h2>
-                <span className='text-sm text-white/52'>{loading ? 'Actualisation...' : `${newProfiles.length} profils`}</span>
-              </div>
-              <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
-                {newProfiles.map((profile, index) => (
-                  <Link
-                    key={profile.id}
-                    href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] transition hover:-translate-y-0.5 hover:bg-white/[0.07]'
-                  >
-                    <div className='relative aspect-[4/5] bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
-                      <div className='absolute bottom-3 left-3 right-3'>
-                        <div className='text-lg font-black'>
-                          {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                        </div>
-                        <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
-                      </div>
-                    </div>
-                    <div className='p-3'>
-                      <p className='line-clamp-2 text-sm leading-5 text-white/62'>
-                        {profile.bio || 'Profil disponible pour une rencontre élégante autour du Love Hotel.'}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
               </div>
             </section>
 

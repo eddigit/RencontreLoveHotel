@@ -4,12 +4,17 @@ import { describe, expect, it } from 'vitest'
 describe('community wall UI integration', () => {
   it('mounts the member-only wall on the connected community home', () => {
     const discoverSource = readFileSync('app/discover/page.tsx', 'utf8')
+    const newProfilesIndex = discoverSource.indexOf("id='new-profiles'")
+    const wallIndex = discoverSource.indexOf('<CommunityWall currentUserId={user.id}')
+    const onlineNowIndex = discoverSource.indexOf("id='online-now'")
 
     expect(discoverSource).toContain('@/components/community-wall')
     expect(discoverSource).toContain('<CommunityWall currentUserId={user.id}')
-    expect(discoverSource.indexOf("id='online-now'")).toBeLessThan(
-      discoverSource.indexOf('<CommunityWall currentUserId={user.id}')
-    )
+    expect(newProfilesIndex).toBeGreaterThan(-1)
+    expect(wallIndex).toBeGreaterThan(-1)
+    expect(onlineNowIndex).toBeGreaterThan(-1)
+    expect(newProfilesIndex).toBeLessThan(wallIndex)
+    expect(wallIndex).toBeLessThan(onlineNowIndex)
   })
 
   it('ships the expected wall controls for members', () => {

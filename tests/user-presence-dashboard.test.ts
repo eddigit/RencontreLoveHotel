@@ -36,7 +36,7 @@ describe('community presence dashboard', () => {
   it('makes dashboard stats navigable', () => {
     const page = readFileSync('app/discover/page.tsx', 'utf8')
 
-    expect(page).toContain("href='#online-now'")
+    expect(page).toContain("href='#new-profiles'")
     expect(page).toContain("href='/matches'")
     expect(page).toContain("href='/events'")
     expect(page).toContain("id='online-now'")
