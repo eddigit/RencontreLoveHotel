@@ -16,6 +16,7 @@ import {
   Wine
 } from 'lucide-react'
 import { AdvancedFilters, defaultFilters, FilterOptions } from '@/components/advanced-filters'
+import { CommunityWall } from '@/components/community-wall'
 import { CommunityFeedbackWidget } from '@/components/community-feedback-widget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -283,6 +284,8 @@ export default function DiscoverPage () {
                 {error}
               </div>
             )}
+
+            <CommunityWall currentUserId={user.id} />
 
             <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
               <div className='mb-4 flex items-center justify-between gap-3'>

@@ -236,6 +236,53 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Community wall teaser */}
+      <section className="py-10 md:py-14 relative overflow-hidden">
+        <div className="container px-4">
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#94ffc9]">Espace membres</p>
+              <h2 className="mt-3 text-3xl md:text-5xl font-black text-white">
+                Le mur de la communauté — rejoignez-nous
+              </h2>
+              <p className="mt-4 max-w-xl text-base md:text-lg leading-7 text-white/72">
+                Chaque jour, les membres connectés publient leurs envies, leurs événements et leurs disponibilités
+                Rideaux ouverts. Les annonces réelles restent réservées aux profils inscrits.
+              </p>
+              <Button
+                asChild
+                className="mt-6 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] hover:opacity-90 text-white rounded-full px-6 py-5"
+              >
+                <Link href="/register">rejoignez-nous</Link>
+              </Button>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.045] p-4 shadow-2xl shadow-black/30">
+              <div className="space-y-3 blur-sm select-none" aria-hidden="true">
+                {[
+                  ['Profil membre', 'Recherche un premier échange autour d’un verre ce soir.'],
+                  ['Événement privé', 'Deux places disponibles pour une soirée jacuzzi.'],
+                  ['Rideaux ouverts', 'Disponible 24 h pour une expérience alignée et respectueuse.']
+                ].map(([title, detail]) => (
+                  <div key={title} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-bold text-white">{title}</span>
+                      <span className="rounded-full bg-[#ff3b8b]/20 px-3 py-1 text-xs font-bold text-[#ffb3d7]">
+                        Anonyme
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm text-white/70">{detail}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-center text-sm font-semibold text-white/70">
+                Aperçu anonymisé - aucun contenu réel affiché publiquement.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA section */}
       <section className="py-8 md:py-16">
         <div className="container px-4">
