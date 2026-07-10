@@ -2,6 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
+import { createAppNotification } from "@/actions/notification-actions"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
@@ -73,6 +74,126 @@ function eventDateTimeHasPassed(event: any) {
   const eventDate = new Date(`${datePart}T${timePart}`)
 
   return Number.isFinite(eventDate.getTime()) && eventDate < new Date()
+}
+
+export type EventModerationDecision = 'publish' | 'request_correction' | 'reject'
+
+function normalizeModerationDecision(
+  decision: EventModerationDecision,
+  note?: string
+) {
+  if (!['publish', 'request_correction', 'reject'].includes(decision)) {
+    throw new Error('Décision de modération invalide.')
+  }
+
+  const normalizedNote = (note || '').trim().slice(0, 2000)
+  if (decision !== 'publish' && normalizedNote.length < 8) {
+    throw new Error('Une note de modération est obligatoire pour cette décision.')
+  }
+
+  return normalizedNote || null
+}
+
+export async function getPendingEventModeration() {
+  await requireAdmin()
+
+  return sql.query(
+    `
+      SELECT
+        e.id,
+        e.title,
+        e.location,
+        e.event_date,
+        e.event_time,
+        e.image,
+        e.description,
+        e.venue,
+        e.experience_type,
+        e.max_participants,
+        e.publication_status,
+        e.created_at,
+        e.creator_id,
+        u.name AS creator_name,
+        u.email AS creator_email,
+        u.avatar AS creator_avatar
+      FROM events e
+      JOIN users u ON u.id = e.creator_id
+      WHERE e.publication_status = 'pending_review'
+      ORDER BY e.created_at ASC
+    `,
+    []
+  )
+}
+
+export async function moderateEvent(
+  eventId: string,
+  decision: EventModerationDecision,
+  note?: string
+) {
+  const admin = await requireAdmin()
+  const normalizedNote = normalizeModerationDecision(decision, note)
+  const [event] = await sql.query<{
+    id: string
+    title: string
+    creator_id: string | null
+    publication_status: string
+  }[]>(
+    `
+      SELECT id, title, creator_id, publication_status
+      FROM events
+      WHERE id = $1
+      LIMIT 1
+    `,
+    [eventId]
+  )
+
+  if (!event) {
+    throw new Error('Événement introuvable.')
+  }
+
+  if (event.publication_status !== 'pending_review') {
+    throw new Error('Cet événement ne figure plus dans la file de validation.')
+  }
+
+  const status = decision === 'publish'
+    ? 'published'
+    : decision === 'reject'
+      ? 'rejected'
+      : 'pending_review'
+
+  await sql.query(
+    `
+      UPDATE events
+      SET publication_status = $1,
+          moderation_note = $2,
+          moderated_by = $3,
+          moderated_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+    `,
+    [status, normalizedNote, admin.id, eventId]
+  )
+
+  if (event.creator_id) {
+    await createAppNotification({
+      userId: event.creator_id,
+      type: 'event_moderation',
+      title: status === 'published'
+        ? 'Votre événement est publié'
+        : status === 'rejected'
+          ? 'Votre événement a été refusé'
+          : 'Votre événement doit être corrigé',
+      description: normalizedNote || 'Votre proposition est maintenant visible dans les événements.',
+      link: '/events',
+      priority: status === 'published' ? 'normal' : 'high',
+      category: 'events',
+      audience: 'user',
+      metadata: { eventId, status, note: normalizedNote },
+      createdBy: admin.id
+    })
+  }
+
+  return { success: true, status }
 }
 
 export async function getUpcomingEvents(userId?: string) {
