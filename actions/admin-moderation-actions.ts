@@ -38,6 +38,7 @@ export type ModerationQueueItem = {
 export type WallModerationQueueItem = ModerationQueueItem & {
   author_name?: string | null
   author_avatar?: string | null
+  image_url?: string | null
 }
 
 export type AdminModerationDashboard = {
@@ -341,10 +342,14 @@ export async function getWallModerationQueue(): Promise<WallModerationQueueItem[
         mq.matched_keywords,
         mq.excerpt,
         mq.created_at,
+        wp.image_url,
         u.name AS author_name,
         u.avatar AS author_avatar
       FROM moderation_queue mq
       LEFT JOIN users u ON u.id = mq.user_id
+      LEFT JOIN wall_posts wp
+        ON mq.source_type = 'wall_post'
+       AND wp.id = mq.source_id
       WHERE mq.source_type IN ('wall_post', 'wall_comment')
         AND mq.status IN ('new', 'in_review', 'escalated')
       ORDER BY mq.created_at DESC

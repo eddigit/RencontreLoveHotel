@@ -173,6 +173,7 @@ describe('admin moderation actions', () => {
         reason: 'Signalement membre',
         matched_keywords: [],
         excerpt: 'Annonce a verifier',
+        image_url: 'https://blob.example/wall/photo.png',
         created_at: new Date('2026-07-10T08:00:00Z'),
         author_name: 'Gilles',
         author_avatar: null
@@ -183,6 +184,7 @@ describe('admin moderation actions', () => {
 
     expect(rows[0].source_type).toBe('wall_post')
     expect(rows[0].author_name).toBe('Gilles')
+    expect(rows[0].image_url).toBe('https://blob.example/wall/photo.png')
     expect(sql.query).toHaveBeenCalledWith(
       expect.stringContaining("source_type IN ('wall_post', 'wall_comment')"),
       []

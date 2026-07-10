@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const blobPutMock = vi.hoisted(() => vi.fn())
+
 vi.mock('@/lib/db', () => ({
   sql: {
     query: vi.fn()
@@ -8,6 +10,10 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/server-auth', () => ({
   requireCurrentUser: vi.fn()
+}))
+
+vi.mock('@vercel/blob', () => ({
+  put: blobPutMock
 }))
 
 import {
@@ -23,12 +29,17 @@ import { sql } from '@/lib/db'
 import { requireCurrentUser } from '@/lib/server-auth'
 
 const member = { id: 'user-1', role: 'user', email: 'member@example.com' }
+const pngHeader = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
+])
 
 describe('community wall actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
     ;(requireCurrentUser as any).mockReset()
     ;(requireCurrentUser as any).mockResolvedValue(member)
+    blobPutMock.mockReset()
+    blobPutMock.mockResolvedValue({ url: 'https://blob.example/wall/photo.png' })
   })
 
   it('requires a member session before reading the feed', async () => {
@@ -90,6 +101,46 @@ describe('community wall actions', () => {
       expect.stringContaining('INSERT INTO wall_posts'),
       expect.arrayContaining(['user-1', 'dispo_rideaux_ouverts', 'Disponible ce soir.', null, expect.any(Date), 'active'])
     )
+  })
+
+  it('creates an image post with a server-controlled Blob upload', async () => {
+    const image = new File([pngHeader], 'rencontre.html', { type: 'image/png' })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ count: '0' }])
+      .mockResolvedValueOnce([{ id: 'post-image', status: 'active' }])
+
+    await expect(
+      createWallPost({ type: 'profil', body: '', image })
+    ).resolves.toEqual({ success: true, postId: 'post-image', status: 'active' })
+
+    expect(blobPutMock.mock.calls[0][0]).toMatch(
+      /^community-wall\/user-1-\d+\.png$/
+    )
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('image_url'),
+      expect.arrayContaining([
+        'user-1',
+        'profil',
+        '',
+        null,
+        null,
+        'active',
+        'https://blob.example/wall/photo.png',
+        'image/png',
+        image.size
+      ])
+    )
+  })
+
+  it('rejects invalid wall images before database writes or Blob storage', async () => {
+    const image = new File(['not an image'], 'fake.jpg', { type: 'image/jpeg' })
+
+    await expect(
+      createWallPost({ type: 'profil', body: '', image })
+    ).rejects.toThrow('Fichier image invalide')
+
+    expect(blobPutMock).not.toHaveBeenCalled()
+    expect(sql.query).not.toHaveBeenCalled()
   })
 
   it('enforces the three posts per 24 hours limit', async () => {
