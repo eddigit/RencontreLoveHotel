@@ -129,4 +129,17 @@ describe('server action authorization guards', () => {
     await expect(getOutgoingMatchRequests('user-2')).resolves.toEqual([])
     expect(sqlMock).not.toHaveBeenCalled()
   })
+
+  it('blocks wall moderation actions for non-admin users', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+
+    const { restoreWallModerationItem } = await import('@/actions/admin-moderation-actions')
+
+    await expect(
+      restoreWallModerationItem({ itemId: 'queue-1' })
+    ).rejects.toThrow('administrateur')
+    expect(sqlMock.query).not.toHaveBeenCalled()
+  })
 })
