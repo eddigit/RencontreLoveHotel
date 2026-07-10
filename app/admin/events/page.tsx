@@ -10,15 +10,24 @@ import { useAuth } from "@/contexts/auth-context"
 import MainLayout from "@/components/layout/main-layout"
 import { AdminTabs } from "@/components/admin-tabs"
 import { AdminHeader } from "@/components/admin-header"
+import { Check, Clock3, ExternalLink, X } from "lucide-react"
+import {
+  getPendingEventModeration,
+  moderateEvent,
+  type EventModerationDecision
+} from "@/actions/event-actions"
 
 export default function AdminEventsPage() {
   const { user } = useAuth()
   const [events, setEvents] = useState<any[]>([])
   const [pastEvents, setPastEvents] = useState<any[]>([])
+  const [pendingEvents, setPendingEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showReprogramForm, setShowReprogramForm] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<any>(null)
   const [status, setStatus] = useState("")
+  const [moderationNotes, setModerationNotes] = useState<Record<string, string>>({})
+  const [moderatingId, setModeratingId] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchEvents() {
@@ -26,6 +35,8 @@ export default function AdminEventsPage() {
       // Récupère les événements à venir
       const result = await getUpcomingEvents(user?.id || "")
       setEvents(result)
+      const pending = await getPendingEventModeration()
+      setPendingEvents(pending)
       // Récupère les événements passés
       const res = await fetch("/api/admin/events/past")
       const past = await res.json()
@@ -34,6 +45,31 @@ export default function AdminEventsPage() {
     }
     if (user?.id) fetchEvents()
   }, [user?.id])
+
+  const handleModerate = async (eventId: string, decision: EventModerationDecision) => {
+    const note = moderationNotes[eventId]?.trim() || ''
+    if (decision !== 'publish' && note.length < 8) {
+      setStatus('Ajoute une note d’au moins quelques mots pour expliquer cette décision.')
+      return
+    }
+
+    setModeratingId(eventId)
+    setStatus('')
+    try {
+      const result = await moderateEvent(eventId, decision, note)
+      setPendingEvents(current => current.filter(event => event.id !== eventId))
+      setModerationNotes(current => {
+        const next = { ...current }
+        delete next[eventId]
+        return next
+      })
+      setStatus(result.status === 'published' ? 'Événement publié et membre notifié.' : 'Décision enregistrée et membre notifié.')
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'La décision de modération a échoué.')
+    } finally {
+      setModeratingId(null)
+    }
+  }
 
   const handleDelete = async (eventId: string) => {
     if (!window.confirm("Supprimer cet événement ?")) return
@@ -74,6 +110,62 @@ export default function AdminEventsPage() {
             <div className="mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white">
               {status}
             </div>
+          )}
+          {pendingEvents.length > 0 && (
+            <section className="mb-10 rounded-2xl border border-[#ffd166]/30 bg-[#ffd166]/[0.07] p-5">
+              <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ffd166]">Modération prioritaire</p>
+                  <h2 className="mt-2 text-2xl font-black">Propositions à valider <span className="text-[#ffd166]">({pendingEvents.length})</span></h2>
+                  <p className="mt-2 max-w-2xl text-sm text-white/62">Les créations membres restent invisibles jusqu’à une décision. Chaque refus ou demande de correction doit être expliqué.</p>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-[#ffe7a3]"><Clock3 className="h-4 w-4" /> File active</div>
+              </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-2">
+                {pendingEvents.map(event => {
+                  const fallbackImage = event.experience_type === 'jacuzzi' ? '/apero-jacuzzi-rencontre.jpg' : '/rideaux-ouverts-rencontre.jpg'
+                  const note = moderationNotes[event.id] || ''
+                  return (
+                    <article key={event.id} className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+                      <div className="grid gap-0 md:grid-cols-[180px_minmax(0,1fr)]">
+                        <img src={event.image || fallbackImage} alt={event.title} className="h-44 w-full object-cover md:h-full" />
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <h3 className="font-black">{event.title}</h3>
+                              <p className="mt-1 text-xs text-white/55">{event.experience_type === 'jacuzzi' ? 'Apéro jacuzzi' : 'Rideaux ouverts'} · {event.venue === 'chatelet' ? 'Châtelet' : 'Pigalle'}</p>
+                            </div>
+                            <Button asChild variant="ghost" size="icon" title="Prévisualiser">
+                              <Link href={`/events/${event.id}`}><ExternalLink className="h-4 w-4" /></Link>
+                            </Button>
+                          </div>
+                          <p className="mt-3 text-sm text-white/70">{event.description || 'Aucune description fournie.'}</p>
+                          <p className="mt-3 text-xs text-white/52">Proposé par <Link className="text-[#ffb3d8] underline" href={`/profile/${event.creator_id}`}>{event.creator_name || 'Membre'}</Link> · capacité {event.max_participants}</p>
+                          <textarea
+                            value={note}
+                            onChange={e => setModerationNotes(current => ({ ...current, [event.id]: e.target.value }))}
+                            rows={2}
+                            placeholder="Note pour le membre si correction ou refus..."
+                            className="mt-4 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none placeholder:text-white/35 focus:border-[#ffd166]"
+                          />
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button size="sm" disabled={moderatingId === event.id} onClick={() => void handleModerate(event.id, 'publish')} className="bg-emerald-500/85 text-white hover:bg-emerald-500">
+                              <Check className="mr-2 h-4 w-4" /> Publier
+                            </Button>
+                            <Button size="sm" variant="outline" disabled={moderatingId === event.id} onClick={() => void handleModerate(event.id, 'request_correction')} className="border-[#ffd166]/40 text-[#ffe7a3]">
+                              Demander une correction
+                            </Button>
+                            <Button size="sm" variant="outline" disabled={moderatingId === event.id} onClick={() => void handleModerate(event.id, 'reject')} className="border-red-300/30 text-red-200">
+                              <X className="mr-2 h-4 w-4" /> Refuser
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            </section>
           )}
           {loading ? (
             <div>Chargement...</div>
