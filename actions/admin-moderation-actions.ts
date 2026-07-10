@@ -23,7 +23,7 @@ export type ModerationKeywordRule = {
 
 export type ModerationQueueItem = {
   id: string
-  source_type: 'message' | 'profile' | 'event' | 'user'
+  source_type: 'message' | 'profile' | 'event' | 'user' | 'wall_post' | 'wall_comment'
   source_id?: string | null
   user_id?: string | null
   conversation_id?: string | null
@@ -33,6 +33,11 @@ export type ModerationQueueItem = {
   matched_keywords: string[]
   excerpt?: string | null
   created_at?: string | Date
+}
+
+export type WallModerationQueueItem = ModerationQueueItem & {
+  author_name?: string | null
+  author_avatar?: string | null
 }
 
 export type AdminModerationDashboard = {
@@ -292,4 +297,143 @@ export async function scanRecentMessagesForModeration(input: {
     flagged,
     activeKeywords: rules.length
   }
+}
+
+async function getWallModerationTarget(itemId: string) {
+  const [item] = await sql.query<Array<{
+    source_type: 'wall_post' | 'wall_comment'
+    source_id: string
+  }>>(
+    `
+      SELECT source_type, source_id
+      FROM moderation_queue
+      WHERE id = $1
+        AND source_type IN ('wall_post', 'wall_comment')
+      LIMIT 1
+    `,
+    [itemId]
+  )
+
+  if (!item?.source_id) {
+    throw new Error('Element de moderation mur introuvable')
+  }
+
+  return item
+}
+
+function wallTableForSource(sourceType: 'wall_post' | 'wall_comment') {
+  return sourceType === 'wall_post' ? 'wall_posts' : 'wall_comments'
+}
+
+export async function getWallModerationQueue(): Promise<WallModerationQueueItem[]> {
+  await requireAdmin()
+
+  return await sql.query<WallModerationQueueItem[]>(
+    `
+      SELECT
+        mq.id,
+        mq.source_type,
+        mq.source_id,
+        mq.user_id,
+        mq.severity,
+        mq.status,
+        mq.reason,
+        mq.matched_keywords,
+        mq.excerpt,
+        mq.created_at,
+        u.name AS author_name,
+        u.avatar AS author_avatar
+      FROM moderation_queue mq
+      LEFT JOIN users u ON u.id = mq.user_id
+      WHERE mq.source_type IN ('wall_post', 'wall_comment')
+        AND mq.status IN ('new', 'in_review', 'escalated')
+      ORDER BY mq.created_at DESC
+      LIMIT 50
+    `,
+    []
+  )
+}
+
+export async function restoreWallModerationItem(input: {
+  itemId: string
+  reason?: string
+}) {
+  const admin = await requireAdmin()
+  const item = await getWallModerationTarget(input.itemId)
+  const tableName = wallTableForSource(item.source_type)
+
+  await sql.query(
+    `UPDATE ${tableName} SET status = 'active' WHERE id = $1`,
+    [item.source_id]
+  )
+
+  await sql.query(
+    `
+      UPDATE moderation_queue
+      SET status = $2,
+          resolved_by = $3,
+          resolved_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `,
+    [input.itemId, 'ignored', admin.id]
+  )
+
+  await sql.query(
+    `
+      INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, reason)
+      VALUES ($1, $2, $3, $4, $5)
+    `,
+    [
+      admin.id,
+      'wall_restore',
+      item.source_type,
+      item.source_id,
+      input.reason || null
+    ]
+  )
+
+  return { success: true }
+}
+
+export async function removeWallModerationItem(input: {
+  itemId: string
+  reason?: string
+}) {
+  const admin = await requireAdmin()
+  const item = await getWallModerationTarget(input.itemId)
+  const tableName = wallTableForSource(item.source_type)
+
+  await sql.query(
+    `UPDATE ${tableName} SET status = 'removed' WHERE id = $1`,
+    [item.source_id]
+  )
+
+  await sql.query(
+    `
+      UPDATE moderation_queue
+      SET status = $2,
+          resolved_by = $3,
+          resolved_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `,
+    [input.itemId, 'actioned', admin.id]
+  )
+
+  await sql.query(
+    `
+      INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, reason)
+      VALUES ($1, $2, $3, $4, $5)
+    `,
+    [
+      admin.id,
+      'wall_remove',
+      item.source_type,
+      item.source_id,
+      input.reason || null
+    ]
+  )
+
+  return { success: true }
 }

@@ -20,9 +20,13 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   createModerationKeyword,
   getModerationDashboard,
+  getWallModerationQueue,
+  removeWallModerationItem,
+  restoreWallModerationItem,
   scanRecentMessagesForModeration,
   type AdminModerationDashboard,
-  type ModerationSeverity
+  type ModerationSeverity,
+  type WallModerationQueueItem
 } from '@/actions/admin-moderation-actions'
 
 const severityOptions: ModerationSeverity[] = ['low', 'medium', 'high', 'critical']
@@ -36,11 +40,18 @@ export default function AdminModerationPage () {
   const [keyword, setKeyword] = useState('')
   const [severity, setSeverity] = useState<ModerationSeverity>('medium')
   const [status, setStatus] = useState('')
+  const [wallItems, setWallItems] = useState<WallModerationQueueItem[]>([])
+  const [wallActionId, setWallActionId] = useState<string | null>(null)
 
   async function loadDashboard () {
     setLoading(true)
     try {
-      setDashboard(await getModerationDashboard())
+      const [moderationDashboard, wallQueue] = await Promise.all([
+        getModerationDashboard(),
+        getWallModerationQueue()
+      ])
+      setDashboard(moderationDashboard)
+      setWallItems(wallQueue)
     } finally {
       setLoading(false)
     }
@@ -89,6 +100,34 @@ export default function AdminModerationPage () {
       setStatus('Impossible d’ajouter cette regle.')
     } finally {
       setSavingKeyword(false)
+    }
+  }
+
+  async function handleWallModerationAction (
+    item: WallModerationQueueItem,
+    action: 'restore' | 'remove'
+  ) {
+    setWallActionId(item.id)
+    setStatus('')
+    try {
+      if (action === 'restore') {
+        await restoreWallModerationItem({
+          itemId: item.id,
+          reason: 'Restauration depuis la moderation du mur'
+        })
+        setStatus('Contenu du mur restauré.')
+      } else {
+        await removeWallModerationItem({
+          itemId: item.id,
+          reason: 'Suppression depuis la moderation du mur'
+        })
+        setStatus('Contenu du mur supprimé.')
+      }
+      await loadDashboard()
+    } catch (error) {
+      setStatus('Action de moderation mur impossible pour le moment.')
+    } finally {
+      setWallActionId(null)
     }
   }
 
@@ -157,6 +196,76 @@ export default function AdminModerationPage () {
               icon={AlertTriangle}
             />
           </div>
+
+          <Card className='mt-6'>
+            <CardHeader>
+              <CardTitle>Mur communauté</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className='space-y-3'>
+                {loading && (
+                  <p className='text-sm text-muted-foreground'>Chargement de la file du mur...</p>
+                )}
+                {!loading && wallItems.length === 0 && (
+                  <p className='text-sm text-muted-foreground'>
+                    Aucun signalement ou contenu filtré sur le mur.
+                  </p>
+                )}
+                {wallItems.map(item => (
+                  <div key={item.id} className='rounded-lg border border-white/10 bg-white/5 p-4'>
+                    <div className='flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between'>
+                      <div className='min-w-0'>
+                        <div className='flex flex-wrap items-center gap-2 text-sm'>
+                          <span className='font-semibold'>
+                            {item.source_type === 'wall_post' ? 'Annonce' : 'Commentaire'}
+                          </span>
+                          <span className='rounded-full bg-[#ff3b8b]/20 px-2 py-1 text-xs text-[#ffb3d7]'>
+                            {item.severity}
+                          </span>
+                          <span className='rounded-full bg-white/10 px-2 py-1 text-xs'>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className='mt-2 text-sm text-muted-foreground'>
+                          {item.reason}
+                        </p>
+                        {item.excerpt && (
+                          <p className='mt-2 line-clamp-3 text-sm text-white'>
+                            {item.excerpt}
+                          </p>
+                        )}
+                        {item.user_id && (
+                          <Button asChild variant='link' className='mt-2 h-auto p-0 text-[#ffb3d7]'>
+                            <Link href={`/profile/${item.user_id}`}>
+                              Profil de {item.author_name || 'l’auteur'}
+                            </Link>
+                          </Button>
+                        )}
+                      </div>
+                      <div className='flex shrink-0 gap-2'>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          disabled={wallActionId === item.id}
+                          onClick={() => handleWallModerationAction(item, 'restore')}
+                        >
+                          Restaurer
+                        </Button>
+                        <Button
+                          type='button'
+                          disabled={wallActionId === item.id}
+                          onClick={() => handleWallModerationAction(item, 'remove')}
+                          className='bg-red-600 text-white hover:bg-red-500'
+                        >
+                          Supprimer
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           <div className='mt-6 grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]'>
             <Card>
