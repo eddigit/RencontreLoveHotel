@@ -288,7 +288,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 className={`flex min-h-[58px] items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
                   selected
                     ? 'border-[#ff8cc8]/65 bg-[#ff3b8b]/18 text-white'
-                    : 'border-white/10 bg-black/18 text-white/72 hover:border-white/25'
+                    : 'border-[#ff8cc8]/14 bg-[#21082f]/72 text-white/72 hover:border-[#ff8cc8]/30'
                 }`}
               >
                 <Icon className='h-4 w-4 shrink-0' />
@@ -306,7 +306,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
             value={body}
             onChange={event => setBody(event.target.value.slice(0, 500))}
             placeholder='Votre annonce pour la communauté...'
-            className='min-h-[84px] resize-none rounded-xl border-white/10 bg-black/22 text-white placeholder:text-white/36 focus:border-[#ff8cc8]'
+            className='min-h-[84px] resize-none rounded-xl border-[#ff8cc8]/22 bg-[#170321]/95 text-white placeholder:text-[#d8c6e8]/48 shadow-inner shadow-black/20 focus:border-[#ff8cc8]'
           />
           <div className='mt-1 text-right text-xs text-white/45'>{remainingChars} caractères</div>
         </div>
@@ -336,7 +336,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 className={`h-10 flex-1 rounded-xl border text-sm font-bold transition ${
                   durationHours === value
                     ? 'border-[#94ffc9]/55 bg-[#94ffc9]/14 text-[#94ffc9]'
-                    : 'border-white/10 bg-black/18 text-white/70'
+                    : 'border-[#94ffc9]/14 bg-[#21082f]/72 text-white/70'
                 }`}
               >
                 {value} h

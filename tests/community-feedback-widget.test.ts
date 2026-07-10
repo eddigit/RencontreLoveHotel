@@ -10,6 +10,8 @@ describe('community feedback widget', () => {
     expect(widget).toContain('Signaler un bug')
     expect(widget).toContain('Proposer une amélioration')
     expect(widget).toContain('submitCommunityFeedback')
+    expect(widget).toContain('bg-[#170321]/95')
+    expect(widget).not.toContain('bg-black/18')
   })
 
   it('routes feedback to the pilot profile and email address', () => {

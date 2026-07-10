@@ -26,6 +26,14 @@ describe('community wall UI integration', () => {
     expect(componentSource).not.toContain('bg-black/20')
   })
 
+  it('does not use muddy grey composer surfaces on the wall', () => {
+    const componentSource = readFileSync('components/community-wall.tsx', 'utf8')
+
+    expect(componentSource).toContain('bg-[#170321]/95')
+    expect(componentSource).not.toContain('bg-black/22')
+    expect(componentSource).not.toContain('bg-black/18')
+  })
+
   it('keeps public landing wall content anonymized and static', () => {
     const landingSource = readFileSync('app/landing-page.tsx', 'utf8')
 
