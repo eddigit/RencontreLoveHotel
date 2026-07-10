@@ -123,15 +123,20 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
         COUNT(*) FILTER (
           WHERE COALESCE(u.is_banned, false) = false
             AND COALESCE(u.status, 'active') <> 'banned'
+            AND u.onboarding_completed = TRUE
+            AND up.display_profile = TRUE
         ) AS total_members,
         COUNT(*) FILTER (
           WHERE COALESCE(u.is_banned, false) = false
             AND COALESCE(u.status, 'active') <> 'banned'
+            AND u.onboarding_completed = TRUE
+            AND up.display_profile = TRUE
             AND u.created_at >= NOW() - INTERVAL '24 hours'
         ) AS new_members_last_24h,
         COUNT(*) FILTER (
           WHERE COALESCE(u.is_banned, false) = false
             AND COALESCE(u.status, 'active') <> 'banned'
+            AND u.onboarding_completed = TRUE
             AND up.display_profile = TRUE
         ) AS visible_profiles
       FROM users u
@@ -198,6 +203,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
   // Only show profiles with display_profile = TRUE
   whereClauses.push("up.display_profile = TRUE");
+  whereClauses.push("u.onboarding_completed = TRUE");
+  whereClauses.push("COALESCE(u.is_banned, false) = false");
+  whereClauses.push("COALESCE(u.status, 'active') <> 'banned'");
 
   if (currentUserProfileGender && currentUserProfileOrientation) {
     // console.log(`[getDiscoverProfiles] Applying primary gender/orientation compatibility logic for current user: ${currentUserProfileGender}/${currentUserProfileOrientation}.`);

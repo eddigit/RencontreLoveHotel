@@ -127,17 +127,22 @@ describe('Reproduction du problème plebreton', () => {
       { user_id: '550e8400-e29b-41d4-a716-446655440006' }
     ])
 
-    // Troisième requête: vérification du match accepté
+    // Troisième requête: accès explicite de la conversation
+    ;(sql.query as any).mockResolvedValueOnce([
+      { access_mode: 'match', has_history: false }
+    ])
+
+    // Quatrième requête: vérification du match accepté
     ;(sql.query as any).mockResolvedValueOnce([
       { ok: true }
     ])
 
-    // Quatrième requête: insertion du message
+    // Cinquième requête: insertion du message
     ;(sql.query as any).mockResolvedValueOnce([
       { id: '550e8400-e29b-41d4-a716-446655440005' }
     ])
     
-    // Cinquième requête: mise à jour de la conversation
+    // Sixième requête: mise à jour de la conversation
     ;(sql.query as any).mockResolvedValueOnce([])
     
     // Test: plebreton envoie un message
@@ -149,10 +154,10 @@ describe('Reproduction du problème plebreton', () => {
     
     // Vérifications
     expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440005')
-    expect(sql.query).toHaveBeenCalledTimes(5)
+    expect(sql.query).toHaveBeenCalledTimes(6)
     
     // Vérification de l'insertion du message
-    expect(sql.query).toHaveBeenNthCalledWith(4,
+    expect(sql.query).toHaveBeenNthCalledWith(5,
       expect.stringContaining('INSERT INTO messages'),
       expect.arrayContaining(['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'Mon message'])
     )

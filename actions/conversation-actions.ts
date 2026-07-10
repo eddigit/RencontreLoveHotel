@@ -37,13 +37,14 @@ export async function getUserConversations(userId?: string) {
         c.id,
         c.created_at,
         c.updated_at,
+        c.access_mode,
         cp.user_id AS participant_user_id
       FROM conversations c
       JOIN conversation_participants cp ON c.id = cp.conversation_id
       WHERE cp.user_id = $1
     ),
     valid_conversations AS (
-      SELECT DISTINCT uc.id, uc.created_at, uc.updated_at
+      SELECT DISTINCT uc.id, uc.created_at, uc.updated_at, uc.access_mode
       FROM user_conversations uc
       JOIN conversation_participants cp_other ON uc.id = cp_other.conversation_id AND cp_other.user_id != $1
       JOIN users viewer_user ON viewer_user.id = $1
@@ -52,7 +53,8 @@ export async function getUserConversations(userId?: string) {
         ((um.user_id_1 = $1 AND um.user_id_2 = cp_other.user_id) OR
          (um.user_id_1 = cp_other.user_id AND um.user_id_2 = $1))
         AND um.status = 'accepted'
-      WHERE um.id IS NOT NULL
+      WHERE uc.access_mode IN ('legacy_import', 'admin')
+        OR um.id IS NOT NULL
         OR viewer_user.role = 'admin'
         OR other_user.role = 'admin'
     ),
@@ -87,6 +89,7 @@ export async function getUserConversations(userId?: string) {
       vc.id,
       vc.created_at,
       vc.updated_at,
+      vc.access_mode,
       lm.content as last_message,
       lm.created_at as last_message_date,
       lm.sender_id as last_message_sender_id,
@@ -311,13 +314,21 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   const [participant] = participantRows
 
   if (!participant) {
-  log('warn', 'Access denied sending message', { conversationId, senderId })
-  throw new Error('Access denied: You are not a participant in this conversation')
+    log('warn', 'Access denied sending message', { conversationId, senderId })
+    throw new Error('Access denied: You are not a participant in this conversation')
   }
 
   const recipients = await sql.query(
     `SELECT user_id FROM conversation_participants WHERE conversation_id = $1 AND user_id != $2`,
     [conversationId, senderId]
+  )
+
+  const [conversationAccess] = await sql.query(
+    `SELECT c.access_mode,
+            EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id) AS has_history
+     FROM conversations c
+     WHERE c.id = $1`,
+    [conversationId]
   )
 
   const recipientIds = recipients.map((recipient: any) => recipient.user_id)
@@ -347,7 +358,17 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
       )
     : []
 
-  if (acceptedMatchRows.length === 0 && adminParticipantRows.length === 0) {
+  const legacyHistoryAllowed =
+    conversationAccess?.access_mode === 'legacy_import' &&
+    conversationAccess?.has_history === true
+  const adminConversationAllowed = conversationAccess?.access_mode === 'admin'
+
+  if (
+    !legacyHistoryAllowed &&
+    !adminConversationAllowed &&
+    acceptedMatchRows.length === 0 &&
+    adminParticipantRows.length === 0
+  ) {
     log('warn', 'Message blocked without accepted match', { conversationId, senderId })
     throw new Error('La messagerie nécessite un match accepté avant échange.')
   }
@@ -426,6 +447,19 @@ export async function findOrCreateConversation(userId1: string, userId2: string)
 
   if (existingConversation) {
     return existingConversation.id;
+  }
+
+  const acceptedMatchRows = await sql.query(
+    `SELECT 1
+     FROM user_matches
+     WHERE status = 'accepted'
+       AND ((user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1))
+     LIMIT 1`,
+    [userId1, userId2]
+  )
+
+  if (acceptedMatchRows.length === 0 && currentUser.role !== 'admin') {
+    throw new Error('La messagerie nécessite un match accepté avant une nouvelle conversation.')
   }
 
   // If not, create a new conversation

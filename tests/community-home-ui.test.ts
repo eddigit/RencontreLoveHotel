@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 describe('community home UI', () => {
   it('turns discover into a community landing page', () => {
     const page = readFileSync('app/discover/page.tsx', 'utf8')
+    const userActions = readFileSync('actions/user-actions.ts', 'utf8')
 
     expect(page).toContain('Communauté')
     expect(page).toContain('En ligne maintenant')
@@ -15,6 +16,7 @@ describe('community home UI', () => {
     expect(page).toContain('getUserMatches')
     expect(page).toContain('getCommunityMemberStats')
     expect(page).toContain('adhérents')
+    expect(userActions).toContain('u.onboarding_completed = TRUE')
     expect(page).toContain('derniers profils visibles')
     expect(page).toContain('en 24 h')
     expect(page).toContain('created_at?: string | Date | null')

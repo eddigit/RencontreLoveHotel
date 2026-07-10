@@ -41,6 +41,7 @@ describe('sendMessage attachments', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440003' }])
+      .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([
         {

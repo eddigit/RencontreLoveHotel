@@ -93,6 +93,7 @@ describe('conversation-actions', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+      .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 
@@ -103,6 +104,34 @@ describe('conversation-actions', () => {
     })).rejects.toThrow('match accepté')
   })
 
+  it('allows a participant to reply to an imported conversation with history', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+      .mockResolvedValueOnce([{
+        access_mode: 'legacy_import',
+        has_accepted_match: false,
+        has_admin_participant: false,
+        has_history: true
+      }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    const message = await sendMessage({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      senderId: '550e8400-e29b-41d4-a716-446655440099',
+      content: 'Je reprends la conversation.'
+    })
+
+    expect(message.id).toBe('550e8400-e29b-41d4-a716-446655440111')
+  })
+
   it('allows replying inside an admin conversation without accepted match', async () => {
     ;(getServerSession as any).mockResolvedValue({
       user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
@@ -110,6 +139,7 @@ describe('conversation-actions', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440010' }])
+      .mockResolvedValueOnce([{ access_mode: 'admin', has_history: true }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])

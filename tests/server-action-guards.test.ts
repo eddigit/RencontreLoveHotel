@@ -138,6 +138,8 @@ describe('server action authorization guards', () => {
     )
     const [query] = sqlMock.query.mock.calls[0]
     expect(query).toContain('up.display_profile = TRUE')
+    expect(query).toContain('u.onboarding_completed = TRUE')
+    expect(query).toContain("COALESCE(u.status, 'active') <> 'banned'")
     expect(query).toContain("INTERVAL '24 hours'")
 
     const userActionsSource = readFileSync('actions/user-actions.ts', 'utf8')
