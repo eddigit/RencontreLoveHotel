@@ -61,6 +61,58 @@ describe('event actions behavior', () => {
     )
   })
 
+  it('keeps member-created events pending review even when the client asks for publication', async () => {
+    sqlMock.mockResolvedValueOnce([{ id: 'event-member' }])
+
+    const { createEvent } = await import('@/actions/event-actions')
+
+    await createEvent({
+      title: 'Proposition membre',
+      location: 'Love Hotel Pigalle',
+      date: '2026-07-10T21:30',
+      creator_id: 'user-1',
+      venue: 'pigalle',
+      experience_type: 'jacuzzi',
+      max_participants: 4,
+      publication_status: 'published',
+      created_by_role: 'admin'
+    })
+
+    const values = sqlMock.mock.calls[0].slice(1)
+    expect(values).toContain('pending_review')
+    expect(values).toContain('member')
+  })
+
+  it('publishes admin-created events and keeps the event clock in the upcoming query', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'admin-1', role: 'admin' }
+    })
+    sqlMock.mockResolvedValueOnce([{ id: 'event-admin' }])
+
+    const { createEvent, getUpcomingEvents } = await import('@/actions/event-actions')
+
+    await createEvent({
+      title: 'Événement hôtel',
+      location: 'Love Hotel Châtelet',
+      date: '2026-07-10T21:30',
+      creator_id: 'admin-1',
+      venue: 'chatelet',
+      experience_type: 'open_curtains',
+      max_participants: 3,
+      created_by_role: 'hotel'
+    })
+
+    const createValues = sqlMock.mock.calls[0].slice(1)
+    expect(createValues).toContain('published')
+    expect(createValues).toContain('hotel')
+
+    sqlMock.mockReset()
+    sqlMock.query.mockReset()
+    sqlMock.mockResolvedValueOnce([])
+    await getUpcomingEvents('admin-1')
+    expect(sqlMock.mock.calls[0][0].join('')).toContain("COALESCE(e.event_time, '23:59:59'::time)")
+  })
+
   it('rejects standby event formats before writing to the database', async () => {
     const { createEvent } = await import('@/actions/event-actions')
 

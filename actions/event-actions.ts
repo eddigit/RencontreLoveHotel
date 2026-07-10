@@ -105,7 +105,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
           FROM events e
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
             AND e.publication_status = 'published'
           ORDER BY e.event_date ASC
         `
@@ -116,7 +116,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
           FROM events e
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
           ORDER BY e.event_date ASC
         `
     return events || []
@@ -127,7 +127,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             e.*, e.creator_id,
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
           FROM events e
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
             AND e.publication_status = 'published'
           ORDER BY event_date ASC
         `
@@ -136,7 +136,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             e.*, e.creator_id,
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
           FROM events e
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
           ORDER BY event_date ASC
         `
     return events || []
@@ -196,10 +196,12 @@ export async function createEvent({
   publication_status?: 'published' | 'pending_review' | 'rejected';
   created_by_role?: 'hotel' | 'admin' | 'member';
 }) {
-  await requireSameUserOrAdmin(creator_id)
-
-  const betaPublicationRule = "publication_status = 'published'"
-  const publicationStatus = betaPublicationRule.includes('published') ? 'published' : publication_status
+  const currentUser = await requireSameUserOrAdmin(creator_id)
+  const isAdminEvent = currentUser.role === 'admin'
+  const publicationStatus = isAdminEvent ? 'published' : 'pending_review'
+  const effectiveCreatedByRole = isAdminEvent
+    ? (created_by_role === 'hotel' ? 'hotel' : 'admin')
+    : 'member'
   const { eventDate, eventTime } = normalizeEventDateTime(date)
   const normalizedExperienceType = normalizeActiveExperienceType(experience_type || category)
   const normalizedCategory = normalizedExperienceType
@@ -249,7 +251,7 @@ export async function createEvent({
       ${normalizedExperienceType},
       ${normalizedMaxParticipants},
       ${publicationStatus},
-      ${created_by_role},
+      ${effectiveCreatedByRole},
       NOW(),
       NOW()
     )

@@ -21,6 +21,7 @@ const feedbackKinds: Array<{
 export function CommunityFeedbackWidget() {
   const [kind, setKind] = useState<FeedbackKind>('bug')
   const [message, setMessage] = useState('')
+  const [requestEmailReply, setRequestEmailReply] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [status, setStatus] = useState<{
     type: 'success' | 'error'
@@ -35,7 +36,8 @@ export function CommunityFeedbackWidget() {
     const result = await submitCommunityFeedback({
       kind,
       message,
-      page: 'Accueil communauté'
+      page: 'Accueil communauté',
+      requestEmailReply
     })
 
     setIsSubmitting(false)
@@ -46,6 +48,7 @@ export function CommunityFeedbackWidget() {
 
     if (result.success) {
       setMessage('')
+      setRequestEmailReply(false)
     }
   }
 
@@ -95,6 +98,16 @@ export function CommunityFeedbackWidget() {
           required
           className='min-h-28 rounded-2xl border-[#ff8cc8]/22 bg-[#170321]/95 text-white placeholder:text-[#d8c6e8]/48 shadow-inner shadow-black/20 focus-visible:ring-[#ff62a8]'
         />
+
+        <label className='flex cursor-pointer items-start gap-2 text-sm text-white/68'>
+          <input
+            type='checkbox'
+            checked={requestEmailReply}
+            onChange={event => setRequestEmailReply(event.target.checked)}
+            className='mt-0.5 h-4 w-4 accent-[#ff3b8b]'
+          />
+          <span>Recevoir la réponse par email en plus de ma messagerie</span>
+        </label>
 
         {status && (
           <div
