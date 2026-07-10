@@ -234,6 +234,15 @@ export default function AdminModerationPage () {
                             {item.excerpt}
                           </p>
                         )}
+                        {item.image_url && (
+                          <div className='mt-3 overflow-hidden rounded-lg border border-white/10 bg-[#170321]'>
+                            <img
+                              src={item.image_url}
+                              alt='Image signalée sur le mur communauté'
+                              className='max-h-64 w-full object-cover'
+                            />
+                          </div>
+                        )}
                         {item.user_id && (
                           <Button asChild variant='link' className='mt-2 h-auto p-0 text-[#ffb3d7]'>
                             <Link href={`/profile/${item.user_id}`}>

@@ -1,7 +1,9 @@
 'use server'
 
 import { sql } from '@/lib/db'
+import { validateImageFile } from '@/lib/image-upload-validation'
 import { requireCurrentUser } from '@/lib/server-auth'
+import { put } from '@vercel/blob'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
 type WallStatus = 'active' | 'hidden' | 'removed'
@@ -19,11 +21,22 @@ type CommunityWallFeedOptions = {
   limit?: number
 }
 
+type CreateWallPostInput = {
+  type: string
+  body?: string
+  eventId?: string | null
+  durationHours?: number
+  image?: File | null
+}
+
 export type CommunityWallPost = {
   id: string
   user_id: string
   type: WallPostType
   body: string
+  image_url?: string | null
+  image_mime_type?: string | null
+  image_size_bytes?: number | string | null
   event_id?: string | null
   expires_at?: string | Date | null
   status: WallStatus
@@ -64,10 +77,15 @@ const severityRank: Record<ModerationSeverity, number> = {
   critical: 4
 }
 
-function normalizeBody(body: string | undefined, maxLength: number, label: string) {
+function normalizeBody(
+  body: string | undefined,
+  maxLength: number,
+  label: string,
+  options: { allowEmpty?: boolean } = {}
+) {
   const normalized = (body || '').trim()
 
-  if (!normalized) {
+  if (!normalized && !options.allowEmpty) {
     throw new Error(`${label} requis`)
   }
 
@@ -76,6 +94,34 @@ function normalizeBody(body: string | undefined, maxLength: number, label: strin
   }
 
   return normalized
+}
+
+function getNonEmptyFile(value: unknown) {
+  if (typeof File === 'undefined') return null
+  return value instanceof File && value.size > 0 ? value : null
+}
+
+function getFormDataString(formData: FormData, key: string) {
+  const value = formData.get(key)
+  return typeof value === 'string' ? value : undefined
+}
+
+function normalizeCreateWallPostInput(input: CreateWallPostInput | FormData): CreateWallPostInput {
+  if (input instanceof FormData) {
+    const duration = getFormDataString(input, 'durationHours')
+    return {
+      type: getFormDataString(input, 'type') || '',
+      body: getFormDataString(input, 'body') || '',
+      eventId: getFormDataString(input, 'eventId') || null,
+      durationHours: duration ? Number(duration) : undefined,
+      image: getNonEmptyFile(input.get('image'))
+    }
+  }
+
+  return {
+    ...input,
+    image: getNonEmptyFile(input.image)
+  }
 }
 
 function normalizePostType(type: string | undefined): WallPostType {
@@ -182,6 +228,9 @@ export async function getCommunityWallFeed(
         wp.user_id,
         wp.type,
         wp.body,
+        wp.image_url,
+        wp.image_mime_type,
+        wp.image_size_bytes,
         wp.event_id,
         wp.expires_at,
         wp.status,
@@ -272,15 +321,21 @@ export async function getWallEventOptions() {
   )
 }
 
-export async function createWallPost(input: {
-  type: string
-  body: string
-  eventId?: string | null
-  durationHours?: number
-}) {
+export async function createWallPost(input: CreateWallPostInput | FormData) {
   const user = await requireCurrentUser()
-  const type = normalizePostType(input.type)
-  const body = normalizeBody(input.body, 500, 'Annonce')
+  const normalizedInput = normalizeCreateWallPostInput(input)
+  const type = normalizePostType(normalizedInput.type)
+  const imageFile = normalizedInput.image || null
+  const imageValidation = imageFile ? await validateImageFile(imageFile) : null
+
+  if (imageValidation && !imageValidation.ok) {
+    throw new Error(imageValidation.error)
+  }
+
+  const image = imageValidation?.ok ? imageValidation.image : null
+  const body = normalizeBody(normalizedInput.body, 500, 'Annonce', {
+    allowEmpty: Boolean(image)
+  })
 
   const [{ count }] = await sql.query<Array<{ count: string | number }>>(
     `
@@ -300,26 +355,52 @@ export async function createWallPost(input: {
   let eventId: string | null = null
   let expiresAt: Date | null = null
 
-  if (type === 'evenement' && input.eventId) {
-    eventId = input.eventId
+  if (type === 'evenement' && normalizedInput.eventId) {
+    eventId = normalizedInput.eventId
     await validateLinkedEvent(eventId)
   }
 
   if (type === 'dispo_rideaux_ouverts') {
-    const durationHours = normalizeDurationHours(input.durationHours)
+    const durationHours = normalizeDurationHours(normalizedInput.durationHours)
     expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000)
   }
 
-  const matchedRules = await getMatchedModerationRules(body)
+  const matchedRules = body ? await getMatchedModerationRules(body) : []
   const status: WallStatus = matchedRules.length > 0 ? 'hidden' : 'active'
+  let imageUrl: string | null = null
+
+  if (imageFile && image) {
+    const blob = await put(
+      `community-wall/${user.id}-${Date.now()}.${image.extension}`,
+      imageFile,
+      {
+        access: 'public',
+        contentType: image.mimeType
+      }
+    )
+    imageUrl = blob.url
+  }
 
   const [post] = await sql.query<Array<{ id: string; status: WallStatus }>>(
     `
-      INSERT INTO wall_posts (user_id, type, body, event_id, expires_at, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO wall_posts (
+        user_id, type, body, event_id, expires_at, status,
+        image_url, image_mime_type, image_size_bytes
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, status
     `,
-    [user.id, type, body, eventId, expiresAt, status]
+    [
+      user.id,
+      type,
+      body,
+      eventId,
+      expiresAt,
+      status,
+      imageUrl,
+      image?.mimeType || null,
+      image?.sizeBytes || null
+    ]
   )
 
   if (matchedRules.length > 0) {
@@ -331,7 +412,7 @@ export async function createWallPost(input: {
       reason: 'Mot-cle detecte dans une annonce du mur',
       matchedKeywords: matchedRules.map(rule => rule.keyword),
       excerpt: excerptText(body),
-      metadata: { type }
+      metadata: { type, imageUrl }
     })
   }
 

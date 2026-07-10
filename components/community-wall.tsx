@@ -1,17 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import Link from 'next/link'
 import {
   CalendarHeart,
   ChevronDown,
   Clock,
   Flag,
+  ImagePlus,
   MessageCircle,
   Send,
   Sparkles,
   Trash2,
-  UserRound
+  UserRound,
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -141,6 +143,8 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
   const [type, setType] = useState<WallPostType>('profil')
   const [body, setBody] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState('')
   const [eventId, setEventId] = useState('')
   const [durationHours, setDurationHours] = useState<24 | 48>(24)
   const [loading, setLoading] = useState(true)
@@ -148,6 +152,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   const [statusMessage, setStatusMessage] = useState('')
 
   const remainingChars = useMemo(() => 500 - body.length, [body])
+  const canSubmit = Boolean(body.trim() || imageFile)
 
   const loadWall = useCallback(async () => {
     setLoading(true)
@@ -169,20 +174,40 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
     loadWall()
   }, [loadWall])
 
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreview('')
+      return
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile)
+    setImagePreview(previewUrl)
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [imageFile])
+
   async function handleCreatePost(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!body.trim() || submitting) return
+    if (!canSubmit || submitting) return
 
     setSubmitting(true)
     setStatusMessage('')
     try {
-      await createWallPost({
-        type,
-        body,
-        eventId: type === 'evenement' && eventId ? eventId : null,
-        durationHours: type === 'dispo_rideaux_ouverts' ? durationHours : undefined
-      })
+      const formData = new FormData()
+      formData.set('type', type)
+      formData.set('body', body)
+      if (type === 'evenement' && eventId) {
+        formData.set('eventId', eventId)
+      }
+      if (type === 'dispo_rideaux_ouverts') {
+        formData.set('durationHours', String(durationHours))
+      }
+      if (imageFile) {
+        formData.set('image', imageFile)
+      }
+
+      await createWallPost(formData)
       setBody('')
+      setImageFile(null)
       setEventId('')
       setDurationHours(24)
       setType('profil')
@@ -193,6 +218,12 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null
+    setImageFile(file)
+    event.target.value = ''
   }
 
   async function toggleComments(postId: string) {
@@ -311,6 +342,42 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
           <div className='mt-1 text-right text-xs text-white/45'>{remainingChars} caractères</div>
         </div>
 
+        <div className='mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
+          <label className='inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#ff8cc8]/22 bg-[#21082f]/72 px-3 text-sm font-bold text-white/78 transition hover:border-[#ff8cc8]/40 hover:text-white'>
+            <ImagePlus className='h-4 w-4' />
+            {imageFile ? 'Changer la photo' : 'Ajouter une photo'}
+            <input
+              type='file'
+              accept='image/jpeg,image/png,image/webp'
+              className='sr-only'
+              onChange={handleImageChange}
+            />
+          </label>
+          <p className='text-xs leading-5 text-white/45 sm:text-right'>
+            JPG, PNG ou WebP. 8 Mo max.
+          </p>
+        </div>
+
+        {imagePreview && (
+          <div className='mt-3 overflow-hidden rounded-2xl border border-[#ff8cc8]/20 bg-[#170321]/70'>
+            <div className='relative aspect-[4/3] max-h-[360px] w-full'>
+              <img
+                src={imagePreview}
+                alt='Aperçu de la photo'
+                className='h-full w-full object-cover'
+              />
+              <button
+                type='button'
+                onClick={() => setImageFile(null)}
+                className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/15 bg-[#170321]/85 text-white shadow-lg transition hover:bg-[#ff3b8b]'
+                aria-label='Retirer la photo'
+              >
+                <X className='h-4 w-4' />
+              </button>
+            </div>
+          </div>
+        )}
+
         {type === 'evenement' && (
           <select
             value={eventId}
@@ -347,11 +414,11 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
 
         <div className='mt-3 flex items-center justify-between gap-3'>
           <p className='text-xs text-white/50'>
-            Texte uniquement. Les annonces filtrées partent en modération.
+            Texte et photo optionnelle. Les annonces filtrées partent en modération.
           </p>
           <Button
             type='submit'
-            disabled={submitting || !body.trim()}
+            disabled={submitting || !canSubmit}
             className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'
           >
             <Send className='mr-2 h-4 w-4' />
@@ -418,7 +485,19 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 </div>
               </div>
 
-              <p className='mt-3 whitespace-pre-wrap text-sm leading-6 text-white/78'>{post.body}</p>
+              {post.body && (
+                <p className='mt-3 whitespace-pre-wrap text-sm leading-6 text-white/78'>{post.body}</p>
+              )}
+
+              {post.image_url && (
+                <div className='mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#170321]/60'>
+                  <img
+                    src={post.image_url}
+                    alt={`Photo publiée par ${post.author_name || 'un membre'}`}
+                    className='max-h-[520px] w-full object-cover'
+                  />
+                </div>
+              )}
 
               {post.event_id && post.event_title && (
                 <Link
