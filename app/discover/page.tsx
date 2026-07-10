@@ -24,7 +24,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
-import { getDiscoverProfiles, getUserMatches } from '@/actions/user-actions'
+import { getCommunityMemberStats, getDiscoverProfiles, getUserMatches } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
 
 type DiscoverProfile = {
@@ -62,6 +62,11 @@ type EventRow = {
   participant_count?: number | string
 }
 
+type CommunityMemberStats = {
+  totalMembers: number
+  newMembersLast24h: number
+}
+
 const jacuzziMeetupImageUrl = '/apero-jacuzzi-rencontre.jpg'
 const openCurtainsImageUrl = '/rideaux-ouverts-rencontre.jpg'
 const conciergerieImageUrl = '/conciergerie-service.jpg'
@@ -92,6 +97,10 @@ function eventDateLabel (value?: string) {
   })
 }
 
+function formatCount (value: number) {
+  return new Intl.NumberFormat('fr-FR').format(value)
+}
+
 export default function DiscoverPage () {
   const { user, isLoading } = useAuth()
   const router = useRouter()
@@ -99,6 +108,10 @@ export default function DiscoverPage () {
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([])
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
+  const [memberStats, setMemberStats] = useState<CommunityMemberStats>({
+    totalMembers: 0,
+    newMembersLast24h: 0
+  })
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -110,15 +123,17 @@ export default function DiscoverPage () {
       setLoading(true)
       setError(null)
       try {
-        const [profileResult, matchResult, eventResult] = await Promise.all([
+        const [profileResult, matchResult, eventResult, statsResult] = await Promise.all([
           getDiscoverProfiles(user.id, 1, 36, currentFilters || filters),
           getUserMatches(user.id),
-          getUpcomingEvents(user.id)
+          getUpcomingEvents(user.id),
+          getCommunityMemberStats()
         ])
 
         setProfiles(profileResult.profiles || [])
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
+        setMemberStats(statsResult)
       } catch (error) {
         console.error('Error fetching community home:', error)
         setError('Impossible de charger la communauté pour le moment.')
@@ -159,6 +174,13 @@ export default function DiscoverPage () {
   const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
   const recentMatches = matches.slice(0, 5)
+  const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
+  const memberGrowthLabel = memberStats.newMembersLast24h > 0
+    ? `+${formatCount(memberStats.newMembersLast24h)} en 24 h`
+    : `${totalMembersLabel} adhérents`
+  const newProfilesSummary = memberStats.totalMembers > 0
+    ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} adhérents.`
+    : `Les ${newProfiles.length} derniers profils visibles.`
 
   if (isLoading) {
     return (
@@ -233,7 +255,7 @@ export default function DiscoverPage () {
               <div className='mt-5 space-y-3 text-sm'>
                 <Link href='#new-profiles' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
                   <span className='text-white/58'>Nouveaux membres</span>
-                  <span className='font-bold'>{newProfiles.length}</span>
+                  <span className='text-right font-bold'>{totalMembersLabel} adhérents</span>
                 </Link>
                 <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
                   <span className='text-white/58'>Vos matchs</span>
@@ -253,8 +275,9 @@ export default function DiscoverPage () {
             <div className='grid gap-3 md:grid-cols-3'>
               <Link href='#new-profiles' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
-                <div className='text-2xl font-black'>{newProfiles.length}</div>
-                <div className='text-sm text-white/56'>Nouveaux membres</div>
+                <div className='text-2xl font-black'>{totalMembersLabel}</div>
+                <div className='text-sm text-white/56'>adhérents</div>
+                <div className='mt-1 text-xs font-bold text-[#94ffc9]'>{memberGrowthLabel}</div>
               </Link>
               <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>
                 <Heart className='mb-3 h-5 w-5 text-[#ff8cc8]' />
@@ -286,9 +309,14 @@ export default function DiscoverPage () {
             )}
 
             <section id='new-profiles' className='scroll-mt-24'>
-              <div className='mb-4 flex items-center justify-between'>
-                <h2 className='text-xl font-black'>Nouveaux membres</h2>
-                <span className='text-sm text-white/52'>{loading ? 'Actualisation...' : `${newProfiles.length} profils`}</span>
+              <div className='mb-4 flex items-start justify-between gap-3'>
+                <div>
+                  <h2 className='text-xl font-black'>Nouveaux membres</h2>
+                  <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
+                </div>
+                <span className='shrink-0 text-right text-sm text-white/52'>
+                  {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
+                </span>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map((profile, index) => (

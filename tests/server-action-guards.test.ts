@@ -116,6 +116,30 @@ describe('server action authorization guards', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
+  it('counts visible community members for authenticated dashboards', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+    sqlMock.query.mockResolvedValueOnce([
+      { total_members: '1064', new_members_last_24h: '8' }
+    ])
+
+    const { getCommunityMemberStats } = await import('@/actions/user-actions')
+
+    await expect(getCommunityMemberStats()).resolves.toEqual({
+      totalMembers: 1064,
+      newMembersLast24h: 8
+    })
+
+    expect(sqlMock.query).toHaveBeenCalledWith(
+      expect.stringContaining('COUNT(*) FILTER'),
+      []
+    )
+    const [query] = sqlMock.query.mock.calls[0]
+    expect(query).toContain('up.display_profile = TRUE')
+    expect(query).toContain("INTERVAL '24 hours'")
+  })
+
   it('returns no pending match requests for another account without querying the database', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
