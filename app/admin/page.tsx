@@ -15,7 +15,7 @@ import { useAuth } from '@/contexts/auth-context'
 import MainLayout from '@/components/layout/main-layout'
 import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
-import { getAllUsers } from '@/actions/user-actions'
+import { getTotalUsersCount } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
 import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
@@ -30,8 +30,8 @@ export default function AdminPage () {
 
   useEffect(() => {
     async function fetchDashboardData () {
-      const users = await getAllUsers()
-      setUserCount(users.length)
+      const usersCount = await getTotalUsersCount()
+      setUserCount(usersCount)
       const events = await getUpcomingEvents()
       setEventCount(events.length)
     }

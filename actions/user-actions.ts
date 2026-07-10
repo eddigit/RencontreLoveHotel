@@ -659,12 +659,143 @@ export async function getAllUsers() {
   return users || []
 }
 
+export type AdminUserSearchFilters = {
+  page?: number
+  pageSize?: number
+  search?: string
+  accountStatus?: 'all' | 'active' | 'banned'
+  profileStatus?: string
+  gender?: string
+  orientation?: string
+  meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
+  onboarding?: 'all' | 'complete' | 'incomplete'
+  visibility?: 'all' | 'visible' | 'hidden'
+}
+
+export async function searchAdminUsers(input: AdminUserSearchFilters = {}) {
+  await requireAdmin()
+
+  const requestedPage = Number(input.page || 1)
+  const requestedPageSize = Number(input.pageSize || 24)
+  const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
+  const pageSize = Number.isFinite(requestedPageSize)
+    ? Math.min(100, Math.max(12, Math.floor(requestedPageSize)))
+    : 24
+  const whereClauses: string[] = []
+  const params: any[] = []
+
+  const addParam = (value: unknown) => {
+    params.push(value)
+    return `$${params.length}`
+  }
+
+  const search = input.search?.trim().toLowerCase()
+  if (search) {
+    const placeholder = addParam(`%${search}%`)
+    whereClauses.push(`(
+      LOWER(COALESCE(u.name, '')) LIKE ${placeholder}
+      OR LOWER(COALESCE(u.email, '')) LIKE ${placeholder}
+      OR LOWER(COALESCE(up.location, '')) LIKE ${placeholder}
+    )`)
+  }
+
+  if (input.accountStatus === 'active') {
+    whereClauses.push("COALESCE(u.is_banned, false) = false AND COALESCE(u.status, 'active') <> 'banned'")
+  } else if (input.accountStatus === 'banned') {
+    whereClauses.push("(COALESCE(u.is_banned, false) = true OR COALESCE(u.status, 'active') = 'banned')")
+  }
+
+  if (input.profileStatus && input.profileStatus !== 'all') {
+    whereClauses.push(`LOWER(COALESCE(up.status, '')) = ${addParam(input.profileStatus.toLowerCase())}`)
+  }
+
+  if (input.gender && input.gender !== 'all') {
+    whereClauses.push(`LOWER(COALESCE(up.gender, '')) = ${addParam(input.gender.toLowerCase())}`)
+  }
+
+  if (input.orientation && input.orientation !== 'all') {
+    whereClauses.push(`LOWER(COALESCE(up.orientation, '')) = ${addParam(input.orientation.toLowerCase())}`)
+  }
+
+  if (input.meetingCriterion === 'open_couples') {
+    whereClauses.push('umt.open_to_other_couples = TRUE')
+  } else if (input.meetingCriterion === 'open_curtains') {
+    whereClauses.push('umt.open_curtains = TRUE')
+  } else if (input.meetingCriterion === 'libertine') {
+    whereClauses.push('umt.libertine = TRUE')
+  }
+
+  if (input.onboarding === 'complete') {
+    whereClauses.push('u.onboarding_completed = TRUE')
+  } else if (input.onboarding === 'incomplete') {
+    whereClauses.push('COALESCE(u.onboarding_completed, false) = false')
+  }
+
+  if (input.visibility === 'visible') {
+    whereClauses.push('up.display_profile = TRUE')
+  } else if (input.visibility === 'hidden') {
+    whereClauses.push('(up.display_profile = FALSE OR up.display_profile IS NULL)')
+  }
+
+  const limitPlaceholder = addParam(pageSize)
+  const offsetPlaceholder = addParam((page - 1) * pageSize)
+  const users = await sql.query<any[]>(
+    `
+      SELECT
+        u.id,
+        u.name,
+        u.email,
+        u.role,
+        u.avatar,
+        u.is_banned,
+        u.status AS account_status,
+        u.created_at,
+        u.onboarding_completed,
+        up.location,
+        up.age,
+        up.status AS profile_status,
+        up.gender,
+        up.orientation,
+        up.display_profile,
+        umt.open_to_other_couples,
+        umt.open_curtains,
+        umt.libertine,
+        COUNT(*) OVER() AS total_count
+      FROM users u
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+      LEFT JOIN (
+        SELECT
+          user_id,
+          BOOL_OR(COALESCE(open_to_other_couples, false)) AS open_to_other_couples,
+          BOOL_OR(COALESCE(open_curtains, false)) AS open_curtains,
+          BOOL_OR(COALESCE(libertine, false)) AS libertine
+        FROM user_meeting_types
+        GROUP BY user_id
+      ) umt ON umt.user_id = u.id
+      ${whereClauses.length ? `WHERE ${whereClauses.join('\n        AND ')}` : ''}
+      ORDER BY u.created_at DESC
+      LIMIT ${limitPlaceholder}
+      OFFSET ${offsetPlaceholder}
+    `,
+    params
+  )
+
+  const totalCount = Number(users[0]?.total_count || 0)
+  return {
+    users: users.map(({ total_count: _totalCount, ...user }) => user),
+    totalCount,
+    currentPage: page,
+    pageSize,
+    totalPages: Math.ceil(totalCount / pageSize)
+  }
+}
+
 export async function getTotalUsersCount() {
   await requireAdmin()
 
   try {
     const result = await sql`SELECT COUNT(*) as count FROM users`;
-    return result[0].count as number;
+    return Number(result[0]?.count || 0)
   } catch (error) {
     console.error("Error fetching total users count:", error);
     return 0;
