@@ -53,7 +53,7 @@ export function CommunityFeedbackWidget() {
   }
 
   return (
-    <section className='rounded-2xl border border-[#94ffc9]/20 bg-[linear-gradient(135deg,rgba(148,255,201,0.10),rgba(255,59,139,0.10),rgba(255,255,255,0.04))] p-5'>
+    <section id='feedback' className='rounded-2xl border border-[#94ffc9]/20 bg-[linear-gradient(135deg,rgba(148,255,201,0.10),rgba(255,59,139,0.10),rgba(255,255,255,0.04))] p-5'>
       <div className='flex items-start gap-3'>
         <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#94ffc9]/15 text-[#94ffc9]'>
           <Send className='h-5 w-5' />

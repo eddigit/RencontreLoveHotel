@@ -86,6 +86,8 @@ describe('conversation-actions', () => {
     expect(query).not.toContain('JOIN users current_user')
     expect(query).not.toContain('current_user.role')
     expect(query).toContain('viewer_user.role')
+    expect(query).toContain('AS unread_count')
+    expect(query).toContain('unread_messages.is_read')
   })
 
   it('denies sending message when participants are neither accepted match nor admin conversation', async () => {

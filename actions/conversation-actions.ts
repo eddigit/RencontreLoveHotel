@@ -95,7 +95,14 @@ export async function getUserConversations(userId?: string) {
       lm.sender_id as last_message_sender_id,
       cu.user_id as other_user_id,
       cu.name as other_user_name,
-      cu.avatar as other_user_avatar
+      cu.avatar as other_user_avatar,
+      (
+        SELECT COUNT(*)
+        FROM messages unread_messages
+        WHERE unread_messages.conversation_id = vc.id
+          AND unread_messages.sender_id != $1
+          AND COALESCE(unread_messages.is_read, false) = false
+      )::int AS unread_count
     FROM valid_conversations vc
     LEFT JOIN last_messages lm ON vc.id = lm.conversation_id AND lm.rn = 1
     LEFT JOIN conversation_users cu ON vc.id = cu.conversation_id

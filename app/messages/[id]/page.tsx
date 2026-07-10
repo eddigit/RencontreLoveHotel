@@ -60,6 +60,7 @@ interface ConversationDetails {
   id: string
   other_user_name: string
   other_user_avatar: string | null
+  access_mode: 'match' | 'legacy_import' | 'admin'
 }
 
 function formatBytes (bytes?: number | null) {
@@ -176,9 +177,10 @@ export default function ConversationPage ({
         const currentConv = userConversations.find((conv: any) => conv.id === id)
         if (currentConv) {
           setConversationDetails({
-            id: currentConv.id,
-            other_user_name: currentConv.other_user_name,
-            other_user_avatar: currentConv.other_user_avatar
+          id: currentConv.id,
+          other_user_name: currentConv.other_user_name,
+          other_user_avatar: currentConv.other_user_avatar,
+          access_mode: currentConv.access_mode || 'match'
           })
         } else {
           setError('Conversation introuvable ou non autorisée.')
@@ -424,9 +426,9 @@ export default function ConversationPage ({
     <MainLayout user={session?.user}>
       <LhrV2Shell
         user={session?.user}
-        eyebrow='Conversation privée'
+        eyebrow={conversationDetails?.access_mode === 'admin' ? 'Support Love Hotel' : 'Conversation privée'}
         title={conversationDetails?.other_user_name || 'Messages'}
-        subtitle='Texte, vocaux, images et vidéos pour transformer une affinité en vraie rencontre.'
+        subtitle='Un espace privé pour échanger avec clarté, texte, images, vocaux et vidéos.'
         action={
           <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
             <Link href='/messages'>
@@ -461,7 +463,9 @@ export default function ConversationPage ({
                         : syncing
                           ? 'Synchronisation...'
                           : lastSyncedAt
-                            ? 'Synchronisé'
+                            ? conversationDetails?.access_mode === 'admin'
+                              ? 'Réponse de l’équipe disponible'
+                              : 'Synchronisé'
                             : 'Disponible pour échanger'}
                   </p>
                 </div>
@@ -493,9 +497,9 @@ export default function ConversationPage ({
                   {messages.length === 0 ? (
                     <div className='flex h-full items-center justify-center text-center'>
                       <div>
-                        <h3 className='text-xl font-black'>Premier message</h3>
+                        <h3 className='text-xl font-black'>Commencer la conversation</h3>
                         <p className='mt-2 max-w-sm text-sm leading-6 text-white/56'>
-                          Lancez l’échange avec un mot, une photo d’ambiance ou un vocal court.
+                          Écrivez un premier mot, partagez une image ou envoyez un vocal court.
                         </p>
                       </div>
                     </div>
