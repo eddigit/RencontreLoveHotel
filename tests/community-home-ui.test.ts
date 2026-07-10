@@ -13,6 +13,10 @@ describe('community home UI', () => {
     expect(page).toContain('Love Rooms')
     expect(page).toContain('getUpcomingEvents')
     expect(page).toContain('getUserMatches')
+    expect(page).toContain('getCommunityMemberStats')
+    expect(page).toContain('adhérents')
+    expect(page).toContain('derniers profils visibles')
+    expect(page).toContain('en 24 h')
   })
 
   it('prioritizes Love Hotel experiences and keeps premium as a teaser', () => {
