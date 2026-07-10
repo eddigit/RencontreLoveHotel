@@ -1,9 +1,9 @@
 // Page for creating a new Love Hotel experience.
 'use client'
 
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarHeart, MapPin, Sparkles, UsersRound } from 'lucide-react'
+import { CalendarHeart, ImageIcon, MapPin, Sparkles, Upload, UsersRound } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +44,9 @@ export default function CreateEventPage () {
   })
 
   const [loading, setLoading] = useState(false)
+  const [uploadingCover, setUploadingCover] = useState(false)
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState('')
   const [error, setError] = useState('')
 
   const handleChange = (name: string, value: string | number) => {
@@ -66,6 +69,12 @@ export default function CreateEventPage () {
     setForm(nextForm)
   }
 
+  const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    setCoverFile(file)
+    setCoverPreview(file ? URL.createObjectURL(file) : '')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -78,16 +87,35 @@ export default function CreateEventPage () {
     }
 
     try {
+      let image = form.image
+      if (coverFile) {
+        setUploadingCover(true)
+        const uploadData = new FormData()
+        uploadData.set('photo', coverFile)
+        const uploadResponse = await fetch('/api/events/upload-cover', {
+          method: 'POST',
+          body: uploadData
+        })
+        const uploadResult = await uploadResponse.json()
+        if (!uploadResponse.ok || !uploadResult.url) {
+          throw new Error(uploadResult.error || "La couverture n'a pas pu être téléversée.")
+        }
+        image = uploadResult.url
+        setUploadingCover(false)
+      }
+
       await createEvent({
         ...form,
+        image,
         creator_id: user.id,
-        publication_status: 'published',
+        publication_status: 'pending_review',
         created_by_role: user.role === 'admin' ? 'admin' : 'member'
       })
       router.push('/events')
     } catch (err) {
-      setError("Erreur lors de la création de l'expérience.")
+      setError(err instanceof Error ? err.message : "Erreur lors de la création de l'expérience.")
     } finally {
+      setUploadingCover(false)
       setLoading(false)
     }
   }
@@ -234,15 +262,26 @@ export default function CreateEventPage () {
               />
             </div>
 
-            <div className='space-y-2'>
-              <Label htmlFor='image' className='text-white/80'>Image (URL)</Label>
+            <div className='space-y-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4'>
+              <div className='flex items-center gap-2'>
+                <ImageIcon className='h-4 w-4 text-[#94ffc9]' />
+                <Label htmlFor='event-cover' className='text-white/80'>Image de couverture</Label>
+              </div>
               <Input
-                id='image'
-                value={form.image}
-                onChange={e => handleChange('image', e.target.value)}
-                placeholder="URL de l'image"
-                className='border-white/10 bg-black/20 text-white placeholder:text-white/35'
+                id='event-cover'
+                type='file'
+                accept='image/jpeg,image/png,image/webp'
+                onChange={handleCoverChange}
+                className='border-white/10 bg-black/20 text-white file:mr-3 file:rounded-md file:border-0 file:bg-[#ff3b8b] file:px-3 file:py-2 file:text-white'
               />
+              <p className='text-xs text-white/50'>JPG, PNG ou WebP, 8 Mo maximum. Une image par événement.</p>
+              {coverPreview && (
+                <img
+                  src={coverPreview}
+                  alt='Aperçu de la couverture'
+                  className='h-44 w-full rounded-xl object-cover'
+                />
+              )}
             </div>
 
             {error && (
@@ -262,10 +301,10 @@ export default function CreateEventPage () {
               </Button>
               <Button
                 type='submit'
-                disabled={loading}
+                disabled={loading || uploadingCover}
                 className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'
               >
-                {loading ? "Création..." : "Publier l'expérience"}
+                {uploadingCover ? 'Téléversement...' : loading ? 'Envoi pour validation...' : "Envoyer l'expérience"}
               </Button>
             </div>
           </section>
@@ -277,7 +316,7 @@ export default function CreateEventPage () {
                 <h2 className='font-black'>Publication bêta</h2>
               </div>
               <p className='mt-3 text-sm text-white/62'>
-                Pour la démo, l'expérience est publiée automatiquement. En production, les créations membres passeront en validation admin.
+                Votre proposition est relue par l’équipe avant publication. Vous recevrez une notification après la décision.
               </p>
             </div>
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>

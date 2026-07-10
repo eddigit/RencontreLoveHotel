@@ -8,7 +8,7 @@ interface EventCardProps {
   title: string
   location: string
   date: string
-  image: string
+  image?: string | null
   attendees: number
   prix_personne_seule?: number
   prix_couple?: number
@@ -36,6 +36,11 @@ const venueLabels: Record<string, string> = {
 const experienceLabels: Record<string, string> = {
   jacuzzi: 'Apéro jacuzzi',
   open_curtains: 'Rideaux ouverts'
+}
+
+const experienceImages: Record<string, string> = {
+  jacuzzi: '/apero-jacuzzi-rencontre.jpg',
+  open_curtains: '/rideaux-ouverts-rencontre.jpg'
 }
 
 export function EventCard ({
@@ -69,7 +74,7 @@ export function EventCard ({
     <Card className='overflow-hidden card-hover border-0 shadow-lg shadow-purple-900/20'>
       <div className='relative h-48 sm:h-56'>
         <Image
-          src={image || '/placeholder.svg'}
+          src={image || experienceImages[experienceType || ''] || '/placeholder.svg'}
           alt={title}
           fill
           className='object-cover'

@@ -9,6 +9,7 @@ import { EventCard } from '@/components/event-card'
 import MainLayout from '@/components/layout/main-layout'
 import {
   getUpcomingEvents,
+  getMyEventSubmissions,
   subscribeToEvent,
   unsubscribeFromEvent,
   deleteEvent
@@ -51,6 +52,7 @@ export default function EventsPage () {
   const router = useRouter()
 
   const [events, setEvents] = useState<any[]>([])
+  const [mySubmissions, setMySubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [actionError, setActionError] = useState('')
   const [categories, setCategories] = useState<
@@ -82,11 +84,13 @@ export default function EventsPage () {
     async function fetchEventsAndCategories () {
       if (!authUser?.id) return
       setLoading(true)
-      const [result, rawCategories] = await Promise.all([
+      const [result, submissions, rawCategories] = await Promise.all([
         getUpcomingEvents(authUser.id),
+        getMyEventSubmissions(authUser.id),
         getOption('event_categories')
       ])
       setEvents(result)
+      setMySubmissions(submissions)
       setCategories(parseActiveEventCategories(rawCategories))
       setLoading(false)
     }
@@ -175,7 +179,7 @@ export default function EventsPage () {
                 De la rencontre douce à l’expérience assumée.
               </h2>
               <p className='mt-3 max-w-2xl text-white/68'>
-                Les membres peuvent créer leurs expériences à Pigalle ou Châtelet : apéro jacuzzi en petit comité ou chambre à rideaux modulables. Pour la bêta, les publications sont immédiates afin de montrer le potentiel communautaire et commercial.
+                Les membres peuvent proposer leurs expériences à Pigalle ou Châtelet : apéro jacuzzi en petit comité ou rideaux ouverts. Chaque proposition est relue par l’équipe avant d’apparaître dans le catalogue.
               </p>
             </div>
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
@@ -188,6 +192,43 @@ export default function EventsPage () {
               </p>
             </div>
           </div>
+
+          {mySubmissions.length > 0 && (
+            <section className='mb-6 rounded-2xl border border-[#ffd166]/25 bg-[#ffd166]/[0.07] p-5'>
+              <div className='flex flex-col gap-2 md:flex-row md:items-end md:justify-between'>
+                <div>
+                  <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ffd166]'>Mon suivi</p>
+                  <h2 className='mt-2 text-2xl font-black'>Mes propositions d’événements</h2>
+                  <p className='mt-2 text-sm text-white/62'>L’équipe te répond ici après chaque décision de modération.</p>
+                </div>
+                <Button asChild variant='outline' className='border-[#ffd166]/30 bg-white/[0.04]'>
+                  <Link href='/events/new'>Nouvelle proposition</Link>
+                </Button>
+              </div>
+              <div className='mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+                {mySubmissions.map(submission => {
+                  const status = submission.publication_status === 'rejected' ? 'Refusé' : 'À valider'
+                  const statusClass = submission.publication_status === 'rejected'
+                    ? 'text-red-200 bg-red-500/12 border-red-300/20'
+                    : 'text-[#ffe7a3] bg-[#ffd166]/12 border-[#ffd166]/20'
+                  return (
+                    <div key={submission.id} className='rounded-xl border border-white/10 bg-black/15 p-4'>
+                      <div className='flex items-start justify-between gap-3'>
+                        <div>
+                          <p className='font-black'>{submission.title}</p>
+                          <p className='mt-1 text-xs text-white/52'>{submission.venue === 'chatelet' ? 'Châtelet' : 'Pigalle'} · {submission.experience_type === 'jacuzzi' ? 'Apéro jacuzzi' : 'Rideaux ouverts'}</p>
+                        </div>
+                        <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${statusClass}`}>{status}</span>
+                      </div>
+                      {submission.moderation_note && (
+                        <p className='mt-3 text-sm leading-5 text-white/68'>{submission.moderation_note}</p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           <section className='mb-6 rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-5'>
             <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>

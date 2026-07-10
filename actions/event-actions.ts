@@ -207,6 +207,33 @@ export async function getUpcomingEvents(userId?: string) {
   }
 }
 
+export async function getMyEventSubmissions(userId: string) {
+  await requireSameUserOrAdmin(userId)
+
+  return sql.query(
+    `
+      SELECT
+        id,
+        title,
+        image,
+        event_date,
+        event_time,
+        venue,
+        experience_type,
+        publication_status,
+        moderation_note,
+        moderated_at,
+        created_at
+      FROM events
+      WHERE creator_id = $1
+        AND publication_status <> 'published'
+      ORDER BY created_at DESC
+      LIMIT 12
+    `,
+    [userId]
+  )
+}
+
 function isMissingPublicationStatusColumn(error: unknown) {
   const dbError = error as { code?: string; column?: string; message?: string }
   return (
