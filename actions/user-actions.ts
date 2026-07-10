@@ -366,6 +366,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       u.id,
       u.name,
       u.avatar as image,
+      u.created_at,
       up.age,
       up.location,
       up.orientation,

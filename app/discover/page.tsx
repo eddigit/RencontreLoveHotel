@@ -38,6 +38,7 @@ type DiscoverProfile = {
   popularity?: number
   matchScore?: number | null
   online?: boolean
+  created_at?: string | Date | null
 }
 
 type MatchRow = {
@@ -170,7 +171,13 @@ export default function DiscoverPage () {
   }, [profiles, searchQuery])
 
   const onlineProfiles = filteredProfiles.filter(profile => profile.online)
-  const newProfiles = filteredProfiles.slice(0, 8)
+  const newProfiles = [...filteredProfiles]
+    .sort((left, right) => {
+      const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
+      const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0
+      return rightTime - leftTime
+    })
+    .slice(0, 8)
   const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
   const recentMatches = matches.slice(0, 5)
@@ -347,36 +354,6 @@ export default function DiscoverPage () {
 
             <CommunityWall currentUserId={user.id} />
 
-            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
-                <div>
-                  <h2 className='text-xl font-black'>En ligne maintenant</h2>
-                  <p className='text-sm text-white/56'>
-                    {onlineProfiles.length > 0
-                      ? 'Des membres disponibles pour échanger tout de suite.'
-                      : 'Aucun membre vu dans les dernières minutes.'}
-                  </p>
-                </div>
-                <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
-                  <Link href='/messages'>Messages</Link>
-                </Button>
-              </div>
-              <div className='flex gap-3 overflow-x-auto pb-2'>
-                {onlineProfiles.map((profile, index) => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
-                    <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
-                    </div>
-                    <div className='mt-2 truncate text-sm font-bold'>
-                      {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                    </div>
-                    <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
             <section className='rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-4'>
               <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
                 <div>
@@ -480,6 +457,36 @@ export default function DiscoverPage () {
                     <Link href='/messages'>Inviter un match</Link>
                   </Button>
                 </div>
+              </div>
+            </section>
+
+            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
+              <div className='mb-4 flex items-center justify-between gap-3'>
+                <div>
+                  <h2 className='text-xl font-black'>En ligne maintenant</h2>
+                  <p className='text-sm text-white/56'>
+                    {onlineProfiles.length > 0
+                      ? 'Des membres disponibles pour échanger tout de suite.'
+                      : 'Aucun membre vu dans les dernières minutes.'}
+                  </p>
+                </div>
+                <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
+                  <Link href='/messages'>Messages</Link>
+                </Button>
+              </div>
+              <div className='flex gap-3 overflow-x-auto pb-2'>
+                {onlineProfiles.map(profile => (
+                  <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
+                    <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
+                      {mediaImage(profileImage(profile), profile.name)}
+                      <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
+                    </div>
+                    <div className='mt-2 truncate text-sm font-bold'>
+                      {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                    </div>
+                    <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
+                  </Link>
+                ))}
               </div>
             </section>
           </section>
@@ -588,35 +595,6 @@ export default function DiscoverPage () {
                     <Link href='/conciergerie'>Faire une demande</Link>
                   </Button>
                 </div>
-              </div>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
-                <div>
-                  <h2 className='font-black'>En ligne dans la communauté</h2>
-                  <p className='text-xs text-white/50'>Profils actifs maintenant</p>
-                </div>
-                <UsersRound className='h-5 w-5 text-[#94ffc9]' />
-              </div>
-              <div className='space-y-3'>
-                {onlineProfiles.length === 0 && (
-                  <p className='text-sm text-white/58'>Aucun membre vu récemment.</p>
-                )}
-                {onlineProfiles.slice(0, 6).map(profile => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
-                    <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <span className='absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-[#170321] bg-[#35e48d]' />
-                    </div>
-                    <div className='min-w-0'>
-                      <div className='truncate font-bold'>
-                        {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                      </div>
-                      <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
-                    </div>
-                  </Link>
-                ))}
               </div>
             </div>
 

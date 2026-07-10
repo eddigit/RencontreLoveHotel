@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getServerSessionMock = vi.hoisted(() => vi.fn())
@@ -138,6 +139,9 @@ describe('server action authorization guards', () => {
     const [query] = sqlMock.query.mock.calls[0]
     expect(query).toContain('up.display_profile = TRUE')
     expect(query).toContain("INTERVAL '24 hours'")
+
+    const userActionsSource = readFileSync('actions/user-actions.ts', 'utf8')
+    expect(userActionsSource).toContain('u.created_at,')
   })
 
   it('returns no pending match requests for another account without querying the database', async () => {
