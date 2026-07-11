@@ -162,16 +162,15 @@ export type CommunityMemberDirectoryFilters = {
 }
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
-  const currentUser = await requireCurrentUser()
+  await requireCurrentUser()
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
   const pageSize = Number.isFinite(requestedPageSize)
     ? Math.min(48, Math.max(12, Math.floor(requestedPageSize)))
     : 24
-  const params: unknown[] = [currentUser.id]
+  const params: unknown[] = []
   const whereClauses = [
-    'u.id <> $1',
     'up.display_profile = TRUE',
     'u.onboarding_completed = TRUE',
     'COALESCE(u.is_banned, false) = false',
