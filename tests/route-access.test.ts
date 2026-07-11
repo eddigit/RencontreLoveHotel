@@ -28,6 +28,7 @@ describe('route access policy', () => {
 
   it('protects community pages and sensitive APIs', () => {
     expect(isProtectedPagePath('/discover')).toBe(true)
+    expect(isProtectedPagePath('/members')).toBe(true)
     expect(isProtectedPagePath('/conciergerie')).toBe(true)
     expect(isProtectedPagePath('/messages/abc')).toBe(true)
     expect(isProtectedPagePath('/notifications')).toBe(true)

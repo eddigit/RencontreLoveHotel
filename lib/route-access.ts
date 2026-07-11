@@ -40,6 +40,7 @@ const protectedPagePrefixes = [
   '/discover',
   '/en-direct',
   '/matches',
+  '/members',
   '/messages',
   '/moderation',
   '/notifications',

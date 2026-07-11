@@ -17,6 +17,7 @@ import {
   Sparkles,
   UserPlus,
   UserRound,
+  UsersRound,
   X
 } from 'lucide-react'
 import { BrandLogo } from '@/components/brand-logo'
@@ -34,6 +35,7 @@ type NavigationItem = {
 
 const memberNavItems: NavigationItem[] = [
   { href: '/discover', label: 'Découvrir', icon: Search },
+  { href: '/members', label: 'Rechercher', icon: UsersRound },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/matches', label: 'Matchs', icon: Heart },
   { href: '/events', label: 'Événements', icon: CalendarDays },

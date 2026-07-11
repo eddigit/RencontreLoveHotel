@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, MessageCircle, Heart, User, Sparkles } from 'lucide-react'
+import { Search, MessageCircle, Heart, User, Sparkles, UsersRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { NotificationBadge } from '@/components/notification-badge'
@@ -16,6 +16,12 @@ export function MobileNavigation () {
       icon: Search,
       label: 'Découvrir',
       active: pathname === '/discover'
+    },
+    {
+      href: '/members',
+      icon: UsersRound,
+      label: 'Membres',
+      active: pathname === '/members'
     },
     {
       href: '/matches',

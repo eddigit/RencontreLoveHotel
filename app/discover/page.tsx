@@ -306,12 +306,12 @@ export default function DiscoverPage () {
             </div>
 
             <Link
-              href='#new-profiles'
+              href='/members'
               className='flex items-center gap-3 rounded-2xl border border-[#94ffc9]/25 bg-[#94ffc9]/10 p-4 transition hover:border-[#94ffc9]/50 hover:bg-[#94ffc9]/15'
             >
               <Search className='h-5 w-5 shrink-0 text-[#94ffc9]' />
               <div className='min-w-0'>
-                <div className='font-black'>Voir les nouveaux membres</div>
+                <div className='font-black'>Rechercher des membres</div>
                 <div className='text-xs text-white/58'>{totalMembersLabel} profils visibles</div>
               </div>
               <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
