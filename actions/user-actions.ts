@@ -1050,22 +1050,21 @@ export async function deleteUserByAdmin(userId: string) {
   return { success: true }
 }
 
+function adminStatsDateTrunc(column: string, scale: "day" | "week" | "month") {
+  const unit = scale === 'month' ? 'month' : scale === 'week' ? 'week' : 'day'
+  return `TO_CHAR(DATE_TRUNC('${unit}', ${column} AT TIME ZONE 'Europe/Paris'), 'YYYY-MM-DD')`
+}
+
 // Get new users count grouped by day/week/month
 export async function getNewUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  let dateTrunc;
-  if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
-  } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
-  } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
-  }
+  const dateTrunc = adminStatsDateTrunc('created_at', scale)
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM users
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= ($1::date AT TIME ZONE 'Europe/Paris')
+      AND created_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -1073,22 +1072,16 @@ export async function getNewUsersStats({ startDate, endDate, scale }: { startDat
   return stats;
 }
 
-// Get active users (users who sent a message) grouped by day/week/month
+// Get active users from the presence heartbeat grouped by day/week/month.
 export async function getActiveUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  let dateTrunc;
-  if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
-  } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
-  } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
-  }
+  const dateTrunc = adminStatsDateTrunc('last_seen_at', scale)
   const query = `
-    SELECT ${dateTrunc} as period, COUNT(DISTINCT sender_id) as count
-    FROM messages
-    WHERE created_at BETWEEN $1 AND $2
+    SELECT ${dateTrunc} as period, COUNT(DISTINCT id) as count
+    FROM users
+    WHERE last_seen_at >= ($1::date AT TIME ZONE 'Europe/Paris')
+      AND last_seen_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -1096,22 +1089,16 @@ export async function getActiveUsersStats({ startDate, endDate, scale }: { start
   return stats;
 }
 
-// Get new matches grouped by day/week/month
+// Get contact requests grouped by day/week/month.
 export async function getMatchesStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  let dateTrunc;
-  if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
-  } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
-  } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
-  }
+  const dateTrunc = adminStatsDateTrunc('created_at', scale)
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM user_matches
-    WHERE status = 'accepted' AND created_at BETWEEN $1 AND $2
+    WHERE created_at >= ($1::date AT TIME ZONE 'Europe/Paris')
+      AND created_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
     GROUP BY period
     ORDER BY period ASC
   `;

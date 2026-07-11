@@ -624,18 +624,15 @@ export async function removeSubscriberFromEvent(eventId: string, userId: string)
 }
 
 export async function getEventSubscriptionsStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
-  let dateTrunc;
-  if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
-  } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
-  } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
-  }
+  await requireAdmin()
+
+  const unit = scale === 'month' ? 'month' : scale === 'week' ? 'week' : 'day'
+  const dateTrunc = `TO_CHAR(DATE_TRUNC('${unit}', created_at AT TIME ZONE 'Europe/Paris'), 'YYYY-MM-DD')`
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM event_participants
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= ($1::date AT TIME ZONE 'Europe/Paris')
+      AND created_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
     GROUP BY period
     ORDER BY period ASC
   `;
