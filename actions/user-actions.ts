@@ -151,6 +151,132 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
   }
 }
 
+export type CommunityMemberDirectoryFilters = {
+  page?: number
+  pageSize?: number
+  search?: string
+  profileType?: 'all' | 'couple' | 'woman' | 'man'
+  orientation?: 'all' | 'hetero' | 'bi' | 'bisexual' | 'homo' | 'gay' | 'lesbian' | 'pansexual'
+  meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
+  onlineOnly?: boolean
+}
+
+export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
+  const currentUser = await requireCurrentUser()
+  const requestedPage = Number(input.page || 1)
+  const requestedPageSize = Number(input.pageSize || 24)
+  const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
+  const pageSize = Number.isFinite(requestedPageSize)
+    ? Math.min(48, Math.max(12, Math.floor(requestedPageSize)))
+    : 24
+  const params: unknown[] = [currentUser.id]
+  const whereClauses = [
+    'u.id <> $1',
+    'up.display_profile = TRUE',
+    'u.onboarding_completed = TRUE',
+    'COALESCE(u.is_banned, false) = false',
+    "COALESCE(u.status, 'active') <> 'banned'"
+  ]
+
+  const addParam = (value: unknown) => {
+    params.push(value)
+    return `$${params.length}`
+  }
+
+  const search = input.search?.trim().toLowerCase()
+  if (search) {
+    const placeholder = addParam(`%${search}%`)
+    whereClauses.push(`(
+      LOWER(COALESCE(u.name, '')) LIKE ${placeholder}
+      OR LOWER(COALESCE(up.location, '')) LIKE ${placeholder}
+    )`)
+  }
+
+  if (input.profileType === 'couple') {
+    whereClauses.push("(LOWER(COALESCE(up.status, '')) LIKE 'couple%' OR LOWER(COALESCE(up.gender, '')) LIKE 'couple%')")
+  } else if (input.profileType === 'woman') {
+    whereClauses.push("(LOWER(COALESCE(up.gender, '')) IN ('female', 'single_female', 'single_woman', 'married_female', 'married_woman', 'couple_ff') OR LOWER(COALESCE(up.status, '')) IN ('single_female', 'single_woman', 'married_woman'))")
+  } else if (input.profileType === 'man') {
+    whereClauses.push("(LOWER(COALESCE(up.gender, '')) IN ('male', 'single_male', 'single_man', 'married_male', 'married_man', 'couple_mm') OR LOWER(COALESCE(up.status, '')) IN ('single_male', 'single_man', 'married_man'))")
+  }
+
+  if (input.orientation && input.orientation !== 'all') {
+    whereClauses.push(`LOWER(COALESCE(up.orientation, '')) = ${addParam(input.orientation.toLowerCase())}`)
+  }
+
+  if (input.meetingCriterion === 'open_couples') {
+    whereClauses.push('EXISTS (SELECT 1 FROM user_meeting_types umt_filter WHERE umt_filter.user_id = u.id AND umt_filter.open_to_other_couples = TRUE)')
+  } else if (input.meetingCriterion === 'open_curtains') {
+    whereClauses.push('EXISTS (SELECT 1 FROM user_meeting_types umt_filter WHERE umt_filter.user_id = u.id AND umt_filter.open_curtains = TRUE)')
+  } else if (input.meetingCriterion === 'libertine') {
+    whereClauses.push('EXISTS (SELECT 1 FROM user_meeting_types umt_filter WHERE umt_filter.user_id = u.id AND umt_filter.libertine = TRUE)')
+  }
+
+  if (input.onlineOnly) {
+    whereClauses.push("u.last_seen_at >= NOW() - INTERVAL '5 minutes'")
+  }
+
+  const whereCondition = `WHERE ${whereClauses.join('\n      AND ')}`
+  const countResult = await sql.query<{ total: string | number }[]>(
+    `
+      SELECT COUNT(DISTINCT u.id) AS total
+      FROM users u
+      JOIN user_profiles up ON up.user_id = u.id
+      ${whereCondition}
+    `,
+    params
+  )
+  const totalCount = Number(countResult[0]?.total || 0)
+
+  const limitPlaceholder = addParam(pageSize)
+  const offsetPlaceholder = addParam((page - 1) * pageSize)
+  const members = await sql.query<any[]>(
+    `
+      SELECT
+        u.id,
+        u.name,
+        u.avatar,
+        u.created_at,
+        u.last_seen_at,
+        up.age,
+        up.location,
+        up.status AS profile_status,
+        up.gender,
+        up.orientation,
+        up.bio,
+        umt.open_to_other_couples,
+        umt.open_curtains,
+        umt.libertine,
+        (u.last_seen_at >= NOW() - INTERVAL '5 minutes') AS online
+      FROM users u
+      JOIN user_profiles up ON up.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT
+          BOOL_OR(COALESCE(open_to_other_couples, false)) AS open_to_other_couples,
+          BOOL_OR(COALESCE(open_curtains, false)) AS open_curtains,
+          BOOL_OR(COALESCE(libertine, false)) AS libertine
+        FROM user_meeting_types
+        WHERE user_id = u.id
+      ) umt ON TRUE
+      ${whereCondition}
+      ORDER BY
+        (u.last_seen_at >= NOW() - INTERVAL '5 minutes') DESC,
+        u.created_at DESC
+      LIMIT ${limitPlaceholder}
+      OFFSET ${offsetPlaceholder}
+    `,
+    params
+  )
+
+  return {
+    members: members || [],
+    totalCount,
+    currentPage: page,
+    pageSize,
+    totalPages: Math.ceil(totalCount / pageSize)
+  }
+}
+
 export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions) {
   console.log(`[getDiscoverProfiles] Called for user: ${currentUserId}, page: ${page}, filters:`, JSON.stringify(filters, null, 2));
 

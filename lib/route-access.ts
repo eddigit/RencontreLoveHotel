@@ -35,6 +35,7 @@ const protectedPagePrefixes = [
   '/en-direct',
   '/events',
   '/matches',
+  '/members',
   '/messages',
   '/notifications',
   '/onboarding',

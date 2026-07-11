@@ -9,7 +9,8 @@ import {
   Search,
   Settings,
   Sparkles,
-  UserRound
+  UserRound,
+  UsersRound
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -24,6 +25,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: '/discover', label: 'Découvrir', icon: Search },
+  { href: '/members', label: 'Rechercher', icon: UsersRound },
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/matches', label: 'Matches', icon: Heart },
   { href: '/events', label: 'Événements', icon: CalendarDays },
