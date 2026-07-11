@@ -11,6 +11,7 @@ import { authOptions } from '@/lib/auth'
 import { UserProfileEditor } from '@/components/UserProfileEditor'
 import { PreferencesEditor } from '@/components/PreferencesEditor'
 import { UserPhotosManager } from '@/components/UserPhotosManager'
+import { ProfileVideoManager } from '@/components/ProfileVideoManager'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Badge } from '@/components/ui/badge'
@@ -401,7 +402,8 @@ export default async function ProfilePage () {
     userData.interests.length > 0,
     Boolean(preferences.interested_in_dating || preferences.interested_in_events),
     Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains),
-    userPhotos.length > 0
+    userPhotos.length > 0,
+    Boolean(profile.intro_video_url)
   ]
   const profileScore = Math.round(
     (completionItems.filter(Boolean).length / completionItems.length) * 100
@@ -471,7 +473,7 @@ export default async function ProfilePage () {
                   Matching
                 </TabsTrigger>
                 <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
-                  Photos
+                  Médias
                 </TabsTrigger>
               </TabsList>
           <TabsContent value='profile'>
@@ -503,6 +505,7 @@ export default async function ProfilePage () {
               </h3>
               {/* UserPhotosManager handles upload/delete UI */}
               <UserPhotosManager photos={userPhotos} maxPhotos={10} />
+              <ProfileVideoManager initialUrl={profile.intro_video_url} />
             </div>
           </TabsContent>
         </Tabs>

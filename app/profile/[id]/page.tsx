@@ -111,7 +111,8 @@ export default async function ProfilePage ({
   const profile = userProfileData.user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
-  const avatar = profileImage(profile)
+  const galleryPortrait = userProfileData.photos.find((photo: any) => photo.is_primary)?.url || userProfileData.photos[0]?.url
+  const avatar = galleryPortrait || profileImage(profile)
   const interests = Array.isArray(profile.interests) ? profile.interests : []
   const intentions = realIntentions(userProfileData)
   const type = profileType(profile)
@@ -132,7 +133,7 @@ export default async function ProfilePage ({
         user={currentUser}
         eyebrow='Communauté'
         title='Profil membre'
-        subtitle='Découvrez la personne, ses envies et ses photos.'
+        subtitle='Découvrez la personne, ses envies, ses photos et sa présentation.'
         action={
           <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
             <Link href='/members'>
@@ -147,7 +148,7 @@ export default async function ProfilePage ({
             data-testid='profile-summary'
             className='overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]'
           >
-            <div className='grid grid-cols-[112px_minmax(0,1fr)] gap-4 p-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-5 sm:p-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 lg:p-6'>
+            <div className='grid grid-cols-[112px_minmax(0,1fr)] gap-4 p-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-5 sm:p-5 lg:grid-cols-[220px_minmax(0,1fr)_290px] lg:gap-6 lg:p-6'>
               <div
                 data-testid='profile-portrait'
                 className='relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-[#110318] sm:rounded-2xl'
@@ -160,7 +161,7 @@ export default async function ProfilePage ({
                     alt={profile.name}
                     fill
                     className='object-cover'
-                    sizes='(max-width: 640px) 112px, (max-width: 1024px) 180px, 260px'
+                    sizes='(max-width: 640px) 112px, (max-width: 1024px) 180px, 220px'
                     priority
                   />
                 )}
@@ -199,27 +200,44 @@ export default async function ProfilePage ({
 
               </div>
 
-              {canShowActions && (
-                <div
-                  data-testid='profile-primary-action'
-                  className='col-span-2 border-t border-white/10 pt-4 lg:col-span-1 lg:col-start-2'
-                >
-                  <span data-testid='profile-mobile-action' className='sr-only'>Action principale</span>
+              <aside
+                data-testid='profile-action-panel'
+                className='col-span-2 border-t border-white/10 pt-4 lg:col-span-1 lg:col-start-3 lg:row-start-1 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0'
+              >
+                <div data-testid='profile-primary-action'>
+                  <span data-testid='profile-mobile-action' className='sr-only'>Actions du profil</span>
+                  <h3 className='flex items-center gap-2 font-black'>
+                    <MessageCircle className='h-4 w-4 text-[#ff8cc8]' />
+                    {canShowActions ? 'Entrer en contact' : 'Votre profil'}
+                  </h3>
+                  <p className='mt-2 text-sm leading-5 text-white/55'>
+                    {matchStatus?.status === 'accepted'
+                      ? 'Message ouvert. Organisez maintenant votre rencontre.'
+                      : 'Après match accepté, la messagerie privée devient disponible.'}
+                  </p>
+
+                  <div className='mt-4'>
                   {matchStatus === null && (
-                    <MatchRequestButton
-                      currentUserId={String(currentUser.id)}
-                      profileUserId={String(profile.user_id)}
-                    />
+                    canShowActions ? (
+                      <MatchRequestButton
+                        currentUserId={String(currentUser.id)}
+                        profileUserId={String(profile.user_id)}
+                      />
+                    ) : (
+                      <Button asChild className='w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8]'>
+                        <Link href='/profile'>Modifier mon profil</Link>
+                      </Button>
+                    )
                   )}
 
                   {matchStatus?.status === 'pending' && isRequester && (
-                    <Button disabled className='w-full bg-white/12 sm:w-auto'>
+                    <Button disabled className='w-full bg-white/12'>
                       Demande envoyée
                     </Button>
                   )}
 
                   {matchStatus?.status === 'pending' && !isRequester && (
-                    <div className='flex flex-col gap-2 sm:flex-row'>
+                      <div className='grid gap-2'>
                       <form
                         action={async () => {
                           'use server'
@@ -236,7 +254,7 @@ export default async function ProfilePage ({
                           }
                         }}
                       >
-                        <Button type='submit' className='w-full bg-[#21b56f] hover:bg-[#25c97d] sm:w-auto'>
+                        <Button type='submit' className='w-full bg-[#21b56f] hover:bg-[#25c97d]'>
                           Accepter la demande
                         </Button>
                       </form>
@@ -246,7 +264,7 @@ export default async function ProfilePage ({
                           await declineMatchRequest(matchStatus.user_id_1, matchStatus.user_id_2)
                         }}
                       >
-                        <Button type='submit' variant='outline' className='w-full border-white/15 bg-transparent sm:w-auto'>
+                        <Button type='submit' variant='outline' className='w-full border-white/15 bg-transparent'>
                           Refuser
                         </Button>
                       </form>
@@ -260,8 +278,26 @@ export default async function ProfilePage ({
                   {matchStatus?.status === 'rejected' && (
                     <div className='text-sm text-white/58'>Cette demande de match a été refusée.</div>
                   )}
+                  </div>
                 </div>
-              )}
+
+                {canShowActions && (
+                  <div className='mt-4 grid gap-2 border-t border-white/10 pt-4'>
+                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
+                      <Link href='/events'>
+                        <CalendarHeart className='mr-2 h-4 w-4' />
+                        Inviter à un événement
+                      </Link>
+                    </Button>
+                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
+                      <Link href='/love-rooms'>
+                        <Wine className='mr-2 h-4 w-4' />
+                        Proposer une Love Room
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </aside>
             </div>
           </section>
 
@@ -276,6 +312,24 @@ export default async function ProfilePage ({
                   {profile.bio || 'Ce profil n’a pas encore ajouté de présentation.'}
                 </p>
               </div>
+
+              {profile.intro_video_url && (
+                <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5 sm:p-6'>
+                  <h3 className='flex items-center gap-2 text-lg font-black'>
+                    <MessageCircle className='h-5 w-5 text-[#94ffc9]' />
+                    Vidéo de présentation
+                  </h3>
+                  <video
+                    className='mt-4 aspect-video w-full rounded-xl bg-black object-contain'
+                    controls
+                    playsInline
+                    preload='metadata'
+                  >
+                    <source src={profile.intro_video_url} />
+                    Votre navigateur ne peut pas lire cette vidéo.
+                  </video>
+                </div>
+              )}
 
               <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5 sm:p-6'>
                 <h3 className='flex items-center gap-2 text-lg font-black'>
@@ -322,31 +376,6 @@ export default async function ProfilePage ({
                 )}
               </div>
 
-              {canShowActions && (
-                <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-                  <h3 className='flex items-center gap-2 font-black'>
-                    <MessageCircle className='h-4 w-4 text-[#ff8cc8]' />
-                    Organiser une rencontre
-                  </h3>
-                  <p className='mt-3 text-sm leading-6 text-white/58'>
-                    Message ouvert. Après match accepté, proposez un cadre adapté à votre rencontre.
-                  </p>
-                  <div className='mt-4 grid gap-2'>
-                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
-                      <Link href='/love-rooms'>
-                        <Wine className='mr-2 h-4 w-4' />
-                        Proposer une Love Room
-                      </Link>
-                    </Button>
-                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
-                      <Link href='/events'>
-                        <CalendarHeart className='mr-2 h-4 w-4' />
-                        Inviter à un Événement
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              )}
             </aside>
           </div>
         </div>
