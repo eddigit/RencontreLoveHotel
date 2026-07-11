@@ -3,7 +3,7 @@
 import nodemailer from 'nodemailer'
 import { sql } from '@/lib/db'
 import { sendMessage } from '@/actions/conversation-actions'
-import { createAppNotification } from '@/actions/notification-actions'
+import { createAppNotificationRecord as createAppNotification } from '@/lib/notification-service'
 import { FEEDBACK_RECIPIENT_EMAIL } from '@/lib/community-feedback-config'
 import { requireAdmin, requireCurrentUser } from '@/lib/server-auth'
 import { getUserByEmail } from '@/lib/user-service'

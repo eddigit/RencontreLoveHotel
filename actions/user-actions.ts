@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { calculateMatchScore } from "@/utils/matching-algorithm"
-import { createNotification } from "@/actions/notification-actions"
+import { createNotificationRecord as createNotification } from '@/lib/notification-service'
 import { FilterOptions } from "@/components/advanced-filters";
 import type { UserProfile } from "@/utils/matching-algorithm"
 import {

@@ -7,7 +7,7 @@ const findConversationMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/db', () => ({ sql: { query: sqlQueryMock } }))
 vi.mock('@/lib/server-auth', () => ({ requireCurrentUser: requireCurrentUserMock }))
-vi.mock('@/actions/notification-actions', () => ({ createNotification: createNotificationMock }))
+vi.mock('@/lib/notification-service', () => ({ createNotificationRecord: createNotificationMock }))
 vi.mock('@/actions/conversation-actions', () => ({ findOrCreateConversation: findConversationMock }))
 vi.mock('@vercel/blob', () => ({ put: vi.fn() }))
 

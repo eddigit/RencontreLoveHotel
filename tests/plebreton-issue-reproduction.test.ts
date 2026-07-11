@@ -7,8 +7,8 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationRecord: vi.fn()
 }))
 
 vi.mock('../utils/logger', () => ({

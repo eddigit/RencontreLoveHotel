@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
-import { createAppNotification } from "@/actions/notification-actions"
+import { createAppNotificationRecord } from '@/lib/notification-service'
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
@@ -176,7 +176,7 @@ export async function moderateEvent(
   )
 
   if (event.creator_id) {
-    await createAppNotification({
+    await createAppNotificationRecord({
       userId: event.creator_id,
       type: 'event_moderation',
       title: status === 'published'
@@ -211,11 +211,14 @@ export async function moderateEvent(
 }
 
 export async function getUpcomingEvents(userId?: string) {
+  const currentUser = userId
+    ? await requireSameUserOrAdmin(userId)
+    : await requireCurrentUser()
   try {
-    return await getUpcomingEventsQuery(userId, true)
+    return await getUpcomingEventsQuery(userId || currentUser.id, true)
   } catch (error) {
     if (isMissingPublicationStatusColumn(error)) {
-      return await getUpcomingEventsQuery(userId, false)
+      return await getUpcomingEventsQuery(userId || currentUser.id, false)
     }
     throw error
   }
@@ -306,6 +309,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
 }
 
 export async function getEventParticipants(eventId: string) {
+  await requireCurrentUser()
   const participants = await sql`
     SELECT
       u.id,
@@ -641,8 +645,12 @@ export async function getEventSubscriptionsStats({ startDate, endDate, scale }: 
 }
 
 export async function getEventById(eventId: string, userId?: string) {
+  const currentUser = userId
+    ? await requireSameUserOrAdmin(userId)
+    : await requireCurrentUser()
+  const effectiveUserId = userId || currentUser.id
   try {
-    const eventQuery = userId
+    const eventQuery = effectiveUserId
       ? `
       SELECT 
         e.*,
@@ -664,7 +672,7 @@ export async function getEventById(eventId: string, userId?: string) {
       LEFT JOIN users u ON e.creator_id = u.id
       WHERE e.id = $1
     `
-    const eventParams = userId ? [eventId, userId] : [eventId]
+    const eventParams = [eventId, effectiveUserId]
     const [event] = await sql.query<any[]>(eventQuery, eventParams)
 
     if (!event) {
@@ -699,6 +707,7 @@ export async function getEventById(eventId: string, userId?: string) {
 }
 
 export async function checkUserParticipation(eventId: string, userId: string) {
+  await requireSameUserOrAdmin(userId)
   try {
     const [participation] = await sql`
       SELECT id FROM event_participants 
@@ -709,4 +718,36 @@ export async function checkUserParticipation(eventId: string, userId: string) {
     console.error('Erreur lors de la vérification de participation:', error)
     return false
   }
+}
+
+export async function notifyEventParticipants(
+  eventId: string,
+  input: { title: string; description: string }
+) {
+  const admin = await requireAdmin()
+  const title = input.title.trim().slice(0, 180)
+  const description = input.description.trim().slice(0, 1000)
+
+  if (title.length < 3 || description.length < 3) {
+    throw new Error('Titre et message requis')
+  }
+
+  const participants = await sql.query<{ user_id: string }[]>(
+    `SELECT user_id FROM event_participants WHERE event_id = $1`,
+    [eventId]
+  )
+
+  for (const participant of participants) {
+    await createAppNotificationRecord({
+      userId: participant.user_id,
+      type: 'event',
+      title,
+      description,
+      link: `/events/${eventId}`,
+      category: 'events',
+      createdBy: admin.id
+    })
+  }
+
+  return { success: true, notifiedCount: participants.length }
 }

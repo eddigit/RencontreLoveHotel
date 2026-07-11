@@ -17,8 +17,8 @@ vi.mock('@/lib/server-auth', () => ({
 
 vi.mock('@/lib/db', () => ({ sql: sqlMock }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createAppNotification: createAppNotificationMock
+vi.mock('@/lib/notification-service', () => ({
+  createAppNotificationRecord: createAppNotificationMock
 }))
 
 vi.mock('@/lib/event-reservation-notifications', () => ({

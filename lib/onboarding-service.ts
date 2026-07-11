@@ -10,91 +10,74 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
     throw new Error("L'identifiant utilisateur n'est pas un UUID valide.")
   }
   try {
-    // 1. Mettre à jour le profil utilisateur
+    // Une seule instruction PostgreSQL garantit qu'aucun onboarding partiel
+    // n'est enregistré si l'une des sections échoue.
     await executeQuery(
       `
-      INSERT INTO user_profiles (id, user_id, status, age, orientation, gender, birthday)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      ON CONFLICT (user_id) DO UPDATE
-      SET status = $3, age = $4, orientation = $5, gender = $6, birthday = $7, updated_at = CURRENT_TIMESTAMP
-    `,
-      [uuidv4(), userId, data.status, data.age, data.orientation, data.gender, data.birthday ? data.birthday : null], // Ensure birthday is null if empty
-    )
-
-    // 2. Mettre à jour les préférences utilisateur
-    await executeQuery(
-      `
-      INSERT INTO user_preferences (
-        id, user_id, interested_in_restaurant, interested_in_events,
-        interested_in_dating, prefer_curtain_open, interested_in_lolib, suggestions
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      ON CONFLICT (user_id) DO UPDATE
-      SET interested_in_restaurant = $3, interested_in_events = $4,
-          interested_in_dating = $5, prefer_curtain_open = $6,
-          interested_in_lolib = $7, suggestions = $8,
-          updated_at = CURRENT_TIMESTAMP
-    `,
+        WITH profile_upsert AS (
+          INSERT INTO user_profiles (id, user_id, status, age, orientation, gender, birthday)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (user_id) DO UPDATE
+          SET status = EXCLUDED.status, age = EXCLUDED.age,
+              orientation = EXCLUDED.orientation, gender = EXCLUDED.gender,
+              birthday = EXCLUDED.birthday, updated_at = CURRENT_TIMESTAMP
+          RETURNING user_id
+        ), preference_upsert AS (
+          INSERT INTO user_preferences (
+            id, user_id, interested_in_restaurant, interested_in_events,
+            interested_in_dating, prefer_curtain_open, interested_in_lolib, suggestions
+          )
+          VALUES ($8, $2, $9, $10, $11, $12, $13, $14)
+          ON CONFLICT (user_id) DO UPDATE
+          SET interested_in_restaurant = EXCLUDED.interested_in_restaurant,
+              interested_in_events = EXCLUDED.interested_in_events,
+              interested_in_dating = EXCLUDED.interested_in_dating,
+              prefer_curtain_open = EXCLUDED.prefer_curtain_open,
+              interested_in_lolib = EXCLUDED.interested_in_lolib,
+              suggestions = EXCLUDED.suggestions,
+              updated_at = CURRENT_TIMESTAMP
+          RETURNING user_id
+        ), meeting_upsert AS (
+          INSERT INTO user_meeting_types (
+            id, user_id, friendly, romantic, playful, open_curtains,
+            libertine, open_to_other_couples, specific_preferences
+          )
+          VALUES ($15, $2, $16, $17, $18, $19, $20, $21, $22)
+          ON CONFLICT (user_id) DO UPDATE
+          SET friendly = EXCLUDED.friendly, romantic = EXCLUDED.romantic,
+              playful = EXCLUDED.playful, open_curtains = EXCLUDED.open_curtains,
+              libertine = EXCLUDED.libertine,
+              open_to_other_couples = EXCLUDED.open_to_other_couples,
+              specific_preferences = EXCLUDED.specific_preferences,
+              updated_at = CURRENT_TIMESTAMP
+          RETURNING user_id
+        ), options_upsert AS (
+          INSERT INTO user_additional_options (
+            id, user_id, join_exclusive_events, premium_access
+          )
+          VALUES ($23, $2, $24, $25)
+          ON CONFLICT (user_id) DO UPDATE
+          SET join_exclusive_events = EXCLUDED.join_exclusive_events,
+              premium_access = EXCLUDED.premium_access,
+              updated_at = CURRENT_TIMESTAMP
+          RETURNING user_id
+        )
+        UPDATE users
+        SET onboarding_completed = true, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2
+      `,
       [
-        uuidv4(),
-        userId,
-        data.interestedInRestaurant,
-        data.interestedInEvents,
-        data.interestedInDating,
-        data.preferCurtainOpen,
-        data.interestedInLolib,
-        data.suggestions || "",
-      ],
-    )
-
-    // 3. Mettre à jour les types de rencontres
-    await executeQuery(
-      `
-      INSERT INTO user_meeting_types (
-        id, user_id, friendly, romantic, playful, open_curtains,
-        libertine, open_to_other_couples, specific_preferences
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      ON CONFLICT (user_id) DO UPDATE
-      SET friendly = $3, romantic = $4, playful = $5, open_curtains = $6,
-          libertine = $7, open_to_other_couples = $8, specific_preferences = $9,
-          updated_at = CURRENT_TIMESTAMP
-    `,
-      [
-        uuidv4(),
-        userId,
-        data.meetingTypes.friendly,
-        data.meetingTypes.romantic,
-        data.meetingTypes.playful,
-        data.meetingTypes.openCurtains,
-        data.meetingTypes.libertine,
-        data.openToOtherCouples,
-        data.specificPreferences || "",
-      ],
-    )
-
-    // 4. Mettre à jour les options supplémentaires
-    await executeQuery(
-      `
-      INSERT INTO user_additional_options (
-        id, user_id, join_exclusive_events, premium_access
-      )
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (user_id) DO UPDATE
-      SET join_exclusive_events = $3, premium_access = $4,
-          updated_at = CURRENT_TIMESTAMP
-    `,
-      [uuidv4(), userId, data.joinExclusiveEvents, data.premiumAccess],
-    )
-
-    // 5. Mettre à jour le statut d'onboarding de l'utilisateur
-    await executeQuery(
-      `
-      UPDATE users
-      SET onboarding_completed = true, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-    `,
-      [userId],
+        uuidv4(), userId, data.status, data.age, data.orientation, data.gender,
+        data.birthday || null,
+        uuidv4(), data.interestedInRestaurant, data.interestedInEvents,
+        data.interestedInDating, data.preferCurtainOpen, data.interestedInLolib,
+        data.suggestions || '',
+        uuidv4(), data.meetingTypes.friendly, data.meetingTypes.romantic,
+        data.meetingTypes.playful, data.meetingTypes.openCurtains,
+        data.meetingTypes.libertine, data.openToOtherCouples,
+        data.specificPreferences || '',
+        uuidv4(), data.joinExclusiveEvents, data.premiumAccess
+      ]
     )
 
     return true

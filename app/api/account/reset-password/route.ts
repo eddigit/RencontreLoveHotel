@@ -11,6 +11,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Token et nouveau mot de passe sont requis.' }, { status: 400 });
     }
 
+    if (typeof password !== 'string' || password.length < 8) {
+      return NextResponse.json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' }, { status: 400 });
+    }
+
     // 1. Validate the token and get user
     const user = await getUserByResetToken(token);
 

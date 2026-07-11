@@ -31,6 +31,7 @@ describe('authOptions', () => {
   })
 
   it('fails closed for email verification when JWT user lookup misses', async () => {
+    getUserByIdMock.mockResolvedValue(null)
     getUserByEmailMock.mockResolvedValue(null)
 
     const token = await authOptions.callbacks!.jwt!({
@@ -44,5 +45,71 @@ describe('authOptions', () => {
 
     expect(token.email_verified).toBe(false)
     expect(token.onboardingCompleted).toBe(false)
+  })
+
+  it('keeps the authenticated account id when legacy emails are duplicated', async () => {
+    getUserByIdMock.mockResolvedValue({
+      id: 'authenticated-user',
+      email: 'member@example.com',
+      name: 'Compte authentifié',
+      role: 'user',
+      onboarding_completed: true,
+      email_verified: true
+    })
+
+    const token = await authOptions.callbacks!.jwt!({
+      token: {},
+      user: { id: 'authenticated-user', email: 'member@example.com' },
+      account: { provider: 'credentials' },
+      profile: undefined,
+      trigger: 'signIn',
+      session: undefined
+    } as any)
+
+    expect(getUserByIdMock).toHaveBeenCalledWith('authenticated-user')
+    expect(getUserByEmailMock).not.toHaveBeenCalled()
+    expect(token.sub).toBe('authenticated-user')
+  })
+
+  it('assigns the persisted database id to an OAuth user', async () => {
+    getOrCreateOAuthUserMock.mockResolvedValue({
+      id: 'oauth-database-user',
+      email: 'member@example.com'
+    })
+    const user = { id: 'provider-user', email: 'member@example.com' } as any
+
+    const allowed = await authOptions.callbacks!.signIn!({
+      user,
+      account: { provider: 'google' },
+      profile: undefined,
+      email: undefined,
+      credentials: undefined
+    } as any)
+
+    expect(allowed).toBe(true)
+    expect(user.id).toBe('oauth-database-user')
+  })
+
+  it('marks an existing banned account as blocked when refreshing its JWT', async () => {
+    getUserByIdMock.mockResolvedValue({
+      id: 'blocked-user',
+      email: 'blocked@example.com',
+      name: 'Compte bloqué',
+      role: 'user',
+      onboarding_completed: true,
+      status: 'active',
+      is_banned: true
+    })
+
+    const token = await authOptions.callbacks!.jwt!({
+      token: { sub: 'blocked-user' },
+      user: undefined,
+      account: null,
+      profile: undefined,
+      trigger: 'update',
+      session: undefined
+    } as any)
+
+    expect(token.blocked).toBe(true)
   })
 })

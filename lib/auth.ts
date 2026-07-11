@@ -68,11 +68,15 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       if (account?.provider && account.provider !== 'credentials') {
-        await getOrCreateOAuthUser({
+        const dbUser = await getOrCreateOAuthUser({
           email: user.email!,
           name: user.name ?? undefined,
           avatar: user.image ?? undefined
         })
+        if (!dbUser || dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')) {
+          return false
+        }
+        user.id = dbUser.id
       }
       return true
     },
@@ -88,14 +92,20 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, trigger }) {
       try {
-        if (user?.email) {
-          const dbUser = await getUserByEmail(user.email)
+        if (user?.email || user?.id) {
+          const dbUser = user.id
+            ? await getUserById(user.id)
+            : await getUserByEmail(user.email!)
           if (dbUser) {
             token.sub = dbUser.id
             token.role = dbUser.role
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.blocked = Boolean(
+              dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
+            )
+            token.userCheckedAt = Date.now()
           } else {
             console.warn(
               "Impossible de récupérer l'utilisateur depuis la DB, utilisation des données de base"
@@ -107,7 +117,15 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        if (trigger === 'update' && token.sub) {
+        const shouldRefreshUser = Boolean(
+          token.sub && (
+            trigger === 'update' ||
+            !token.userCheckedAt ||
+            Date.now() - Number(token.userCheckedAt) > 5 * 60 * 1000
+          )
+        )
+
+        if (!user && shouldRefreshUser && token.sub) {
           const dbUser = await getUserById(token.sub as string)
           if (dbUser) {
             token.name = dbUser.name
@@ -115,6 +133,12 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.blocked = Boolean(
+              dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
+            )
+            token.userCheckedAt = Date.now()
+          } else {
+            token.blocked = true
           }
         }
       } catch (error) {

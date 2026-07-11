@@ -3,7 +3,7 @@
 import type { Notification } from "@/components/notifications-dropdown"
 import type { OnboardingData } from "@/components/onboarding-form"
 import { saveOnboardingData } from "@/lib/onboarding-service"
-import { createUser, verifyUserCredentials } from "@/lib/user-service"
+import { createUser, getUserByEmail, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
 import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 
@@ -107,8 +107,25 @@ export async function saveUserPreferences(userId: string, data: OnboardingData) 
 // Fonction pour s'inscrire
 export async function registerUser(email: string, password: string, name: string) {
   try {
-    const user = await createUser(email, password, name)
-    return { success: !!user, user }
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedName = name.trim()
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return { success: false, error: 'Adresse email invalide.' }
+    }
+    if (normalizedName.length < 2) {
+      return { success: false, error: 'Le nom doit contenir au moins 2 caractères.' }
+    }
+    if (password.length < 8) {
+      return { success: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' }
+    }
+    if (await getUserByEmail(normalizedEmail)) {
+      return { success: false, error: 'Un compte existe déjà avec cette adresse email.' }
+    }
+
+    const user = await createUser(normalizedEmail, password, normalizedName)
+    return user
+      ? { success: true, user }
+      : { success: false, error: "L'inscription n'a pas pu être finalisée." }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)
     return { success: false, error: "Erreur lors de l'inscription" }

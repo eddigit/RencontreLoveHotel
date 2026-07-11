@@ -24,6 +24,8 @@ import MainLayout from '@/components/layout/main-layout'
 
 export default function RegisterPage () {
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -43,6 +45,8 @@ export default function RegisterPage () {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
+    setIsSubmitting(true)
 
     try {
       // Enregistrer l'utilisateur dans la base de données
@@ -61,11 +65,13 @@ export default function RegisterPage () {
 
         router.push(signInResult?.ok ? '/onboarding' : '/login')
       } else {
-        // Gérer l'erreur ici (afficher un message, etc.)
-        console.error("Erreur lors de l'inscription:", result.error)
+        setError(result.error || "L'inscription n'a pas pu être finalisée.")
       }
     } catch (error) {
       console.error("Erreur lors de l'inscription:", error)
+      setError('Une erreur est survenue. Réessayez dans quelques instants.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -101,6 +107,7 @@ export default function RegisterPage () {
                       <Input
                         id='name'
                         name='name'
+                        autoComplete='name'
                         placeholder='John Doe'
                         className='pl-10'
                         value={formData.name}
@@ -117,6 +124,7 @@ export default function RegisterPage () {
                         id='email'
                         name='email'
                         type='email'
+                        autoComplete='email'
                         placeholder='exemple@email.com'
                         className='pl-10'
                         value={formData.email}
@@ -133,6 +141,8 @@ export default function RegisterPage () {
                         id='password'
                         name='password'
                         type={showPassword ? 'text' : 'password'}
+                        autoComplete='new-password'
+                        minLength={8}
                         placeholder='••••••••'
                         className='pl-10'
                         value={formData.password}
@@ -152,6 +162,7 @@ export default function RegisterPage () {
                       </button>
                     </div>
                   </div>
+                  <p className='text-xs text-muted-foreground'>8 caractères minimum.</p>
                   <div className='flex items-center space-x-2'>
                     <Checkbox
                       id='terms'
@@ -187,10 +198,15 @@ export default function RegisterPage () {
                   <Button
                     type='submit'
                     className='w-full h-11'
-                    disabled={!formData.agreeTerms}
+                    disabled={!formData.agreeTerms || isSubmitting}
                   >
-                    S&apos;inscrire
+                    {isSubmitting ? 'Création du compte...' : "S'inscrire"}
                   </Button>
+                  {error && (
+                    <p role='alert' className='text-sm text-destructive text-center'>
+                      {error}
+                    </p>
+                  )}
                 </form>
 
                 <div className='relative my-6'>

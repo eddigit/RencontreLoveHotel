@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/actions"
 import { useAuth } from "@/contexts/auth-context"
 import type { Notification } from "@/components/notifications-dropdown"
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 type NotificationCounts = {
   total: number
@@ -45,6 +46,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const { notifications } = await getNotifications(currentUserId)
         if (isMounted) setNotifications(notifications)
       } catch (error) {
+        if (recoverFromStaleServerAction(error)) return
         if (isMounted) console.error("Failed to load notifications:", error)
       }
     }
@@ -80,7 +82,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       await markNotificationAsRead(id)
     } catch (e) {
-      // Optionally handle error
+      recoverFromStaleServerAction(e)
     }
   }
 
@@ -90,7 +92,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try {
         await markAllNotificationsAsRead(user.id)
       } catch (e) {
-        // Optionally handle error
+        recoverFromStaleServerAction(e)
       }
     }
   }

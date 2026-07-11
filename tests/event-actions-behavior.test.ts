@@ -206,6 +206,24 @@ describe('event actions behavior', () => {
     expect(sqlMock.mock.calls[1][0].join('')).not.toContain('publication_status')
   })
 
+  it('blocks event reads when the session is missing', async () => {
+    getServerSessionMock.mockResolvedValue(null)
+    const { getEventParticipants, getUpcomingEvents } = await import('@/actions/event-actions')
+
+    await expect(getUpcomingEvents()).rejects.toThrow('Authentification requise')
+    await expect(getEventParticipants('event-1')).rejects.toThrow('Authentification requise')
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
+  it('blocks participation lookup for another member', async () => {
+    const { checkUserParticipation } = await import('@/actions/event-actions')
+
+    await expect(
+      checkUserParticipation('event-1', 'another-user')
+    ).rejects.toThrow('propre compte')
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
   it('rejects participation when the event is full', async () => {
     sqlMock.mockResolvedValueOnce([
       {

@@ -27,6 +27,11 @@ export async function createUser(
 ): Promise<User | null> {
   try {
     const normalizedEmail = email.trim().toLowerCase()
+    const existing = await executeQuery<{ id: string }[]>(
+      'SELECT id FROM users WHERE lower(email) = $1 LIMIT 1',
+      [normalizedEmail]
+    )
+    if (existing.length > 0) return null
     const hashedPassword = await hash(password, 10)
     const userId = uuidv4()
     const query = `
@@ -83,27 +88,28 @@ export async function verifyUserCredentials(email: string, password: string): Pr
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
-      SELECT id, email, password_hash, name, role, avatar, onboarding_completed, email_verified, created_at, updated_at
+      SELECT id, email, password_hash, name, role, avatar, onboarding_completed,
+             email_verified, status, is_banned, created_at, updated_at
       FROM users
       WHERE lower(email) = $1
     `
 
-    const users = await executeQuery<Array<User & { password_hash: string }>>(query, [normalizedEmail])
+    const users = await executeQuery<Array<User & { password_hash: string | null }>>(query, [normalizedEmail])
 
     if (users.length === 0) {
       return null
     }
 
-    const user = users[0]
-    const passwordMatch = await compare(password, user.password_hash)
+    for (const user of users) {
+      if (user.is_banned || (user.status && user.status !== 'active')) continue
+      if (!user.password_hash) continue
+      const passwordMatch = await compare(password, user.password_hash)
+      if (!passwordMatch) continue
 
-    if (!passwordMatch) {
-      return null
+      const { password_hash, ...userWithoutPassword } = user
+      return userWithoutPassword
     }
-
-    // Ne pas renvoyer le hash du mot de passe
-    const { password_hash, ...userWithoutPassword } = user
-    return userWithoutPassword
+    return null
   } catch (error) {
     console.error("Erreur lors de la vérification des identifiants:", error)
     return null
@@ -114,7 +120,8 @@ export async function verifyUserCredentials(email: string, password: string): Pr
 export async function getUserById(id: string): Promise<User | null> {
   try {
     const query = `
-      SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
+             status, is_banned, created_at, updated_at
       FROM users
       WHERE id = $1
     `
@@ -136,6 +143,7 @@ export async function getUserByEmail(email: string): Promise<User | null> {
              status, is_banned, created_at, updated_at
       FROM users
       WHERE lower(email) = $1
+      ORDER BY created_at ASC, id ASC
     `
     const users = await executeQuery<User[]>(query, [normalizedEmail])
     return users[0] || null
@@ -164,10 +172,15 @@ export async function updateOnboardingStatus(userId: string, completed: boolean)
 
 // Créer un utilisateur (ou le récupérer) à partir d'un email (pour OAuth)
 export async function getOrCreateOAuthUser({ email, name, avatar }: { email: string, name?: string, avatar?: string }) {
+  const normalizedEmail = email.trim().toLowerCase()
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
-    `SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at FROM users WHERE email = $1`,
-    [email]
+    `SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
+            status, is_banned, created_at, updated_at
+     FROM users
+     WHERE lower(email) = $1
+     ORDER BY created_at ASC, id ASC`,
+    [normalizedEmail]
   )
   if (existing.length > 0) {
     return existing[0]
@@ -179,7 +192,7 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
   `
-  const params = [userId, email, name || "", "user", avatar || null, false]
+  const params = [userId, normalizedEmail, name || "", "user", avatar || null, false]
   const result = (await executeQuery<User[]>(query, params)) ?? []
   // Créer un profil vide associé
   await executeQuery(

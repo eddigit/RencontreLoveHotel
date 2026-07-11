@@ -4,7 +4,7 @@ import { sql } from '@/lib/db'
 import { validateImageFile } from '@/lib/image-upload-validation'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { put } from '@vercel/blob'
-import { createNotification } from '@/actions/notification-actions'
+import { createNotificationRecord as createNotification } from '@/lib/notification-service'
 import { findOrCreateConversation } from '@/actions/conversation-actions'
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 

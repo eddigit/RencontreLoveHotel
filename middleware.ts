@@ -51,7 +51,7 @@ export default withAuth(
         }
 
         // Pour toutes les autres routes, exiger un token
-        return !!token
+        return Boolean(token && !token.blocked)
       },
     },
   }
