@@ -259,6 +259,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
       ) umt ON TRUE
       ${whereCondition}
       ORDER BY
+        (NULLIF(BTRIM(u.avatar), '') IS NOT NULL) DESC,
         (u.last_seen_at >= NOW() - INTERVAL '5 minutes') DESC,
         u.created_at DESC
       LIMIT ${limitPlaceholder}

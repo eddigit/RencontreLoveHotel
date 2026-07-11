@@ -19,5 +19,8 @@ describe('member directory UI', () => {
     expect(pageSource).toContain('meetingCriterion')
     expect(pageSource).toContain('totalCount')
     expect(pageSource).toContain('totalPages')
+    expect(pageSource).toContain('/default-member-couple.jpg')
+    expect(pageSource).toContain('/default-member-woman.jpg')
+    expect(pageSource).toContain('/default-member-man.jpg')
   })
 })

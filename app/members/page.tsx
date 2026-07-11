@@ -52,7 +52,14 @@ function formatCount(value: number) {
 }
 
 function imageFor(member: CommunityMember) {
-  return member.avatar || '/elegant-woman-purple-glow.png'
+  const avatar = member.avatar?.trim()
+  if (avatar) return avatar
+
+  const type = profileTypeLabel(member)
+  if (type === 'Couple') return '/default-member-couple.jpg'
+  if (type === 'Femme') return '/default-member-woman.jpg'
+  if (type === 'Homme') return '/default-member-man.jpg'
+  return '/elegant-woman-purple-glow.png'
 }
 
 function profileTypeLabel(member: CommunityMember) {
