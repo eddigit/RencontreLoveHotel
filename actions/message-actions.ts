@@ -14,12 +14,14 @@ export type MessageFromDB = {
   updated_at: Date;
   sender_name: string; // From JOIN with user_profiles
   sender_email: string; // From JOIN with users
+  sender_avatar?: string | null;
 };
 
 export type ConversationProtagonist = {
   user_id: string;
   name: string; // From user_profiles
   email: string; // From users
+  avatar?: string | null;
 };
 
 export type ModerationMessage = MessageFromDB & {
@@ -46,10 +48,18 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
         m.created_at,
         m.updated_at,
         u.name AS sender_name,
-        u.email AS sender_email
+        u.email AS sender_email,
+        COALESCE(primary_photo.url, NULLIF(BTRIM(u.avatar), '')) AS sender_avatar
       FROM messages m
       JOIN users u ON m.sender_id = u.id
       LEFT JOIN user_profiles up ON u.id = up.user_id
+      LEFT JOIN LATERAL (
+        SELECT p.url
+        FROM photos p
+        WHERE p.user_id = u.id
+        ORDER BY p.is_primary DESC, p.created_at DESC
+        LIMIT 1
+      ) primary_photo ON TRUE
       ORDER BY m.created_at DESC
       LIMIT $1 OFFSET $2;
     `;
@@ -68,10 +78,18 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
         SELECT
           cp.user_id,
           u_p.name,
-          u_p.email
+          u_p.email,
+          COALESCE(primary_photo.url, NULLIF(BTRIM(u_p.avatar), '')) AS avatar
         FROM conversation_participants cp
         JOIN users u_p ON cp.user_id = u_p.id
         LEFT JOIN user_profiles up_p ON u_p.id = up_p.user_id
+        LEFT JOIN LATERAL (
+          SELECT p.url
+          FROM photos p
+          WHERE p.user_id = u_p.id
+          ORDER BY p.is_primary DESC, p.created_at DESC
+          LIMIT 1
+        ) primary_photo ON TRUE
         WHERE cp.conversation_id = $1;
       `;
       // Adjust type and access to results for protagonistsResult
@@ -200,10 +218,18 @@ export async function searchMessagesByKeywords({ keywords, page = 1, limit = 50 
       m.created_at,
       m.updated_at,
       u.name AS sender_name,
-      u.email AS sender_email
+      u.email AS sender_email,
+      COALESCE(primary_photo.url, NULLIF(BTRIM(u.avatar), '')) AS sender_avatar
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     LEFT JOIN user_profiles up ON u.id = up.user_id
+    LEFT JOIN LATERAL (
+      SELECT p.url
+      FROM photos p
+      WHERE p.user_id = u.id
+      ORDER BY p.is_primary DESC, p.created_at DESC
+      LIMIT 1
+    ) primary_photo ON TRUE
     ${where}
     ORDER BY m.created_at DESC
     LIMIT $1 OFFSET $2;
@@ -222,10 +248,18 @@ export async function searchMessagesByKeywords({ keywords, page = 1, limit = 50 
       SELECT
         cp.user_id,
         u_p.name,
-        u_p.email
+        u_p.email,
+        COALESCE(primary_photo.url, NULLIF(BTRIM(u_p.avatar), '')) AS avatar
       FROM conversation_participants cp
       JOIN users u_p ON cp.user_id = u_p.id
       LEFT JOIN user_profiles up_p ON u_p.id = up_p.user_id
+      LEFT JOIN LATERAL (
+        SELECT p.url
+        FROM photos p
+        WHERE p.user_id = u_p.id
+        ORDER BY p.is_primary DESC, p.created_at DESC
+        LIMIT 1
+      ) primary_photo ON TRUE
       WHERE cp.conversation_id = $1;
     `;
     const protagonists = await executeQuery<ConversationProtagonist[]>(protagonistsQuery, [msg.conversation_id]);

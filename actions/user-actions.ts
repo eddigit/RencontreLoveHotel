@@ -906,6 +906,7 @@ export async function searchAdminUsers(input: AdminUserSearchFilters = {}) {
         u.email,
         u.role,
         u.avatar,
+        primary_photo.url AS primary_photo,
         u.is_banned,
         u.status AS account_status,
         u.created_at,
@@ -922,6 +923,13 @@ export async function searchAdminUsers(input: AdminUserSearchFilters = {}) {
         COUNT(*) OVER() AS total_count
       FROM users u
       LEFT JOIN user_profiles up ON up.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT p.url
+        FROM photos p
+        WHERE p.user_id = u.id
+        ORDER BY is_primary DESC, p.created_at DESC
+        LIMIT 1
+      ) primary_photo ON TRUE
       LEFT JOIN (
         SELECT
           user_id,

@@ -3,6 +3,16 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { ProtectedRoute } from '@/components/protected-route'
 import { 
   searchAdminUsers,
@@ -12,13 +22,20 @@ import {
   getUserCountsByGender // Importer la nouvelle action
 } from '@/actions/user-actions'
 import { banUser, unbanUser } from '@/actions/message-actions'
+import { sendInternalMessageToSelectedUsers } from '@/actions/notification-actions'
+import {
+  createEmailCampaignDraft,
+  createEmailTemplate,
+  prepareCampaignRecipients
+} from '@/actions/email-campaign-actions'
 import MainLayout from '@/components/layout/main-layout'
 import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/contexts/auth-context'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, Mail, MessageSquare, RotateCcw, Search, X } from 'lucide-react'
 
 // Define a more specific type for user data, including ban status
 interface AdminUser {
@@ -27,6 +44,7 @@ interface AdminUser {
   email?: string
   role?: string
   avatar?: string
+  primary_photo?: string
   location?: string
   age?: number
   is_banned?: boolean
@@ -47,6 +65,17 @@ interface AdminUser {
 interface GenderCount { // Nouvelle interface
   gender: string;
   count: number;
+}
+
+function profileImage(user: AdminUser) {
+  const uploadedPhoto = user.primary_photo?.trim() || user.avatar?.trim()
+  if (uploadedPhoto) return uploadedPhoto
+
+  const profileType = `${user.profile_status || ''} ${user.gender || ''}`.toLowerCase()
+  if (profileType.includes('couple')) return '/default-member-couple.jpg'
+  if (profileType.includes('female') || profileType.includes('woman')) return '/default-member-woman.jpg'
+  if (profileType.includes('male') || profileType.includes('man')) return '/default-member-man.jpg'
+  return '/default-member-couple.jpg'
 }
 
 export default function AdminUsersPage () {
@@ -72,6 +101,20 @@ export default function AdminUsersPage () {
   })
   const [appliedFilters, setAppliedFilters] = useState<AdminUserSearchFilters>(filters)
   const [filtersOpen, setFiltersOpen] = useState(true)
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
+  const [outreachMode, setOutreachMode] = useState<'message' | 'email' | null>(null)
+  const [outreachBusy, setOutreachBusy] = useState(false)
+  const [outreachStatus, setOutreachStatus] = useState('')
+  const [messageForm, setMessageForm] = useState({
+    title: 'Message de Love Hotel Rencontres',
+    description: ''
+  })
+  const [emailForm, setEmailForm] = useState({
+    name: 'Relance membres sélectionnés',
+    subject: 'Des nouveautés vous attendent sur Love Hotel Rencontres',
+    bodyHtml: '<p>Bonjour [name],</p><p>Nous avons de nouvelles annonces et de nouveaux événements à vous faire découvrir.</p><p><a href="[cta-url]">Revenir sur Love Hotel Rencontres</a></p>',
+    bodyText: 'Bonjour [name], de nouvelles annonces et de nouveaux événements vous attendent sur Love Hotel Rencontres : [cta-url]'
+  })
 
   const fetchAdminData = async (nextPage = 1, nextFilters = appliedFilters) => {
     setLoading(true)
@@ -165,6 +208,80 @@ export default function AdminUsersPage () {
     } catch (err) {
       console.error(`Error ${action} user:`, err)
       alert(`Erreur lors de la tentative de ${action} l'utilisateur.`)
+    }
+  }
+
+  const toggleSelectedUser = (userId: string) => {
+    setSelectedUserIds(current =>
+      current.includes(userId)
+        ? current.filter(id => id !== userId)
+        : [...current, userId].slice(0, 100)
+    )
+  }
+
+  const toggleCurrentPage = () => {
+    const pageIds = users.map(member => member.id)
+    const allSelected = pageIds.every(id => selectedUserIds.includes(id))
+    setSelectedUserIds(current =>
+      allSelected
+        ? current.filter(id => !pageIds.includes(id))
+        : [...new Set([...current, ...pageIds])].slice(0, 100)
+    )
+  }
+
+  const openSingleMessage = (userId: string) => {
+    setSelectedUserIds([userId])
+    setOutreachStatus('')
+    setOutreachMode('message')
+  }
+
+  const sendSelectedMessage = async () => {
+    setOutreachBusy(true)
+    setOutreachStatus('')
+    try {
+      const result = await sendInternalMessageToSelectedUsers({
+        userIds: selectedUserIds,
+        title: messageForm.title,
+        description: messageForm.description
+      })
+      setOutreachStatus(`${result.sentCount} message(s) remis dans la messagerie.`)
+      setMessageForm(current => ({ ...current, description: '' }))
+    } catch (error) {
+      setOutreachStatus(error instanceof Error ? error.message : 'Envoi impossible.')
+    } finally {
+      setOutreachBusy(false)
+    }
+  }
+
+  const prepareSelectedEmailCampaign = async () => {
+    setOutreachBusy(true)
+    setOutreachStatus('')
+    try {
+      const slug = `${emailForm.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Date.now()}`
+      const template = await createEmailTemplate({
+        name: emailForm.name,
+        slug,
+        subject: emailForm.subject,
+        bodyHtml: emailForm.bodyHtml,
+        bodyText: emailForm.bodyText,
+        ctaLabel: 'Revenir sur le site',
+        ctaUrl: '/discover',
+        createdBy: user?.id
+      })
+      const result = await createEmailCampaignDraft({
+        name: emailForm.name,
+        templateId: template?.id,
+        audienceFilter: { audience: 'manual', userIds: selectedUserIds },
+        createdBy: user?.id
+      })
+      const prepared = await prepareCampaignRecipients(result.campaign.id)
+      setOutreachStatus(
+        `Campagne préparée : ${prepared.eligible} destinataire(s), ${prepared.excluded} exclu(s) selon leurs préférences.`
+      )
+    } catch (error) {
+      setOutreachStatus(error instanceof Error ? error.message : 'Création de campagne impossible.')
+    } finally {
+      setOutreachBusy(false)
     }
   }
 
@@ -506,6 +623,47 @@ export default function AdminUsersPage () {
             </div>
           </section>
 
+          {!loading && users.length > 0 && (
+            <div className='mb-5 flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 md:flex-row md:items-center md:justify-between'>
+              <label className='flex cursor-pointer items-center gap-2 text-sm font-medium'>
+                <Checkbox
+                  checked={users.every(member => selectedUserIds.includes(member.id))}
+                  onCheckedChange={toggleCurrentPage}
+                  aria-label='Sélectionner tous les membres de cette page'
+                />
+                Sélectionner la page
+              </label>
+              <div className='flex flex-wrap items-center gap-2'>
+                <span className='mr-1 text-sm text-muted-foreground'>
+                  {selectedUserIds.length} membre{selectedUserIds.length > 1 ? 's' : ''} sélectionné{selectedUserIds.length > 1 ? 's' : ''}
+                </span>
+                <Button
+                  type='button'
+                  variant='outline'
+                  disabled={!selectedUserIds.length}
+                  onClick={() => {
+                    setOutreachStatus('')
+                    setOutreachMode('message')
+                  }}
+                >
+                  <MessageSquare className='mr-2 h-4 w-4' />
+                  Message interne
+                </Button>
+                <Button
+                  type='button'
+                  disabled={!selectedUserIds.length}
+                  onClick={() => {
+                    setOutreachStatus('')
+                    setOutreachMode('email')
+                  }}
+                >
+                  <Mail className='mr-2 h-4 w-4' />
+                  Campagne email
+                </Button>
+              </div>
+            </div>
+          )}
+
           {loading ? (
             <div className='rounded-xl border border-border p-8 text-center text-muted-foreground'>Chargement du répertoire...</div>
           ) : users.length === 0 ? (
@@ -517,20 +675,35 @@ export default function AdminUsersPage () {
               {users.map(u => (
                 <Card
                   key={u.id}
-                  className={u.is_banned ? 'border-red-500 border-2' : ''}
+                  className={u.is_banned ? 'overflow-hidden border-2 border-red-500' : 'overflow-hidden'}
                 >
-                  <CardHeader>
-                    <CardTitle>
-                      {u.name}{' '}
-                      <span className='text-xs text-muted-foreground'>
-                        ({u.role})
-                      </span>{' '}
-                      {u.is_banned && (
-                        <span className='text-red-500 text-xs'>(BANNI)</span>
-                      )}
+                  <div className='relative aspect-[16/9] overflow-hidden bg-muted'>
+                    <Image
+                      src={profileImage(u)}
+                      alt={`Photo de ${u.name || 'ce membre'}`}
+                      fill
+                      sizes='(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw'
+                      className='h-full w-full object-cover'
+                    />
+                    <label className='absolute left-3 top-3 flex cursor-pointer items-center gap-2 rounded-md bg-background/90 px-2.5 py-2 text-xs font-semibold shadow'>
+                      <Checkbox
+                        checked={selectedUserIds.includes(u.id)}
+                        onCheckedChange={() => toggleSelectedUser(u.id)}
+                        aria-label={`Sélectionner ${u.name || u.email || 'ce membre'}`}
+                      />
+                      Sélectionner
+                    </label>
+                  </div>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='flex flex-wrap items-center gap-2 text-lg'>
+                      <Link href={`/profile/${u.id}`} className='hover:text-primary hover:underline'>
+                        {u.name || 'Membre sans pseudo'}
+                      </Link>
+                      <span className='text-xs font-normal text-muted-foreground'>({u.role})</span>
+                      {u.is_banned && <span className='text-xs text-red-500'>(BANNI)</span>}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className='pt-0'>
                     <div className='mb-2 text-sm text-muted-foreground'>
                       {u.email}
                     </div>
@@ -564,7 +737,11 @@ export default function AdminUsersPage () {
                     <p className='mb-3 text-xs text-muted-foreground'>
                       Compte : {u.account_status || 'actif'} · Profil : {u.display_profile ? 'visible' : 'masqué'} · Parcours : {u.onboarding_completed ? 'terminé' : 'incomplet'}
                     </p>
-                    <div className='flex gap-2 mt-4'>
+                    <div className='mt-4 flex flex-wrap gap-2'>
+                      <Button size='sm' variant='outline' onClick={() => openSingleMessage(u.id)}>
+                        <MessageSquare className='mr-1.5 h-4 w-4' />
+                        Écrire
+                      </Button>
                       <Button size='sm' asChild>
                         <Link href={`/admin/users/${u.id}/edit`}>Éditer</Link>
                       </Button>
@@ -616,6 +793,95 @@ export default function AdminUsersPage () {
               </div>
             </div>
           )}
+
+          <Dialog open={outreachMode !== null} onOpenChange={open => !open && setOutreachMode(null)}>
+            <DialogContent className='max-h-[90vh] overflow-y-auto sm:max-w-2xl'>
+              <DialogHeader>
+                <DialogTitle>
+                  {outreachMode === 'message' ? 'Message interne' : 'Campagne email ciblée'}
+                </DialogTitle>
+                <DialogDescription>
+                  {selectedUserIds.length} membre{selectedUserIds.length > 1 ? 's' : ''} sélectionné{selectedUserIds.length > 1 ? 's' : ''}.
+                  {outreachMode === 'email' && ' Les désinscriptions et consentements sont appliqués automatiquement.'}
+                </DialogDescription>
+              </DialogHeader>
+
+              {outreachMode === 'message' ? (
+                <div className='space-y-4'>
+                  <label className='block space-y-1 text-sm font-medium'>
+                    Titre de la notification
+                    <input
+                      value={messageForm.title}
+                      onChange={event => setMessageForm(current => ({ ...current, title: event.target.value }))}
+                      className='h-10 w-full rounded-md border border-input bg-background px-3'
+                    />
+                  </label>
+                  <label className='block space-y-1 text-sm font-medium'>
+                    Message
+                    <Textarea
+                      value={messageForm.description}
+                      onChange={event => setMessageForm(current => ({ ...current, description: event.target.value }))}
+                      rows={7}
+                      placeholder='Votre réponse ou votre message de relance...'
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div className='space-y-4'>
+                  <label className='block space-y-1 text-sm font-medium'>
+                    Nom de la campagne
+                    <input
+                      value={emailForm.name}
+                      onChange={event => setEmailForm(current => ({ ...current, name: event.target.value }))}
+                      className='h-10 w-full rounded-md border border-input bg-background px-3'
+                    />
+                  </label>
+                  <label className='block space-y-1 text-sm font-medium'>
+                    Sujet
+                    <input
+                      value={emailForm.subject}
+                      onChange={event => setEmailForm(current => ({ ...current, subject: event.target.value }))}
+                      className='h-10 w-full rounded-md border border-input bg-background px-3'
+                    />
+                  </label>
+                  <label className='block space-y-1 text-sm font-medium'>
+                    Message email
+                    <Textarea
+                      value={emailForm.bodyText}
+                      onChange={event => {
+                        const bodyText = event.target.value
+                        setEmailForm(current => ({
+                          ...current,
+                          bodyText,
+                          bodyHtml: `<p>${bodyText.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`
+                        }))
+                      }}
+                      rows={8}
+                    />
+                  </label>
+                </div>
+              )}
+
+              {outreachStatus && (
+                <p className='rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm'>
+                  {outreachStatus}
+                </p>
+              )}
+
+              <DialogFooter>
+                <Button type='button' variant='outline' onClick={() => setOutreachMode(null)}>
+                  Fermer
+                </Button>
+                <Button
+                  type='button'
+                  disabled={outreachBusy || !selectedUserIds.length || (outreachMode === 'message' ? messageForm.description.trim().length < 8 : !emailForm.subject.trim() || !emailForm.bodyText.trim())}
+                  onClick={() => void (outreachMode === 'message' ? sendSelectedMessage() : prepareSelectedEmailCampaign())}
+                >
+                  {outreachBusy ? 'Traitement...' : outreachMode === 'message' ? 'Envoyer dans la messagerie' : 'Préparer la campagne'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </MainLayout>
     </ProtectedRoute>

@@ -32,6 +32,10 @@ export type InternalBroadcastInput = {
   priority?: NotificationPriority
 }
 
+export type SelectedInternalMessageInput = InternalBroadcastInput & {
+  userIds: string[]
+}
+
 export async function getUserNotifications(userId: string) {
   const notifications = await sql`
     SELECT * FROM notifications
@@ -134,7 +138,10 @@ export async function notifyAdmins(input: AdminNotificationInput) {
   return { success: true, notifiedCount: admins.length }
 }
 
-export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
+async function sendInternalMessage(
+  input: InternalBroadcastInput,
+  selectedUserIds?: string[]
+) {
   const admin = await requireAdmin()
   const title = input.title.trim().slice(0, 180)
   const description = input.description.trim().slice(0, 2000)
@@ -148,8 +155,26 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
     throw new Error('Message requis')
   }
 
+  const userIds = selectedUserIds
+    ? [...new Set(selectedUserIds.filter(Boolean))].slice(0, 100)
+    : null
+
+  if (selectedUserIds && !userIds?.length) {
+    throw new Error('Sélection de membres requise')
+  }
+
   const recipients = await sql.query<{ id: string }[]>(
+    userIds
+      ? `
+      SELECT u.id
+      FROM users u
+      WHERE COALESCE(u.status, 'active') = 'active'
+        AND COALESCE(u.is_banned, false) = false
+        AND u.id != $1
+        AND u.id = ANY($2::uuid[])
+      ORDER BY u.created_at ASC
     `
+      : `
       SELECT u.id
       FROM users u
       WHERE COALESCE(u.status, 'active') = 'active'
@@ -157,7 +182,7 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
         AND u.id != $1
       ORDER BY u.created_at ASC
     `,
-    [admin.id]
+    userIds ? [admin.id, userIds] : [admin.id]
   )
 
   let messageCount = 0
@@ -241,4 +266,14 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
     recipientCount: recipients.length,
     createdConversationCount
   }
+}
+
+export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
+  return sendInternalMessage(input)
+}
+
+export async function sendInternalMessageToSelectedUsers(
+  input: SelectedInternalMessageInput
+) {
+  return sendInternalMessage(input, input.userIds)
 }

@@ -8,6 +8,8 @@ import MainLayout from '@/components/layout/main-layout'
 import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
 import { useAuth } from '@/contexts/auth-context'
+import Link from 'next/link'
+import Image from 'next/image'
 import {
   getAllMessages,
   deleteMessage,
@@ -15,6 +17,33 @@ import {
   searchMessagesByKeywords,
   type ModerationMessage
 } from '@/actions/message-actions'
+
+function MemberIdentity({ id, name, email, avatar }: {
+  id: string
+  name?: string | null
+  email?: string | null
+  avatar?: string | null
+}) {
+  const label = name || email || 'Utilisateur anonyme'
+  return (
+    <Link
+      href={`/admin/users/${id}/edit`}
+      className='flex min-w-0 items-center gap-2 rounded-md border border-border bg-muted/30 px-2 py-1.5 transition hover:border-primary/50 hover:bg-primary/10'
+    >
+      <Image
+        src={avatar || '/default-member-couple.jpg'}
+        alt={`Photo de ${label}`}
+        width={36}
+        height={36}
+        className='h-9 w-9 shrink-0 rounded-md object-cover'
+      />
+      <span className='min-w-0'>
+        <span className='block truncate text-sm font-semibold'>{label}</span>
+        {email && <span className='block truncate text-xs text-muted-foreground'>{email}</span>}
+      </span>
+    </Link>
+  )
+}
 
 export default function AdminMessagesPage () {
   const { user } = useAuth()
@@ -199,22 +228,26 @@ export default function AdminMessagesPage () {
                                   {message.conversation_id}
                                 </span>
                               </p>
-                              <p className='text-sm'>
-                                <span className='font-medium'>Protagonistes:</span>{' '}
-                                {message.protagonists
-                                  .map(
-                                    p =>
-                                      `${
-                                        p.name || 'Utilisateur Anonyme'
-                                      } (${p.user_id.substring(0, 8)}...)`
-                                  )
-                                  .join(', ') || 'N/A'}
-                              </p>
-                              <p className='text-xs text-muted-foreground'>
-                                <span className='font-medium'>Envoyé par:</span>{' '}
-                                {message.sender_name || 'Utilisateur Anonyme'} (
-                                {message.sender_id.substring(0, 8)}...)
-                              </p>
+                              <div className='mt-3 flex flex-wrap gap-2'>
+                                {message.protagonists.map(person => (
+                                  <MemberIdentity
+                                    key={person.user_id}
+                                    id={person.user_id}
+                                    name={person.name}
+                                    email={person.email}
+                                    avatar={person.avatar}
+                                  />
+                                ))}
+                              </div>
+                              <p className='mt-3 text-xs font-medium text-muted-foreground'>Envoyé par</p>
+                              <div className='mt-1 max-w-sm'>
+                                <MemberIdentity
+                                  id={message.sender_id}
+                                  name={message.sender_name}
+                                  email={message.sender_email}
+                                  avatar={message.sender_avatar}
+                                />
+                              </div>
                               <p className='text-xs text-muted-foreground'>
                                 <span className='font-medium'>Le:</span>{' '}
                                 {new Date(message.created_at).toLocaleString(
@@ -321,22 +354,26 @@ export default function AdminMessagesPage () {
                               {message.conversation_id}
                             </span>
                           </p>
-                          <p className='text-sm'>
-                            <span className='font-medium'>Protagonistes:</span>{' '}
-                            {message.protagonists
-                              .map(
-                                p =>
-                                  `${
-                                    p.name || 'Utilisateur Anonyme'
-                                  } (${p.user_id.substring(0, 8)}...)`
-                              )
-                              .join(', ') || 'N/A'}
-                          </p>
-                          <p className='text-xs text-muted-foreground'>
-                            <span className='font-medium'>Envoyé par:</span>{' '}
-                            {message.sender_name || 'Utilisateur Anonyme'} (
-                            {message.sender_id.substring(0, 8)}...)
-                          </p>
+                          <div className='mt-3 flex flex-wrap gap-2'>
+                            {message.protagonists.map(person => (
+                              <MemberIdentity
+                                key={person.user_id}
+                                id={person.user_id}
+                                name={person.name}
+                                email={person.email}
+                                avatar={person.avatar}
+                              />
+                            ))}
+                          </div>
+                          <p className='mt-3 text-xs font-medium text-muted-foreground'>Envoyé par</p>
+                          <div className='mt-1 max-w-sm'>
+                            <MemberIdentity
+                              id={message.sender_id}
+                              name={message.sender_name}
+                              email={message.sender_email}
+                              avatar={message.sender_avatar}
+                            />
+                          </div>
                           <p className='text-xs text-muted-foreground'>
                             <span className='font-medium'>Le:</span>{' '}
                             {new Date(message.created_at).toLocaleString(

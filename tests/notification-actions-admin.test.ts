@@ -16,7 +16,8 @@ vi.mock('@/lib/auth', () => ({
 
 import {
   notifyAdmins,
-  sendInternalMessageToAllUsers
+  sendInternalMessageToAllUsers,
+  sendInternalMessageToSelectedUsers
 } from '../actions/notification-actions'
 import { sql } from '@/lib/db'
 import { getServerSession } from 'next-auth/next'
@@ -168,6 +169,35 @@ describe('admin notification actions', () => {
         'Nouvelle expérience jacuzzi disponible.',
         '/messages/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
       ])
+    )
+  })
+
+  it('targets only the selected active members for a direct admin message', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([
+        { id: '11111111-1111-4111-8111-111111111111' }
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'message-1' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'notification-1' }])
+
+    const result = await sendInternalMessageToSelectedUsers({
+      userIds: [
+        '11111111-1111-4111-8111-111111111111',
+        '11111111-1111-4111-8111-111111111111'
+      ],
+      title: 'Réponse de Love Hotel',
+      description: 'Bonjour, voici la réponse à votre question.'
+    })
+
+    expect(result.recipientCount).toBe(1)
+    expect(sql.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('u.id = ANY($2::uuid[])'),
+      ['admin-1', ['11111111-1111-4111-8111-111111111111']]
     )
   })
 })

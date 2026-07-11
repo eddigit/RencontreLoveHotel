@@ -119,6 +119,35 @@ describe('email campaign actions', () => {
     expect(sql.query).toHaveBeenCalledWith(expect.stringContaining('FROM users u'), [])
   })
 
+  it('keeps a manual member selection in the campaign draft', async () => {
+    const userIds = [
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222'
+    ]
+    ;(sql.query as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'campaign-1' }])
+
+    await createEmailCampaignDraft({
+      name: 'Relance ciblée',
+      audienceFilter: { audience: 'manual', userIds }
+    })
+
+    expect(sql.query).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('u.id = ANY($1::uuid[])'),
+      [userIds]
+    )
+    expect(sql.query).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('INSERT INTO email_campaigns'),
+      expect.arrayContaining([
+        'Relance ciblée',
+        JSON.stringify({ audience: 'manual', userIds })
+      ])
+    )
+  })
+
   it('renders template variables without mutating the original template', () => {
     const template = {
       subject: 'Bonjour [name]',
