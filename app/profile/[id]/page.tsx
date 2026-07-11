@@ -2,7 +2,18 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
-import { ArrowLeft, CalendarHeart, Heart, MapPin, MessageCircle, Sparkles, Wine } from 'lucide-react'
+import {
+  ArrowLeft,
+  CalendarHeart,
+  Compass,
+  HeartHandshake,
+  Images,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  UserRound,
+  Wine
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -30,9 +41,59 @@ type SessionUser = {
   onboardingCompleted?: boolean
 }
 
-function compatibilityFromProfile (profile: any) {
-  const interests = Array.isArray(profile.interests) ? profile.interests.length : 0
-  return Math.min(96, 86 + interests)
+const relationshipLabels: Record<string, string> = {
+  single_male: 'Homme',
+  single_female: 'Femme',
+  married_male: 'Homme en couple',
+  married_female: 'Femme en couple',
+  couple: 'Couple',
+  couple_mf: 'Couple',
+  couple_mm: 'Couple',
+  couple_ff: 'Couple'
+}
+
+const orientationLabels: Record<string, string> = {
+  hetero: 'Hétérosexuel',
+  straight: 'Hétérosexuel',
+  bisexual: 'Bisexuel',
+  bi: 'Bisexuel',
+  gay: 'Homosexuel',
+  homo: 'Homosexuel'
+}
+
+function profileType (profile: any) {
+  const value = String(profile.status || profile.gender || '').toLowerCase()
+  if (value.includes('couple')) return 'Couple'
+  if (value.includes('female') || value.includes('woman') || value === 'femme') return 'Femme'
+  if (value.includes('male') || value.includes('man') || value === 'homme') return 'Homme'
+  return relationshipLabels[value] || 'Membre'
+}
+
+function profileImage (profile: any) {
+  const avatar = String(profile.avatar || '').trim()
+  if (avatar) return avatar
+  const type = profileType(profile)
+  if (type === 'Couple') return '/default-member-couple.jpg'
+  if (type === 'Femme') return '/default-member-woman.jpg'
+  if (type === 'Homme') return '/default-member-man.jpg'
+  return '/elegant-woman-purple-glow.png'
+}
+
+function realIntentions (data: any) {
+  const intentions: string[] = []
+  const meeting = data.meetingTypes || {}
+  const preferences = data.preferences || {}
+
+  if (meeting.friendly) intentions.push('Rencontre amicale')
+  if (meeting.romantic) intentions.push('Rencontre romantique')
+  if (meeting.playful) intentions.push('Rencontre complice')
+  if (meeting.open_curtains) intentions.push('Rideaux ouverts')
+  if (meeting.libertine) intentions.push('Rencontre libertine')
+  if (meeting.open_to_other_couples) intentions.push('Rencontrer d’autres couples')
+  if (preferences.interested_in_events) intentions.push('Événements')
+  if (preferences.interested_in_restaurant) intentions.push('Dîner')
+
+  return [...new Set(intentions)]
 }
 
 export default async function ProfilePage ({
@@ -45,137 +106,105 @@ export default async function ProfilePage ({
   if (!id || !uuidRegex.test(id)) notFound()
 
   const userProfileData = await getUserProfile(id)
-  if (!userProfileData || !userProfileData.user) notFound()
+  if (!userProfileData?.user) notFound()
 
   const profile = userProfileData.user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
-  const avatar = profile.avatar || '/elegant-woman-purple-glow.png'
+  const avatar = profileImage(profile)
   const interests = Array.isArray(profile.interests) ? profile.interests : []
+  const intentions = realIntentions(userProfileData)
+  const type = profileType(profile)
+  const orientation = orientationLabels[String(profile.orientation || '').toLowerCase()]
 
   let matchStatus: any = null
   let isRequester = false
   if (currentUser?.id && currentUser.id !== profile.user_id) {
     matchStatus = await getMatchStatus(String(currentUser.id), String(profile.user_id))
-    isRequester = matchStatus && matchStatus.user_id_1 === currentUser.id
+    isRequester = Boolean(matchStatus && matchStatus.user_id_1 === currentUser.id)
   }
 
-  const canShowActions = currentUser && currentUser.id !== profile.user_id
+  const canShowActions = Boolean(currentUser?.id && currentUser.id !== profile.user_id)
 
   return (
     <MainLayout session={session} user={currentUser}>
       <LhrV2Shell
         user={currentUser}
-        eyebrow='Profil membre'
-        title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
-        subtitle='Une fiche claire pour décider vite : intention, compatibilité, contexte et action.'
+        eyebrow='Communauté'
+        title='Profil membre'
+        subtitle='Découvrez la personne, ses envies et ses photos.'
         action={
           <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-            <Link href='/discover'>
+            <Link href='/members'>
               <ArrowLeft className='mr-2 h-4 w-4' />
-              Découvrir
+              Tous les membres
             </Link>
           </Button>
         }
       >
-        <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]'>
-          <section className='overflow-hidden rounded-3xl border border-white/10 bg-black/18'>
-            <div className='relative min-h-[640px]'>
-              {avatar.startsWith('http') ? (
-                <img src={avatar} alt={profile.name} className='absolute inset-0 h-full w-full object-cover' />
-              ) : (
-                <Image
-                  src={avatar}
-                  alt={profile.name}
-                  fill
-                  className='object-cover'
-                  sizes='(max-width: 1280px) 100vw, 900px'
-                  priority
-                />
-              )}
-              <div className='absolute inset-0 bg-gradient-to-t from-[#100118] via-[#100118]/58 to-[#100118]/8' />
+        <div className='mx-auto max-w-6xl space-y-4 pb-20 lg:space-y-5 lg:pb-0'>
+          <section
+            data-testid='profile-summary'
+            className='overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]'
+          >
+            <div className='grid grid-cols-[112px_minmax(0,1fr)] gap-4 p-3 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-5 sm:p-5 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8 lg:p-6'>
+              <div
+                data-testid='profile-portrait'
+                className='relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-[#110318] sm:rounded-2xl'
+              >
+                {avatar.startsWith('http') ? (
+                  <img src={avatar} alt={profile.name} className='h-full w-full object-cover' />
+                ) : (
+                  <Image
+                    src={avatar}
+                    alt={profile.name}
+                    fill
+                    className='object-cover'
+                    sizes='(max-width: 640px) 112px, (max-width: 1024px) 180px, 260px'
+                    priority
+                  />
+                )}
+              </div>
 
-              <div className='absolute inset-x-0 bottom-0 p-5 sm:p-8'>
-                <div className='mb-4 flex flex-wrap gap-2'>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    <MapPin className='mr-1 h-3.5 w-3.5' />
-                    {profile.location || 'Paris'}
+              <div className='min-w-0 self-center'>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <Badge className='border border-[#94ffc9]/25 bg-[#94ffc9]/10 text-[#b8ffda]'>
+                    <ShieldCheck className='mr-1 h-3.5 w-3.5' />
+                    Profil membre
                   </Badge>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    Disponible ce soir
-                  </Badge>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    Premium
+                  <Badge variant='outline' className='border-white/15 text-white/76'>
+                    {type}
                   </Badge>
                 </div>
 
-                <h2 className='text-4xl font-black sm:text-6xl'>
+                <h2 className='mt-3 break-words text-2xl font-black leading-tight sm:text-4xl lg:text-5xl'>
                   {profile.name}
-                  {profile.age ? `, ${profile.age}` : ''}
+                  {profile.age ? <span className='font-semibold text-white/58'>, {profile.age}</span> : null}
                 </h2>
-                <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>
-                  {profile.bio ||
-                    'Une personnalité élégante et spontanée. Recherche une rencontre discrète, dans un lieu premium, avec une vraie conversation avant tout.'}
-                </p>
 
-                <div className='mt-6 grid gap-3 sm:grid-cols-3'>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>{compatibilityFromProfile(profile)}%</div>
-                    <div className='text-sm font-bold text-white/72'>compatibilité</div>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>4 km</div>
-                    <div className='text-sm font-bold text-white/72'>distance</div>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>{interests.length}</div>
-                    <div className='text-sm font-bold text-white/72'>intérêts</div>
-                  </div>
+                <div className='mt-3 flex flex-col gap-1.5 text-sm text-white/66 sm:flex-row sm:flex-wrap sm:gap-x-5'>
+                  {profile.location && (
+                    <span className='flex items-center gap-1.5'>
+                      <MapPin className='h-4 w-4 text-[#ff8cc8]' />
+                      {profile.location}
+                    </span>
+                  )}
+                  {orientation && (
+                    <span className='flex items-center gap-1.5'>
+                      <Compass className='h-4 w-4 text-[#ff8cc8]' />
+                      {orientation}
+                    </span>
+                  )}
                 </div>
+
               </div>
-            </div>
-          </section>
 
-          <aside className='space-y-4'>
-            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <MessageCircle className='h-4 w-4 text-[#94ffc9]' />
-                Message ouvert
-              </h3>
-              <p className='mt-3 text-sm leading-6 text-white/66'>
-                Après match accepté, la conversation devient disponible avec texte, vocaux, images et vidéos.
-              </p>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
-                Intentions
-              </h3>
-              <p className='mt-3 text-sm leading-6 text-white/68'>
-                {profile.bio ||
-                  'Rencontre élégante, lieu discret, ambiance premium, échange avant rendez-vous.'}
-              </p>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='font-black'>Centres d’intérêt</h3>
-              <div className='mt-4 flex flex-wrap gap-2'>
-                {(interests.length ? interests : ['Jacuzzi', 'Cocktails', 'Dîner privé']).map((interest: string) => (
-                  <Badge
-                    key={interest}
-                    className='rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-white'
-                  >
-                    {interest}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {canShowActions && (
-              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-                <h3 className='font-black'>Actions</h3>
-                <div className='mt-4 space-y-3'>
+              {canShowActions && (
+                <div
+                  data-testid='profile-primary-action'
+                  className='col-span-2 border-t border-white/10 pt-4 lg:col-span-1 lg:col-start-2'
+                >
+                  <span data-testid='profile-mobile-action' className='sr-only'>Action principale</span>
                   {matchStatus === null && (
                     <MatchRequestButton
                       currentUserId={String(currentUser.id)}
@@ -183,14 +212,14 @@ export default async function ProfilePage ({
                     />
                   )}
 
-                  {matchStatus && matchStatus.status === 'pending' && isRequester && (
-                    <Button disabled className='w-full rounded-2xl bg-white/16'>
+                  {matchStatus?.status === 'pending' && isRequester && (
+                    <Button disabled className='w-full bg-white/12 sm:w-auto'>
                       Demande envoyée
                     </Button>
                   )}
 
-                  {matchStatus && matchStatus.status === 'pending' && !isRequester && (
-                    <div className='grid gap-2'>
+                  {matchStatus?.status === 'pending' && !isRequester && (
+                    <div className='flex flex-col gap-2 sm:flex-row'>
                       <form
                         action={async () => {
                           'use server'
@@ -207,44 +236,109 @@ export default async function ProfilePage ({
                           }
                         }}
                       >
-                        <Button type='submit' className='w-full rounded-2xl bg-[#21b56f] hover:bg-[#25c97d]'>
-                          Accepter
+                        <Button type='submit' className='w-full bg-[#21b56f] hover:bg-[#25c97d] sm:w-auto'>
+                          Accepter la demande
                         </Button>
                       </form>
                       <form
                         action={async () => {
                           'use server'
-                          await declineMatchRequest(
-                            matchStatus.user_id_1,
-                            matchStatus.user_id_2
-                          )
+                          await declineMatchRequest(matchStatus.user_id_1, matchStatus.user_id_2)
                         }}
                       >
-                        <Button type='submit' variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                        <Button type='submit' variant='outline' className='w-full border-white/15 bg-transparent sm:w-auto'>
                           Refuser
                         </Button>
                       </form>
                     </div>
                   )}
 
-                  {matchStatus && matchStatus.status === 'accepted' && (
+                  {matchStatus?.status === 'accepted' && (
                     <ProfileMessageForm recipientId={profile.user_id} />
                   )}
 
-                  {matchStatus && matchStatus.status === 'rejected' && (
-                    <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>
-                      Match refusé
-                    </div>
+                  {matchStatus?.status === 'rejected' && (
+                    <div className='text-sm text-white/58'>Cette demande de match a été refusée.</div>
                   )}
+                </div>
+              )}
+            </div>
+          </section>
 
-                  <div className='grid gap-2'>
-                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+          <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-5'>
+            <section className='space-y-4'>
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5 sm:p-6'>
+                <h3 className='flex items-center gap-2 text-lg font-black'>
+                  <UserRound className='h-5 w-5 text-[#ff8cc8]' />
+                  À propos
+                </h3>
+                <p className='mt-4 whitespace-pre-line text-[15px] leading-7 text-white/72'>
+                  {profile.bio || 'Ce profil n’a pas encore ajouté de présentation.'}
+                </p>
+              </div>
+
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5 sm:p-6'>
+                <h3 className='flex items-center gap-2 text-lg font-black'>
+                  <Images className='h-5 w-5 text-[#ff8cc8]' />
+                  Galerie
+                </h3>
+                <div className='mt-4'>
+                  <UserGallery userId={profile.user_id} />
+                </div>
+              </div>
+            </section>
+
+            <aside className='space-y-4'>
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+                <h3 className='flex items-center gap-2 font-black'>
+                  <HeartHandshake className='h-4 w-4 text-[#94ffc9]' />
+                  Envies de rencontre
+                </h3>
+                {intentions.length ? (
+                  <div className='mt-4 flex flex-wrap gap-2'>
+                    {intentions.map(intention => (
+                      <Badge key={intention} className='border border-white/10 bg-white/[0.07] text-white'>
+                        {intention}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm leading-6 text-white/55'>Aucune intention renseignée.</p>
+                )}
+              </div>
+
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+                <h3 className='font-black'>Centres d’intérêt</h3>
+                {interests.length ? (
+                  <div className='mt-4 flex flex-wrap gap-2'>
+                    {interests.map((interest: string) => (
+                      <Badge key={interest} variant='outline' className='border-white/15 text-white/80'>
+                        {interest}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm leading-6 text-white/55'>Aucun centre d’intérêt renseigné.</p>
+                )}
+              </div>
+
+              {canShowActions && (
+                <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+                  <h3 className='flex items-center gap-2 font-black'>
+                    <MessageCircle className='h-4 w-4 text-[#ff8cc8]' />
+                    Organiser une rencontre
+                  </h3>
+                  <p className='mt-3 text-sm leading-6 text-white/58'>
+                    Message ouvert. Après match accepté, proposez un cadre adapté à votre rencontre.
+                  </p>
+                  <div className='mt-4 grid gap-2'>
+                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
                       <Link href='/love-rooms'>
                         <Wine className='mr-2 h-4 w-4' />
                         Proposer une Love Room
                       </Link>
                     </Button>
-                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                    <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
                       <Link href='/events'>
                         <CalendarHeart className='mr-2 h-4 w-4' />
                         Inviter à un Événement
@@ -252,19 +346,9 @@ export default async function ProfilePage ({
                     </Button>
                   </div>
                 </div>
-              </div>
-            )}
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <Heart className='h-4 w-4 text-[#ff8cc8]' />
-                Galerie
-              </h3>
-              <div className='mt-4'>
-                <UserGallery userId={profile.user_id} />
-              </div>
-            </div>
-          </aside>
+              )}
+            </aside>
+          </div>
         </div>
         <MobileNavigation />
       </LhrV2Shell>
