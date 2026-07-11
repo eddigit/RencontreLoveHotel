@@ -1,11 +1,13 @@
 "use server"
 
+import nodemailer from 'nodemailer'
 import { sql } from '@/lib/db'
 import {
   canSendEmailForPurpose,
   type EmailPolicyReason
 } from '@/lib/email-policy'
 import { requireAdmin } from '@/lib/server-auth'
+import { renderEmailTemplate } from '@/lib/email-template-renderer'
 
 export type EmailAudience =
   | 'all_active'
@@ -53,6 +55,7 @@ export type EmailCampaignSummary = {
   skipped_count: number
   sent_count: number
   error_count: number
+  audience_filter?: EmailAudiencePreviewInput
   created_at?: string | Date
 }
 
@@ -188,7 +191,7 @@ export async function listEmailCampaigns(): Promise<EmailCampaignSummary[]> {
 
   return sql.query<EmailCampaignSummary[]>(`
     SELECT id, name, status, eligible_count, skipped_count, sent_count,
-           error_count, created_at
+           error_count, audience_filter, created_at
     FROM email_campaigns
     ORDER BY created_at DESC
     LIMIT 20
@@ -318,4 +321,224 @@ export async function prepareCampaignRecipients(campaignId: string) {
   )
 
   return preview
+}
+
+type PreparedCampaign = {
+  id: string
+  name: string
+  subject: string
+  body_html: string
+  body_text?: string | null
+  cta_url?: string | null
+  audience_filter: EmailAudiencePreviewInput
+}
+
+type PreparedRecipient = {
+  id: string
+  user_id: string
+  email: string
+  name?: string | null
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function smtpReady() {
+  return Boolean(
+    process.env.SMTP_HOST &&
+    process.env.SMTP_PORT &&
+    process.env.SMTP_USER &&
+    process.env.SMTP_PASS
+  )
+}
+
+export async function sendPreparedEmailCampaign(campaignId: string) {
+  const admin = await requireAdmin()
+  if (!smtpReady()) throw new Error('Service email non configuré')
+
+  // Recheck recipient eligibility immediately before claiming the campaign.
+  await sql.query(
+    `
+      UPDATE email_campaign_recipients r
+      SET status = CASE
+            WHEN COALESCE(u.is_banned, false) = true OR COALESCE(u.status, 'active') <> 'active'
+              THEN 'skipped_banned'
+            WHEN es.email IS NOT NULL THEN 'skipped_suppressed'
+            WHEN ep.opted_out_at IS NOT NULL THEN 'skipped_opt_out'
+            ELSE 'skipped_no_consent'
+          END,
+          skip_reason = CASE
+            WHEN COALESCE(u.is_banned, false) = true OR COALESCE(u.status, 'active') <> 'active'
+              THEN 'banned_or_inactive'
+            WHEN es.email IS NOT NULL THEN 'suppressed'
+            WHEN ep.opted_out_at IS NOT NULL THEN 'opted_out'
+            ELSE 'missing_campaign_opt_in'
+          END
+      FROM users u
+      LEFT JOIN email_preferences ep ON ep.user_id = u.id
+      LEFT JOIN email_suppression_list es ON lower(es.email) = lower(u.email)
+      WHERE r.campaign_id = $1
+        AND r.user_id = u.id
+        AND r.status = 'queued'
+        AND (
+          COALESCE(u.is_banned, false) = true
+          OR COALESCE(u.status, 'active') <> 'active'
+          OR es.email IS NOT NULL
+          OR ep.opted_out_at IS NOT NULL
+          OR COALESCE(ep.campaign_opt_in, false) = false
+        )
+    `,
+    [campaignId]
+  )
+
+  const campaigns = await sql.query<PreparedCampaign[]>(
+    `
+      WITH claimed AS (
+        UPDATE email_campaigns
+        SET status = 'sending', updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1 AND status = 'ready'
+        RETURNING *
+      )
+      SELECT c.id, c.name, c.audience_filter, t.subject, t.body_html, t.body_text, t.cta_url
+      FROM claimed c
+      JOIN email_templates t ON t.id = c.template_id
+    `,
+    [campaignId]
+  )
+  const campaign = campaigns[0]
+  if (!campaign) throw new Error('La campagne doit être prête avant envoi')
+  if (campaign.audience_filter?.audience !== 'manual') {
+    await sql.query(
+      `UPDATE email_campaigns SET status = 'ready', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+      [campaignId]
+    )
+    throw new Error('L’envoi direct est limité aux sélections manuelles')
+  }
+
+  const recipients = await sql.query<PreparedRecipient[]>(
+    `
+      SELECT r.id, r.user_id, r.email, u.name
+      FROM email_campaign_recipients r
+      JOIN users u ON u.id = r.user_id
+      JOIN email_preferences ep ON ep.user_id = u.id
+      LEFT JOIN email_suppression_list es ON lower(es.email) = lower(r.email)
+      WHERE r.campaign_id = $1
+        AND r.status = 'queued'
+        AND COALESCE(u.status, 'active') = 'active'
+        AND COALESCE(u.is_banned, false) = false
+        AND ep.campaign_opt_in = true
+        AND ep.opted_out_at IS NULL
+        AND es.email IS NULL
+      ORDER BY r.created_at ASC
+      LIMIT 100
+    `,
+    [campaignId]
+  )
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT || 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+  })
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    'https://rencontrelovehotel.com'
+  ).replace(/\/$/, '')
+  const preferencesUrl = `${baseUrl}/email-preferences`
+  const ctaUrl = campaign.cta_url
+    ? `${baseUrl}${campaign.cta_url.startsWith('/') ? campaign.cta_url : `/${campaign.cta_url}`}`
+    : baseUrl
+
+  let sentCount = 0
+  let errorCount = 0
+
+  for (const recipient of recipients) {
+    const name = recipient.name?.trim() || 'membre'
+    const variables = {
+      name,
+      'cta-url': ctaUrl,
+      'unsubscribe-link': preferencesUrl
+    }
+    const rendered = renderEmailTemplate(
+      {
+        subject: campaign.subject,
+        bodyHtml: campaign.body_html,
+        bodyText: campaign.body_text
+      },
+      variables
+    )
+    const renderedHtml = renderEmailTemplate(
+      { subject: '', bodyHtml: campaign.body_html },
+      { ...variables, name: escapeHtml(name) }
+    ).bodyHtml
+
+    try {
+      const result = await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'no-reply@rencontrelovehotel.com',
+        to: recipient.email,
+        subject: rendered.subject,
+        html: `${renderedHtml}<hr><p style="font-size:12px;color:#666">Vous recevez cet email selon vos préférences Love Hotel Rencontres. <a href="${preferencesUrl}">Gérer mes préférences email</a>.</p>`,
+        text: `${rendered.bodyText}\n\nGérer mes préférences email : ${preferencesUrl}`
+      })
+      sentCount += 1
+      await sql.query(
+        `UPDATE email_campaign_recipients SET status = 'sent', sent_at = CURRENT_TIMESTAMP, error_message = NULL WHERE id = $1`,
+        [recipient.id]
+      )
+      await sql.query(
+        `
+          INSERT INTO email_send_logs (
+            campaign_id, user_id, email, purpose, status, provider_message_id, metadata
+          ) VALUES ($1, $2, $3, 'campaign', 'sent', $4, $5::jsonb)
+        `,
+        [campaignId, recipient.user_id, recipient.email, result.messageId || null, JSON.stringify({ adminId: admin.id })]
+      )
+    } catch (error) {
+      errorCount += 1
+      const errorMessage = error instanceof Error ? error.message.slice(0, 500) : 'Erreur SMTP'
+      await sql.query(
+        `UPDATE email_campaign_recipients SET status = 'error', error_message = $2 WHERE id = $1`,
+        [recipient.id, errorMessage]
+      )
+      await sql.query(
+        `
+          INSERT INTO email_send_logs (
+            campaign_id, user_id, email, purpose, status, error_message, metadata
+          ) VALUES ($1, $2, $3, 'campaign', 'error', $4, $5::jsonb)
+        `,
+        [campaignId, recipient.user_id, recipient.email, errorMessage, JSON.stringify({ adminId: admin.id })]
+      )
+    }
+  }
+
+  if (sentCount > 0) {
+    await sql.query(
+      `
+        UPDATE email_campaigns
+        SET status = 'sent', sent_at = CURRENT_TIMESTAMP,
+            sent_count = $2, error_count = $3, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `,
+      [campaignId, sentCount, errorCount]
+    )
+  } else {
+    await sql.query(
+      `
+        UPDATE email_campaigns
+        SET status = 'failed', error_count = $2, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $1
+      `,
+      [campaignId, errorCount]
+    )
+  }
+
+  return { sentCount, errorCount }
 }

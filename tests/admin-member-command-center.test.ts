@@ -5,6 +5,7 @@ const usersPage = readFileSync('app/admin/users/page.tsx', 'utf8')
 const messagesPage = readFileSync('app/admin/messages/page.tsx', 'utf8')
 const userActions = readFileSync('actions/user-actions.ts', 'utf8')
 const messageActions = readFileSync('actions/message-actions.ts', 'utf8')
+const campaignPage = readFileSync('app/admin/email-campaigns/page.tsx', 'utf8')
 
 describe('admin member command center', () => {
   it('loads the primary profile photo for the admin directory', () => {
@@ -33,5 +34,11 @@ describe('admin member command center', () => {
     expect(messageActions).toContain('primary_photo')
     expect(messagesPage).toContain('Photo de')
     expect(messagesPage).toContain('/admin/users/${')
+  })
+
+  it('allows an admin to explicitly send a prepared campaign', () => {
+    expect(campaignPage).toContain('sendPreparedEmailCampaign')
+    expect(campaignPage).toContain('Envoyer maintenant')
+    expect(campaignPage).toContain('window.confirm')
   })
 })
