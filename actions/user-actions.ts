@@ -596,7 +596,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     totalPages: Math.ceil(totalCount / pageSize),
     hasMore: (offset + mappedProfiles.length) < totalCount
   };
-  console.log("[getDiscoverProfiles] Returning final result object:", JSON.stringify(result, null, 2));
   return result;
 }
 
