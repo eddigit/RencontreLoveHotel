@@ -549,6 +549,12 @@ export default async function ProfilePage () {
             </div>
 
             <div className='text-center'>
+              <Link
+                href='/email-preferences'
+                className='mb-3 block text-sm text-[#94ffc9] underline hover:text-white'
+              >
+                Gérer mes préférences email
+              </Link>
               <a href='/unsubscribe' className='text-sm text-red-200 underline hover:text-red-100'>
                 Se désinscrire / Supprimer mon compte
               </a>
