@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
 import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
+import { AdminProductActivity } from '@/components/admin-product-activity'
 
 export default function AdminPage () {
   const { user } = useAuth()
@@ -53,6 +54,8 @@ export default function AdminPage () {
             </div>
             <AdminRealTimeStats />
           </div>
+
+          <AdminProductActivity />
 
           {/* Actions rapides */}
           <div className="mb-8">

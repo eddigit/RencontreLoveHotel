@@ -30,6 +30,7 @@ import {
   getUserProfile
 } from '@/actions/user-actions'
 import { findOrCreateConversation } from '@/actions/conversation-actions'
+import { recordProfileView } from '@/actions/product-activity-actions'
 
 type SessionUser = {
   id?: string
@@ -111,6 +112,9 @@ export default async function ProfilePage ({
   const profile = userProfileData.user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
+  if (currentUser?.id && currentUser.id !== id) {
+    await recordProfileView(id)
+  }
   const galleryPortrait = userProfileData.photos.find((photo: any) => photo.is_primary)?.url || userProfileData.photos[0]?.url
   const avatar = galleryPortrait || profileImage(profile)
   const interests = Array.isArray(profile.interests) ? profile.interests : []

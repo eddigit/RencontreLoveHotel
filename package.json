@@ -13,6 +13,7 @@
     "import-users": "ts-node lib/import-users.ts",
     "create-test-events": "ts-node scripts/create-test-events.ts",
     "version": "node scripts/update-version.js",
+    "audit:duplicate-users": "node scripts/audit-duplicate-users.mjs",
     "prepare": "husky install"
   },
   "dependencies": {

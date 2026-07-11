@@ -75,6 +75,14 @@ describe('server action authorization guards', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
+  it('blocks profile reads when no member session exists', async () => {
+    getServerSessionMock.mockResolvedValue(null)
+    const { getUserProfile } = await import('@/actions/user-actions')
+
+    await expect(getUserProfile('user-2')).rejects.toThrow('Authentification requise')
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
   it('blocks event creation for another member account', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }

@@ -2,6 +2,7 @@
   "version": "0.1.0",
   "buildNumber": 17,
   "lastCommit": "157006d9043bcbb3880ad56e6fd7bbe4a98d3148",
+  "sourceRevision": "8ff21e9d17c2288556cf95bd7ef73909d7037680",
   "lastCommitDate": "2026-06-26T22:19:50+02:00",
   "deploymentDate": "2026-06-26T20:20:13.544Z",
   "lastCommitMessage": "fix: make community presence live and clickable"

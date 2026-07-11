@@ -13,6 +13,7 @@ import {
 } from "@/lib/presence"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
+import { recordProductActivity } from '@/lib/product-activity'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -20,6 +21,7 @@ type CommunityMemberStats = {
 }
 
 export async function getUserProfile(userId: string) {
+  await requireCurrentUser()
   const user = await sql`
     SELECT u.id as user_id, u.*, up.id as profile_id, up.*
     FROM users u
@@ -195,7 +197,7 @@ export type CommunityMemberDirectoryFilters = {
 }
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
-  await requireCurrentUser()
+  const currentUser = await requireCurrentUser()
   const onlineCondition = onlinePresenceCondition('u.last_seen_at')
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
@@ -301,6 +303,24 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     `,
     params
   )
+
+  const filterCount = [
+    Boolean(search),
+    Boolean(input.profileType && input.profileType !== 'all'),
+    Boolean(input.orientation && input.orientation !== 'all'),
+    Boolean(input.meetingCriterion && input.meetingCriterion !== 'all'),
+    Boolean(input.onlineOnly)
+  ].filter(Boolean).length
+  await recordProductActivity({
+    actorUserId: currentUser.id,
+    eventType: 'member_search',
+    targetType: 'directory',
+    metadata: {
+      resultCount: totalCount,
+      filterCount,
+      source: 'members'
+    }
+  })
 
   return {
     members: members || [],
