@@ -16,9 +16,11 @@ describe('Love Hotel experiences UI', () => {
     expect(createPage).toContain('Créer une expérience')
     expect(createPage).toContain('Pigalle')
     expect(createPage).toContain('Châtelet')
-    expect(createPage).toContain('Apéro jacuzzi - 2 à 4 couples')
+    expect(createPage).toContain("label: 'Apéro jacuzzi'")
+    expect(createPage).toContain("detail: '2 à 4 couples'")
     expect(createPage).toContain('Rideaux ouverts')
-    expect(createPage).toContain('Rideaux ouverts - 2 ou 3 chambres')
+    expect(createPage).toContain("label: 'Rideaux ouverts'")
+    expect(createPage).toContain("detail: '2 ou 3 chambres'")
     expect(createPage).toContain('Capacité')
     expect(createPage).not.toContain("value='restaurant'")
     expect(createPage).not.toContain("value='champagne'")
@@ -56,11 +58,10 @@ describe('Love Hotel experiences UI', () => {
   })
 
   it('reframes the listing as a commercial community experience page', () => {
-    expect(listPage).toContain('Expériences Love Hotel')
-    expect(listPage).toContain('Ce soir au Love Hotel')
-    expect(listPage).toContain('Apéros jacuzzi')
+    expect(listPage).toContain('Événements à venir')
+    expect(listPage).toContain('Apéro jacuzzi')
     expect(listPage).toContain('Rideaux ouverts')
-    expect(listPage).toContain('Créées par la communauté')
+    expect(listPage).toContain('Mes propositions')
   })
 
   it('event cards show experience metadata', () => {

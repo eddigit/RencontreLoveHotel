@@ -18,7 +18,7 @@ describe('member event submission UI', () => {
     const actions = readFileSync('actions/event-actions.ts', 'utf8')
 
     expect(page).toContain('getMyEventSubmissions')
-    expect(page).toContain('Mes propositions d’événements')
+    expect(page).toContain('Mes propositions')
     expect(page).toContain('À valider')
     expect(actions).toContain("publication_status <> 'published'")
   })

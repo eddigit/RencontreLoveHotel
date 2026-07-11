@@ -24,11 +24,10 @@ describe('Love Hotel commercial bridges', () => {
   })
 
   it('connects events to rooms, jacuzzi and official booking opportunities', () => {
-    expect(events).toContain('Créer une rencontre autour d’un lieu réel')
-    expect(events).toContain('Love Room à l’heure')
-    expect(events).toContain('Jacuzzi privatif')
-    expect(events).toContain('Chambres rideaux ouverts')
-    expect(events).toContain('Réserver une Love Room')
+    expect(events).toContain('Apéro jacuzzi')
+    expect(events).toContain('Rideaux ouverts')
+    expect(events).toContain('/love-rooms')
+    expect(events).toContain('Réserver une chambre')
   })
 
   it('turns Love Rooms into opportunities for community events', () => {

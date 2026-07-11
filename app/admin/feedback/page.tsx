@@ -54,6 +54,7 @@ export default function AdminFeedbackPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [status, setStatus] = useState('')
+  const [activeStatus, setActiveStatus] = useState<CommunityFeedbackStatus>('open')
 
   async function loadFeedback() {
     setLoading(true)
@@ -75,6 +76,14 @@ export default function AdminFeedbackPage() {
   }, [])
 
   const selected = feedback.find(item => item.id === selectedId) || null
+  const filteredFeedback = feedback.filter(item => item.status === activeStatus)
+
+  useEffect(() => {
+    const visibleFeedback = feedback.filter(item => item.status === activeStatus)
+    setSelectedId(current => current && visibleFeedback.some(item => item.id === current)
+      ? current
+      : visibleFeedback[0]?.id || null)
+  }, [activeStatus, feedback])
 
   async function handleReply() {
     if (!selected || !reply.trim()) return
@@ -114,9 +123,9 @@ export default function AdminFeedbackPage() {
 
           <div className='mb-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between'>
             <div>
-              <h1 className='text-2xl font-bold'>Retours membres</h1>
+              <h1 className='text-2xl font-bold'>Support membres</h1>
               <p className='mt-2 max-w-3xl text-sm text-muted-foreground'>
-                Chaque retour reste lié au profil et à la messagerie du membre. Répondez ici, puis marquez le suivi comme résolu.
+                Bugs et suggestions arrivent ici. Répondez directement dans la messagerie du membre, puis clôturez le suivi.
               </p>
             </div>
             <div className='flex items-center gap-2 rounded-full border border-[#94ffc9]/25 bg-[#94ffc9]/10 px-4 py-2 text-sm text-[#caffdf]'>
@@ -131,14 +140,26 @@ export default function AdminFeedbackPage() {
             </div>
           )}
 
+          <div className='mb-5 flex gap-2 overflow-x-auto' aria-label='Filtrer le support'>
+            <Button variant={activeStatus === 'open' ? 'default' : 'outline'} size='sm' onClick={() => setActiveStatus('open')} className={activeStatus === 'open' ? 'bg-[#ff4fa3] text-white' : 'border-white/15 bg-white/5'}>
+              À traiter ({feedback.filter(item => item.status === 'open').length})
+            </Button>
+            <Button variant={activeStatus === 'in_progress' ? 'default' : 'outline'} size='sm' onClick={() => setActiveStatus('in_progress')} className={activeStatus === 'in_progress' ? 'bg-[#ff4fa3] text-white' : 'border-white/15 bg-white/5'}>
+              En cours ({feedback.filter(item => item.status === 'in_progress').length})
+            </Button>
+            <Button variant={activeStatus === 'resolved' ? 'default' : 'outline'} size='sm' onClick={() => setActiveStatus('resolved')} className={activeStatus === 'resolved' ? 'bg-[#ff4fa3] text-white' : 'border-white/15 bg-white/5'}>
+              Résolus ({feedback.filter(item => item.status === 'resolved').length})
+            </Button>
+          </div>
+
           {loading ? (
             <Card><CardContent className='p-6 text-sm text-muted-foreground'>Chargement des retours...</CardContent></Card>
-          ) : feedback.length === 0 ? (
-            <Card><CardContent className='p-6 text-sm text-muted-foreground'>Aucun retour membre enregistré.</CardContent></Card>
+          ) : filteredFeedback.length === 0 ? (
+            <Card><CardContent className='p-6 text-sm text-muted-foreground'>Aucun retour dans cette catégorie.</CardContent></Card>
           ) : (
             <div className='grid gap-6 xl:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]'>
               <div className='space-y-3'>
-                {feedback.map(item => (
+                {filteredFeedback.map(item => (
                   <button
                     key={item.id}
                     type='button'

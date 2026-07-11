@@ -20,13 +20,14 @@ describe('Progressive Love Hotel encounter concept', () => {
     expect(discover.indexOf('RIDEAUX OUVERTS')).toBeLessThan(discover.indexOf("<h2 className='font-black'>Vos matchs</h2>"))
   })
 
-  it('positions events as progressive experiences around real Love Hotel places', () => {
+  it('positions events as visual formats around real Love Hotel places', () => {
     const events = readFile('app/events/page.tsx')
 
-    expect(events).toContain('De la rencontre douce à l’expérience assumée')
+    expect(events).toContain('Événements à venir')
     expect(events).toContain('Apéro jacuzzi 2 à 4 couples')
-    expect(events).toContain('Initiation rideaux modulables')
-    expect(events).toContain('Soirée rideaux ouverts')
+    expect(events).toContain('Rideaux ouverts 2 ou 3 chambres')
+    expect(events).toContain('/apero-jacuzzi-rencontre.jpg')
+    expect(events).toContain('/rideaux-ouverts-rencontre.jpg')
   })
 
   it('frames Love Rooms as the physical trigger for community encounters', () => {
