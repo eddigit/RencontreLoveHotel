@@ -24,8 +24,14 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
-import { getCommunityMemberStats, getDiscoverProfiles, getUserMatches } from '@/actions/user-actions'
+import {
+  getCommunityMemberStats,
+  getDiscoverProfiles,
+  getOnlineCommunityMembers,
+  getUserMatches
+} from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
+import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
 
 type DiscoverProfile = {
   id: string
@@ -38,6 +44,7 @@ type DiscoverProfile = {
   popularity?: number
   matchScore?: number | null
   online?: boolean
+  is_current_user?: boolean
   created_at?: string | Date | null
 }
 
@@ -107,6 +114,7 @@ export default function DiscoverPage () {
   const router = useRouter()
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([])
+  const [onlineMembers, setOnlineMembers] = useState<DiscoverProfile[]>([])
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [memberStats, setMemberStats] = useState<CommunityMemberStats>({
@@ -124,14 +132,16 @@ export default function DiscoverPage () {
       setLoading(true)
       setError(null)
       try {
-        const [profileResult, matchResult, eventResult, statsResult] = await Promise.all([
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await Promise.all([
           getDiscoverProfiles(user.id, 1, 36, currentFilters || filters),
+          getOnlineCommunityMembers(),
           getUserMatches(user.id),
           getUpcomingEvents(user.id),
           getCommunityMemberStats()
         ])
 
         setProfiles(profileResult.profiles || [])
+        setOnlineMembers((onlineResult || []) as DiscoverProfile[])
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
         setMemberStats(statsResult)
@@ -155,6 +165,18 @@ export default function DiscoverPage () {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router])
 
+  useEffect(() => {
+    if (!user?.id) return
+
+    const refreshOnlineMembers = async () => {
+      const result = await getOnlineCommunityMembers()
+      setOnlineMembers((result || []) as DiscoverProfile[])
+    }
+
+    const interval = window.setInterval(refreshOnlineMembers, PRESENCE_HEARTBEAT_MS)
+    return () => window.clearInterval(interval)
+  }, [user?.id])
+
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     fetchCommunity(newFilters)
@@ -170,7 +192,7 @@ export default function DiscoverPage () {
     )
   }, [profiles, searchQuery])
 
-  const onlineProfiles = filteredProfiles.filter(profile => profile.online)
+  const onlineProfiles = onlineMembers
   const newProfiles = [...filteredProfiles]
     .sort((left, right) => {
       const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
@@ -494,7 +516,7 @@ export default function DiscoverPage () {
                       <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
                     </div>
                     <div className='mt-2 truncate text-sm font-bold'>
-                      {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                      {profile.is_current_user ? 'Vous' : profile.name}{profile.age ? `, ${profile.age}` : ''}
                     </div>
                     <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
                   </Link>

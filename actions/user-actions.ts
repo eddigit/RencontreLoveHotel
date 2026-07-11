@@ -8,6 +8,7 @@ import type { UserProfile } from "@/utils/matching-algorithm"
 import {
   ensurePresenceSchema,
   isUserRecentlySeen,
+  markUserSeen,
   onlinePresenceCondition
 } from "@/lib/presence"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
@@ -151,6 +152,37 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
   }
 }
 
+export async function getOnlineCommunityMembers(limit = 12) {
+  const currentUser = await requireCurrentUser()
+  await markUserSeen(currentUser.id)
+
+  const safeLimit = Math.min(24, Math.max(1, Math.floor(Number(limit) || 12)))
+  const onlineCondition = onlinePresenceCondition('u.last_seen_at')
+
+  return await sql.query<any[]>(
+    `
+      SELECT
+        u.id,
+        u.name,
+        u.avatar AS image,
+        up.age,
+        up.location,
+        TRUE AS online,
+        u.id = $1 AS is_current_user
+      FROM users u
+      JOIN user_profiles up ON up.user_id = u.id
+      WHERE up.display_profile = TRUE
+        AND u.onboarding_completed = TRUE
+        AND COALESCE(u.is_banned, false) = false
+        AND COALESCE(u.status, 'active') <> 'banned'
+        AND ${onlineCondition}
+      ORDER BY (u.id = $1) DESC, u.last_seen_at DESC
+      LIMIT $2
+    `,
+    [currentUser.id, safeLimit]
+  )
+}
+
 export type CommunityMemberDirectoryFilters = {
   page?: number
   pageSize?: number
@@ -163,6 +195,7 @@ export type CommunityMemberDirectoryFilters = {
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
   await requireCurrentUser()
+  const onlineCondition = onlinePresenceCondition('u.last_seen_at')
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
@@ -212,7 +245,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   }
 
   if (input.onlineOnly) {
-    whereClauses.push("u.last_seen_at >= NOW() - INTERVAL '5 minutes'")
+    whereClauses.push(onlineCondition)
   }
 
   const whereCondition = `WHERE ${whereClauses.join('\n      AND ')}`
@@ -246,7 +279,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         umt.open_to_other_couples,
         umt.open_curtains,
         umt.libertine,
-        (u.last_seen_at >= NOW() - INTERVAL '5 minutes') AS online
+        ${onlineCondition} AS online
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id
       LEFT JOIN LATERAL (
@@ -260,7 +293,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
       ${whereCondition}
       ORDER BY
         (NULLIF(BTRIM(u.avatar), '') IS NOT NULL) DESC,
-        (u.last_seen_at >= NOW() - INTERVAL '5 minutes') DESC,
+        ${onlineCondition} DESC,
         u.created_at DESC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
