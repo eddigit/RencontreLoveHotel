@@ -12,6 +12,7 @@ import {
   onlinePresenceCondition
 } from "@/lib/presence"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -988,7 +989,7 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
 }
 
 export async function updateUserByAdmin(userId: string, { name, email, role, avatar }: { name?: string, email?: string, role?: string, avatar?: string }) {
-  await requireAdmin()
+  const admin = await requireAdmin()
 
   const [user] = await sql`
     UPDATE users
@@ -1000,15 +1001,44 @@ export async function updateUserByAdmin(userId: string, { name, email, role, ava
     WHERE id = ${userId}
     RETURNING *
   `
+  if (user) {
+    await notifyAdminByEmail({
+      kind: 'member_updated',
+      subject: `Adhérent modifié : ${user.name || user.email}`,
+      title: 'Une fiche adhérent vient d’être modifiée',
+      details: [
+        { label: 'Adhérent', value: user.name || user.email },
+        { label: 'Email', value: user.email },
+        { label: 'Rôle', value: user.role },
+        { label: 'Modification par', value: admin.email || admin.id }
+      ],
+      actionPath: `/admin/users/${userId}/edit`
+    })
+  }
   return user
 }
 
 export async function deleteUserByAdmin(userId: string) {
-  await requireAdmin()
+  const admin = await requireAdmin()
+  const [user] = await sql`
+    SELECT id, name, email, role FROM users WHERE id = ${userId}
+  `
 
   await sql`
     DELETE FROM users WHERE id = ${userId}
   `
+  await notifyAdminByEmail({
+    kind: 'member_deleted',
+    subject: `Adhérent supprimé : ${user?.name || user?.email || userId}`,
+    title: 'Un adhérent vient d’être supprimé',
+    details: [
+      { label: 'Adhérent', value: user?.name || user?.email || userId },
+      { label: 'Email', value: user?.email },
+      { label: 'Ancien rôle', value: user?.role },
+      { label: 'Suppression par', value: admin.email || admin.id }
+    ],
+    actionPath: '/admin/users'
+  })
   return { success: true }
 }
 

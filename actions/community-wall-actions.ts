@@ -6,6 +6,7 @@ import { requireCurrentUser } from '@/lib/server-auth'
 import { put } from '@vercel/blob'
 import { createNotification } from '@/actions/notification-actions'
 import { findOrCreateConversation } from '@/actions/conversation-actions'
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
 type WallStatus = 'active' | 'hidden' | 'removed'
@@ -264,6 +265,21 @@ async function queueWallModeration(input: {
       JSON.stringify(input.metadata || {})
     ]
   )
+  await notifyAdminByEmail({
+    kind: 'moderation_queued',
+    subject: `Nouveau contenu à modérer : ${input.sourceType}`,
+    title: 'Un contenu vient d’entrer en modération',
+    details: [
+      { label: 'Source', value: input.sourceType },
+      { label: 'Identifiant', value: input.sourceId },
+      { label: 'Membre', value: input.userId },
+      { label: 'Gravité', value: input.severity },
+      { label: 'Motif', value: input.reason },
+      { label: 'Mots détectés', value: input.matchedKeywords?.join(', ') }
+    ],
+    message: input.excerpt,
+    actionPath: '/admin/moderation'
+  })
 }
 
 async function validateLinkedEvent(eventId: string) {
@@ -837,6 +853,22 @@ async function reportWallTarget(input: {
       reporterId: user.id,
       autoHidden: hidden
     }
+  })
+
+  await notifyAdminByEmail({
+    kind: 'wall_reported',
+    subject: `Signalement sur le mur : ${sourceType}`,
+    title: 'Un membre vient de signaler un contenu',
+    details: [
+      { label: 'Contenu', value: input.targetId },
+      { label: 'Type', value: sourceType },
+      { label: 'Auteur', value: target.user_id },
+      { label: 'Signalé par', value: user.email || user.id },
+      { label: 'Nombre de signalements', value: reportCount },
+      { label: 'Masqué automatiquement', value: hidden ? 'Oui' : 'Non' }
+    ],
+    message: input.reason,
+    actionPath: '/admin/moderation'
   })
 
   return { success: true, hidden, reportCount }

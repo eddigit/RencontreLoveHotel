@@ -2,6 +2,7 @@
 
 import { executeQuery } from '@/lib/db'; // Correctly import executeQuery
 import { requireAdmin } from '@/lib/server-auth';
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications';
 
 // --- Database types (adjust based on your actual schema and where you define types) ---
 export type MessageFromDB = {
@@ -93,7 +94,7 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
  * (Soft delete: updates content and timestamp)
  */
 export async function deleteMessage(messageId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const moderatedContent = "Le contenu de ce message a été supprimé par le modérateur";
@@ -104,6 +105,16 @@ export async function deleteMessage(messageId: string): Promise<void> {
     `;
     // Use executeQuery
     await executeQuery(query, [moderatedContent, messageId]);
+    await notifyAdminByEmail({
+      kind: 'message_moderated',
+      subject: `Message modéré : ${messageId}`,
+      title: 'Un message vient d’être supprimé par la modération',
+      details: [
+        { label: 'Message', value: messageId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: '/admin/messages'
+    });
   } catch (error) {
     console.error('Error deleting message ' + messageId + ':', error);
     throw new Error("Could not delete message.");
@@ -114,12 +125,22 @@ export async function deleteMessage(messageId: string): Promise<void> {
  * Bans a user.
  */
 export async function banUser(userId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const query = 'UPDATE users SET is_banned = TRUE, status = \'banned\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
     await executeQuery(query, [userId]);
+    await notifyAdminByEmail({
+      kind: 'member_banned',
+      subject: `Adhérent banni : ${userId}`,
+      title: 'Un adhérent vient d’être banni',
+      details: [
+        { label: 'Adhérent', value: userId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: `/admin/users/${userId}/edit`
+    });
     console.log('User ' + userId + ' has been banned.');
   } catch (error) {
     console.error('Error banning user ' + userId + ':', error);
@@ -131,12 +152,22 @@ export async function banUser(userId: string): Promise<void> {
  * Unbans a user.
  */
 export async function unbanUser(userId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const query = 'UPDATE users SET is_banned = FALSE, status = \'active\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
     await executeQuery(query, [userId]);
+    await notifyAdminByEmail({
+      kind: 'member_unbanned',
+      subject: `Adhérent réactivé : ${userId}`,
+      title: 'Un adhérent vient d’être réactivé',
+      details: [
+        { label: 'Adhérent', value: userId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: `/admin/users/${userId}/edit`
+    });
     console.log('User ' + userId + ' has been unbanned.');
   } catch (error) {
     console.error('Error unbanning user ' + userId + ':', error);

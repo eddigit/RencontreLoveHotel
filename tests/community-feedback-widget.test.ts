@@ -19,8 +19,10 @@ describe('community feedback widget', () => {
   it('routes feedback to the pilot profile and email address', () => {
     const action = readFileSync('actions/community-feedback-actions.ts', 'utf8')
     const config = readFileSync('lib/community-feedback-config.ts', 'utf8')
+    const routing = readFileSync('lib/admin-email-notifications.ts', 'utf8')
 
-    expect(config).toContain('loolyyb@gmail.com')
+    expect(config).toContain('ADMIN_NOTIFICATION_EMAIL')
+    expect(routing).toContain('loolyyb@gmail.com')
     expect(action).toContain("@/lib/community-feedback-config")
     expect(action).toContain('getUserByEmail(FEEDBACK_RECIPIENT_EMAIL)')
     expect(action).toContain('createAppNotification')

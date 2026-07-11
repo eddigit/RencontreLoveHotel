@@ -3,11 +3,9 @@ import { getServerSession } from 'next-auth/next'
 import nodemailer from 'nodemailer'
 import { authOptions } from '@/lib/auth'
 import { sql } from '@/lib/db'
+import { ADMIN_NOTIFICATION_EMAIL } from '@/lib/admin-email-notifications'
 
-const CONCIERGERIE_RECIPIENT_EMAIL =
-  process.env.CONCIERGERIE_RECIPIENT_EMAIL ||
-  process.env.ADMIN_NOTIFICATION_EMAIL ||
-  process.env.FEEDBACK_RECIPIENT_EMAIL
+const CONCIERGERIE_RECIPIENT_EMAIL = ADMIN_NOTIFICATION_EMAIL
 
 type ResponsePreference = 'chat' | 'email'
 

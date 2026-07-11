@@ -1,6 +1,7 @@
 import { executeQuery } from "./db"
 import { hash, compare } from "bcryptjs"
 import { v4 as uuidv4 } from "uuid"
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
 // Types
 export interface User {
@@ -35,7 +36,22 @@ export async function createUser(
     `
     const params = [userId, normalizedEmail, hashedPassword, name, role, true, null]
     const result = (await executeQuery<User[]>(query, params)) ?? []
-    return result.length ? result[0] : null
+    const user = result.length ? result[0] : null
+    if (user) {
+      await notifyAdminByEmail({
+        kind: 'member_created',
+        subject: `Nouvel adhérent : ${user.name || user.email}`,
+        title: 'Un nouvel adhérent vient de s’inscrire',
+        details: [
+          { label: 'Nom', value: user.name },
+          { label: 'Email', value: user.email },
+          { label: 'Rôle', value: user.role },
+          { label: 'Identifiant', value: user.id }
+        ],
+        actionPath: `/admin/users/${user.id}/edit`
+      })
+    }
+    return user
   } catch (error) {
     console.error("Erreur lors de la création de l'utilisateur:", error)
     return null
@@ -170,7 +186,21 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
     `INSERT INTO user_profiles (id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
     [uuidv4(), userId]
   )
-  return result.length ? result[0] : null
+  const user = result.length ? result[0] : null
+  if (user) {
+    await notifyAdminByEmail({
+      kind: 'member_created',
+      subject: `Nouvel adhérent OAuth : ${user.name || user.email}`,
+      title: 'Un nouvel adhérent vient de s’inscrire avec OAuth',
+      details: [
+        { label: 'Nom', value: user.name },
+        { label: 'Email', value: user.email },
+        { label: 'Identifiant', value: user.id }
+      ],
+      actionPath: `/admin/users/${user.id}/edit`
+    })
+  }
+  return user
 }
 
 // Mettre à jour le token de réinitialisation du mot de passe d'un utilisateur

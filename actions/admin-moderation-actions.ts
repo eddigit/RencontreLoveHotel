@@ -3,6 +3,7 @@
 import { sql } from '@/lib/db'
 import { notifyAdmins } from '@/actions/notification-actions'
 import { requireAdmin } from '@/lib/server-auth'
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
 export type ModerationSeverity = 'low' | 'medium' | 'high' | 'critical'
 export type ModerationQueueStatus =
@@ -171,6 +172,19 @@ export async function createModerationKeyword(input: {
     ]
   )
 
+  await notifyAdminByEmail({
+    kind: 'moderation_rule_updated',
+    subject: `Règle de modération : ${keyword}`,
+    title: 'Une règle de modération vient d’être créée ou réactivée',
+    details: [
+      { label: 'Mot-clé', value: keyword },
+      { label: 'Gravité', value: input.severity || 'medium' },
+      { label: 'Action', value: input.action || 'flag' },
+      { label: 'Administrateur', value: admin.email || admin.id }
+    ],
+    actionPath: '/admin/moderation'
+  })
+
   return rule
 }
 
@@ -201,6 +215,19 @@ export async function updateModerationQueueStatus(input: {
     `,
     [admin.id, input.itemId, input.reason || null]
   )
+
+  await notifyAdminByEmail({
+    kind: 'moderation_updated',
+    subject: `Modération mise à jour : ${input.status}`,
+    title: 'Une décision de modération vient d’être enregistrée',
+    details: [
+      { label: 'Élément', value: input.itemId },
+      { label: 'Statut', value: input.status },
+      { label: 'Administrateur', value: admin.email || admin.id }
+    ],
+    message: input.reason,
+    actionPath: '/admin/moderation'
+  })
 
   return { success: true }
 }
@@ -290,6 +317,17 @@ export async function scanRecentMessagesForModeration(input: {
       priority: flagged >= 5 ? 'high' : 'normal',
       createdBy: admin.id,
       metadata: { flagged, scanned: messages.length }
+    })
+    await notifyAdminByEmail({
+      kind: 'moderation_queued',
+      subject: `${flagged} message(s) à modérer`,
+      title: 'Le contrôle de modération a détecté des messages',
+      details: [
+        { label: 'Messages analysés', value: messages.length },
+        { label: 'Messages signalés', value: flagged },
+        { label: 'Administrateur', value: admin.email || admin.id }
+      ],
+      actionPath: '/admin/moderation'
     })
   }
 
@@ -398,6 +436,19 @@ export async function restoreWallModerationItem(input: {
     ]
   )
 
+  await notifyAdminByEmail({
+    kind: 'moderation_updated',
+    subject: 'Contenu du mur restauré',
+    title: 'Un contenu modéré vient d’être restauré',
+    details: [
+      { label: 'Type', value: item.source_type },
+      { label: 'Contenu', value: item.source_id },
+      { label: 'Administrateur', value: admin.email || admin.id }
+    ],
+    message: input.reason,
+    actionPath: '/admin/moderation'
+  })
+
   return { success: true }
 }
 
@@ -439,6 +490,19 @@ export async function removeWallModerationItem(input: {
       input.reason || null
     ]
   )
+
+  await notifyAdminByEmail({
+    kind: 'moderation_updated',
+    subject: 'Contenu du mur supprimé',
+    title: 'Un contenu modéré vient d’être supprimé',
+    details: [
+      { label: 'Type', value: item.source_type },
+      { label: 'Contenu', value: item.source_id },
+      { label: 'Administrateur', value: admin.email || admin.id }
+    ],
+    message: input.reason,
+    actionPath: '/admin/moderation'
+  })
 
   return { success: true }
 }

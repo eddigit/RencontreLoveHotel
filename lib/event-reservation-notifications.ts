@@ -1,11 +1,9 @@
 import nodemailer from 'nodemailer'
 import { sql } from '@/lib/db'
+import { ADMIN_NOTIFICATION_EMAIL } from '@/lib/admin-email-notifications'
 
 export const EVENT_RESERVATION_RECIPIENT_EMAIL =
-  process.env.EVENT_RESERVATION_RECIPIENT_EMAIL ||
-  process.env.ADMIN_NOTIFICATION_EMAIL ||
-  process.env.FEEDBACK_RECIPIENT_EMAIL ||
-  'loolyyb@gmail.com'
+  ADMIN_NOTIFICATION_EMAIL
 
 type EventReservationAction = 'join' | 'leave'
 

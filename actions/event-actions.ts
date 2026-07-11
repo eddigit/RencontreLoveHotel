@@ -4,6 +4,7 @@ import { sql } from "@/lib/db"
 import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
 import { createAppNotification } from "@/actions/notification-actions"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
@@ -192,6 +193,19 @@ export async function moderateEvent(
       createdBy: admin.id
     })
   }
+
+  await notifyAdminByEmail({
+    kind: 'event_moderated',
+    subject: `Modération événement : ${event.title}`,
+    title: 'Décision de modération sur un événement',
+    details: [
+      { label: 'Événement', value: event.title },
+      { label: 'Décision', value: status },
+      { label: 'Modérateur', value: admin.email || admin.id }
+    ],
+    message: normalizedNote,
+    actionPath: '/admin/events'
+  })
 
   return { success: true, status }
 }
@@ -405,6 +419,21 @@ export async function createEvent({
     )
     RETURNING *
   `
+  await notifyAdminByEmail({
+    kind: 'event_created',
+    subject: `Nouvel événement : ${title}`,
+    title: 'Un événement vient d’être créé',
+    details: [
+      { label: 'Titre', value: title },
+      { label: 'Créateur', value: currentUser.email || creator_id },
+      { label: 'Type', value: normalizedExperienceType },
+      { label: 'Lieu', value: location },
+      { label: 'Date', value: `${eventDate} ${eventTime}` },
+      { label: 'Statut', value: publicationStatus }
+    ],
+    message: description,
+    actionPath: '/admin/events'
+  })
   return event
 }
 
@@ -467,13 +496,23 @@ export async function updateEvent(eventId: string, {
     WHERE id = ${eventId}
     RETURNING *
   `
+  await notifyAdminByEmail({
+    kind: 'event_updated',
+    subject: `Événement modifié : ${event.title || eventId}`,
+    title: 'Un événement vient d’être modifié',
+    details: [
+      { label: 'Événement', value: event.title || eventId },
+      { label: 'Auteur de la modification', value: currentUser.email || currentUser.id }
+    ],
+    actionPath: `/events/${eventId}`
+  })
   return event
 }
 
 export async function deleteEvent(eventId: string) {
   const currentUser = await requireCurrentUser()
   const [existingEvent] = await sql`
-    SELECT creator_id FROM events WHERE id = ${eventId}
+    SELECT creator_id, title FROM events WHERE id = ${eventId}
   `
 
   if (!existingEvent) {
@@ -487,11 +526,21 @@ export async function deleteEvent(eventId: string) {
   await sql`
     DELETE FROM events WHERE id = ${eventId}
   `
+  await notifyAdminByEmail({
+    kind: 'event_deleted',
+    subject: `Événement supprimé : ${existingEvent.title || eventId}`,
+    title: 'Un événement vient d’être supprimé',
+    details: [
+      { label: 'Événement', value: existingEvent.title || eventId },
+      { label: 'Auteur de la suppression', value: currentUser.email || currentUser.id }
+    ],
+    actionPath: '/admin/events'
+  })
   return { success: true }
 }
 
 export async function resetAllEvents() {
-  await requireAdmin()
+  const admin = await requireAdmin()
 
   const deletedEvents = await sql.query<{ id: string }[]>(
     `
@@ -500,6 +549,17 @@ export async function resetAllEvents() {
     `,
     []
   )
+
+  await notifyAdminByEmail({
+    kind: 'events_reset',
+    subject: `${deletedEvents.length} événement(s) supprimé(s)`,
+    title: 'La liste des événements vient d’être réinitialisée',
+    details: [
+      { label: 'Événements supprimés', value: deletedEvents.length },
+      { label: 'Action par', value: admin.email || admin.id }
+    ],
+    actionPath: '/admin/events'
+  })
 
   return { success: true, deletedCount: deletedEvents.length }
 }

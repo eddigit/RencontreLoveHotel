@@ -1,2 +1,3 @@
-export const FEEDBACK_RECIPIENT_EMAIL =
-  process.env.FEEDBACK_RECIPIENT_EMAIL || 'loolyyb@gmail.com'
+import { ADMIN_NOTIFICATION_EMAIL } from '@/lib/admin-email-notifications'
+
+export const FEEDBACK_RECIPIENT_EMAIL = ADMIN_NOTIFICATION_EMAIL
