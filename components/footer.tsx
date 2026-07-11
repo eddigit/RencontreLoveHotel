@@ -20,7 +20,7 @@ export function Footer () {
               À propos
             </Link>
             <Link
-              href='/unsubscribe'
+              href='/privacy'
               className='hover:text-foreground transition-colors'
             >
               Confidentialité

@@ -13,6 +13,7 @@ describe('route access policy', () => {
     expect(isPublicPath('/login')).toBe(true)
     expect(isPublicPath('/version.json')).toBe(true)
     expect(isPublicPath('/manifest.webmanifest')).toBe(true)
+    expect(isPublicPath('/privacy')).toBe(true)
     expect(isPublicPath('/login/help')).toBe(false)
     expect(isPublicPath('/discover')).toBe(false)
     expect(isPublicPath('/matches')).toBe(false)
