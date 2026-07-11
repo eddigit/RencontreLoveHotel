@@ -33,9 +33,8 @@ describe('Progressive Love Hotel encounter concept', () => {
   it('frames Love Rooms as the physical trigger for community encounters', () => {
     const loveRooms = readFile('app/love-rooms/page.tsx')
 
-    expect(loveRooms).toContain('La chambre devient le déclencheur de rencontre')
-    expect(loveRooms).toContain('Rideaux fermés')
-    expect(loveRooms).toContain('Rideaux entrouverts')
+    expect(loveRooms).toContain('Réserver une Love Room')
+    expect(loveRooms).toContain('Apéro jacuzzi')
     expect(loveRooms).toContain('Rideaux ouverts')
   })
 })

@@ -30,13 +30,13 @@ describe('Love Hotel experiences UI', () => {
     expect(createPage).toContain('max_participants: 4')
   })
 
-  it('puts restaurant and bar offers in standby on the Love Rooms page', () => {
-    expect(loveRoomsPage).toContain('Offres en standby')
-    expect(loveRoomsPage).toContain('Restaurant et bar indisponibles')
+  it('turns the Love Rooms page into a booking-first experience', () => {
+    expect(loveRoomsPage).toContain('Réserver une Love Room')
+    expect(loveRoomsPage).toContain('Réservation officielle Love Hotel')
+    expect(loveRoomsPage).toContain('LoveHotelBookingWidget')
     expect(loveRoomsPage).toContain('Rideaux ouverts')
-    expect(loveRoomsPage).toContain('2 ou 3 chambres')
     expect(loveRoomsPage).toContain('Apéro jacuzzi')
-    expect(loveRoomsPage).toContain('2, 3 ou 4 couples maximum')
+    expect(loveRoomsPage).not.toContain('Offres en standby')
     expect(loveRoomsPage).not.toContain('Petit-déjeuner & Love Room')
     expect(loveRoomsPage).not.toContain('Lunch & Love Room')
     expect(loveRoomsPage).not.toContain('Drink & Love Room')

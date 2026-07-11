@@ -31,9 +31,9 @@ describe('Love Hotel commercial bridges', () => {
   })
 
   it('turns Love Rooms into opportunities for community events', () => {
-    expect(loveRooms).toContain('Sources de rencontres')
+    expect(loveRooms).toContain('Prolonger l’expérience')
     expect(loveRooms).toContain('Créer un apéro jacuzzi')
     expect(loveRooms).toContain('Organiser des rideaux ouverts')
-    expect(loveRooms).toContain('À partir de 35 €/h')
+    expect(loveRooms).toContain('Réservation officielle Love Hotel')
   })
 })
