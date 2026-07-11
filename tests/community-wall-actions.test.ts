@@ -85,7 +85,12 @@ describe('community wall actions', () => {
       createWallPost({
         type: 'dispo_rideaux_ouverts',
         body: 'Disponible ce soir.',
-        durationHours: 24
+        venue: 'chatelet',
+        roomName: 'Secrets',
+        startsAt: '2026-08-06T20:00:00.000Z',
+        guestCapacity: 2,
+        bookingConfirmed: true,
+        bookingReference: 'RES-PRIVEE-123'
       })
     ).resolves.toEqual({ success: true, postId: 'post-dispo', status: 'active' })
 

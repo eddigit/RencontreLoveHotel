@@ -4,6 +4,8 @@ import { sql } from '@/lib/db'
 import { validateImageFile } from '@/lib/image-upload-validation'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { put } from '@vercel/blob'
+import { createNotification } from '@/actions/notification-actions'
+import { findOrCreateConversation } from '@/actions/conversation-actions'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
 type WallStatus = 'active' | 'hidden' | 'removed'
@@ -27,6 +29,25 @@ type CreateWallPostInput = {
   eventId?: string | null
   durationHours?: number
   image?: File | null
+  venue?: 'chatelet' | 'pigalle' | string
+  roomName?: string
+  startsAt?: string
+  guestCapacity?: number
+  bookingConfirmed?: boolean
+  bookingReference?: string
+}
+
+export type WallParticipationRequest = {
+  id: string
+  post_id: string
+  user_id: string
+  message?: string | null
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn'
+  conversation_id?: string | null
+  created_at: string | Date
+  member_name?: string | null
+  member_avatar?: string | null
+  member_location?: string | null
 }
 
 export type CommunityWallPost = {
@@ -50,6 +71,15 @@ export type CommunityWallPost = {
   event_time?: string | null
   comment_count?: number | string
   has_reported?: boolean
+  venue?: 'chatelet' | 'pigalle' | null
+  room_name?: string | null
+  starts_at?: string | Date | null
+  guest_capacity?: number | null
+  booking_confirmed?: boolean
+  participation_request_count?: number | string
+  accepted_participant_count?: number | string
+  current_user_request_status?: 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+  current_user_conversation_id?: string | null
 }
 
 export type CommunityWallComment = {
@@ -114,13 +144,52 @@ function normalizeCreateWallPostInput(input: CreateWallPostInput | FormData): Cr
       body: getFormDataString(input, 'body') || '',
       eventId: getFormDataString(input, 'eventId') || null,
       durationHours: duration ? Number(duration) : undefined,
-      image: getNonEmptyFile(input.get('image'))
+      image: getNonEmptyFile(input.get('image')),
+      venue: getFormDataString(input, 'venue'),
+      roomName: getFormDataString(input, 'roomName'),
+      startsAt: getFormDataString(input, 'startsAt'),
+      guestCapacity: Number(getFormDataString(input, 'guestCapacity') || 0),
+      bookingConfirmed: getFormDataString(input, 'bookingConfirmed') === 'true',
+      bookingReference: getFormDataString(input, 'bookingReference')
     }
   }
 
   return {
     ...input,
     image: getNonEmptyFile(input.image)
+  }
+}
+
+function normalizeBookedRoomInvitation(input: CreateWallPostInput) {
+  const venue = input.venue === 'chatelet' || input.venue === 'pigalle'
+    ? input.venue
+    : null
+  const roomName = (input.roomName || '').trim()
+  const bookingReference = (input.bookingReference || '').trim()
+  const startsAt = input.startsAt ? new Date(input.startsAt) : null
+  const guestCapacity = Math.floor(Number(input.guestCapacity || 0))
+
+  if (!venue) throw new Error('Indiquez l’établissement souhaité')
+  if (!startsAt || Number.isNaN(startsAt.getTime()) || startsAt.getTime() <= Date.now()) {
+    throw new Error('Choisissez une date et une heure à venir')
+  }
+  if (guestCapacity < 1 || guestCapacity > 8) {
+    throw new Error('Le nombre de places doit être compris entre 1 et 8')
+  }
+  if (input.bookingConfirmed && !bookingReference) {
+    throw new Error('Indiquez la référence de réservation')
+  }
+  if (input.bookingConfirmed && !roomName) {
+    throw new Error('Indiquez la chambre réservée')
+  }
+
+  return {
+    venue,
+    roomName: roomName || null,
+    bookingReference: input.bookingConfirmed ? bookingReference : null,
+    bookingConfirmed: Boolean(input.bookingConfirmed),
+    startsAt,
+    guestCapacity
   }
 }
 
@@ -233,6 +302,11 @@ export async function getCommunityWallFeed(
         wp.image_size_bytes,
         wp.event_id,
         wp.expires_at,
+        wp.venue,
+        wp.room_name,
+        wp.starts_at,
+        wp.guest_capacity,
+        wp.booking_confirmed,
         wp.status,
         wp.created_at,
         wp.updated_at,
@@ -243,6 +317,10 @@ export async function getCommunityWallFeed(
         e.event_date,
         e.event_time,
         COUNT(wc.id) FILTER (WHERE wc.status = 'active') AS comment_count,
+        (SELECT COUNT(*) FROM wall_participation_requests wpr WHERE wpr.post_id = wp.id) AS participation_request_count,
+        (SELECT COUNT(*) FROM wall_participation_requests wpr WHERE wpr.post_id = wp.id AND wpr.status = 'accepted') AS accepted_participant_count,
+        (SELECT wpr.status FROM wall_participation_requests wpr WHERE wpr.post_id = wp.id AND wpr.user_id = $1 LIMIT 1) AS current_user_request_status,
+        (SELECT wpr.conversation_id FROM wall_participation_requests wpr WHERE wpr.post_id = wp.id AND wpr.user_id = $1 LIMIT 1) AS current_user_conversation_id,
         EXISTS (
           SELECT 1
           FROM wall_reports wr
@@ -325,6 +403,9 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
   const user = await requireCurrentUser()
   const normalizedInput = normalizeCreateWallPostInput(input)
   const type = normalizePostType(normalizedInput.type)
+  const bookedRoom = type === 'dispo_rideaux_ouverts'
+    ? normalizeBookedRoomInvitation(normalizedInput)
+    : null
   const imageFile = normalizedInput.image || null
   const imageValidation = imageFile ? await validateImageFile(imageFile) : null
 
@@ -361,8 +442,7 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
   }
 
   if (type === 'dispo_rideaux_ouverts') {
-    const durationHours = normalizeDurationHours(normalizedInput.durationHours)
-    expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000)
+    expiresAt = new Date(bookedRoom!.startsAt.getTime() + 6 * 60 * 60 * 1000)
   }
 
   const matchedRules = body ? await getMatchedModerationRules(body) : []
@@ -385,9 +465,11 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
     `
       INSERT INTO wall_posts (
         user_id, type, body, event_id, expires_at, status,
-        image_url, image_mime_type, image_size_bytes
+        image_url, image_mime_type, image_size_bytes,
+        venue, room_name, starts_at, guest_capacity,
+        booking_confirmed, booking_reference
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
       RETURNING id, status
     `,
     [
@@ -399,7 +481,13 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
       status,
       imageUrl,
       image?.mimeType || null,
-      image?.sizeBytes || null
+      image?.sizeBytes || null,
+      bookedRoom?.venue || null,
+      bookedRoom?.roomName || null,
+      bookedRoom?.startsAt || null,
+      bookedRoom?.guestCapacity || null,
+      bookedRoom?.bookingConfirmed || false,
+      bookedRoom?.bookingReference || null
     ]
   )
 
@@ -417,6 +505,209 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
   }
 
   return { success: true, postId: post.id, status: post.status }
+}
+
+export async function requestWallParticipation(input: {
+  postId: string
+  message?: string
+}) {
+  const user = await requireCurrentUser()
+  const message = normalizeBody(input.message, 300, 'Message', { allowEmpty: true })
+  const [post] = await sql.query<Array<{
+    id: string
+    user_id: string
+    guest_capacity: number
+    accepted_count: string | number
+  }>>(
+    `
+      SELECT
+        wp.id,
+        wp.user_id,
+        wp.guest_capacity,
+        (SELECT COUNT(*) FROM wall_participation_requests wpr WHERE wpr.post_id = wp.id AND wpr.status = 'accepted') AS accepted_count
+      FROM wall_posts wp
+      WHERE wp.id = $1
+        AND wp.type = 'dispo_rideaux_ouverts'
+        AND wp.status = 'active'
+        AND wp.starts_at > NOW()
+      LIMIT 1
+    `,
+    [input.postId]
+  )
+
+  if (!post) throw new Error('Invitation introuvable ou terminée')
+  if (post.user_id === user.id) throw new Error('Vous ne pouvez pas candidater à votre propre invitation')
+  if (Number(post.accepted_count || 0) >= Number(post.guest_capacity || 0)) {
+    throw new Error('Cette invitation est complète')
+  }
+
+  const [request] = await sql.query<Array<{ id: string; status: 'pending' }>>(
+    `
+      INSERT INTO wall_participation_requests (post_id, user_id, message, status)
+      VALUES ($1, $2, $3, 'pending')
+      ON CONFLICT (post_id, user_id) DO UPDATE
+      SET message = EXCLUDED.message,
+          status = CASE
+            WHEN wall_participation_requests.status IN ('rejected', 'withdrawn') THEN 'pending'
+            ELSE wall_participation_requests.status
+          END,
+          updated_at = CURRENT_TIMESTAMP
+      RETURNING id, status
+    `,
+    [input.postId, user.id, message || null]
+  )
+
+  if (request.status === 'pending') {
+    await createNotification({
+      userId: post.user_id,
+      type: 'wall_participation_request',
+      title: 'Nouvelle demande de participation',
+      description: 'Un membre souhaite rejoindre votre invitation.',
+      link: '/discover#community-wall'
+    })
+  }
+
+  return { success: true, requestId: request.id, status: request.status }
+}
+
+export async function getWallParticipationRequests(input: {
+  postId: string
+}): Promise<WallParticipationRequest[]> {
+  const user = await requireCurrentUser()
+  const [post] = await sql.query<Array<{ user_id: string }>>(
+    `SELECT user_id FROM wall_posts WHERE id = $1 LIMIT 1`,
+    [input.postId]
+  )
+
+  if (!post) throw new Error('Invitation introuvable')
+  if (post.user_id !== user.id && user.role !== 'admin') {
+    throw new Error("Seul l'organisateur peut consulter les demandes")
+  }
+
+  return await sql.query<WallParticipationRequest[]>(
+    `
+      SELECT
+        wpr.*,
+        u.name AS member_name,
+        u.avatar AS member_avatar,
+        up.location AS member_location
+      FROM wall_participation_requests wpr
+      JOIN users u ON u.id = wpr.user_id
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+      WHERE wpr.post_id = $1
+      ORDER BY
+        CASE wpr.status WHEN 'pending' THEN 0 WHEN 'accepted' THEN 1 ELSE 2 END,
+        wpr.created_at ASC
+    `,
+    [input.postId]
+  )
+}
+
+export async function decideWallParticipationRequest(input: {
+  requestId: string
+  decision: 'accepted' | 'rejected'
+}) {
+  const user = await requireCurrentUser()
+  if (input.decision !== 'accepted' && input.decision !== 'rejected') {
+    throw new Error('Décision invalide')
+  }
+
+  const [request] = await sql.query<Array<{
+    id: string
+    user_id: string
+    status: string
+    post_id: string
+    organizer_id: string
+    guest_capacity: number
+  }>>(
+    `
+      SELECT
+        wpr.id,
+        wpr.user_id,
+        wpr.status,
+        wpr.post_id,
+        wp.user_id AS organizer_id,
+        wp.guest_capacity
+      FROM wall_participation_requests wpr
+      JOIN wall_posts wp ON wp.id = wpr.post_id
+      WHERE wpr.id = $1
+      LIMIT 1
+    `,
+    [input.requestId]
+  )
+
+  if (!request) throw new Error('Demande introuvable')
+  if (request.organizer_id !== user.id && user.role !== 'admin') {
+    throw new Error("Seul l'organisateur peut répondre à cette demande")
+  }
+  if (request.status !== 'pending') throw new Error('Cette demande a déjà été traitée')
+
+  if (input.decision === 'accepted') {
+    const [{ count }] = await sql.query<Array<{ count: string | number }>>(
+      `SELECT COUNT(*) AS count FROM wall_participation_requests WHERE post_id = $1 AND status = 'accepted'`,
+      [request.post_id]
+    )
+    if (Number(count || 0) >= Number(request.guest_capacity || 0)) {
+      throw new Error('Toutes les places sont déjà attribuées')
+    }
+  }
+
+  await sql.query(
+    `
+      UPDATE wall_participation_requests
+      SET status = $2,
+          decided_by = $3,
+          decided_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+    `,
+    [input.requestId, input.decision, user.id]
+  )
+
+  let conversationId: string | null = null
+  if (input.decision === 'accepted') {
+    const existingMatches = await sql.query<Array<{ id: string }>>(
+      `
+        SELECT id FROM user_matches
+        WHERE (user_id_1 = $1 AND user_id_2 = $2)
+           OR (user_id_1 = $2 AND user_id_2 = $1)
+        LIMIT 1
+      `,
+      [request.organizer_id, request.user_id]
+    )
+    if (existingMatches.length > 0) {
+      await sql.query(
+        `UPDATE user_matches SET status = 'accepted', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [existingMatches[0].id]
+      )
+    } else {
+      await sql.query(
+        `INSERT INTO user_matches (user_id_1, user_id_2, status) VALUES ($1, $2, 'accepted')`,
+        [request.organizer_id, request.user_id]
+      )
+    }
+    conversationId = await findOrCreateConversation(request.organizer_id, request.user_id)
+    await sql.query(
+      `UPDATE wall_participation_requests SET conversation_id = $2 WHERE id = $1`,
+      [request.id, conversationId]
+    )
+  }
+
+  await createNotification({
+    userId: request.user_id,
+    type: input.decision === 'accepted'
+      ? 'wall_participation_accepted'
+      : 'wall_participation_rejected',
+    title: input.decision === 'accepted'
+      ? 'Participation acceptée'
+      : 'Participation non retenue',
+    description: input.decision === 'accepted'
+      ? "L'organisateur a accepté votre demande. Vous pouvez maintenant échanger."
+      : "L'organisateur n'a pas retenu votre demande pour cette invitation.",
+    link: conversationId ? `/messages/${conversationId}` : '/discover#community-wall'
+  })
+
+  return { success: true, status: input.decision, conversationId }
 }
 
 export async function addWallComment(input: {

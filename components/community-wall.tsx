@@ -4,15 +4,19 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormE
 import Link from 'next/link'
 import {
   CalendarHeart,
+  Check,
   ChevronDown,
   Clock,
   Flag,
+  Hotel,
   ImagePlus,
+  MapPin,
   MessageCircle,
   Send,
   Sparkles,
   Trash2,
   UserRound,
+  Users,
   X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,14 +24,18 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   addWallComment,
   createWallPost,
+  decideWallParticipationRequest,
   getCommunityWallFeed,
   getWallComments,
   getWallEventOptions,
+  getWallParticipationRequests,
   removeOwnWallPost,
   reportWallComment,
   reportWallPost,
+  requestWallParticipation,
   type CommunityWallComment,
-  type CommunityWallPost
+  type CommunityWallPost,
+  type WallParticipationRequest
 } from '@/actions/community-wall-actions'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
@@ -64,7 +72,7 @@ const postTypeOptions: Array<{
   {
     value: 'dispo_rideaux_ouverts',
     label: 'Rideaux ouverts',
-    detail: '24 h ou 48 h',
+    detail: 'Chambre réservée',
     icon: Sparkles
   }
 ]
@@ -119,6 +127,18 @@ function eventDateLabel(value?: string | Date | null) {
   })
 }
 
+function invitationDateLabel(value?: string | Date | null) {
+  const date = toDate(value)
+  if (!date) return 'Horaire à confirmer'
+  return date.toLocaleString('fr-FR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 function avatarInitial(name?: string | null) {
   return (name || 'M').slice(0, 1).toUpperCase()
 }
@@ -141,18 +161,30 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityWallComment[]>>({})
   const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set())
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
+  const [requestsByPost, setRequestsByPost] = useState<Record<string, WallParticipationRequest[]>>({})
+  const [expandedRequestPostIds, setExpandedRequestPostIds] = useState<Set<string>>(new Set())
   const [type, setType] = useState<WallPostType>('profil')
   const [body, setBody] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [eventId, setEventId] = useState('')
-  const [durationHours, setDurationHours] = useState<24 | 48>(24)
+  const [venue, setVenue] = useState<'chatelet' | 'pigalle'>('chatelet')
+  const [roomName, setRoomName] = useState('')
+  const [startsAt, setStartsAt] = useState('')
+  const [guestCapacity, setGuestCapacity] = useState(1)
+  const [bookingConfirmed, setBookingConfirmed] = useState(false)
+  const [bookingReference, setBookingReference] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
 
   const remainingChars = useMemo(() => 500 - body.length, [body])
-  const canSubmit = Boolean(body.trim() || imageFile)
+  const hasContent = Boolean(body.trim() || imageFile)
+  const hasBookedRoom = Boolean(
+    venue && startsAt && guestCapacity > 0 &&
+    (!bookingConfirmed || (roomName.trim() && bookingReference.trim()))
+  )
+  const canSubmit = hasContent && (type !== 'dispo_rideaux_ouverts' || hasBookedRoom)
 
   const loadWall = useCallback(async () => {
     setLoading(true)
@@ -199,7 +231,12 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
         formData.set('eventId', eventId)
       }
       if (type === 'dispo_rideaux_ouverts') {
-        formData.set('durationHours', String(durationHours))
+        formData.set('venue', venue)
+        formData.set('roomName', roomName)
+        formData.set('startsAt', new Date(startsAt).toISOString())
+        formData.set('guestCapacity', String(guestCapacity))
+        formData.set('bookingConfirmed', String(bookingConfirmed))
+        formData.set('bookingReference', bookingReference)
       }
       if (imageFile) {
         formData.set('image', imageFile)
@@ -209,7 +246,12 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       setBody('')
       setImageFile(null)
       setEventId('')
-      setDurationHours(24)
+      setVenue('chatelet')
+      setRoomName('')
+      setStartsAt('')
+      setGuestCapacity(1)
+      setBookingConfirmed(false)
+      setBookingReference('')
       setType('profil')
       setStatusMessage('Annonce publiée.')
       await loadWall()
@@ -289,6 +331,48 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       await loadWall()
     } catch (error) {
       setStatusMessage('Suppression impossible pour le moment.')
+    }
+  }
+
+  async function handleRequestParticipation(postId: string) {
+    setStatusMessage('')
+    try {
+      await requestWallParticipation({ postId })
+      setStatusMessage('Demande envoyée à l’organisateur.')
+      await loadWall()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Demande impossible.')
+    }
+  }
+
+  async function toggleParticipationRequests(postId: string) {
+    const next = new Set(expandedRequestPostIds)
+    if (next.has(postId)) {
+      next.delete(postId)
+      setExpandedRequestPostIds(next)
+      return
+    }
+
+    next.add(postId)
+    setExpandedRequestPostIds(next)
+    const rows = await getWallParticipationRequests({ postId })
+    setRequestsByPost(current => ({ ...current, [postId]: rows }))
+  }
+
+  async function handleParticipationDecision(
+    postId: string,
+    requestId: string,
+    decision: 'accepted' | 'rejected'
+  ) {
+    setStatusMessage('')
+    try {
+      await decideWallParticipationRequest({ requestId, decision })
+      const rows = await getWallParticipationRequests({ postId })
+      setRequestsByPost(current => ({ ...current, [postId]: rows }))
+      setStatusMessage(decision === 'accepted' ? 'Participation acceptée.' : 'Demande refusée.')
+      await loadWall()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Décision impossible.')
     }
   }
 
@@ -394,21 +478,50 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
         )}
 
         {type === 'dispo_rideaux_ouverts' && (
-          <div className='mt-2 flex gap-2'>
-            {[24, 48].map(value => (
-              <button
-                key={value}
-                type='button'
-                onClick={() => setDurationHours(value as 24 | 48)}
-                className={`h-10 flex-1 rounded-xl border text-sm font-bold transition ${
-                  durationHours === value
-                    ? 'border-[#94ffc9]/55 bg-[#94ffc9]/14 text-[#94ffc9]'
-                    : 'border-[#94ffc9]/14 bg-[#21082f]/72 text-white/70'
-                }`}
-              >
-                {value} h
-              </button>
-            ))}
+          <div className='mt-3 rounded-xl border border-[#94ffc9]/20 bg-[#94ffc9]/[0.06] p-3'>
+            <div className='flex items-start gap-2'>
+              <Hotel className='mt-0.5 h-4 w-4 shrink-0 text-[#94ffc9]' />
+              <div>
+                <p className='text-sm font-black text-[#b8ffda]'>Une réservation confirmée rassure les participants</p>
+                <p className='mt-1 text-xs leading-5 text-white/52'>Vous pouvez publier sans réservation, mais l’annonce indiquera clairement que la disponibilité n’est pas garantie.</p>
+              </div>
+            </div>
+
+            <div className='mt-3 grid gap-2 sm:grid-cols-2'>
+              <label className='text-xs font-bold text-white/66'>
+                Établissement
+                <select value={venue} onChange={event => setVenue(event.target.value as 'chatelet' | 'pigalle')} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white'>
+                  <option value='chatelet'>Châtelet</option>
+                  <option value='pigalle'>Pigalle</option>
+                </select>
+              </label>
+              <label className='text-xs font-bold text-white/66'>
+                Chambre {bookingConfirmed ? 'réservée' : 'souhaitée (optionnel)'}
+                <input value={roomName} onChange={event => setRoomName(event.target.value)} placeholder='Ex. Secrets' className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white placeholder:text-white/35' />
+              </label>
+              <label className='text-xs font-bold text-white/66'>
+                Date et heure
+                <input type='datetime-local' value={startsAt} onChange={event => setStartsAt(event.target.value)} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white' />
+              </label>
+              <label className='text-xs font-bold text-white/66'>
+                Places recherchées
+                <input type='number' min={1} max={8} value={guestCapacity} onChange={event => setGuestCapacity(Number(event.target.value))} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white' />
+              </label>
+              {bookingConfirmed && (
+                <label className='text-xs font-bold text-white/66 sm:col-span-2'>
+                  Référence de réservation (privée)
+                  <input value={bookingReference} onChange={event => setBookingReference(event.target.value)} placeholder='Numéro ou référence de confirmation' className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white placeholder:text-white/35' />
+                </label>
+              )}
+            </div>
+
+            <label className='mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-[#170321]/75 p-3 text-sm'>
+              <input type='checkbox' checked={bookingConfirmed} onChange={event => setBookingConfirmed(event.target.checked)} className='mt-0.5 h-4 w-4 accent-[#35e48d]' />
+              <span>
+                <span className='block font-black text-white'>Chambre déjà réservée</span>
+                <span className='mt-0.5 block text-xs leading-5 text-white/50'>Je confirme disposer d’une réservation valide pour ce créneau.</span>
+              </span>
+            </label>
           </div>
         )}
 
@@ -449,9 +562,16 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
 
         {posts.map(post => {
           const expanded = expandedPostIds.has(post.id)
+          const requestsExpanded = expandedRequestPostIds.has(post.id)
           const comments = commentsByPost[post.id] || []
+          const participationRequests = requestsByPost[post.id] || []
           const commentCount = Number(post.comment_count || 0)
-          const expiration = expirationLabel(post.expires_at)
+          const requestCount = Number(post.participation_request_count || 0)
+          const acceptedCount = Number(post.accepted_participant_count || 0)
+          const capacity = Number(post.guest_capacity || 0)
+          const expiration = post.type === 'dispo_rideaux_ouverts'
+            ? null
+            : expirationLabel(post.expires_at)
           return (
             <article key={post.id} className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
               <div className='flex items-start gap-3'>
@@ -489,12 +609,54 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 <p className='mt-3 whitespace-pre-wrap text-sm leading-6 text-white/78'>{post.body}</p>
               )}
 
+              {post.type === 'dispo_rideaux_ouverts' && (
+                <div className='mt-3 rounded-xl border border-[#94ffc9]/25 bg-[#94ffc9]/[0.07] p-3'>
+                  <div className='flex flex-wrap items-center gap-2 text-xs font-bold'>
+                    {post.booking_confirmed ? (
+                      <span className='inline-flex items-center gap-1 rounded-full bg-[#35e48d]/15 px-2 py-1 text-[#b8ffda]'>
+                        <Check className='h-3.5 w-3.5' />
+                        Réservation confirmée
+                      </span>
+                    ) : (
+                      <span className='inline-flex items-center gap-1 rounded-full bg-[#ffd166]/15 px-2 py-1 text-[#ffe09a]'>
+                        <Clock className='h-3.5 w-3.5' />
+                        Disponibilité non garantie
+                      </span>
+                    )}
+                    <span className='inline-flex items-center gap-1 text-white/70'>
+                      <MapPin className='h-3.5 w-3.5 text-[#ff8cc8]' />
+                      {post.venue === 'pigalle' ? 'Pigalle' : 'Châtelet'}{post.room_name ? ` · ${post.room_name}` : ''}
+                    </span>
+                  </div>
+                  <div className='mt-3 grid gap-2 text-sm sm:grid-cols-2'>
+                    <div className='rounded-lg bg-black/15 px-3 py-2 text-white/72'>
+                      <Clock className='mr-1.5 inline h-4 w-4 text-[#94ffc9]' />
+                      {invitationDateLabel(post.starts_at)}
+                    </div>
+                    <div className='rounded-lg bg-black/15 px-3 py-2 text-white/72'>
+                      <Users className='mr-1.5 inline h-4 w-4 text-[#94ffc9]' />
+                      Places confirmées : {acceptedCount}/{capacity}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {post.image_url && (
                 <div className='mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#170321]/60'>
                   <img
                     src={post.image_url}
                     alt={`Photo publiée par ${post.author_name || 'un membre'}`}
                     className='max-h-[520px] w-full object-cover'
+                  />
+                </div>
+              )}
+
+              {post.type === 'dispo_rideaux_ouverts' && !post.image_url && (
+                <div className='mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#170321]/60'>
+                  <img
+                    src='/rideaux-ouverts-rencontre.jpg'
+                    alt='Couple dans une expérience rideaux ouverts'
+                    className='max-h-[420px] w-full object-cover'
                   />
                 </div>
               )}
@@ -510,6 +672,72 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                   </span>
                   <CalendarHeart className='h-4 w-4 shrink-0 text-[#ffd166]' />
                 </Link>
+              )}
+
+              {post.type === 'dispo_rideaux_ouverts' && post.user_id !== currentUserId && (
+                <div className='mt-3'>
+                  {!post.current_user_request_status || post.current_user_request_status === 'rejected' ? (
+                    <Button
+                      type='button'
+                      onClick={() => handleRequestParticipation(post.id)}
+                      disabled={acceptedCount >= capacity}
+                      className='w-full bg-gradient-to-r from-[#21b56f] to-[#35e48d] font-black text-[#071c11] hover:opacity-90'
+                    >
+                      <Users className='mr-2 h-4 w-4' />
+                      {acceptedCount >= capacity ? 'Invitation complète' : 'Demander à participer'}
+                    </Button>
+                  ) : post.current_user_request_status === 'pending' ? (
+                    <Button type='button' disabled className='w-full bg-white/10 text-white/60'>Demande envoyée</Button>
+                  ) : (
+                    <Button asChild className='w-full bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
+                      <Link href={post.current_user_conversation_id ? `/messages/${post.current_user_conversation_id}` : '/messages'}>
+                        <MessageCircle className='mr-2 h-4 w-4' />
+                        Participation acceptée · Écrire
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {post.type === 'dispo_rideaux_ouverts' && post.user_id === currentUserId && (
+                <div className='mt-3'>
+                  <Button type='button' variant='outline' onClick={() => toggleParticipationRequests(post.id)} className='w-full border-[#94ffc9]/25 bg-[#94ffc9]/[0.06] text-white'>
+                    <Users className='mr-2 h-4 w-4 text-[#94ffc9]' />
+                    Voir les demandes ({requestCount})
+                    <ChevronDown className={`ml-2 h-4 w-4 transition ${requestsExpanded ? 'rotate-180' : ''}`} />
+                  </Button>
+
+                  {requestsExpanded && (
+                    <div className='mt-2 space-y-2 rounded-xl border border-white/10 bg-black/15 p-3'>
+                      {participationRequests.length === 0 && <p className='text-sm text-white/52'>Aucune demande pour le moment.</p>}
+                      {participationRequests.map(request => (
+                        <div key={request.id} className='flex flex-col gap-3 rounded-lg border border-white/8 bg-white/[0.04] p-3 sm:flex-row sm:items-center'>
+                          <Link href={`/profile/${request.user_id}`} className='flex min-w-0 flex-1 items-center gap-3'>
+                            <div className='h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                              {request.member_avatar ? <img src={request.member_avatar} alt='' className='h-full w-full object-cover' /> : <span className='flex h-full items-center justify-center font-black'>{avatarInitial(request.member_name)}</span>}
+                            </div>
+                            <div className='min-w-0'>
+                              <div className='truncate font-black'>{request.member_name || 'Membre'}</div>
+                              <div className='truncate text-xs text-white/48'>{request.member_location || 'Localisation non renseignée'}</div>
+                            </div>
+                          </Link>
+                          {request.status === 'pending' ? (
+                            <div className='flex gap-2'>
+                              <Button type='button' size='sm' onClick={() => handleParticipationDecision(post.id, request.id, 'accepted')} className='bg-[#21b56f] text-white hover:bg-[#27c87c]'>
+                                <Check className='mr-1 h-4 w-4' />Accepter
+                              </Button>
+                              <Button type='button' size='sm' variant='outline' onClick={() => handleParticipationDecision(post.id, request.id, 'rejected')} className='border-white/12'>
+                                <X className='mr-1 h-4 w-4' />Refuser
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className='text-xs font-bold text-white/55'>{request.status === 'accepted' ? 'Acceptée' : 'Refusée'}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
 
               <div className='mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3'>
