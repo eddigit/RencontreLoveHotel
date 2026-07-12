@@ -64,7 +64,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     setCounts({
       total: unreadNotifications.length,
-      messages: unreadNotifications.filter((n) => n.type === "message").length,
+      messages: unreadNotifications.filter((n) =>
+        ['message', 'new_message'].includes(n.type)
+      ).length,
       events: unreadNotifications.filter((n) => n.type === "event").length,
       likes: unreadNotifications.filter((n) => n.type === "like").length,
       matches: unreadNotifications.filter((n) => n.type === "match").length,

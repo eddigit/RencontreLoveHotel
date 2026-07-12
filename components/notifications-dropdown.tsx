@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export type Notification = {
   id: string
-  type: "message" | "like" | "event" | "match" | "system"
+  type: string
   title: string
   description: string
   time: string

@@ -28,6 +28,7 @@ import {
   markConversationMessagesAsRead,
   sendMessage
 } from '@/actions/conversation-actions'
+import { useNotifications } from '@/contexts/notification-context'
 
 interface MessageAttachment {
   id?: string
@@ -126,6 +127,7 @@ export default function ConversationPage ({
 }) {
   const { id } = use(params)
   const { data: session } = useSession()
+  const { notifications, markAsRead } = useNotifications()
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [conversationDetails, setConversationDetails] =
@@ -149,6 +151,18 @@ export default function ConversationPage ({
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+
+  useEffect(() => {
+    for (const notification of notifications) {
+      if (
+        !notification.read &&
+        notification.type === 'new_message' &&
+        notification.link === `/messages/${id}`
+      ) {
+        markAsRead(notification.id)
+      }
+    }
+  }, [id, notifications, markAsRead])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })

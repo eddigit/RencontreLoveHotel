@@ -276,17 +276,40 @@ export async function markConversationMessagesAsRead(conversationId: string, use
     throw new Error('Access denied: You are not a participant in this conversation')
   }
 
-  const updatedRows = await sql.query(
-    `UPDATE messages
-     SET is_read = true, updated_at = CURRENT_TIMESTAMP
-     WHERE conversation_id = $1
-       AND sender_id != $2
-       AND COALESCE(is_read, false) = false
-     RETURNING id`,
+  const [updated] = await sql.query<{
+    updated_message_count: string | number
+    updated_notification_count: string | number
+  }[]>(
+    `WITH updated_messages AS (
+       UPDATE messages
+       SET is_read = true, updated_at = CURRENT_TIMESTAMP
+       WHERE conversation_id = $1
+         AND sender_id != $2
+         AND COALESCE(is_read, false) = false
+       RETURNING id
+     ), updated_notifications AS (
+       UPDATE notifications
+       SET read = true,
+           read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+       WHERE user_id = $2
+         AND COALESCE(read, false) = false
+         AND type = 'new_message'
+         AND (
+           link = '/messages/' || $1::text
+           OR metadata->>'conversationId' = $1::text
+         )
+       RETURNING id
+     )
+     SELECT
+       (SELECT COUNT(*) FROM updated_messages) AS updated_message_count,
+       (SELECT COUNT(*) FROM updated_notifications) AS updated_notification_count`,
     [conversationId, targetUserId]
   )
 
-  return { updatedCount: updatedRows.length }
+  return {
+    updatedCount: Number(updated?.updated_message_count || 0),
+    updatedNotificationCount: Number(updated?.updated_notification_count || 0)
+  }
 }
 
 export async function sendMessage({ conversationId, senderId, content, attachments }: {

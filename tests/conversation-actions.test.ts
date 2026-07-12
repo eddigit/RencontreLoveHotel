@@ -167,7 +167,10 @@ describe('conversation-actions', () => {
     })
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
-      .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
+      .mockResolvedValueOnce([{
+        updated_message_count: '1',
+        updated_notification_count: '1'
+      }])
 
     const result = await markConversationMessagesAsRead(
       '550e8400-e29b-41d4-a716-446655440001',
@@ -175,8 +178,9 @@ describe('conversation-actions', () => {
     )
 
     expect(result.updatedCount).toBe(1)
+    expect(result.updatedNotificationCount).toBe(1)
     expect(sql.query).toHaveBeenLastCalledWith(
-      expect.stringContaining('UPDATE messages'),
+      expect.stringMatching(/UPDATE messages[\s\S]*UPDATE notifications/),
       [
         '550e8400-e29b-41d4-a716-446655440001',
         '550e8400-e29b-41d4-a716-446655440099'

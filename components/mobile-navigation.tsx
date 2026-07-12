@@ -6,9 +6,11 @@ import { Search, MessageCircle, Heart, User, Sparkles, UsersRound } from 'lucide
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { NotificationBadge } from '@/components/notification-badge'
+import { useNotifications } from '@/contexts/notification-context'
 
 export function MobileNavigation () {
   const pathname = usePathname()
+  const { counts } = useNotifications()
 
   const links = [
     {
@@ -40,7 +42,7 @@ export function MobileNavigation () {
       icon: MessageCircle,
       label: 'Messages',
       active: pathname === '/messages' || pathname.startsWith('/messages/'),
-      badge: 3
+      badge: counts.messages
     },
     {
       href: '/profile',
