@@ -59,6 +59,12 @@ export async function getUserConversations(userId?: string) {
         OR um.id IS NOT NULL
         OR viewer_user.role = 'admin'
         OR other_user.role = 'admin'
+        OR EXISTS (
+          SELECT 1
+          FROM user_blocks blocked_relationship
+          WHERE (blocked_relationship.blocker_id = $1 AND blocked_relationship.blocked_id = cp_other.user_id)
+             OR (blocked_relationship.blocker_id = cp_other.user_id AND blocked_relationship.blocked_id = $1)
+        )
     ),
     last_messages AS (
       SELECT

@@ -23,5 +23,6 @@ describe('personal block enforcement', () => {
   it('keeps conversation history while returning a read-only interaction state', () => {
     expect(conversations).toContain('AS can_interact')
     expect(conversations).toContain('FROM user_blocks ub')
+    expect(conversations).toContain('FROM user_blocks blocked_relationship')
   })
 })
