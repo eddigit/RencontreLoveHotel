@@ -21,9 +21,11 @@ vi.mock('@/lib/auth', () => ({
 import {
   createModerationKeyword,
   getModerationDashboard,
+  getProfileReportQueue,
   getWallModerationQueue,
   removeWallModerationItem,
   restoreWallModerationItem,
+  resolveProfileReport,
   scanRecentMessagesForModeration
 } from '../actions/admin-moderation-actions'
 import { notifyAdmins } from '@/actions/notification-actions'
@@ -47,6 +49,49 @@ describe('admin moderation actions', () => {
 
     await expect(getModerationDashboard()).rejects.toThrow('administrateur')
     expect(sql.query).not.toHaveBeenCalled()
+  })
+
+  it('lists profile reports with reporter and reported member context', async () => {
+    ;(sql.query as any).mockResolvedValueOnce([{
+      id: 'report-1',
+      reporter_id: 'reporter-1',
+      reported_user_id: 'reported-1',
+      reporter_name: 'Témoin',
+      reported_name: 'Profil signalé',
+      distinct_report_count: 2
+    }])
+
+    const reports = await getProfileReportQueue()
+
+    expect(reports[0].reported_name).toBe('Profil signalé')
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('FROM profile_reports pr')
+    )
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('distinct_report_count')
+    )
+  })
+
+  it('resolves a profile report without mutating the reported account', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    await expect(resolveProfileReport({
+      reportId: 'report-1',
+      status: 'actioned',
+      note: 'Profil examiné par la modération.'
+    })).resolves.toEqual({ success: true })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE profile_reports'),
+      ['report-1', 'actioned', 'admin-1', 'Profil examiné par la modération.']
+    )
+    expect(sql.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE users'),
+      expect.anything()
+    )
   })
 
   it('loads a defensive moderation dashboard with counts, rules and queue', async () => {

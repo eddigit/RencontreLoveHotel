@@ -42,6 +42,23 @@ export type WallModerationQueueItem = ModerationQueueItem & {
   image_url?: string | null
 }
 
+export type ProfileReportStatus = 'new' | 'in_review' | 'dismissed' | 'actioned'
+
+export type ProfileReportQueueItem = {
+  id: string
+  reporter_id: string
+  reported_user_id: string
+  reason: string
+  details?: string | null
+  status: ProfileReportStatus
+  created_at: string | Date
+  reporter_name?: string | null
+  reporter_avatar?: string | null
+  reported_name?: string | null
+  reported_avatar?: string | null
+  distinct_report_count: number | string
+}
+
 export type AdminModerationDashboard = {
   counts: {
     pendingItems: number
@@ -138,6 +155,86 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
     keywordRules,
     recentItems
   }
+}
+
+export async function getProfileReportQueue(): Promise<ProfileReportQueueItem[]> {
+  await requireAdmin()
+
+  return await sql.query<ProfileReportQueueItem[]>(`
+    SELECT
+      pr.id,
+      pr.reporter_id,
+      pr.reported_user_id,
+      pr.reason,
+      pr.details,
+      pr.status,
+      pr.created_at,
+      reporter.name AS reporter_name,
+      reporter.avatar AS reporter_avatar,
+      reported.name AS reported_name,
+      reported.avatar AS reported_avatar,
+      (
+        SELECT COUNT(DISTINCT other_report.reporter_id)
+        FROM profile_reports other_report
+        WHERE other_report.reported_user_id = pr.reported_user_id
+          AND other_report.status IN ('new', 'in_review', 'actioned')
+      ) AS distinct_report_count
+    FROM profile_reports pr
+    JOIN users reporter ON reporter.id = pr.reporter_id
+    JOIN users reported ON reported.id = pr.reported_user_id
+    WHERE pr.status IN ('new', 'in_review')
+    ORDER BY
+      distinct_report_count DESC,
+      pr.created_at DESC
+    LIMIT 100
+  `)
+}
+
+export async function resolveProfileReport(input: {
+  reportId: string
+  status: Exclude<ProfileReportStatus, 'new'>
+  note?: string
+}) {
+  const admin = await requireAdmin()
+  if (!['in_review', 'dismissed', 'actioned'].includes(input.status)) {
+    throw new Error('Statut de signalement invalide')
+  }
+
+  const note = String(input.note || '').trim().slice(0, 1000) || null
+  await sql.query(
+    `UPDATE profile_reports
+     SET status = $2,
+         resolved_by = CASE WHEN $2 IN ('dismissed', 'actioned') THEN $3 ELSE NULL END,
+         resolution_note = $4,
+         resolved_at = CASE WHEN $2 IN ('dismissed', 'actioned') THEN CURRENT_TIMESTAMP ELSE NULL END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1`,
+    [input.reportId, input.status, admin.id, note]
+  )
+
+  const queueStatus = input.status === 'dismissed'
+    ? 'ignored'
+    : input.status === 'actioned'
+      ? 'actioned'
+      : 'in_review'
+  await sql.query(
+    `UPDATE moderation_queue
+     SET status = $2,
+         resolved_by = CASE WHEN $2 IN ('ignored', 'actioned') THEN $3 ELSE NULL END,
+         resolved_at = CASE WHEN $2 IN ('ignored', 'actioned') THEN CURRENT_TIMESTAMP ELSE NULL END,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE source_type = 'profile'
+       AND metadata->>'reportId' = $1`,
+    [input.reportId, queueStatus, admin.id]
+  )
+
+  await sql.query(
+    `INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, reason)
+     VALUES ($1, 'profile_report_resolution', 'profile_report', $2, $3)`,
+    [admin.id, input.reportId, note || input.status]
+  )
+
+  return { success: true as const }
 }
 
 export async function createModerationKeyword(input: {

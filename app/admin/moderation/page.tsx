@@ -20,11 +20,15 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   createModerationKeyword,
   getModerationDashboard,
+  getProfileReportQueue,
   getWallModerationQueue,
   removeWallModerationItem,
   restoreWallModerationItem,
+  resolveProfileReport,
   scanRecentMessagesForModeration,
   type AdminModerationDashboard,
+  type ProfileReportQueueItem,
+  type ProfileReportStatus,
   type ModerationSeverity,
   type WallModerationQueueItem
 } from '@/actions/admin-moderation-actions'
@@ -42,16 +46,20 @@ export default function AdminModerationPage () {
   const [status, setStatus] = useState('')
   const [wallItems, setWallItems] = useState<WallModerationQueueItem[]>([])
   const [wallActionId, setWallActionId] = useState<string | null>(null)
+  const [profileReports, setProfileReports] = useState<ProfileReportQueueItem[]>([])
+  const [profileReportActionId, setProfileReportActionId] = useState<string | null>(null)
 
   async function loadDashboard () {
     setLoading(true)
     try {
-      const [moderationDashboard, wallQueue] = await Promise.all([
+      const [moderationDashboard, wallQueue, profileReportQueue] = await Promise.all([
         getModerationDashboard(),
-        getWallModerationQueue()
+        getWallModerationQueue(),
+        getProfileReportQueue()
       ])
       setDashboard(moderationDashboard)
       setWallItems(wallQueue)
+      setProfileReports(profileReportQueue)
     } finally {
       setLoading(false)
     }
@@ -131,6 +139,31 @@ export default function AdminModerationPage () {
     }
   }
 
+  async function handleProfileReportAction (
+    item: ProfileReportQueueItem,
+    nextStatus: Exclude<ProfileReportStatus, 'new'>
+  ) {
+    setProfileReportActionId(item.id)
+    setStatus('')
+    try {
+      await resolveProfileReport({
+        reportId: item.id,
+        status: nextStatus,
+        note: nextStatus === 'dismissed'
+          ? 'Signalement classé depuis le centre de modération.'
+          : nextStatus === 'actioned'
+            ? 'Signalement traité depuis le centre de modération.'
+            : 'Signalement pris en charge par la modération.'
+      })
+      setStatus('Signalement de profil mis à jour.')
+      await loadDashboard()
+    } catch {
+      setStatus('Impossible de mettre à jour ce signalement.')
+    } finally {
+      setProfileReportActionId(null)
+    }
+  }
+
   const counts = dashboard?.counts
 
   return (
@@ -196,6 +229,60 @@ export default function AdminModerationPage () {
               icon={AlertTriangle}
             />
           </div>
+
+          <Card className='mt-6'>
+            <CardHeader>
+              <CardTitle>Signalements de profils</CardTitle>
+              <p className='text-sm text-muted-foreground'>
+                Chaque dossier demande un examen humain. Aucun bannissement automatique.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className='space-y-3'>
+                {loading && <p className='text-sm text-muted-foreground'>Chargement des signalements...</p>}
+                {!loading && profileReports.length === 0 && (
+                  <p className='text-sm text-muted-foreground'>Aucun signalement de profil en attente.</p>
+                )}
+                {profileReports.map(item => (
+                  <div key={item.id} className='rounded-lg border border-white/10 bg-white/5 p-4'>
+                    <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
+                      <div className='min-w-0 flex-1'>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <span className='rounded-full bg-[#ff3b8b]/20 px-2 py-1 text-xs font-bold text-[#ffb3d7]'>
+                            {item.reason}
+                          </span>
+                          <span className='rounded-full bg-white/10 px-2 py-1 text-xs'>{item.status}</span>
+                          <span className='text-xs text-muted-foreground'>
+                            {Number(item.distinct_report_count || 0)} déclarant(s) distinct(s)
+                          </span>
+                        </div>
+                        {item.details && <p className='mt-3 whitespace-pre-wrap text-sm text-white/76'>{item.details}</p>}
+                        <div className='mt-3 flex flex-wrap gap-4 text-sm'>
+                          <Link href={`/profile/${item.reported_user_id}`} className='font-bold text-[#ffb3d7] underline underline-offset-4'>
+                            Profil signalé : {item.reported_name || 'Membre'}
+                          </Link>
+                          <Link href={`/profile/${item.reporter_id}`} className='text-[#94ffc9] underline underline-offset-4'>
+                            Déclarant : {item.reporter_name || 'Membre'}
+                          </Link>
+                        </div>
+                      </div>
+                      <div className='flex flex-wrap gap-2'>
+                        <Button type='button' variant='outline' disabled={profileReportActionId === item.id} onClick={() => handleProfileReportAction(item, 'in_review')}>
+                          Examiner
+                        </Button>
+                        <Button type='button' variant='outline' disabled={profileReportActionId === item.id} onClick={() => handleProfileReportAction(item, 'dismissed')}>
+                          Classer
+                        </Button>
+                        <Button type='button' disabled={profileReportActionId === item.id} onClick={() => handleProfileReportAction(item, 'actioned')} className='bg-[#21b56f] text-white hover:bg-[#27c87c]'>
+                          Traité
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card className='mt-6'>
             <CardHeader>
