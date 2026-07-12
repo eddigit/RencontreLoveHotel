@@ -17,6 +17,7 @@ import { getUserConversations } from '@/actions/conversation-actions'
 
 interface Conversation {
   id: string
+  other_user_id: string
   other_user_name: string
   last_message: string | null
   last_message_date: string | null
@@ -69,6 +70,7 @@ export default function MessagesPage () {
         setConversations(
           fetchedConversations.map((conv: any) => ({
             id: conv.id,
+            other_user_id: conv.other_user_id,
             other_user_name: conv.other_user_name,
             last_message: conv.last_message,
             last_message_date: conv.last_message_date
@@ -165,15 +167,14 @@ export default function MessagesPage () {
 
             <div className='space-y-2'>
               {filteredConversations.map((conversation, index) => (
-                <Link
-                  href={`/messages/${conversation.id}`}
+                <div
                   key={conversation.id}
                   className={[
                     'flex items-center gap-3 rounded-2xl p-3 transition hover:bg-white/8',
                     index === 0 ? 'bg-white/10' : 'bg-transparent'
                   ].join(' ')}
                 >
-                  <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                  <Link href={`/profile/${conversation.other_user_id}`} className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10 ring-offset-2 ring-offset-[#25052f] hover:ring-2 hover:ring-[#ff8cc8]'>
                     <Image
                       src={conversation.other_user_avatar || '/purple-haze-chat.png'}
                       alt={conversation.other_user_name || 'Profil'}
@@ -181,12 +182,12 @@ export default function MessagesPage () {
                       className='object-cover'
                       sizes='56px'
                     />
-                  </div>
+                  </Link>
                   <div className='min-w-0 flex-1'>
                   <div className='flex items-center justify-between gap-3'>
-                      <h3 className='truncate font-black'>
+                      <Link href={`/profile/${conversation.other_user_id}`} className='truncate font-black hover:text-[#ffb3d7]'>
                         {conversation.other_user_name}
-                      </h3>
+                      </Link>
                       <div className='flex shrink-0 items-center gap-2'>
                         <span className='text-xs font-bold text-white/54'>{conversation.last_message_date}</span>
                         {conversation.unread_count > 0 && (
@@ -196,14 +197,14 @@ export default function MessagesPage () {
                         )}
                       </div>
                     </div>
-                    <div className='mt-1 flex items-center gap-2'>
+                    <Link href={`/messages/${conversation.id}`} className='mt-1 flex items-center gap-2 rounded-lg hover:bg-white/[0.04]'>
                       {conversation.access_mode === 'admin' && <Headphones className='h-3.5 w-3.5 shrink-0 text-[#94ffc9]' />}
                       <p className={`truncate text-sm ${conversation.unread_count > 0 ? 'font-bold text-white/86' : 'text-white/56'}`}>
-                        {conversation.last_message || 'Conversation ouverte'}
+                          {conversation.last_message || 'Conversation ouverte'}
                       </p>
-                    </div>
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </section>
@@ -212,7 +213,7 @@ export default function MessagesPage () {
             {activeConversation ? (
               <>
                 <div className='flex items-center justify-between border-b border-white/10 pb-4'>
-                  <div className='flex items-center gap-3'>
+                  <Link href={`/profile/${activeConversation.other_user_id}`} className='flex items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.04]'>
                     <div className='relative h-12 w-12 overflow-hidden rounded-full bg-white/10'>
                       <Image
                         src={activeConversation.other_user_avatar || '/purple-haze-chat.png'}
@@ -223,13 +224,13 @@ export default function MessagesPage () {
                       />
                     </div>
                     <div>
-                      <h2 className='font-black'>{activeConversation.other_user_name}</h2>
+                      <h2 className='font-black hover:text-[#ffb3d7]'>{activeConversation.other_user_name}</h2>
                       <p className='flex items-center gap-1 text-xs text-[#94ffc9]'>
                         {activeConversation.access_mode === 'admin' && <Headphones className='h-3.5 w-3.5' />}
                         {activeConversation.access_mode === 'admin' ? 'Équipe Love Hotel' : activeConversation.access_mode === 'legacy_import' ? 'Historique importé' : 'Conversation privée'}
                       </p>
                     </div>
-                  </div>
+                  </Link>
                   <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
                     <Link href={`/messages/${activeConversation.id}`}>Ouvrir</Link>
                   </Button>

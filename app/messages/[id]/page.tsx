@@ -29,6 +29,7 @@ import {
   sendMessage
 } from '@/actions/conversation-actions'
 import { useNotifications } from '@/contexts/notification-context'
+import { MemberSafetyControls, type MemberSafetyState } from '@/components/member-safety-controls'
 
 interface MessageAttachment {
   id?: string
@@ -59,9 +60,13 @@ interface Message {
 
 interface ConversationDetails {
   id: string
+  other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
   access_mode: 'match' | 'legacy_import' | 'admin'
+  blocked_by_me: boolean
+  blocked_me: boolean
+  can_interact: boolean
 }
 
 function formatBytes (bytes?: number | null) {
@@ -191,10 +196,14 @@ export default function ConversationPage ({
         const currentConv = userConversations.find((conv: any) => conv.id === id)
         if (currentConv) {
           setConversationDetails({
-          id: currentConv.id,
-          other_user_name: currentConv.other_user_name,
-          other_user_avatar: currentConv.other_user_avatar,
-          access_mode: currentConv.access_mode || 'match'
+            id: currentConv.id,
+            other_user_id: currentConv.other_user_id,
+            other_user_name: currentConv.other_user_name,
+            other_user_avatar: currentConv.other_user_avatar,
+            access_mode: currentConv.access_mode || 'match',
+            blocked_by_me: currentConv.blocked_by_me === true,
+            blocked_me: currentConv.blocked_me === true,
+            can_interact: currentConv.can_interact !== false
           })
         } else {
           setError('Conversation introuvable ou non autorisée.')
@@ -391,7 +400,7 @@ export default function ConversationPage ({
   const handleSendMessage = async (event: React.FormEvent) => {
     event.preventDefault()
     const currentMessage = message.trim()
-    if ((!currentMessage && pendingAttachments.length === 0) || !session?.user?.id || !id || sending || uploading) return
+    if (!conversationDetails?.can_interact || (!currentMessage && pendingAttachments.length === 0) || !session?.user?.id || !id || sending || uploading) return
 
     setSendError(null)
     setSending(true)
@@ -434,7 +443,16 @@ export default function ConversationPage ({
   }
 
   const currentUserId = session?.user?.id
-  const canSend = (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
+  const canSend = Boolean(conversationDetails?.can_interact) && (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
+
+  const handleInteractionChange = (state: MemberSafetyState) => {
+    setConversationDetails(current => current ? {
+      ...current,
+      blocked_by_me: state.blockedByMe,
+      blocked_me: state.blockedMe,
+      can_interact: state.canInteract
+    } : current)
+  }
 
   return (
     <MainLayout user={session?.user}>
@@ -455,21 +473,24 @@ export default function ConversationPage ({
         <div className='grid min-h-[720px] overflow-hidden rounded-2xl border border-white/10 bg-black/16 lg:grid-cols-[minmax(0,1fr)_330px]'>
           <section className='flex min-h-[680px] flex-col'>
             <div className='flex items-center justify-between gap-3 border-b border-white/10 p-4'>
-              <div className='flex min-w-0 items-center gap-3'>
-                <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                  <Image
-                    src={conversationDetails?.other_user_avatar || '/purple-haze-chat.png'}
-                    alt={conversationDetails?.other_user_name || 'Profil'}
-                    fill
-                    className='object-cover'
-                    sizes='48px'
-                  />
-                </div>
-                <div className='min-w-0'>
-                  <h2 className='truncate font-black'>
-                    {conversationDetails?.other_user_name || 'Conversation'}
-                  </h2>
-                  <p className='text-xs text-[#94ffc9]'>
+              {conversationDetails && conversationDetails.access_mode !== 'admin' ? (
+                <Link href={`/profile/${conversationDetails.other_user_id}`} className='flex min-w-0 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.05]'>
+                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                    <Image src={conversationDetails.other_user_avatar || '/purple-haze-chat.png'} alt={conversationDetails.other_user_name || 'Profil'} fill className='object-cover' sizes='48px' />
+                  </div>
+                  <div className='min-w-0'>
+                    <h2 className='truncate font-black hover:text-[#ffb3d7]'>{conversationDetails.other_user_name}</h2>
+                    <p className='text-xs text-[#94ffc9]'>Voir le profil</p>
+                  </div>
+                </Link>
+              ) : (
+                <div className='flex min-w-0 items-center gap-3'>
+                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                    <Image src={conversationDetails?.other_user_avatar || '/purple-haze-chat.png'} alt={conversationDetails?.other_user_name || 'Profil'} fill className='object-cover' sizes='48px' />
+                  </div>
+                  <div className='min-w-0'>
+                    <h2 className='truncate font-black'>{conversationDetails?.other_user_name || 'Conversation'}</h2>
+                    <p className='text-xs text-[#94ffc9]'>
                     {loading
                       ? 'Chargement...'
                       : error
@@ -481,14 +502,23 @@ export default function ConversationPage ({
                               ? 'Réponse de l’équipe disponible'
                               : 'Synchronisé'
                             : 'Disponible pour échanger'}
-                  </p>
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className='hidden items-center gap-2 text-xs font-bold text-white/50 sm:flex'>
-                <ImageIcon className='h-4 w-4' />
-                <Mic className='h-4 w-4' />
-                <Video className='h-4 w-4' />
-              </div>
+              )}
+              {conversationDetails && conversationDetails.access_mode !== 'admin' && (
+                <MemberSafetyControls
+                  memberId={conversationDetails.other_user_id}
+                  memberName={conversationDetails.other_user_name}
+                  initialState={{
+                    blockedByMe: conversationDetails.blocked_by_me,
+                    blockedMe: conversationDetails.blocked_me,
+                    canInteract: conversationDetails.can_interact
+                  }}
+                  compact
+                  onInteractionChange={handleInteractionChange}
+                />
+              )}
             </div>
 
             {loading && (
@@ -561,6 +591,12 @@ export default function ConversationPage ({
                 </div>
 
                 <div className='border-t border-white/10 bg-black/20 p-4'>
+                  {!conversationDetails?.can_interact && (
+                    <div className='mb-3 rounded-2xl border border-[#ffd166]/25 bg-[#ffd166]/10 px-4 py-3'>
+                      <p className='font-black text-[#ffe09a]'>Conversation en lecture seule</p>
+                      <p className='mt-1 text-xs text-white/58'>L’historique reste disponible, mais aucun nouveau message ou média ne peut être envoyé.</p>
+                    </div>
+                  )}
                   {sendError && (
                     <p className='mb-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
                       {sendError}
@@ -600,7 +636,7 @@ export default function ConversationPage ({
                       variant='outline'
                       onClick={() => fileInputRef.current?.click()}
                       className='h-12 rounded-2xl border-white/12 bg-white/[0.04] px-4'
-                      disabled={uploading || sending || recording || pendingAttachments.length >= 4}
+                      disabled={!conversationDetails?.can_interact || uploading || sending || recording || pendingAttachments.length >= 4}
                     >
                       <Paperclip className='h-4 w-4' />
                     </Button>
@@ -614,7 +650,7 @@ export default function ConversationPage ({
                           ? 'bg-[#ff3b8b]/24 text-[#ffb4d8]'
                           : 'bg-white/[0.04]'
                       ].join(' ')}
-                      disabled={uploading || sending || pendingAttachments.length >= 4}
+                      disabled={!conversationDetails?.can_interact || uploading || sending || pendingAttachments.length >= 4}
                       aria-label={recording ? 'Arrêter le vocal' : 'Enregistrer un vocal'}
                     >
                       {recording ? <Square className='h-4 w-4' /> : <Mic className='h-4 w-4' />}
@@ -624,7 +660,7 @@ export default function ConversationPage ({
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
                       className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
-                      disabled={sending || recording}
+                      disabled={!conversationDetails?.can_interact || sending || recording}
                     />
                     <Button
                       type='submit'

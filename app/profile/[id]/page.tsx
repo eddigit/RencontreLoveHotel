@@ -20,6 +20,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { MatchRequestButton } from '@/components/match-request-button'
+import { MemberSafetyControls } from '@/components/member-safety-controls'
 import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
 import { authOptions } from '@/lib/auth'
@@ -31,6 +32,7 @@ import {
 } from '@/actions/user-actions'
 import { findOrCreateConversation } from '@/actions/conversation-actions'
 import { recordProfileView } from '@/actions/product-activity-actions'
+import { getMemberSafetyState } from '@/actions/member-safety-actions'
 
 type SessionUser = {
   id?: string
@@ -112,8 +114,11 @@ export default async function ProfilePage ({
   const profile = userProfileData.user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
+  let safetyState = { blockedByMe: false, blockedMe: false, canInteract: true }
   if (currentUser?.id && currentUser.id !== id) {
-    await recordProfileView(id)
+    safetyState = await getMemberSafetyState(id)
+    if (safetyState.blockedMe && !safetyState.blockedByMe) notFound()
+    if (safetyState.canInteract) await recordProfileView(id)
   }
   const galleryPortrait = userProfileData.photos.find((photo: any) => photo.is_primary)?.url || userProfileData.photos[0]?.url
   const avatar = galleryPortrait || profileImage(profile)
@@ -124,7 +129,7 @@ export default async function ProfilePage ({
 
   let matchStatus: any = null
   let isRequester = false
-  if (currentUser?.id && currentUser.id !== profile.user_id) {
+  if (currentUser?.id && currentUser.id !== profile.user_id && safetyState.canInteract) {
     matchStatus = await getMatchStatus(String(currentUser.id), String(profile.user_id))
     isRequester = Boolean(matchStatus && matchStatus.user_id_1 === currentUser.id)
   }
@@ -221,7 +226,7 @@ export default async function ProfilePage ({
                   </p>
 
                   <div className='mt-4'>
-                  {matchStatus === null && (
+                  {matchStatus === null && safetyState.canInteract && (
                     canShowActions ? (
                       <MatchRequestButton
                         currentUserId={String(currentUser.id)}
@@ -282,10 +287,15 @@ export default async function ProfilePage ({
                   {matchStatus?.status === 'rejected' && (
                     <div className='text-sm text-white/58'>Cette demande de match a été refusée.</div>
                   )}
+                  {!safetyState.canInteract && (
+                    <div className='rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm text-white/58'>
+                      Les interactions avec ce membre sont désactivées.
+                    </div>
+                  )}
                   </div>
                 </div>
 
-                {canShowActions && (
+                {canShowActions && safetyState.canInteract && (
                   <div className='mt-4 grid gap-2 border-t border-white/10 pt-4'>
                     <Button asChild variant='outline' className='w-full justify-start border-white/12 bg-transparent'>
                       <Link href='/events'>
@@ -299,6 +309,15 @@ export default async function ProfilePage ({
                         Proposer une Love Room
                       </Link>
                     </Button>
+                  </div>
+                )}
+                {canShowActions && (
+                  <div className='mt-4 border-t border-white/10 pt-4'>
+                    <MemberSafetyControls
+                      memberId={String(profile.user_id)}
+                      memberName={String(profile.name || 'ce membre')}
+                      initialState={safetyState}
+                    />
                   </div>
                 )}
               </aside>
