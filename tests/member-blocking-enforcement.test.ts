@@ -17,6 +17,7 @@ describe('personal block enforcement', () => {
     expect(users).toContain('FROM user_blocks ub')
     expect(users).toContain('ub.blocker_id = $1 AND ub.blocked_id = u.id')
     expect(users).toContain('ub.blocker_id = u.id AND ub.blocked_id = $1')
+    expect(users.match(/FROM user_blocks ub/g)?.length).toBeGreaterThanOrEqual(3)
   })
 
   it('keeps conversation history while returning a read-only interaction state', () => {

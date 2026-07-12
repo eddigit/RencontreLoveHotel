@@ -179,6 +179,12 @@ export async function getOnlineCommunityMembers(limit = 12) {
         AND u.onboarding_completed = TRUE
         AND COALESCE(u.is_banned, false) = false
         AND COALESCE(u.status, 'active') <> 'banned'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM user_blocks ub
+          WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
+             OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
+        )
         AND ${onlineCondition}
       ORDER BY (u.id = $1) DESC, u.last_seen_at DESC
       LIMIT $2
@@ -206,12 +212,18 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   const pageSize = Number.isFinite(requestedPageSize)
     ? Math.min(48, Math.max(12, Math.floor(requestedPageSize)))
     : 24
-  const params: unknown[] = []
+  const params: unknown[] = [currentUser.id]
   const whereClauses = [
     'up.display_profile = TRUE',
     'u.onboarding_completed = TRUE',
     'COALESCE(u.is_banned, false) = false',
-    "COALESCE(u.status, 'active') <> 'banned'"
+    "COALESCE(u.status, 'active') <> 'banned'",
+    `NOT EXISTS (
+      SELECT 1
+      FROM user_blocks ub
+      WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
+         OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
+    )`
   ]
 
   const addParam = (value: unknown) => {

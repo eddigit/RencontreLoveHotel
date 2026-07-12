@@ -105,6 +105,14 @@ export async function getUserConversations(userId?: string) {
           AND unread_messages.sender_id != $1
           AND COALESCE(unread_messages.is_read, false) = false
       )::int AS unread_count
+      ,EXISTS (
+        SELECT 1 FROM user_blocks ub
+        WHERE ub.blocker_id = $1 AND ub.blocked_id = cu.user_id
+      ) AS blocked_by_me
+      ,EXISTS (
+        SELECT 1 FROM user_blocks ub
+        WHERE ub.blocker_id = cu.user_id AND ub.blocked_id = $1
+      ) AS blocked_me
       ,NOT EXISTS (
         SELECT 1
         FROM user_blocks ub
