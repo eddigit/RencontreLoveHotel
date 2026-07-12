@@ -12,6 +12,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 import {
   declineMatchRequest,
   getIncomingMatchRequests,
@@ -93,6 +94,7 @@ export default function MatchesPage () {
         setIncoming(incomingProfiles.filter(Boolean) as MatchProfile[])
         setOutgoing(outgoingProfiles.filter(Boolean) as MatchProfile[])
       } catch (err) {
+        if (recoverFromStaleServerAction(err)) return
         console.error('Failed to fetch matches data:', err)
         setError('Impossible de charger les matchs pour le moment.')
       } finally {
