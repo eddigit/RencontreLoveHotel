@@ -7,6 +7,7 @@ import { messageSchema, getMessagesSchema, createConversationSchema, validateSch
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireAdmin } from '@/lib/server-auth'
+import { assertUsersCanInteract } from '@/lib/member-safety'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -104,6 +105,12 @@ export async function getUserConversations(userId?: string) {
           AND unread_messages.sender_id != $1
           AND COALESCE(unread_messages.is_read, false) = false
       )::int AS unread_count
+      ,NOT EXISTS (
+        SELECT 1
+        FROM user_blocks ub
+        WHERE (ub.blocker_id = $1 AND ub.blocked_id = cu.user_id)
+           OR (ub.blocker_id = cu.user_id AND ub.blocked_id = $1)
+      ) AS can_interact
     FROM valid_conversations vc
     LEFT JOIN last_messages lm ON vc.id = lm.conversation_id AND lm.rn = 1
     LEFT JOIN conversation_users cu ON vc.id = cu.conversation_id
@@ -354,6 +361,10 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
     [conversationId, senderId]
   )
 
+  for (const recipient of recipients) {
+    await assertUsersCanInteract(senderId, recipient.user_id)
+  }
+
   const [conversationAccess] = await sql.query(
     `SELECT c.access_mode,
             EXISTS (SELECT 1 FROM messages m WHERE m.conversation_id = c.id) AS has_history
@@ -469,6 +480,9 @@ export async function findOrCreateConversation(userId1: string, userId2: string)
     })
     throw new Error('Vous devez être participant de la conversation que vous créez')
   }
+
+  await assertUsersCanInteract(userId1, userId2)
+
   // Check if a conversation already exists between the two users
   const existingRows = await sql.query(
     `SELECT c.id FROM conversations c JOIN conversation_participants cp1 ON c.id = cp1.conversation_id JOIN conversation_participants cp2 ON c.id = cp2.conversation_id WHERE (cp1.user_id = $1 AND cp2.user_id = $2) OR (cp1.user_id = $2 AND cp2.user_id = $1);`,

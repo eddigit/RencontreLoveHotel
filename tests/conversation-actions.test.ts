@@ -18,6 +18,10 @@ vi.mock('@/lib/notification-service', () => ({
   createNotificationRecord: vi.fn()
 }))
 
+vi.mock('@/lib/member-safety', () => ({
+  assertUsersCanInteract: vi.fn()
+}))
+
 // mock logger module
 vi.mock('../utils/logger', () => ({
   log: vi.fn()
@@ -32,16 +36,20 @@ import {
   getUserConversations,
   getConversationMessagesAfter,
   getConversationMessages,
+  findOrCreateConversation,
   markConversationMessagesAsRead,
   sendMessage
 } from '../actions/conversation-actions'
 import { sql } from '../lib/db'
 import { getServerSession } from 'next-auth/next'
+import { assertUsersCanInteract } from '@/lib/member-safety'
 
 describe('conversation-actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
     ;(getServerSession as any).mockReset()
+    ;(assertUsersCanInteract as any).mockReset()
+    ;(assertUsersCanInteract as any).mockResolvedValue(undefined)
   })
 
   it('denies access to getConversationMessages when user is not participant', async () => {
@@ -58,6 +66,42 @@ describe('conversation-actions', () => {
     
     ;(sql.query as any).mockResolvedValueOnce([]) // participant check
     await expect(sendMessage({ conversationId: '550e8400-e29b-41d4-a716-446655440001', senderId: '550e8400-e29b-41d4-a716-446655440099', content: 'hi' })).rejects.toThrow('Access denied')
+  })
+
+  it('denies sending a message when either member blocked the other', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+    ;(assertUsersCanInteract as any).mockRejectedValueOnce(
+      new Error('Cette interaction n’est pas disponible entre ces membres.')
+    )
+
+    await expect(sendMessage({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      senderId: '550e8400-e29b-41d4-a716-446655440099',
+      content: 'Message interdit'
+    })).rejects.toThrow('interaction')
+
+    expect(sql.query).toHaveBeenCalledTimes(2)
+  })
+
+  it('denies creating or reopening a conversation between blocked members', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(assertUsersCanInteract as any).mockRejectedValueOnce(
+      new Error('Cette interaction n’est pas disponible entre ces membres.')
+    )
+
+    await expect(findOrCreateConversation(
+      '550e8400-e29b-41d4-a716-446655440099',
+      '550e8400-e29b-41d4-a716-446655440098'
+    )).rejects.toThrow('interaction')
+
+    expect(sql.query).not.toHaveBeenCalled()
   })
 
   it('lists conversations opened by admins even without accepted match', async () => {

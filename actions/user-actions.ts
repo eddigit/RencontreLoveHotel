@@ -12,6 +12,7 @@ import {
   onlinePresenceCondition
 } from "@/lib/presence"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { assertUsersCanInteract } from '@/lib/member-safety'
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 import { recordProductActivity } from '@/lib/product-activity'
 
@@ -346,6 +347,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     };
   }
 
+  await requireSameUserOrAdmin(currentUserId)
+
   let currentUserProfileGender: string | undefined;
   let currentUserProfileOrientation: string | undefined;
   const hasPresenceColumn = await ensurePresenceSchema();
@@ -386,6 +389,12 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   whereClauses.push("u.onboarding_completed = TRUE");
   whereClauses.push("COALESCE(u.is_banned, false) = false");
   whereClauses.push("COALESCE(u.status, 'active') <> 'banned'");
+  whereClauses.push(`NOT EXISTS (
+    SELECT 1
+    FROM user_blocks ub
+    WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
+       OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
+  )`);
 
   if (currentUserProfileGender && currentUserProfileOrientation) {
     // console.log(`[getDiscoverProfiles] Applying primary gender/orientation compatibility logic for current user: ${currentUserProfileGender}/${currentUserProfileOrientation}.`);
@@ -656,6 +665,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 // Send a match request (creates a pending match if not already exists)
 export async function sendMatchRequest(requesterId: string, receiverId: string) {
   await requireSameUserOrAdmin(requesterId)
+  await assertUsersCanInteract(requesterId, receiverId)
 
   if (requesterId === receiverId) return { success: false, error: "Vous ne pouvez pas vous matcher vous-même." }
   // Check if receiver exists
@@ -710,6 +720,7 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
 // Accept a match request (receiver accepts request from requester)
 export async function acceptMatchRequest(requesterId: string, receiverId: string) {
   await requireSameUserOrAdmin(receiverId)
+  await assertUsersCanInteract(requesterId, receiverId)
 
   try {
     const result = await sql`
