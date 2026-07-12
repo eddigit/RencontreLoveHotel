@@ -24,6 +24,7 @@ describe('personal block enforcement', () => {
     expect(conversations).toContain('AS can_interact')
     expect(conversations).toContain('AS has_message_access')
     expect(conversations).toContain('vc.has_message_access')
+    expect(conversations).toContain('FROM messages preserved_history')
     expect(conversations).toContain('FROM user_blocks ub')
     expect(conversations).toContain('FROM user_blocks blocked_relationship')
   })

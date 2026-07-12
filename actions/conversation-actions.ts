@@ -75,6 +75,11 @@ export async function getUserConversations(userId?: string) {
         OR other_user.role = 'admin'
         OR EXISTS (
           SELECT 1
+          FROM messages preserved_history
+          WHERE preserved_history.conversation_id = uc.id
+        )
+        OR EXISTS (
+          SELECT 1
           FROM user_blocks blocked_relationship
           WHERE (blocked_relationship.blocker_id = $1 AND blocked_relationship.blocked_id = cp_other.user_id)
              OR (blocked_relationship.blocker_id = cp_other.user_id AND blocked_relationship.blocked_id = $1)
