@@ -46,7 +46,21 @@ export async function getUserConversations(userId?: string) {
       WHERE cp.user_id = $1
     ),
     valid_conversations AS (
-      SELECT DISTINCT uc.id, uc.created_at, uc.updated_at, uc.access_mode
+      SELECT DISTINCT
+        uc.id,
+        uc.created_at,
+        uc.updated_at,
+        uc.access_mode,
+        (
+          uc.access_mode = 'admin'
+          OR (
+            uc.access_mode = 'legacy_import'
+            AND EXISTS (SELECT 1 FROM messages history_message WHERE history_message.conversation_id = uc.id)
+          )
+          OR um.id IS NOT NULL
+          OR viewer_user.role = 'admin'
+          OR other_user.role = 'admin'
+        ) AS has_message_access
       FROM user_conversations uc
       JOIN conversation_participants cp_other ON uc.id = cp_other.conversation_id AND cp_other.user_id != $1
       JOIN users viewer_user ON viewer_user.id = $1
@@ -119,11 +133,14 @@ export async function getUserConversations(userId?: string) {
         SELECT 1 FROM user_blocks ub
         WHERE ub.blocker_id = cu.user_id AND ub.blocked_id = $1
       ) AS blocked_me
-      ,NOT EXISTS (
-        SELECT 1
-        FROM user_blocks ub
-        WHERE (ub.blocker_id = $1 AND ub.blocked_id = cu.user_id)
-           OR (ub.blocker_id = cu.user_id AND ub.blocked_id = $1)
+      ,(
+        vc.has_message_access
+        AND NOT EXISTS (
+          SELECT 1
+          FROM user_blocks ub
+          WHERE (ub.blocker_id = $1 AND ub.blocked_id = cu.user_id)
+             OR (ub.blocker_id = cu.user_id AND ub.blocked_id = $1)
+        )
       ) AS can_interact
     FROM valid_conversations vc
     LEFT JOIN last_messages lm ON vc.id = lm.conversation_id AND lm.rn = 1

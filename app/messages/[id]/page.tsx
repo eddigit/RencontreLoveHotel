@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { use, useEffect, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -180,48 +180,48 @@ export default function ConversationPage ({
     }
   }, [])
 
-  useEffect(() => {
-    async function fetchData () {
-      if (!session?.user?.id || !id) return
+  const fetchData = useCallback(async () => {
+    if (!session?.user?.id || !id) return
 
-      setLoading(true)
-      setError(null)
-      try {
-        const fetchedMessages = await getConversationMessages(id, session.user.id)
-        setMessages(fetchedMessages as Message[])
-        await markConversationMessagesAsRead(id, session.user.id)
-        setLastSyncedAt(new Date())
+    setLoading(true)
+    setError(null)
+    try {
+      const fetchedMessages = await getConversationMessages(id, session.user.id)
+      setMessages(fetchedMessages as Message[])
+      await markConversationMessagesAsRead(id, session.user.id)
+      setLastSyncedAt(new Date())
 
-        const userConversations = await getUserConversations(session.user.id)
-        const currentConv = userConversations.find((conv: any) => conv.id === id)
-        if (currentConv) {
-          setConversationDetails({
-            id: currentConv.id,
-            other_user_id: currentConv.other_user_id,
-            other_user_name: currentConv.other_user_name,
-            other_user_avatar: currentConv.other_user_avatar,
-            access_mode: currentConv.access_mode || 'match',
-            blocked_by_me: currentConv.blocked_by_me === true,
-            blocked_me: currentConv.blocked_me === true,
-            can_interact: currentConv.can_interact !== false
-          })
-        } else {
-          setError('Conversation introuvable ou non autorisée.')
-        }
-      } catch (error) {
-        console.error('Failed to fetch conversation data:', error)
-        if (error instanceof Error && error.message.includes('Access denied')) {
-          setError('Vous n’avez pas accès à cette conversation.')
-        } else {
-          setError('Une erreur est survenue lors du chargement de la conversation.')
-        }
-      } finally {
-        setLoading(false)
+      const userConversations = await getUserConversations(session.user.id)
+      const currentConv = userConversations.find((conv: any) => conv.id === id)
+      if (currentConv) {
+        setConversationDetails({
+          id: currentConv.id,
+          other_user_id: currentConv.other_user_id,
+          other_user_name: currentConv.other_user_name,
+          other_user_avatar: currentConv.other_user_avatar,
+          access_mode: currentConv.access_mode || 'match',
+          blocked_by_me: currentConv.blocked_by_me === true,
+          blocked_me: currentConv.blocked_me === true,
+          can_interact: currentConv.can_interact !== false
+        })
+      } else {
+        setError('Conversation introuvable ou non autorisée.')
       }
+    } catch (error) {
+      console.error('Failed to fetch conversation data:', error)
+      if (error instanceof Error && error.message.includes('Access denied')) {
+        setError('Vous n’avez pas accès à cette conversation.')
+      } else {
+        setError('Une erreur est survenue lors du chargement de la conversation.')
+      }
+    } finally {
+      setLoading(false)
     }
-
-    fetchData()
   }, [session?.user?.id, id])
+
+  useEffect(() => {
+    void fetchData()
+  }, [fetchData])
 
   useEffect(() => {
     if (!session?.user?.id || !id || loading || error) return
@@ -446,11 +446,16 @@ export default function ConversationPage ({
   const canSend = Boolean(conversationDetails?.can_interact) && (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
 
   const handleInteractionChange = (state: MemberSafetyState) => {
+    if (state.canInteract) {
+      void fetchData()
+      return
+    }
+
     setConversationDetails(current => current ? {
       ...current,
       blocked_by_me: state.blockedByMe,
       blocked_me: state.blockedMe,
-      can_interact: state.canInteract
+      can_interact: false
     } : current)
   }
 

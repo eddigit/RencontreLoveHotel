@@ -30,5 +30,6 @@ describe('member links and safety UI', () => {
     expect(conversation).toContain('Conversation en lecture seule')
     expect(conversation).toContain('conversationDetails?.can_interact')
     expect(conversation).toContain('disabled={!conversationDetails?.can_interact')
+    expect(conversation).toContain('void fetchData()')
   })
 })
