@@ -11,6 +11,10 @@ vi.mock('@/lib/notification-service', () => ({
   createNotificationRecord: vi.fn()
 }))
 
+vi.mock('@/lib/member-safety', () => ({
+  assertUsersCanInteract: vi.fn().mockResolvedValue(undefined)
+}))
+
 vi.mock('../utils/logger', () => ({
   log: vi.fn()
 }))

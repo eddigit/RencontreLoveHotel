@@ -4,18 +4,7 @@ import { sql } from '@/lib/db'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 import { getBlockRelationship } from '@/lib/member-safety'
-
-export const profileReportReasons = [
-  'harassment',
-  'fake_profile',
-  'inappropriate_content',
-  'spam',
-  'dangerous_behavior',
-  'community_rules',
-  'other'
-] as const
-
-export type ProfileReportReason = typeof profileReportReasons[number]
+import { profileReportReasons, type ProfileReportReason } from '@/lib/member-safety-types'
 
 const reportReasonLabels: Record<ProfileReportReason, string> = {
   harassment: 'Comportement irrespectueux ou harcèlement',

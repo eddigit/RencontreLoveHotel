@@ -26,11 +26,10 @@ import {
 } from '@/components/ui/dialog'
 import {
   blockMember,
-  profileReportReasons,
   reportProfile,
-  unblockMember,
-  type ProfileReportReason
+  unblockMember
 } from '@/actions/member-safety-actions'
+import { profileReportReasons, type ProfileReportReason } from '@/lib/member-safety-types'
 
 export type MemberSafetyState = {
   blockedByMe: boolean
