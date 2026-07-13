@@ -22,4 +22,13 @@ describe('member account navigation', () => {
       'Compte'
     )
   })
+
+  it('keeps the desktop sidebar and account control inside the viewport', () => {
+    const shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
+
+    expect(shell).toContain('lg:sticky lg:top-3')
+    expect(shell).toContain('lg:h-[calc(100dvh-1.5rem)]')
+    expect(shell).toContain("<nav className='min-h-0 flex-1 overflow-y-auto")
+    expect(shell).toContain("<div className='shrink-0 pt-4'>")
+  })
 })

@@ -55,10 +55,10 @@ export function LhrV2Shell ({
   return (
     <section className='lhr-v2-shell-root min-h-screen bg-[radial-gradient(circle_at_12%_0%,rgba(255,59,139,0.22),transparent_28%),linear-gradient(135deg,#170522_0%,#26063a_52%,#13031f_100%)] px-2 py-3 text-white sm:px-3 lg:px-4 2xl:px-5'>
       <div className='lhr-v2-shell-grid grid min-h-[calc(100vh-1.5rem)] w-full gap-4 lg:grid-cols-[220px_minmax(0,1fr)] 2xl:gap-5'>
-        <aside className='hidden rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex lg:flex-col'>
+        <aside className='hidden rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:sticky lg:top-3 lg:flex lg:h-[calc(100dvh-1.5rem)] lg:self-start lg:flex-col'>
           <Link
             href='/discover'
-            className='mb-6 block overflow-hidden rounded-2xl border border-white/10 bg-black'
+            className='mb-6 block shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-black'
           >
             <span className='relative block aspect-[1162/1354] w-full'>
               <Image
@@ -72,7 +72,7 @@ export function LhrV2Shell ({
             </span>
           </Link>
 
-          <nav className='space-y-2'>
+          <nav className='min-h-0 flex-1 overflow-y-auto overscroll-contain space-y-2 [scrollbar-width:thin]'>
             {navItems.map(item => {
               const Icon = item.icon
               const active =
@@ -107,7 +107,7 @@ export function LhrV2Shell ({
             )}
           </nav>
 
-          <div className='mt-auto pt-4'>
+          <div className='shrink-0 pt-4'>
             <MemberAccountMenu user={user} />
           </div>
         </aside>
