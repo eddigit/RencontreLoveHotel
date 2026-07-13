@@ -32,4 +32,12 @@ describe('member account navigation', () => {
     expect(shell).toContain("<nav className='min-h-0 flex-1 overflow-y-auto")
     expect(shell).toContain("<div className='shrink-0 pt-4'>")
   })
+
+  it('does not create a containing block around the fixed mobile navigation', () => {
+    const shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
+    const mainClasses = shell.match(/<main className='([^']+)'/)?.[1]
+
+    expect(mainClasses).toBeDefined()
+    expect(mainClasses).not.toContain('backdrop-blur')
+  })
 })

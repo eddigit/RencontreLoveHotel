@@ -114,7 +114,7 @@ export function LhrV2Shell ({
           </aside>
         </div>
 
-        <main className='overflow-hidden rounded-2xl border border-white/10 bg-[#180422]/78 shadow-2xl shadow-black/25 backdrop-blur-xl'>
+        <main className='overflow-hidden rounded-2xl border border-white/10 bg-[#180422]/78 shadow-2xl shadow-black/25'>
           <header className='flex flex-col gap-4 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-5'>
             <div>
               {eyebrow && (
