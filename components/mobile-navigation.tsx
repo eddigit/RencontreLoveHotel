@@ -49,13 +49,13 @@ export function MobileNavigation () {
 
   return (
     <div className='fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-[#1a0d2e] to-[#3d1155] border-t border-purple-900/30 md:hidden'>
-      <nav className='flex items-center justify-around'>
+      <nav className='grid grid-cols-6 items-stretch'>
         {links.map(link => (
           <Link
             key={link.href}
             href={link.href}
             className={cn(
-              'flex flex-col items-center justify-center py-2 px-3 relative',
+              'relative flex min-w-0 flex-col items-center justify-center px-1 py-2',
               link.active ? 'text-[#ff3b8b]' : 'text-purple-200/70'
             )}
           >
@@ -63,11 +63,13 @@ export function MobileNavigation () {
               <link.icon className='h-6 w-6' />
               {link.badge && <NotificationBadge count={link.badge} />}
             </div>
-            <span className='text-xs mt-1'>{link.label}</span>
+            <span className='mt-1 max-w-full truncate text-[10px] leading-none'>
+              {link.label}
+            </span>
             {link.active && (
               <motion.div
                 layoutId='navigation-indicator'
-                className='absolute bottom-0 h-1 w-12 bg-[#ff3b8b] rounded-t-full'
+                className='absolute bottom-0 h-1 w-10 rounded-t-full bg-[#ff3b8b]'
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}

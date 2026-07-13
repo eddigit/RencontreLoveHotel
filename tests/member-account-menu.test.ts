@@ -23,6 +23,16 @@ describe('member account navigation', () => {
     )
   })
 
+  it('fits all six mobile navigation actions inside the viewport', () => {
+    const mobile = readFileSync('components/mobile-navigation.tsx', 'utf8')
+    const menu = readFileSync('components/member-account-menu.tsx', 'utf8')
+
+    expect(mobile).toContain("<nav className='grid grid-cols-6")
+    expect(mobile).toContain('min-w-0')
+    expect(mobile).toContain('px-1')
+    expect(menu).toContain('w-full')
+  })
+
   it('keeps the desktop sidebar and account control inside the viewport', () => {
     const shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
 

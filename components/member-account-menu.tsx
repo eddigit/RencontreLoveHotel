@@ -47,11 +47,11 @@ export function MemberAccountMenu ({
         {isMobile ? (
           <button
             type='button'
-            className='relative flex min-w-0 flex-1 flex-col items-center justify-center px-2 py-2 text-purple-200/70 transition hover:text-white data-[state=open]:text-[#ff3b8b]'
+            className='relative flex min-w-0 w-full flex-col items-center justify-center px-1 py-2 text-purple-200/70 transition hover:text-white data-[state=open]:text-[#ff3b8b]'
             aria-label='Ouvrir le menu du compte'
           >
             <AccountAvatar user={user} initial={initial} size='small' />
-            <span className='mt-1 text-xs'>Compte</span>
+            <span className='mt-1 text-[10px] leading-none'>Compte</span>
           </button>
         ) : (
           <button
