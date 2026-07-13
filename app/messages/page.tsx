@@ -12,8 +12,8 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
-import { useNotifications } from '@/contexts/notification-context'
 import { getUserConversations } from '@/actions/conversation-actions'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 interface Conversation {
   id: string
@@ -46,7 +46,6 @@ export default function MessagesPage () {
   const { user: authUser } = useAuth()
   const router = useRouter()
   const { data: session } = useSession()
-  const { markAsRead } = useNotifications()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -82,6 +81,7 @@ export default function MessagesPage () {
           }))
         )
       } catch (error) {
+        if (recoverFromStaleServerAction(error)) return
         console.error('Failed to fetch conversations:', error)
         if (!cancelled) setError('Impossible de charger vos conversations pour le moment.')
       } finally {
@@ -100,7 +100,7 @@ export default function MessagesPage () {
       cancelled = true
       clearInterval(interval)
     }
-  }, [session?.user?.id, markAsRead])
+  }, [session?.user?.id])
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase()

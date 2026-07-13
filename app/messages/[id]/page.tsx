@@ -30,6 +30,7 @@ import {
 } from '@/actions/conversation-actions'
 import { useNotifications } from '@/contexts/notification-context'
 import { MemberSafetyControls, type MemberSafetyState } from '@/components/member-safety-controls'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 interface MessageAttachment {
   id?: string
@@ -208,6 +209,7 @@ export default function ConversationPage ({
         setError('Conversation introuvable ou non autorisée.')
       }
     } catch (error) {
+      if (recoverFromStaleServerAction(error)) return
       console.error('Failed to fetch conversation data:', error)
       if (error instanceof Error && error.message.includes('Access denied')) {
         setError('Vous n’avez pas accès à cette conversation.')
@@ -271,6 +273,7 @@ export default function ConversationPage ({
 
         setLastSyncedAt(new Date())
       } catch (error) {
+        if (recoverFromStaleServerAction(error)) return
         console.error('Failed to sync new messages:', error)
       } finally {
         inFlight = false
@@ -436,6 +439,7 @@ export default function ConversationPage ({
       )
       setMessage(currentMessage)
       setPendingAttachments(attachmentsToSend)
+      if (recoverFromStaleServerAction(error)) return
       setSendError('Le message n’a pas pu être envoyé. Réessayez dans un instant.')
     } finally {
       setSending(false)
