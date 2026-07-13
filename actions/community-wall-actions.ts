@@ -90,6 +90,7 @@ export type CommunityWallComment = {
   body: string
   status: WallStatus
   created_at: string | Date
+  updated_at?: string | Date
   author_name?: string | null
   author_avatar?: string | null
   has_reported?: boolean
@@ -378,6 +379,7 @@ export async function getWallComments(input: {
         wc.body,
         wc.status,
         wc.created_at,
+        wc.updated_at,
         u.name AS author_name,
         u.avatar AS author_avatar,
         EXISTS (
@@ -894,6 +896,134 @@ export async function reportWallComment(input: {
     targetId: input.commentId,
     reason: input.reason
   })
+}
+
+export async function updateOwnWallPost(input: {
+  postId: string
+  body: string
+}) {
+  const user = await requireCurrentUser()
+  const [post] = await sql.query<Array<{ user_id: string; image_url?: string | null }>>(
+    `SELECT user_id, image_url FROM wall_posts WHERE id = $1 AND status <> 'removed' LIMIT 1`,
+    [input.postId]
+  )
+
+  if (!post || post.user_id !== user.id) {
+    throw new Error('Vous ne pouvez modifier que votre propre annonce')
+  }
+
+  const body = normalizeBody(input.body, 500, 'Annonce', {
+    allowEmpty: Boolean(post.image_url)
+  })
+  const matchedRules = await getMatchedModerationRules(body)
+  const status: WallStatus = matchedRules.length > 0 ? 'hidden' : 'active'
+  const [updatedPost] = await sql.query<Array<{
+    id: string
+    status: WallStatus
+    updated_at: string | Date
+  }>>(
+    `UPDATE wall_posts
+     SET body = $2,
+         status = $3,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+       AND user_id = $4
+     RETURNING id, status, updated_at`,
+    [input.postId, body, status, user.id]
+  )
+
+  if (!updatedPost) {
+    throw new Error('Vous ne pouvez modifier que votre propre annonce')
+  }
+
+  if (matchedRules.length > 0) {
+    await queueWallModeration({
+      sourceType: 'wall_post',
+      sourceId: input.postId,
+      userId: user.id,
+      severity: pickSeverity(matchedRules),
+      reason: 'Mot-cle detecte apres modification d’une annonce du mur',
+      matchedKeywords: matchedRules.map(rule => rule.keyword),
+      excerpt: excerptText(body),
+      metadata: { editedByAuthor: true }
+    })
+  }
+
+  return { success: true, ...updatedPost }
+}
+
+export async function updateOwnWallComment(input: {
+  commentId: string
+  body: string
+}) {
+  const user = await requireCurrentUser()
+  const [comment] = await sql.query<Array<{ user_id: string; post_id: string }>>(
+    `SELECT user_id, post_id FROM wall_comments WHERE id = $1 AND status <> 'removed' LIMIT 1`,
+    [input.commentId]
+  )
+
+  if (!comment || comment.user_id !== user.id) {
+    throw new Error('Vous ne pouvez modifier que votre propre commentaire')
+  }
+
+  const body = normalizeBody(input.body, 300, 'Commentaire')
+  const matchedRules = await getMatchedModerationRules(body)
+  const status: WallStatus = matchedRules.length > 0 ? 'hidden' : 'active'
+  const [updatedComment] = await sql.query<Array<{
+    id: string
+    status: WallStatus
+    updated_at: string | Date
+  }>>(
+    `UPDATE wall_comments
+     SET body = $2,
+         status = $3,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+       AND user_id = $4
+     RETURNING id, status, updated_at`,
+    [input.commentId, body, status, user.id]
+  )
+
+  if (!updatedComment) {
+    throw new Error('Vous ne pouvez modifier que votre propre commentaire')
+  }
+
+  if (matchedRules.length > 0) {
+    await queueWallModeration({
+      sourceType: 'wall_comment',
+      sourceId: input.commentId,
+      userId: user.id,
+      severity: pickSeverity(matchedRules),
+      reason: 'Mot-cle detecte apres modification d’un commentaire du mur',
+      matchedKeywords: matchedRules.map(rule => rule.keyword),
+      excerpt: excerptText(body),
+      metadata: { postId: comment.post_id, editedByAuthor: true }
+    })
+  }
+
+  return { success: true, ...updatedComment }
+}
+
+export async function removeOwnWallComment(input: {
+  commentId: string
+}) {
+  const user = await requireCurrentUser()
+  const [removedComment] = await sql.query<Array<{ id: string }>>(
+    `UPDATE wall_comments
+     SET status = 'removed',
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+       AND user_id = $2
+       AND status <> 'removed'
+     RETURNING id`,
+    [input.commentId, user.id]
+  )
+
+  if (!removedComment) {
+    throw new Error('Vous ne pouvez supprimer que votre propre commentaire')
+  }
+
+  return { success: true }
 }
 
 export async function removeOwnWallPost(input: {

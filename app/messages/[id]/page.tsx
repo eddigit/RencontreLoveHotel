@@ -7,12 +7,15 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   CalendarHeart,
+  Check,
   ImageIcon,
   Mic,
   Paperclip,
+  Pencil,
   Send,
   Sparkles,
   Square,
+  Trash2,
   Video,
   X
 } from 'lucide-react'
@@ -26,7 +29,9 @@ import {
   getConversationMessages,
   getUserConversations,
   markConversationMessagesAsRead,
-  sendMessage
+  sendMessage,
+  updateOwnMessage,
+  deleteOwnMessage
 } from '@/actions/conversation-actions'
 import { useNotifications } from '@/contexts/notification-context'
 import { MemberSafetyControls, type MemberSafetyState } from '@/components/member-safety-controls'
@@ -54,6 +59,9 @@ interface Message {
   sender_id: string
   content: string
   created_at: string
+  updated_at?: string
+  edited_at?: string | null
+  deleted_at?: string | null
   sender_name?: string
   sender_avatar?: string
   attachments?: MessageAttachment[]
@@ -144,6 +152,9 @@ export default function ConversationPage ({
   const [error, setError] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
+  const [editingMessageContent, setEditingMessageContent] = useState('')
+  const [messageActionId, setMessageActionId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
@@ -235,9 +246,12 @@ export default function ConversationPage ({
     async function syncNewMessages () {
       if (cancelled || inFlight || document.visibilityState === 'hidden') return
 
-      const currentMessages = messagesRef.current
-      const lastMessage = currentMessages[currentMessages.length - 1]
-      const afterCursor = lastMessage?.created_at || '1970-01-01T00:00:00.000Z'
+      const latestKnownTimestamp = messagesRef.current.reduce((latest, item) => {
+        const createdAt = new Date(item.created_at).getTime()
+        const updatedAt = item.updated_at ? new Date(item.updated_at).getTime() : createdAt
+        return Math.max(latest, createdAt, updatedAt)
+      }, 0)
+      const afterCursor = new Date(Math.max(0, latestKnownTimestamp - 5000)).toISOString()
 
       inFlight = true
       setSyncing(true)
@@ -249,29 +263,27 @@ export default function ConversationPage ({
           authenticatedUserId
         ) as Message[]
 
+        const syncedAt = new Date()
+
         if (cancelled || freshMessages.length === 0) {
-          setLastSyncedAt(new Date())
+          setLastSyncedAt(syncedAt)
           return
         }
 
-        const existingIds = new Set(messagesRef.current.map(item => item.id))
-        const unseenMessages = freshMessages.filter(item => !existingIds.has(item.id))
+        setMessages(prevMessages => {
+          const freshById = new Map(freshMessages.map(item => [item.id, item]))
+          const prevIds = new Set(prevMessages.map(item => item.id))
+          return [
+            ...prevMessages.map(item => freshById.get(item.id) || item),
+            ...freshMessages.filter(item => !prevIds.has(item.id))
+          ]
+        })
 
-        if (unseenMessages.length > 0) {
-          setMessages(prevMessages => {
-            const prevIds = new Set(prevMessages.map(item => item.id))
-            return [
-              ...prevMessages,
-              ...unseenMessages.filter(item => !prevIds.has(item.id))
-            ]
-          })
-
-          if (unseenMessages.some(item => item.sender_id !== authenticatedUserId)) {
-            await markConversationMessagesAsRead(id, authenticatedUserId)
-          }
+        if (freshMessages.some(item => item.sender_id !== authenticatedUserId)) {
+          await markConversationMessagesAsRead(id, authenticatedUserId)
         }
 
-        setLastSyncedAt(new Date())
+        setLastSyncedAt(syncedAt)
       } catch (error) {
         if (recoverFromStaleServerAction(error)) return
         console.error('Failed to sync new messages:', error)
@@ -446,6 +458,62 @@ export default function ConversationPage ({
     }
   }
 
+  const startEditingMessage = (item: Message) => {
+    setEditingMessageId(item.id)
+    setEditingMessageContent(item.content)
+    setSendError(null)
+  }
+
+  const cancelEditingMessage = () => {
+    setEditingMessageId(null)
+    setEditingMessageContent('')
+  }
+
+  const saveEditedMessage = async () => {
+    if (!editingMessageId || !editingMessageContent.trim()) return
+
+    setMessageActionId(editingMessageId)
+    setSendError(null)
+    try {
+      const updated = await updateOwnMessage({
+        messageId: editingMessageId,
+        conversationId: id,
+        content: editingMessageContent
+      }) as Message
+      setMessages(current => current.map(item =>
+        item.id === editingMessageId ? { ...item, ...updated } : item
+      ))
+      cancelEditingMessage()
+    } catch (error) {
+      if (recoverFromStaleServerAction(error)) return
+      setSendError(error instanceof Error ? error.message : 'Modification impossible.')
+    } finally {
+      setMessageActionId(null)
+    }
+  }
+
+  const removeMessage = async (messageId: string) => {
+    if (!window.confirm('Supprimer ce message ? Cette action ne peut pas être annulée.')) return
+
+    setMessageActionId(messageId)
+    setSendError(null)
+    try {
+      const deleted = await deleteOwnMessage({
+        messageId,
+        conversationId: id
+      }) as Message
+      setMessages(current => current.map(item =>
+        item.id === messageId ? { ...item, ...deleted, attachments: [] } : item
+      ))
+      if (editingMessageId === messageId) cancelEditingMessage()
+    } catch (error) {
+      if (recoverFromStaleServerAction(error)) return
+      setSendError(error instanceof Error ? error.message : 'Suppression impossible.')
+    } finally {
+      setMessageActionId(null)
+    }
+  }
+
   const currentUserId = session?.user?.id
   const canSend = Boolean(conversationDetails?.can_interact) && (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
 
@@ -574,7 +642,7 @@ export default function ConversationPage ({
                                   : 'rounded-bl-md border border-white/10 bg-white/10 text-white shadow-black/10'
                               ].join(' ')}
                             >
-                              {attachments.length > 0 && (
+                              {!msg.deleted_at && attachments.length > 0 && (
                                 <div className='mb-3 space-y-2'>
                                   {attachments.map((attachment, index) => (
                                     <div key={attachment.id || `${attachment.url}-${index}`}>
@@ -583,12 +651,52 @@ export default function ConversationPage ({
                                   ))}
                                 </div>
                               )}
-                              {msg.content && <div className='break-words'>{msg.content}</div>}
-                              <div className={mine ? 'mt-1 text-right text-xs text-white/72' : 'mt-1 text-right text-xs text-white/42'}>
-                                {new Date(msg.created_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                              {editingMessageId === msg.id ? (
+                                <div className='space-y-2'>
+                                  <textarea
+                                    value={editingMessageContent}
+                                    onChange={event => setEditingMessageContent(event.target.value.slice(0, 1000))}
+                                    rows={3}
+                                    autoFocus
+                                    className='w-full resize-y rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-white/50'
+                                    aria-label='Modifier le message'
+                                  />
+                                  <div className='flex justify-end gap-2'>
+                                    <button type='button' onClick={cancelEditingMessage} className='rounded-full p-1.5 text-white/70 hover:bg-white/10 hover:text-white' aria-label='Annuler la modification'>
+                                      <X className='h-4 w-4' />
+                                    </button>
+                                    <button type='button' onClick={saveEditedMessage} disabled={!editingMessageContent.trim() || messageActionId === msg.id} className='rounded-full p-1.5 text-white hover:bg-white/15 disabled:opacity-40' aria-label='Enregistrer le message'>
+                                      <Check className='h-4 w-4' />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                msg.content && (
+                                  <div className={msg.deleted_at ? 'break-words italic text-white/62' : 'break-words'}>
+                                    {msg.content}
+                                  </div>
+                                )
+                              )}
+                              <div className='mt-1 flex items-center justify-end gap-2'>
+                                {msg.edited_at && !msg.deleted_at && <span className='text-[11px] text-white/55'>modifié</span>}
+                                <span className={mine ? 'text-xs text-white/72' : 'text-xs text-white/42'}>
+                                  {new Date(msg.created_at).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </span>
+                                {mine && !msg.deleted_at && editingMessageId !== msg.id && !msg.id.startsWith('optimistic-') && (
+                                  <span className='flex items-center gap-0.5'>
+                                    {msg.content && (
+                                      <button type='button' onClick={() => startEditingMessage(msg)} className='rounded-full p-1 text-white/65 hover:bg-white/15 hover:text-white' aria-label='Modifier le message'>
+                                        <Pencil className='h-3.5 w-3.5' />
+                                      </button>
+                                    )}
+                                    <button type='button' onClick={() => removeMessage(msg.id)} disabled={messageActionId === msg.id} className='rounded-full p-1 text-white/65 hover:bg-white/15 hover:text-white disabled:opacity-40' aria-label='Supprimer le message'>
+                                      <Trash2 className='h-3.5 w-3.5' />
+                                    </button>
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

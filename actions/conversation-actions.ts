@@ -283,7 +283,10 @@ export async function getConversationMessagesAfter(conversationId: string, after
     JOIN users u ON m.sender_id = u.id
     LEFT JOIN message_attachments ma ON ma.message_id = m.id
     WHERE m.conversation_id = $1
-      AND m.created_at > $2::timestamptz
+      AND (
+        m.created_at > $2::timestamptz
+        OR m.updated_at > $2::timestamptz
+      )
     GROUP BY m.id, u.name, u.avatar
     ORDER BY m.created_at ASC`,
     [conversationId, afterDate.toISOString()]
@@ -505,6 +508,74 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   }
 
   return { ...newMessage, attachments: savedAttachments };
+}
+
+export async function updateOwnMessage(input: {
+  messageId: string
+  conversationId: string
+  content: string
+}) {
+  const currentUser = await requireAuth()
+  const content = input.content.trim()
+
+  if (!content) {
+    throw new Error('Le message ne peut pas être vide')
+  }
+  if (content.length > 1000) {
+    throw new Error('Le message ne peut pas dépasser 1000 caractères')
+  }
+
+  const [updatedMessage] = await sql.query(
+    `UPDATE messages
+     SET content = $3,
+         edited_at = CURRENT_TIMESTAMP,
+         updated_at = CURRENT_TIMESTAMP
+     WHERE id = $1
+       AND conversation_id = $2
+       AND sender_id = $4
+       AND deleted_at IS NULL
+     RETURNING *`,
+    [input.messageId, input.conversationId, content, currentUser.id]
+  )
+
+  if (!updatedMessage) {
+    throw new Error('Vous ne pouvez modifier que votre propre message')
+  }
+
+  return updatedMessage
+}
+
+export async function deleteOwnMessage(input: {
+  messageId: string
+  conversationId: string
+}) {
+  const currentUser = await requireAuth()
+  const [deletedMessage] = await sql.query(
+    `WITH deleted_message AS (
+       UPDATE messages
+       SET content = 'Message supprimé',
+           deleted_at = CURRENT_TIMESTAMP,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+         AND conversation_id = $2
+         AND sender_id = $3
+         AND deleted_at IS NULL
+       RETURNING *
+     ), deleted_attachments AS (
+       DELETE FROM message_attachments
+       WHERE message_id IN (SELECT id FROM deleted_message)
+       RETURNING id
+     )
+     SELECT deleted_message.*, '[]'::json AS attachments
+     FROM deleted_message`,
+    [input.messageId, input.conversationId, currentUser.id]
+  )
+
+  if (!deletedMessage) {
+    throw new Error('Vous ne pouvez supprimer que votre propre message')
+  }
+
+  return deletedMessage
 }
 
 export async function findOrCreateConversation(userId1: string, userId2: string) {

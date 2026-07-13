@@ -22,8 +22,11 @@ import {
   getCommunityWallFeed,
   getWallEventOptions,
   removeOwnWallPost,
+  removeOwnWallComment,
   reportWallComment,
-  reportWallPost
+  reportWallPost,
+  updateOwnWallComment,
+  updateOwnWallPost
 } from '../actions/community-wall-actions'
 import { sql } from '@/lib/db'
 import { requireCurrentUser } from '@/lib/server-auth'
@@ -280,6 +283,54 @@ describe('community wall actions', () => {
     ;(sql.query as any).mockResolvedValueOnce([{ user_id: 'another-user' }])
 
     await expect(removeOwnWallPost({ postId: 'post-1' })).rejects.toThrow('auteur')
+  })
+
+  it('lets the author update a wall post and sends filtered edits to moderation', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ user_id: 'user-1', image_url: null }])
+      .mockResolvedValueOnce([{ keyword: 'spam', severity: 'high', action: 'hide' }])
+      .mockResolvedValueOnce([{ id: 'post-1', status: 'hidden', updated_at: new Date() }])
+      .mockResolvedValueOnce([])
+
+    await expect(updateOwnWallPost({
+      postId: 'post-1',
+      body: 'Annonce spam modifiée.'
+    })).resolves.toMatchObject({ success: true, status: 'hidden' })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringMatching(/UPDATE wall_posts[\s\S]*user_id = \$4/),
+      ['post-1', 'Annonce spam modifiée.', 'hidden', 'user-1']
+    )
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO moderation_queue'),
+      expect.arrayContaining(['wall_post', 'post-1', 'user-1', 'high'])
+    )
+  })
+
+  it('lets the author update and remove their wall comment', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ user_id: 'user-1', post_id: 'post-1' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: 'comment-1', status: 'active', updated_at: new Date() }])
+      .mockResolvedValueOnce([{ id: 'comment-1' }])
+
+    await expect(updateOwnWallComment({
+      commentId: 'comment-1',
+      body: 'Commentaire corrigé.'
+    })).resolves.toMatchObject({ success: true, status: 'active' })
+
+    await expect(removeOwnWallComment({ commentId: 'comment-1' })).resolves.toEqual({ success: true })
+
+    expect(sql.query).toHaveBeenLastCalledWith(
+      expect.stringMatching(/UPDATE wall_comments[\s\S]*user_id = \$2[\s\S]*RETURNING id/),
+      ['comment-1', 'user-1']
+    )
+  })
+
+  it('rejects removal of another member wall comment', async () => {
+    ;(sql.query as any).mockResolvedValueOnce([])
+
+    await expect(removeOwnWallComment({ commentId: 'comment-1' })).rejects.toThrow('propre commentaire')
   })
 
   it('lists only published upcoming events for the composer', async () => {

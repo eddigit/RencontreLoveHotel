@@ -10,10 +10,9 @@ describe('member activity email triggers', () => {
     expect(source).toContain('recipientUserId: recipient.user_id')
     expect(source).toContain('ctaPath: `/messages/${conversationId}`')
 
-    const emailBlock = source.slice(
-      source.indexOf('await sendMemberActivityEmail({'),
-      source.indexOf('await sendMemberActivityEmail({') + 700
-    )
+    const emailStart = source.indexOf('await sendMemberActivityEmail({')
+    const emailEnd = source.indexOf('\n    })', emailStart)
+    const emailBlock = source.slice(emailStart, emailEnd + 7)
     expect(emailBlock).not.toContain('messageContent')
     expect(emailBlock).not.toContain('content:')
   })

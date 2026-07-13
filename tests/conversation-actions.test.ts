@@ -42,7 +42,9 @@ import {
   getConversationMessages,
   findOrCreateConversation,
   markConversationMessagesAsRead,
-  sendMessage
+  sendMessage,
+  updateOwnMessage,
+  deleteOwnMessage
 } from '../actions/conversation-actions'
 import { sql } from '../lib/db'
 import { getServerSession } from 'next-auth/next'
@@ -252,11 +254,77 @@ describe('conversation-actions', () => {
 
     expect(messages).toHaveLength(1)
     expect(sql.query).toHaveBeenLastCalledWith(
-      expect.stringContaining('m.created_at > $2::timestamptz'),
+      expect.stringMatching(/m\.created_at > \$2::timestamptz[\s\S]*m\.updated_at > \$2::timestamptz/),
       [
         '550e8400-e29b-41d4-a716-446655440001',
         '2026-06-22T15:50:00.000Z'
       ]
     )
+  })
+
+  it('lets only the sender update their non-deleted message', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([{
+      id: '550e8400-e29b-41d4-a716-446655440222',
+      content: 'Texte corrigé',
+      edited_at: '2026-07-13T20:00:00.000Z'
+    }])
+
+    await expect(updateOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      content: 'Texte corrigé'
+    })).resolves.toMatchObject({ content: 'Texte corrigé' })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringMatching(/UPDATE messages[\s\S]*sender_id = \$4[\s\S]*deleted_at IS NULL/),
+      [
+        '550e8400-e29b-41d4-a716-446655440222',
+        '550e8400-e29b-41d4-a716-446655440001',
+        'Texte corrigé',
+        '550e8400-e29b-41d4-a716-446655440099'
+      ]
+    )
+  })
+
+  it('soft-deletes only the sender message and removes its attachments', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([{
+      id: '550e8400-e29b-41d4-a716-446655440222',
+      content: 'Message supprimé',
+      deleted_at: '2026-07-13T20:00:00.000Z',
+      attachments: []
+    }])
+
+    await expect(deleteOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001'
+    })).resolves.toMatchObject({ content: 'Message supprimé', attachments: [] })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringMatching(/UPDATE messages[\s\S]*sender_id = \$3[\s\S]*DELETE FROM message_attachments/),
+      [
+        '550e8400-e29b-41d4-a716-446655440222',
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440099'
+      ]
+    )
+  })
+
+  it('rejects edits when the message is not owned by the member', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([])
+
+    await expect(updateOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      content: 'Tentative'
+    })).rejects.toThrow('propre message')
   })
 })

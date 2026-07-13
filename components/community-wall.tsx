@@ -12,6 +12,7 @@ import {
   ImagePlus,
   MapPin,
   MessageCircle,
+  Pencil,
   Send,
   Sparkles,
   Trash2,
@@ -29,10 +30,13 @@ import {
   getWallComments,
   getWallEventOptions,
   getWallParticipationRequests,
+  removeOwnWallComment,
   removeOwnWallPost,
   reportWallComment,
   reportWallPost,
   requestWallParticipation,
+  updateOwnWallComment,
+  updateOwnWallPost,
   type CommunityWallComment,
   type CommunityWallPost,
   type WallParticipationRequest
@@ -102,6 +106,12 @@ function relativeTime(value?: string | Date | null) {
 
   const diffDays = Math.floor(diffHours / 24)
   return `il y a ${diffDays} j`
+}
+
+function wasEdited(createdAt?: string | Date | null, updatedAt?: string | Date | null) {
+  const created = toDate(createdAt)
+  const updated = toDate(updatedAt)
+  return Boolean(created && updated && updated.getTime() - created.getTime() > 1000)
 }
 
 function expirationLabel(value?: string | Date | null) {
@@ -176,6 +186,11 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   const [bookingReference, setBookingReference] = useState('')
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [editingPostId, setEditingPostId] = useState<string | null>(null)
+  const [editingPostBody, setEditingPostBody] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
+  const [editingCommentBody, setEditingCommentBody] = useState('')
+  const [contentActionId, setContentActionId] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState('')
 
   const remainingChars = useMemo(() => 500 - body.length, [body])
@@ -324,6 +339,8 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   }
 
   async function handleRemovePost(postId: string) {
+    if (!window.confirm('Supprimer cette annonce ? Cette action ne peut pas être annulée.')) return
+
     setStatusMessage('')
     try {
       await removeOwnWallPost({ postId })
@@ -331,6 +348,79 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       await loadWall()
     } catch (error) {
       setStatusMessage('Suppression impossible pour le moment.')
+    }
+  }
+
+  function startEditingPost(post: CommunityWallPost) {
+    setEditingPostId(post.id)
+    setEditingPostBody(post.body || '')
+  }
+
+  async function saveEditedPost(post: CommunityWallPost) {
+    if (!editingPostBody.trim() && !post.image_url) return
+
+    setContentActionId(post.id)
+    setStatusMessage('')
+    try {
+      const result = await updateOwnWallPost({ postId: post.id, body: editingPostBody })
+      setEditingPostId(null)
+      setEditingPostBody('')
+      setStatusMessage(result.status === 'hidden'
+        ? 'Annonce modifiée et transmise à la modération.'
+        : 'Annonce modifiée.')
+      await loadWall()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Modification impossible.')
+    } finally {
+      setContentActionId(null)
+    }
+  }
+
+  function startEditingComment(comment: CommunityWallComment) {
+    setEditingCommentId(comment.id)
+    setEditingCommentBody(comment.body)
+  }
+
+  async function saveEditedComment(postId: string, commentId: string) {
+    if (!editingCommentBody.trim()) return
+
+    setContentActionId(commentId)
+    setStatusMessage('')
+    try {
+      const result = await updateOwnWallComment({
+        commentId,
+        body: editingCommentBody
+      })
+      setEditingCommentId(null)
+      setEditingCommentBody('')
+      setStatusMessage(result.status === 'hidden'
+        ? 'Commentaire modifié et transmis à la modération.'
+        : 'Commentaire modifié.')
+      const rows = await getWallComments({ postId })
+      setCommentsByPost(current => ({ ...current, [postId]: rows }))
+      await loadWall()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Modification impossible.')
+    } finally {
+      setContentActionId(null)
+    }
+  }
+
+  async function handleRemoveComment(postId: string, commentId: string) {
+    if (!window.confirm('Supprimer ce commentaire ? Cette action ne peut pas être annulée.')) return
+
+    setContentActionId(commentId)
+    setStatusMessage('')
+    try {
+      await removeOwnWallComment({ commentId })
+      setStatusMessage('Commentaire supprimé.')
+      const rows = await getWallComments({ postId })
+      setCommentsByPost(current => ({ ...current, [postId]: rows }))
+      await loadWall()
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Suppression impossible.')
+    } finally {
+      setContentActionId(null)
     }
   }
 
@@ -595,6 +685,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                   </div>
                   <div className='mt-0.5 flex flex-wrap items-center gap-2 text-xs text-white/48'>
                     <span>{relativeTime(post.created_at)}</span>
+                    {wasEdited(post.created_at, post.updated_at) && <span>modifié</span>}
                     {expiration && (
                       <span className='inline-flex items-center gap-1 text-[#94ffc9]'>
                         <Clock className='h-3 w-3' />
@@ -605,9 +696,31 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 </div>
               </div>
 
-              {post.body && (
+              {editingPostId === post.id ? (
+                <div className='mt-3 rounded-lg border border-white/12 bg-black/15 p-3'>
+                  <Textarea
+                    value={editingPostBody}
+                    onChange={event => setEditingPostBody(event.target.value.slice(0, 500))}
+                    rows={4}
+                    autoFocus
+                    aria-label='Modifier l’annonce'
+                    className='resize-y border-white/12 bg-[#170321] text-white'
+                  />
+                  <div className='mt-2 flex items-center justify-between gap-3'>
+                    <span className='text-xs text-white/45'>{500 - editingPostBody.length} caractères</span>
+                    <div className='flex gap-2'>
+                      <Button type='button' size='sm' variant='outline' onClick={() => setEditingPostId(null)} className='border-white/12'>
+                        <X className='mr-1 h-4 w-4' />Annuler
+                      </Button>
+                      <Button type='button' size='sm' onClick={() => saveEditedPost(post)} disabled={contentActionId === post.id || (!editingPostBody.trim() && !post.image_url)} className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
+                        <Check className='mr-1 h-4 w-4' />Enregistrer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : post.body ? (
                 <p className='mt-3 whitespace-pre-wrap text-sm leading-6 text-white/78'>{post.body}</p>
-              )}
+              ) : null}
 
               {post.type === 'dispo_rideaux_ouverts' && (
                 <div className='mt-3 rounded-xl border border-[#94ffc9]/25 bg-[#94ffc9]/[0.07] p-3'>
@@ -751,23 +864,18 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                   <ChevronDown className={`h-4 w-4 transition ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 <div className='flex gap-2'>
-                  <button
-                    type='button'
-                    onClick={() => handleReportPost(post.id)}
-                    disabled={Boolean(post.has_reported)}
-                    className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ffd166]/35 hover:text-white disabled:opacity-45'
-                  >
-                    <Flag className='h-3.5 w-3.5' />
-                    Signaler
-                  </button>
-                  {post.user_id === currentUserId && (
-                    <button
-                      type='button'
-                      onClick={() => handleRemovePost(post.id)}
-                      className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-red-300/35 hover:text-red-100'
-                    >
-                      <Trash2 className='h-3.5 w-3.5' />
-                      Supprimer
+                  {post.user_id === currentUserId ? (
+                    <>
+                      <button type='button' onClick={() => startEditingPost(post)} disabled={editingPostId === post.id} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ff8cc8]/35 hover:text-white disabled:opacity-40' aria-label='Modifier l’annonce'>
+                        <Pencil className='h-3.5 w-3.5' />Modifier
+                      </button>
+                      <button type='button' onClick={() => handleRemovePost(post.id)} disabled={contentActionId === post.id} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-red-300/35 hover:text-red-100 disabled:opacity-40'>
+                        <Trash2 className='h-3.5 w-3.5' />Supprimer
+                      </button>
+                    </>
+                  ) : (
+                    <button type='button' onClick={() => handleReportPost(post.id)} disabled={Boolean(post.has_reported)} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ffd166]/35 hover:text-white disabled:opacity-45'>
+                      <Flag className='h-3.5 w-3.5' />Signaler
                     </button>
                   )}
                 </div>
@@ -795,18 +903,28 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                             {comment.author_name || 'Membre'}
                           </Link>
                           <span className='text-white/42'>{relativeTime(comment.created_at)}</span>
+                          {wasEdited(comment.created_at, comment.updated_at) && <span className='text-white/42'>modifié</span>}
                         </div>
-                        <p className='mt-1 whitespace-pre-wrap text-sm text-white/72'>{comment.body}</p>
+                        {editingCommentId === comment.id ? (
+                          <div className='mt-2'>
+                            <textarea value={editingCommentBody} onChange={event => setEditingCommentBody(event.target.value.slice(0, 300))} rows={3} autoFocus aria-label='Modifier le commentaire' className='w-full resize-y rounded-lg border border-white/12 bg-[#170321] px-3 py-2 text-sm text-white outline-none focus:border-[#ff8cc8]' />
+                            <div className='mt-1 flex justify-end gap-1'>
+                              <button type='button' onClick={() => setEditingCommentId(null)} className='rounded-full p-1.5 text-white/55 hover:bg-white/10 hover:text-white' aria-label='Annuler la modification'><X className='h-3.5 w-3.5' /></button>
+                              <button type='button' onClick={() => saveEditedComment(post.id, comment.id)} disabled={!editingCommentBody.trim() || contentActionId === comment.id} className='rounded-full p-1.5 text-[#94ffc9] hover:bg-white/10 disabled:opacity-40' aria-label='Enregistrer le commentaire'><Check className='h-3.5 w-3.5' /></button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className='mt-1 whitespace-pre-wrap text-sm text-white/72'>{comment.body}</p>
+                        )}
                       </div>
-                      <button
-                        type='button'
-                        onClick={() => handleReportComment(post.id, comment.id)}
-                        disabled={Boolean(comment.has_reported)}
-                        className='h-8 rounded-full px-2 text-white/42 transition hover:text-[#ffd166] disabled:opacity-35'
-                        aria-label='Signaler le commentaire'
-                      >
-                        <Flag className='h-3.5 w-3.5' />
-                      </button>
+                      {comment.user_id === currentUserId ? (
+                        <div className='flex h-8 shrink-0 items-center'>
+                          <button type='button' onClick={() => startEditingComment(comment)} disabled={editingCommentId === comment.id} className='rounded-full p-2 text-white/42 transition hover:text-[#ffb3d7] disabled:opacity-35' aria-label='Modifier le commentaire'><Pencil className='h-3.5 w-3.5' /></button>
+                          <button type='button' onClick={() => handleRemoveComment(post.id, comment.id)} disabled={contentActionId === comment.id} className='rounded-full p-2 text-white/42 transition hover:text-red-200 disabled:opacity-35' aria-label='Supprimer le commentaire'><Trash2 className='h-3.5 w-3.5' /></button>
+                        </div>
+                      ) : (
+                        <button type='button' onClick={() => handleReportComment(post.id, comment.id)} disabled={Boolean(comment.has_reported)} className='h-8 rounded-full px-2 text-white/42 transition hover:text-[#ffd166] disabled:opacity-35' aria-label='Signaler le commentaire'><Flag className='h-3.5 w-3.5' /></button>
+                      )}
                     </div>
                   ))}
                   <div className='flex gap-2'>
