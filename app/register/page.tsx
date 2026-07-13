@@ -30,7 +30,8 @@ export default function RegisterPage () {
     name: '',
     email: '',
     password: '',
-    agreeTerms: false
+    agreeTerms: false,
+    activityEmailConsent: false
   })
 
   const router = useRouter()
@@ -53,7 +54,8 @@ export default function RegisterPage () {
       const result = await registerUser(
         formData.email,
         formData.password,
-        formData.name
+        formData.name,
+        formData.activityEmailConsent
       )
 
       if (result.success) {
@@ -193,6 +195,29 @@ export default function RegisterPage () {
                       >
                         politique de confidentialité
                       </Link>
+                    </label>
+                  </div>
+                  <div className='flex items-start space-x-3 rounded-md border border-border/70 p-3'>
+                    <Checkbox
+                      id='activity-email-consent'
+                      checked={formData.activityEmailConsent}
+                      onCheckedChange={checked =>
+                        setFormData({
+                          ...formData,
+                          activityEmailConsent: checked === true
+                        })
+                      }
+                    />
+                    <label
+                      htmlFor='activity-email-consent'
+                      className='space-y-1 text-sm leading-snug'
+                    >
+                      <span className='block font-medium'>
+                        Recevoir par e-mail les nouveaux messages, matchs et événements
+                      </span>
+                      <span className='block text-xs text-muted-foreground'>
+                        Facultatif. Vous pourrez choisir chaque catégorie ou désactiver ces e-mails à tout moment.
+                      </span>
                     </label>
                   </div>
                   <Button

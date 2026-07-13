@@ -24,6 +24,7 @@ export async function createUser(
   password: string,
   name: string,
   role: "user" | "admin" = "user",
+  activityEmailConsent = false,
 ): Promise<User | null> {
   try {
     const normalizedEmail = email.trim().toLowerCase()
@@ -35,11 +36,40 @@ export async function createUser(
     const hashedPassword = await hash(password, 10)
     const userId = uuidv4()
     const query = `
-      INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      WITH inserted_user AS (
+        INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      ), inserted_preference AS (
+        INSERT INTO email_preferences (
+          user_id,
+          activity_email_consent,
+          activity_email_decided_at,
+          message_email_enabled,
+          match_email_enabled,
+          event_email_enabled,
+          activity_email_source,
+          source,
+          updated_at
+        )
+        SELECT id, $8, CURRENT_TIMESTAMP, $8, $8, $8, 'registration', 'registration', CURRENT_TIMESTAMP
+        FROM inserted_user
+        RETURNING user_id
+      )
+      SELECT inserted_user.*
+      FROM inserted_user
+      JOIN inserted_preference ON inserted_preference.user_id = inserted_user.id
     `
-    const params = [userId, normalizedEmail, hashedPassword, name, role, true, null]
+    const params = [
+      userId,
+      normalizedEmail,
+      hashedPassword,
+      name,
+      role,
+      true,
+      null,
+      activityEmailConsent === true
+    ]
     const result = (await executeQuery<User[]>(query, params)) ?? []
     const user = result.length ? result[0] : null
     if (user) {

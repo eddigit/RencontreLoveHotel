@@ -23,6 +23,10 @@ vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
 }))
 
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
+}))
+
 describe('event actions behavior', () => {
   beforeEach(() => {
     getServerSessionMock.mockReset()

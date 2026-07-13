@@ -25,6 +25,10 @@ vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: vi.fn()
 }))
 
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
+}))
+
 describe('event moderation actions', () => {
   beforeEach(() => {
     requireAdminMock.mockReset()

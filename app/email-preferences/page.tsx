@@ -3,14 +3,19 @@ import MainLayout from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  getActivityEmailPreference,
   getCampaignEmailPreference,
   updateCampaignEmailPreference
 } from '@/actions/email-preference-actions'
 import { requireCurrentUser } from '@/lib/server-auth'
+import { ActivityEmailPreferencesForm } from '@/components/activity-email-preferences-form'
 
 export default async function EmailPreferencesPage() {
   const user = await requireCurrentUser()
-  const preference = await getCampaignEmailPreference()
+  const [preference, activityPreference] = await Promise.all([
+    getCampaignEmailPreference(),
+    getActivityEmailPreference()
+  ])
 
   async function updatePreference(formData: FormData) {
     'use server'
@@ -20,10 +25,19 @@ export default async function EmailPreferencesPage() {
 
   return (
     <MainLayout user={user}>
-      <main className='mx-auto w-full max-w-2xl px-4 py-10'>
+      <main className='mx-auto w-full max-w-2xl space-y-5 px-4 py-10'>
         <Card>
           <CardHeader>
-            <CardTitle>Préférences email</CardTitle>
+            <CardTitle>Activité du compte</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActivityEmailPreferencesForm initialPreference={activityPreference} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Actualités de la communauté</CardTitle>
           </CardHeader>
           <CardContent className='space-y-5'>
             <p className='text-sm text-muted-foreground'>

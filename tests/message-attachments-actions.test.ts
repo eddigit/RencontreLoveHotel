@@ -20,6 +20,10 @@ vi.mock('@/lib/member-safety', () => ({
   assertUsersCanInteract: vi.fn().mockResolvedValue(undefined)
 }))
 
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
+}))
+
 vi.mock('../utils/logger', () => ({
   log: vi.fn()
 }))

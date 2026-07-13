@@ -5,6 +5,7 @@ import { notifyEventReservationAdmins } from "@/lib/event-reservation-notificati
 import { createAppNotificationRecord } from '@/lib/notification-service'
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
@@ -191,6 +192,19 @@ export async function moderateEvent(
       audience: 'user',
       metadata: { eventId, status, note: normalizedNote },
       createdBy: admin.id
+    })
+    await sendMemberActivityEmail({
+      recipientUserId: event.creator_id,
+      category: 'events',
+      subject: status === 'published'
+        ? 'Votre événement est publié'
+        : status === 'rejected'
+          ? 'Votre événement a été refusé'
+          : 'Votre événement doit être corrigé',
+      title: `Mise à jour de votre événement : ${event.title}`,
+      description: normalizedNote || 'Votre proposition est maintenant visible dans les événements.',
+      ctaLabel: 'Voir mon événement',
+      ctaPath: `/events/${eventId}`
     })
   }
 
@@ -500,6 +514,21 @@ export async function updateEvent(eventId: string, {
     WHERE id = ${eventId}
     RETURNING *
   `
+  const participants = await sql.query<{ user_id: string }[]>(
+    `SELECT user_id FROM event_participants WHERE event_id = $1`,
+    [eventId]
+  )
+  for (const participant of participants) {
+    await sendMemberActivityEmail({
+      recipientUserId: participant.user_id,
+      category: 'events',
+      subject: `Événement modifié : ${event.title || 'mise à jour'}`,
+      title: 'Un événement auquel vous participez a été modifié',
+      description: 'Consultez la fiche pour retrouver les informations à jour.',
+      ctaLabel: 'Voir l’événement',
+      ctaPath: `/events/${eventId}`
+    })
+  }
   await notifyAdminByEmail({
     kind: 'event_updated',
     subject: `Événement modifié : ${event.title || eventId}`,
@@ -746,6 +775,15 @@ export async function notifyEventParticipants(
       link: `/events/${eventId}`,
       category: 'events',
       createdBy: admin.id
+    })
+    await sendMemberActivityEmail({
+      recipientUserId: participant.user_id,
+      category: 'events',
+      subject: title,
+      title,
+      description,
+      ctaLabel: 'Voir l’événement',
+      ctaPath: `/events/${eventId}`
     })
   }
 

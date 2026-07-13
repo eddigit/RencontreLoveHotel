@@ -14,6 +14,7 @@ import {
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { assertUsersCanInteract } from '@/lib/member-safety'
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 import { recordProductActivity } from '@/lib/product-activity'
 
 type CommunityMemberStats = {
@@ -721,6 +722,15 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       description: 'Vous avez reçu une nouvelle demande de match.',
       link: '/matches',
     })
+    await sendMemberActivityEmail({
+      recipientUserId: receiverId,
+      category: 'matches',
+      subject: 'Nouvelle demande de match',
+      title: 'Une nouvelle rencontre vous attend',
+      description: 'Un membre souhaite entrer en contact avec vous.',
+      ctaLabel: 'Voir la demande',
+      ctaPath: '/matches'
+    })
     console.log("Insert/Update result: ", result)
     return { success: true }
   } catch (error) {
@@ -750,6 +760,15 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
       title: 'Votre demande de match a été acceptée',
       description: 'Votre demande de match a été acceptée !',
       link: '/matches',
+    })
+    await sendMemberActivityEmail({
+      recipientUserId: requesterId,
+      category: 'matches',
+      subject: 'Votre demande de match a été acceptée',
+      title: 'Vous avez un nouveau match',
+      description: 'Votre demande de rencontre vient d’être acceptée.',
+      ctaLabel: 'Découvrir votre match',
+      ctaPath: '/matches'
     })
     return { success: true }
   } catch (error) {

@@ -105,7 +105,12 @@ export async function saveUserPreferences(userId: string, data: OnboardingData) 
 }
 
 // Fonction pour s'inscrire
-export async function registerUser(email: string, password: string, name: string) {
+export async function registerUser(
+  email: string,
+  password: string,
+  name: string,
+  activityEmailConsent = false
+) {
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const normalizedName = name.trim()
@@ -122,7 +127,13 @@ export async function registerUser(email: string, password: string, name: string
       return { success: false, error: 'Un compte existe déjà avec cette adresse email.' }
     }
 
-    const user = await createUser(normalizedEmail, password, normalizedName)
+    const user = await createUser(
+      normalizedEmail,
+      password,
+      normalizedName,
+      'user',
+      activityEmailConsent === true
+    )
     return user
       ? { success: true, user }
       : { success: false, error: "L'inscription n'a pas pu être finalisée." }

@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { requireAdmin } from '@/lib/server-auth'
 import { assertUsersCanInteract } from '@/lib/member-safety'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -491,6 +492,15 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
       title: 'Nouveau message',
       description: 'Vous avez reçu un nouveau message.',
       link: `/messages/${conversationId}`,
+    })
+    await sendMemberActivityEmail({
+      recipientUserId: recipient.user_id,
+      category: 'messages',
+      subject: 'Vous avez reçu un nouveau message',
+      title: `Nouveau message de ${currentUser.name || 'un membre'}`,
+      description: `${currentUser.name || 'Un membre'} vous a envoyé un nouveau message privé.`,
+      ctaLabel: 'Ouvrir la conversation',
+      ctaPath: `/messages/${conversationId}`
     })
   }
 
