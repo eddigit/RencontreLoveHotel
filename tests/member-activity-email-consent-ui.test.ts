@@ -33,6 +33,16 @@ describe('member activity email consent surfaces', () => {
     expect(prompt).toContain("source: 'login_prompt'")
   })
 
+  it('never opens the connected-member prompt on a public route', () => {
+    const prompt = read('components/activity-email-consent-prompt.tsx')
+
+    expect(prompt).toContain("import { usePathname } from 'next/navigation'")
+    expect(prompt).toContain("import { isProtectedPagePath } from '@/lib/route-access'")
+    expect(prompt).toContain('const isMemberArea = isProtectedPagePath(pathname)')
+    expect(prompt).toContain('if (!user?.id || !isMemberArea)')
+    expect(prompt).toContain('[user?.id, isMemberArea]')
+  })
+
   it('offers a master switch and three independent activity categories', () => {
     const form = read('components/activity-email-preferences-form.tsx')
     const page = read('app/email-preferences/page.tsx')

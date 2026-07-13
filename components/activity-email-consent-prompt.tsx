@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Mail, MessageCircle, CalendarDays, Heart } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import {
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
+import { isProtectedPagePath } from '@/lib/route-access'
 
 const EMPTY_PREFERENCE: ActivityEmailPreferences = {
   consent: false,
@@ -30,6 +32,8 @@ const EMPTY_PREFERENCE: ActivityEmailPreferences = {
 
 export function ActivityEmailConsentPrompt() {
   const { user } = useAuth()
+  const pathname = usePathname()
+  const isMemberArea = isProtectedPagePath(pathname)
   const [open, setOpen] = useState(false)
   const [customizing, setCustomizing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -37,7 +41,10 @@ export function ActivityEmailConsentPrompt() {
 
   useEffect(() => {
     let cancelled = false
-    if (!user?.id) return
+    if (!user?.id || !isMemberArea) {
+      setOpen(false)
+      return
+    }
 
     getActivityEmailPreference()
       .then(preference => {
@@ -52,7 +59,7 @@ export function ActivityEmailConsentPrompt() {
     return () => {
       cancelled = true
     }
-  }, [user?.id])
+  }, [user?.id, isMemberArea])
 
   const saveChoice = async (choice: ActivityEmailPreferences) => {
     setSaving(true)
