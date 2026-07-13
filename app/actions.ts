@@ -6,6 +6,10 @@ import { saveOnboardingData } from "@/lib/onboarding-service"
 import { createUser, getUserByEmail, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
 import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import {
+  ADULT_CONSENT_VERSION,
+  validateAdultDateOfBirth
+} from '@/lib/adult-membership'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -109,7 +113,10 @@ export async function registerUser(
   email: string,
   password: string,
   name: string,
-  activityEmailConsent = false
+  activityEmailConsent = false,
+  dateOfBirth = '',
+  adultConsent = false,
+  termsAccepted = false
 ) {
   try {
     const normalizedEmail = email.trim().toLowerCase()
@@ -123,6 +130,16 @@ export async function registerUser(
     if (password.length < 8) {
       return { success: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' }
     }
+    if (adultConsent !== true) {
+      return { success: false, error: 'Vous devez certifier être majeur.' }
+    }
+    if (termsAccepted !== true) {
+      return { success: false, error: 'Vous devez accepter les conditions d’utilisation.' }
+    }
+    const adultValidation = validateAdultDateOfBirth(dateOfBirth)
+    if (!adultValidation.ok) {
+      return { success: false, error: adultValidation.error }
+    }
     if (await getUserByEmail(normalizedEmail)) {
       return { success: false, error: 'Un compte existe déjà avec cette adresse email.' }
     }
@@ -132,7 +149,9 @@ export async function registerUser(
       password,
       normalizedName,
       'user',
-      activityEmailConsent === true
+      activityEmailConsent === true,
+      adultValidation.dateOfBirth,
+      ADULT_CONSENT_VERSION
     )
     return user
       ? { success: true, user }

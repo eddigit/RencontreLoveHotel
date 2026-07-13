@@ -14,6 +14,8 @@ export interface User {
   email_verified?: boolean // Add this line
   status?: string | null
   is_banned?: boolean | null
+  date_of_birth?: string | Date | null
+  adult_verified_at?: Date | null
   created_at: Date
   updated_at: Date
 }
@@ -25,6 +27,8 @@ export async function createUser(
   name: string,
   role: "user" | "admin" = "user",
   activityEmailConsent = false,
+  dateOfBirth = '',
+  adultConsentVersion = '',
 ): Promise<User | null> {
   try {
     const normalizedEmail = email.trim().toLowerCase()
@@ -37,9 +41,19 @@ export async function createUser(
     const userId = uuidv4()
     const query = `
       WITH inserted_user AS (
-        INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-        RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+        INSERT INTO users (
+          id, email, password_hash, name, role, email_verified,
+          email_verification_token, date_of_birth, adult_consent_at,
+          adult_verified_at, terms_accepted_at, adult_consent_version,
+          adult_verification_method
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8::date, CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $9, 'self_declared_birth_date'
+        )
+        RETURNING id, email, name, role, avatar, onboarding_completed,
+                  email_verified, date_of_birth, adult_verified_at,
+                  created_at, updated_at
       ), inserted_preference AS (
         INSERT INTO email_preferences (
           user_id,
@@ -52,7 +66,7 @@ export async function createUser(
           source,
           updated_at
         )
-        SELECT id, $8, CURRENT_TIMESTAMP, $8, $8, $8, 'registration', 'registration', CURRENT_TIMESTAMP
+        SELECT id, $10, CURRENT_TIMESTAMP, $10, $10, $10, 'registration', 'registration', CURRENT_TIMESTAMP
         FROM inserted_user
         RETURNING user_id
       )
@@ -68,6 +82,8 @@ export async function createUser(
       role,
       true,
       null,
+      dateOfBirth,
+      adultConsentVersion,
       activityEmailConsent === true
     ]
     const result = (await executeQuery<User[]>(query, params)) ?? []
@@ -119,7 +135,8 @@ export async function verifyUserCredentials(email: string, password: string): Pr
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
       SELECT id, email, password_hash, name, role, avatar, onboarding_completed,
-             email_verified, status, is_banned, created_at, updated_at
+             email_verified, status, is_banned, date_of_birth,
+             adult_verified_at, created_at, updated_at
       FROM users
       WHERE lower(email) = $1
     `
@@ -151,7 +168,8 @@ export async function getUserById(id: string): Promise<User | null> {
   try {
     const query = `
       SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
-             status, is_banned, created_at, updated_at
+             status, is_banned, date_of_birth, adult_verified_at,
+             created_at, updated_at
       FROM users
       WHERE id = $1
     `
@@ -170,7 +188,8 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
       SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
-             status, is_banned, created_at, updated_at
+             status, is_banned, date_of_birth, adult_verified_at,
+             created_at, updated_at
       FROM users
       WHERE lower(email) = $1
       ORDER BY created_at ASC, id ASC
@@ -206,7 +225,8 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
     `SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
-            status, is_banned, created_at, updated_at
+            status, is_banned, date_of_birth, adult_verified_at,
+            created_at, updated_at
      FROM users
      WHERE lower(email) = $1
      ORDER BY created_at ASC, id ASC`,
@@ -220,7 +240,8 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
   const query = `
     INSERT INTO users (id, email, name, role, avatar, onboarding_completed)
     VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+    RETURNING id, email, name, role, avatar, onboarding_completed,
+              date_of_birth, adult_verified_at, created_at, updated_at
   `
   const params = [userId, normalizedEmail, name || "", "user", avatar || null, false]
   const result = (await executeQuery<User[]>(query, params)) ?? []

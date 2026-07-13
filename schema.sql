@@ -14,6 +14,12 @@ CREATE TABLE users
     avatar VARCHAR(255) NULL,
     onboarding_completed BOOLEAN DEFAULT FALSE NULL,
     email_verified BOOLEAN DEFAULT FALSE NULL,
+    date_of_birth DATE NULL,
+    adult_consent_at TIMESTAMPTZ NULL,
+    adult_verified_at TIMESTAMPTZ NULL,
+    terms_accepted_at TIMESTAMPTZ NULL,
+    adult_consent_version TEXT NULL,
+    adult_verification_method TEXT NULL,
     -- Renamed from is_verified and made nullable
     is_banned BOOLEAN DEFAULT FALSE NULL,
     -- Made nullable
@@ -28,9 +34,42 @@ CREATE TABLE users
     -- Made nullable
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Made nullable
-    last_seen_at TIMESTAMPTZ NULL
+    last_seen_at TIMESTAMPTZ NULL,
     -- Last authenticated activity for online presence
+    CONSTRAINT users_adult_membership_record_check CHECK (
+        adult_verified_at IS NULL
+        OR (
+            date_of_birth IS NOT NULL
+            AND date_of_birth >= DATE '1900-01-01'
+            AND adult_consent_at IS NOT NULL
+            AND terms_accepted_at IS NOT NULL
+            AND adult_consent_version IS NOT NULL
+            AND adult_verification_method IS NOT NULL
+        )
+    )
 );
+
+CREATE OR REPLACE FUNCTION validate_adult_membership_record()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.adult_verified_at IS NOT NULL AND (
+        NEW.date_of_birth IS NULL
+        OR NEW.date_of_birth > (CURRENT_DATE - INTERVAL '18 years')::date
+    ) THEN
+        RAISE EXCEPTION 'Adult membership requires an age of 18 or older'
+            USING ERRCODE = '23514';
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER enforce_adult_membership
+BEFORE INSERT OR UPDATE ON users
+FOR EACH ROW
+EXECUTE FUNCTION validate_adult_membership_record();
 
 -- Table des profils utilisateurs
 CREATE TABLE user_profiles

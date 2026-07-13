@@ -4,6 +4,7 @@ import {
   isAuthenticatedApiPath,
   isProtectedPagePath,
   isPublicPath,
+  requiresAdultMembership,
   requiresVerifiedEmail
 } from '@/lib/route-access'
 
@@ -31,9 +32,18 @@ describe('route access policy', () => {
     expect(isProtectedPagePath('/conciergerie')).toBe(true)
     expect(isProtectedPagePath('/messages/abc')).toBe(true)
     expect(isProtectedPagePath('/notifications')).toBe(true)
+    expect(isProtectedPagePath('/age-verification')).toBe(true)
     expect(isAuthenticatedApiPath('/api/accept-match')).toBe(true)
     expect(isAuthenticatedApiPath('/api/messages/attachments')).toBe(true)
     expect(isAuthenticatedApiPath('/api/events/event-1/participate')).toBe(true)
+  })
+
+  it('requires adult verification before entering the member area', () => {
+    expect(requiresAdultMembership('/discover')).toBe(true)
+    expect(requiresAdultMembership('/messages/abc')).toBe(true)
+    expect(requiresAdultMembership('/admin')).toBe(true)
+    expect(requiresAdultMembership('/age-verification')).toBe(false)
+    expect(requiresAdultMembership('/login')).toBe(false)
   })
 
   it('identifies admin and verified-email routes', () => {

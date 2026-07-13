@@ -204,7 +204,7 @@ export function UserProfileEditor ({
             name='birthday'
             type='date'
             value={form.birthday}
-            onChange={handleChange}
+            disabled
             className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'
             placeholder='Date de naissance'
           />
@@ -219,11 +219,14 @@ export function UserProfileEditor ({
             name='age'
             type='number'
             value={form.age}
-            onChange={handleChange}
+            disabled
             className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
             placeholder='Âge'
             min={18}
           />
+          <p className='text-xs leading-5 text-white/50 sm:col-span-2'>
+            Date de naissance vérifiée lors de la confirmation de majorité. L’âge est calculé automatiquement.
+          </p>
           <div className='w-full max-w-sm'>
             <Select
               value={form.orientation}

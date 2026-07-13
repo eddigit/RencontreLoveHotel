@@ -16,7 +16,11 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
       `
         WITH profile_upsert AS (
           INSERT INTO user_profiles (id, user_id, status, age, orientation, gender, birthday)
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          SELECT $1, u.id, $3,
+                 EXTRACT(YEAR FROM AGE(CURRENT_DATE, u.date_of_birth))::INTEGER,
+                 $4, $5, u.date_of_birth
+          FROM users u
+          WHERE u.id = $2 AND u.adult_verified_at IS NOT NULL
           ON CONFLICT (user_id) DO UPDATE
           SET status = EXCLUDED.status, age = EXCLUDED.age,
               orientation = EXCLUDED.orientation, gender = EXCLUDED.gender,
@@ -27,7 +31,7 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
             id, user_id, interested_in_restaurant, interested_in_events,
             interested_in_dating, prefer_curtain_open, interested_in_lolib, suggestions
           )
-          VALUES ($8, $2, $9, $10, $11, $12, $13, $14)
+          VALUES ($6, $2, $7, $8, $9, $10, $11, $12)
           ON CONFLICT (user_id) DO UPDATE
           SET interested_in_restaurant = EXCLUDED.interested_in_restaurant,
               interested_in_events = EXCLUDED.interested_in_events,
@@ -42,7 +46,7 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
             id, user_id, friendly, romantic, playful, open_curtains,
             libertine, open_to_other_couples, specific_preferences
           )
-          VALUES ($15, $2, $16, $17, $18, $19, $20, $21, $22)
+          VALUES ($13, $2, $14, $15, $16, $17, $18, $19, $20)
           ON CONFLICT (user_id) DO UPDATE
           SET friendly = EXCLUDED.friendly, romantic = EXCLUDED.romantic,
               playful = EXCLUDED.playful, open_curtains = EXCLUDED.open_curtains,
@@ -55,7 +59,7 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
           INSERT INTO user_additional_options (
             id, user_id, join_exclusive_events, premium_access
           )
-          VALUES ($23, $2, $24, $25)
+          VALUES ($21, $2, $22, $23)
           ON CONFLICT (user_id) DO UPDATE
           SET join_exclusive_events = EXCLUDED.join_exclusive_events,
               premium_access = EXCLUDED.premium_access,
@@ -64,11 +68,10 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
         )
         UPDATE users
         SET onboarding_completed = true, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
+        WHERE id = $2 AND adult_verified_at IS NOT NULL
       `,
       [
-        uuidv4(), userId, data.status, data.age, data.orientation, data.gender,
-        data.birthday || null,
+        uuidv4(), userId, data.status, data.orientation, data.gender,
         uuidv4(), data.interestedInRestaurant, data.interestedInEvents,
         data.interestedInDating, data.preferCurtainOpen, data.interestedInLolib,
         data.suggestions || '',

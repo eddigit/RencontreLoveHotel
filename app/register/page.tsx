@@ -14,13 +14,14 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff, ArrowLeft, CalendarDays } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { registerUser } from '@/app/actions'
 import MainLayout from '@/components/layout/main-layout'
+import { adultBirthDateLimit } from '@/lib/adult-membership'
 
 export default function RegisterPage () {
   const [showPassword, setShowPassword] = useState(false)
@@ -30,6 +31,8 @@ export default function RegisterPage () {
     name: '',
     email: '',
     password: '',
+    dateOfBirth: '',
+    adultConsent: false,
     agreeTerms: false,
     activityEmailConsent: false
   })
@@ -55,7 +58,10 @@ export default function RegisterPage () {
         formData.email,
         formData.password,
         formData.name,
-        formData.activityEmailConsent
+        formData.activityEmailConsent,
+        formData.dateOfBirth,
+        formData.adultConsent,
+        formData.agreeTerms
       )
 
       if (result.success) {
@@ -165,6 +171,42 @@ export default function RegisterPage () {
                     </div>
                   </div>
                   <p className='text-xs text-muted-foreground'>8 caractères minimum.</p>
+                  <div className='space-y-2'>
+                    <Label htmlFor='dateOfBirth'>Date de naissance</Label>
+                    <div className='relative'>
+                      <CalendarDays className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+                      <Input
+                        id='dateOfBirth'
+                        name='dateOfBirth'
+                        type='date'
+                        autoComplete='bday'
+                        min='1900-01-01'
+                        max={adultBirthDateLimit()}
+                        className='pl-10'
+                        value={formData.dateOfBirth}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
+                    <p className='text-xs text-muted-foreground'>
+                      Inscription réservée aux personnes âgées de 18 ans ou plus.
+                    </p>
+                  </div>
+                  <div className='flex items-start space-x-3 rounded-md border border-destructive/35 bg-destructive/5 p-3'>
+                    <Checkbox
+                      id='adult-consent'
+                      checked={formData.adultConsent}
+                      onCheckedChange={checked =>
+                        setFormData({
+                          ...formData,
+                          adultConsent: checked === true
+                        })
+                      }
+                    />
+                    <label htmlFor='adult-consent' className='text-sm font-medium leading-snug'>
+                      Je certifie sur l&apos;honneur avoir 18 ans ou plus. L&apos;accès est strictement interdit aux mineurs.
+                    </label>
+                  </div>
                   <div className='flex items-center space-x-2'>
                     <Checkbox
                       id='terms'
@@ -223,7 +265,12 @@ export default function RegisterPage () {
                   <Button
                     type='submit'
                     className='w-full h-11'
-                    disabled={!formData.agreeTerms || isSubmitting}
+                    disabled={
+                      !formData.dateOfBirth ||
+                      !formData.adultConsent ||
+                      !formData.agreeTerms ||
+                      isSubmitting
+                    }
                   >
                     {isSubmitting ? 'Création du compte...' : "S'inscrire"}
                   </Button>

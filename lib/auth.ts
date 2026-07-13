@@ -87,6 +87,7 @@ export const authOptions: NextAuthOptions = {
         session.user.avatar = token.avatar as string
         session.user.onboardingCompleted = token.onboardingCompleted as boolean
         session.user.email_verified = token.email_verified as boolean
+        session.user.adultVerified = token.adultVerified === true
       }
       return session
     },
@@ -102,6 +103,7 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.adultVerified = Boolean(dbUser.adult_verified_at)
             token.blocked = Boolean(
               dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
             )
@@ -114,6 +116,7 @@ export const authOptions: NextAuthOptions = {
             token.role = token.role || 'user'
             token.onboardingCompleted = token.onboardingCompleted ?? false
             token.email_verified = token.email_verified ?? false
+            token.adultVerified = token.adultVerified ?? false
           }
         }
 
@@ -133,6 +136,7 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.adultVerified = Boolean(dbUser.adult_verified_at)
             token.blocked = Boolean(
               dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
             )
@@ -148,6 +152,7 @@ export const authOptions: NextAuthOptions = {
           token.role = token.role || 'user'
           token.onboardingCompleted = token.onboardingCompleted ?? false
           token.email_verified = token.email_verified ?? false
+          token.adultVerified = token.adultVerified ?? false
         }
       }
       return token

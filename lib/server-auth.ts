@@ -5,9 +5,10 @@ export type ServerUser = {
   id: string
   role?: string | null
   email?: string | null
+  adultVerified?: boolean
 }
 
-export async function requireCurrentUser(): Promise<ServerUser> {
+export async function requireAuthenticatedUser(): Promise<ServerUser> {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
     throw new Error('Authentification requise')
@@ -16,8 +17,13 @@ export async function requireCurrentUser(): Promise<ServerUser> {
   return {
     id: session.user.id,
     role: session.user.role,
-    email: session.user.email
+    email: session.user.email,
+    adultVerified: session.user.adultVerified === true
   }
+}
+
+export async function requireCurrentUser(): Promise<ServerUser> {
+  return requireAuthenticatedUser()
 }
 
 export async function requireAdmin(): Promise<ServerUser> {

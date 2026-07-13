@@ -31,6 +31,7 @@ const publicPrefixes = [
 
 const protectedPagePrefixes = [
   '/admin',
+  '/age-verification',
   '/conciergerie',
   '/discover',
   '/en-direct',
@@ -88,4 +89,9 @@ export function isAuthenticatedApiPath(pathname: string) {
 export function requiresVerifiedEmail(pathname: string) {
   const normalized = normalizePath(pathname)
   return matchesPrefix(normalized, '/messages')
+}
+
+export function requiresAdultMembership(pathname: string) {
+  const normalized = normalizePath(pathname)
+  return isProtectedPagePath(normalized) && normalized !== '/age-verification'
 }

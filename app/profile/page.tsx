@@ -73,6 +73,18 @@ async function updateUserProfile (userData: any) {
     redirect('/login')
   }
 
+  const legalIdentity = await sql`
+    SELECT date_of_birth,
+           EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INTEGER AS legal_age
+    FROM users
+    WHERE id = ${user.id} AND adult_verified_at IS NOT NULL
+  `
+  if (legalIdentity.length === 0) {
+    redirect('/age-verification?callbackUrl=/profile')
+  }
+  const verifiedBirthday = legalIdentity[0].date_of_birth
+  const verifiedAge = legalIdentity[0].legal_age
+
   // Update user table
   await sql`
     UPDATE users
@@ -90,12 +102,12 @@ async function updateUserProfile (userData: any) {
       UPDATE user_profiles
       SET
         status = ${userData.status || null},
-        age = ${userData.age || null},
+        age = ${verifiedAge},
         location = ${userData.location || null},
         orientation = ${userData.orientation || null},
         bio = ${userData.bio || null},
         gender = ${userData.gender || null},
-        birthday = ${userData.birthday ? userData.birthday : null},
+        birthday = ${verifiedBirthday},
         interests = ${JSON.stringify(userData.interests || [])},
         display_profile = ${
           typeof userData.display_profile === 'boolean'
@@ -107,11 +119,11 @@ async function updateUserProfile (userData: any) {
   } else {
     await sql`
       INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, status, featured, display_profile)
-      VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
+      VALUES (gen_random_uuid(), ${user.id}, ${verifiedAge}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
       userData.gender || null
-    }, ${userData.birthday ? userData.birthday : null}, ${JSON.stringify(
+    }, ${verifiedBirthday}, ${JSON.stringify(
       userData.interests || []
     )}, ${userData.status || 'single_male'}, false, ${
       typeof userData.display_profile === 'boolean'
@@ -262,7 +274,8 @@ export default async function ProfilePage () {
 
   // Fetch the latest user data directly from the database
   const dbUserResult = await sql`
-    SELECT id, name, email, avatar, role
+    SELECT id, name, email, avatar, role, date_of_birth, adult_verified_at,
+           EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INTEGER AS legal_age
     FROM users
     WHERE id = ${sessionUser.id}
   `
@@ -285,19 +298,19 @@ export default async function ProfilePage () {
   const profile = profiles.length > 0 ? profiles[0] : {}
 
   let formattedBirthday = ''
-  if (profile.birthday) {
+  if (dbUser.date_of_birth) {
     try {
       // Assuming profile.birthday might be a Date object or an ISO string like YYYY-MM-DDTHH:mm:ss.sssZ
-      const date = new Date(profile.birthday)
+      const date = new Date(dbUser.date_of_birth)
       if (!isNaN(date.getTime())) {
         // Check if date is valid
         formattedBirthday = date.toISOString().split('T')[0]
       } else if (
-        typeof profile.birthday === 'string' &&
-        profile.birthday.match(/^\d{4}-\d{2}-\d{2}$/)
+        typeof dbUser.date_of_birth === 'string' &&
+        dbUser.date_of_birth.match(/^\d{4}-\d{2}-\d{2}$/)
       ) {
         // If it's already a YYYY-MM-DD string from the DB (less common for DATE type, but possible)
-        formattedBirthday = profile.birthday
+        formattedBirthday = dbUser.date_of_birth
       }
     } catch (error) {
       console.error('Error formatting birthday for display:', error)
@@ -342,7 +355,7 @@ export default async function ProfilePage () {
     role: dbUser.role, // <-- Add role to userData
     bio: profile.bio,
     status: profile.status,
-    age: profile.age,
+    age: dbUser.legal_age,
     location: profile.location,
     orientation: profile.orientation,
     gender: profile.gender,

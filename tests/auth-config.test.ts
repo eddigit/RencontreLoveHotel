@@ -45,6 +45,7 @@ describe('authOptions', () => {
 
     expect(token.email_verified).toBe(false)
     expect(token.onboardingCompleted).toBe(false)
+    expect(token.adultVerified).toBe(false)
   })
 
   it('keeps the authenticated account id when legacy emails are duplicated', async () => {
@@ -54,7 +55,8 @@ describe('authOptions', () => {
       name: 'Compte authentifié',
       role: 'user',
       onboarding_completed: true,
-      email_verified: true
+      email_verified: true,
+      adult_verified_at: new Date('2026-07-13T10:00:00Z')
     })
 
     const token = await authOptions.callbacks!.jwt!({
@@ -69,6 +71,7 @@ describe('authOptions', () => {
     expect(getUserByIdMock).toHaveBeenCalledWith('authenticated-user')
     expect(getUserByEmailMock).not.toHaveBeenCalled()
     expect(token.sub).toBe('authenticated-user')
+    expect(token.adultVerified).toBe(true)
   })
 
   it('assigns the persisted database id to an OAuth user', async () => {

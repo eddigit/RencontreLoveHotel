@@ -14,7 +14,7 @@ export default function PrivacyPage() {
 
           <section className='space-y-3'>
             <h2 className='text-xl font-semibold'>Données traitées</h2>
-            <p>Nous traitons les informations nécessaires à la création du compte, au profil, aux échanges, aux événements, à la modération et à la sécurité du service.</p>
+            <p>Nous traitons les informations nécessaires à la création du compte, notamment la date de naissance et la preuve horodatée du consentement de majorité, ainsi que les données du profil, des échanges, des événements, de la modération et de la sécurité du service.</p>
           </section>
           <section className='space-y-3'>
             <h2 className='text-xl font-semibold'>Utilisation et confidentialité</h2>
