@@ -150,6 +150,10 @@ async function ensureConciergerieSchema() {
         request_type VARCHAR(100) NOT NULL DEFAULT 'custom_evening',
         response_preference VARCHAR(20) NOT NULL DEFAULT 'email',
         conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+        venue_preference VARCHAR(160),
+        desired_date VARCHAR(160),
+        party_size VARCHAR(160),
+        mood VARCHAR(120),
         besoin TEXT NOT NULL,
         budget VARCHAR(100),
         email_sent BOOLEAN NOT NULL DEFAULT FALSE,
@@ -169,6 +173,10 @@ async function ensureConciergerieSchema() {
         ADD COLUMN IF NOT EXISTS request_type VARCHAR(100) NOT NULL DEFAULT 'custom_evening',
         ADD COLUMN IF NOT EXISTS response_preference VARCHAR(20) NOT NULL DEFAULT 'email',
         ADD COLUMN IF NOT EXISTS conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+        ADD COLUMN IF NOT EXISTS venue_preference VARCHAR(160),
+        ADD COLUMN IF NOT EXISTS desired_date VARCHAR(160),
+        ADD COLUMN IF NOT EXISTS party_size VARCHAR(160),
+        ADD COLUMN IF NOT EXISTS mood VARCHAR(120),
         ADD COLUMN IF NOT EXISTS email_sent BOOLEAN NOT NULL DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS admin_notified_at TIMESTAMPTZ,
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -548,12 +556,16 @@ export async function POST(request: Request) {
           phone,
           request_type,
           response_preference,
+          venue_preference,
+          desired_date,
+          party_size,
+          mood,
           besoin,
           budget,
           created_at,
           updated_at
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())
         RETURNING id
       `,
       [
@@ -563,6 +575,10 @@ export async function POST(request: Request) {
         conciergeRequest.phone || null,
         conciergeRequest.requestType,
         conciergeRequest.responsePreference,
+        conciergeRequest.venuePreference || null,
+        conciergeRequest.desiredDate || null,
+        conciergeRequest.partySize || null,
+        conciergeRequest.mood || null,
         conciergeRequest.besoin,
         conciergeRequest.budget || null
       ]

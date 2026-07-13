@@ -1,10 +1,15 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { getServerSession } from 'next-auth/next'
 import {
   CalendarHeart,
+  Handshake,
   HeartHandshake,
   Hotel,
+  MapPinned,
+  ShieldCheck,
   Sparkles,
+  UsersRound,
   Waves
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -14,25 +19,46 @@ import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { authOptions } from '@/lib/auth'
 
+const networkStrengths = [
+  {
+    title: 'Des lieux que nous connaissons',
+    text: 'Love Rooms, jacuzzis et espaces adaptés : nous savons quel cadre correspond à votre envie.',
+    icon: MapPinned,
+    color: 'text-[#94ffc9]'
+  },
+  {
+    title: 'Des partenaires et des connexions',
+    text: 'Décoration, attentions, restauration et expériences complémentaires peuvent être réunies autour de votre projet.',
+    icon: Handshake,
+    color: 'text-[#ffb4d8]'
+  },
+  {
+    title: 'Une communauté qui partage les mêmes codes',
+    text: 'Discrétion, consentement et respect guident les rencontres et les formats que nous aidons à construire.',
+    icon: UsersRound,
+    color: 'text-[#d8c7ff]'
+  }
+]
+
 const possibilities = [
   {
     title: 'Love Room préparée',
-    text: 'Chambre, ambiance, champagne, surprise, arrivée discrète ou plus scénarisée.',
+    text: 'Ambiance, surprise, champagne ou arrivée discrète.',
     icon: Hotel
   },
   {
     title: 'Apéro jacuzzi privé',
-    text: 'Un format en petit comité, de 2 à 4 couples maximum selon le cadre souhaité.',
+    text: 'Un petit comité réuni dans un cadre adapté.',
     icon: Waves
   },
   {
     title: 'Rideaux ouverts',
-    text: 'Initiation douce ou expérience plus assumée entre chambres, toujours cadrée.',
+    text: 'Une initiation douce ou une expérience plus assumée.',
     icon: Sparkles
   },
   {
     title: 'Soirée ou week-end sur mesure',
-    text: 'Organisation romantique, coquine ou libertine avec options extérieures sur étude.',
+    text: 'Une idée romantique, coquine ou libertine à construire.',
     icon: CalendarHeart
   }
 ]
@@ -47,84 +73,127 @@ export default async function ConciergeriePage() {
     <MainLayout session={session} user={user}>
       <LhrV2Shell
         user={user}
-        eyebrow='Service privé Love Hotel'
+        eyebrow='Réseau privé Love Hotel'
         title='Conciergerie coquine'
-        subtitle='Une demande unique, confidentielle et structurée pour organiser une expérience romantique, coquine ou libertine autour des Love Rooms, jacuzzis et rideaux ouverts.'
+        subtitle='Une idée, même encore floue ? Parlez-nous-en. Nous activons nos lieux, nos partenaires et notre expérience pour construire un moment qui vous ressemble.'
         action={
-          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-            <Link href='#demande-conciergerie'>Faire une demande</Link>
+          <Button asChild className='bg-[#ff3b8b] text-white hover:bg-[#ff5ca3]'>
+            <Link href='#demande-conciergerie'>Parler de mon projet</Link>
           </Button>
         }
       >
-        <div className='space-y-6'>
-          <section className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
-            <div className='overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(20,2,28,0.92))]'>
-              <div className='grid min-h-[430px] lg:grid-cols-[0.95fr_1.05fr]'>
-                <div className='relative min-h-[320px] overflow-hidden'>
-                  <img
-                    src={conciergerieImageUrl}
-                    alt='Conciergerie privée Love Hotel'
-                    className='absolute inset-0 h-full w-full object-cover'
-                  />
-                  <div className='absolute inset-0 bg-gradient-to-t from-[#16031f] via-[#16031f]/28 to-transparent' />
-                </div>
-                <div className='flex flex-col justify-center p-5 md:p-8'>
-                  <div className='mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#ff8cc8]/35 bg-[#ff3b8b]/18 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#ffb4d8]'>
-                    <HeartHandshake className='h-4 w-4' />
-                    Service confidentiel
-                  </div>
-                  <h2 className='max-w-2xl text-3xl font-black leading-tight md:text-5xl'>
-                    Une envie privée, un cadre réel, une organisation maîtrisée.
-                  </h2>
-                  <p className='mt-4 max-w-2xl text-sm leading-7 text-white/68'>
-                    La conciergerie transforme une idée en moment concret :
-                    Love Room préparée, jacuzzi, rideaux ouverts, week-end,
-                    demande surprise, arrivée scénarisée ou soirée plus
-                    libertine. La demande passe uniquement par le formulaire et
-                    arrive directement à l’équipe opérationnelle.
-                  </p>
+        <div className='space-y-8 pb-10'>
+          <section className='relative min-h-[500px] overflow-hidden rounded-lg border border-white/10 md:min-h-[560px]'>
+            <Image
+              src={conciergerieImageUrl}
+              alt='Conciergerie privée Love Hotel'
+              fill
+              priority
+              sizes='(max-width: 768px) 100vw, 1200px'
+              className='object-cover object-center'
+            />
+            <div className='absolute inset-0 bg-gradient-to-r from-[#130018]/95 via-[#130018]/70 to-[#130018]/20' />
+            <div className='absolute inset-0 bg-gradient-to-t from-[#130018] via-transparent to-transparent' />
+
+            <div className='relative flex min-h-[500px] max-w-3xl flex-col justify-end p-5 md:min-h-[560px] md:p-10'>
+              <div className='mb-4 inline-flex w-fit items-center gap-2 rounded-md border border-[#94ffc9]/30 bg-[#10251d]/75 px-3 py-2 text-xs font-black uppercase text-[#94ffc9]'>
+                <HeartHandshake className='h-4 w-4' />
+                Confidentiel et personnel
+              </div>
+              <h2 className='text-3xl font-black leading-tight text-white md:text-5xl'>
+                Vous avez une envie.
+                <span className='block text-[#ff8cc8]'>Nous savons qui appeler.</span>
+              </h2>
+              <p className='mt-5 max-w-2xl text-base leading-7 text-white/82 md:text-lg'>
+                Vous n’avez pas besoin d’avoir tout prévu. Racontez-nous le
+                moment que vous imaginez, l’ambiance et les personnes avec qui
+                vous souhaitez le vivre. Notre rôle est de relier les bons
+                lieux, les bonnes personnes et les bonnes attentions.
+              </p>
+              <div className='mt-6 flex flex-wrap items-center gap-3'>
+                <Button asChild className='bg-[#ff3b8b] text-white hover:bg-[#ff5ca3]'>
+                  <Link href='#demande-conciergerie'>Construire mon expérience</Link>
+                </Button>
+                <div className='flex items-center gap-2 text-sm font-bold text-white/78'>
+                  <ShieldCheck className='h-4 w-4 text-[#94ffc9]' />
+                  Demande privée, réponse personnelle
                 </div>
               </div>
             </div>
-
-            <aside className='space-y-4'>
-              <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
-                <h3 className='font-black'>Ce que la conciergerie clarifie</h3>
-                <p className='mt-3 text-sm leading-6 text-white/64'>
-                  Le lieu, la période, le nombre de personnes, l’ambiance, les
-                  limites, le budget et le niveau de discrétion attendu.
-                </p>
-              </div>
-              <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-5'>
-                <h3 className='font-black'>Canal unique</h3>
-                <p className='mt-3 text-sm leading-6 text-white/64'>
-                  Pas de demande dispersée : tout est envoyé par formulaire à
-                  l’adresse opérationnelle de conciergerie.
-                </p>
-              </div>
-            </aside>
           </section>
 
-          <section className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
-            {possibilities.map(item => {
-              const Icon = item.icon
-              return (
-                <div
-                  key={item.title}
-                  className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'
-                >
-                  <Icon className='h-5 w-5 text-[#ff8cc8]' />
-                  <h3 className='mt-4 font-black'>{item.title}</h3>
-                  <p className='mt-2 text-sm leading-6 text-white/58'>
-                    {item.text}
-                  </p>
-                </div>
-              )
-            })}
+          <section aria-labelledby='network-title' className='border-y border-white/10 py-7'>
+            <div className='mb-6 max-w-3xl'>
+              <p className='text-sm font-black uppercase text-[#94ffc9]'>
+                La force du réseau
+              </p>
+              <h2 id='network-title' className='mt-2 text-2xl font-black md:text-3xl'>
+                Nous savons qui appeler
+              </h2>
+              <p className='mt-3 text-sm leading-6 text-white/65 md:text-base'>
+                Une conciergerie utile ne se contente pas de prendre une
+                demande. Elle connaît le terrain et sait réunir les bonnes
+                ressources au bon moment.
+              </p>
+            </div>
+
+            <div className='grid gap-6 md:grid-cols-3 md:gap-0'>
+              {networkStrengths.map((strength, index) => {
+                const Icon = strength.icon
+                return (
+                  <div
+                    key={strength.title}
+                    className={`md:px-6 ${index === 0 ? 'md:pl-0' : 'md:border-l md:border-white/10'}`}
+                  >
+                    <Icon className={`h-6 w-6 ${strength.color}`} />
+                    <h3 className='mt-4 text-lg font-black'>{strength.title}</h3>
+                    <p className='mt-2 text-sm leading-6 text-white/62'>
+                      {strength.text}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           </section>
 
-          <div id='demande-conciergerie'>
-            <ConciergerieForm />
+          <section className='grid gap-6 lg:grid-cols-[0.75fr_1.25fr] lg:items-start'>
+            <div>
+              <p className='text-sm font-black uppercase text-[#ff8cc8]'>
+                Un point de départ suffit
+              </p>
+              <h2 className='mt-2 text-2xl font-black md:text-3xl'>
+                Dites-nous simplement : « J’aimerais… »
+              </h2>
+              <p className='mt-4 text-sm leading-7 text-white/66'>
+                Nous vous aidons ensuite à préciser le lieu, la date, le nombre
+                de personnes, l’ambiance, les limites et le budget. Rien n’est
+                imposé et aucune réservation n’est faite sans votre accord.
+              </p>
+            </div>
+
+            <div className='grid gap-3 sm:grid-cols-2'>
+              {possibilities.map(item => {
+                const Icon = item.icon
+                return (
+                  <div key={item.title} className='rounded-lg border border-white/10 bg-white/[0.045] p-4'>
+                    <div className='flex items-start gap-3'>
+                      <Icon className='mt-0.5 h-5 w-5 shrink-0 text-[#ff8cc8]' />
+                      <div>
+                        <h3 className='font-black'>{item.title}</h3>
+                        <p className='mt-1 text-sm leading-6 text-white/58'>{item.text}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+          <div id='demande-conciergerie' className='scroll-mt-6'>
+            <ConciergerieForm
+              initialName={user?.name || ''}
+              initialEmail={user?.email || ''}
+            />
           </div>
         </div>
         <MobileNavigation />
