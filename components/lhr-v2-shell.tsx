@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { MemberAccountMenu } from '@/components/member-account-menu'
 import { cn } from '@/lib/utils'
 
 type NavItem = {
@@ -106,22 +107,8 @@ export function LhrV2Shell ({
             )}
           </nav>
 
-          <div className='mt-auto rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
-            <div className='flex items-center gap-2 text-sm font-bold'>
-              <span className='relative h-7 w-7 overflow-hidden rounded-lg bg-black'>
-                <Image
-                  src='/lhr-official-logo.png'
-                  alt=''
-                  fill
-                  className='object-cover'
-                  sizes='28px'
-                />
-              </span>
-              Beta V2
-            </div>
-            <p className='mt-2 text-xs leading-5 text-white/58'>
-              Design premium, données beta et stack VPS2 séparée.
-            </p>
+          <div className='mt-auto pt-4'>
+            <MemberAccountMenu user={user} />
           </div>
         </aside>
 

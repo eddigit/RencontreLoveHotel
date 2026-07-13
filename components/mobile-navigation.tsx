@@ -2,11 +2,12 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Search, MessageCircle, Heart, User, Sparkles, UsersRound } from 'lucide-react'
+import { Search, MessageCircle, Heart, Sparkles, UsersRound } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { NotificationBadge } from '@/components/notification-badge'
 import { useNotifications } from '@/contexts/notification-context'
+import { MemberAccountMenu } from '@/components/member-account-menu'
 
 export function MobileNavigation () {
   const pathname = usePathname()
@@ -43,12 +44,6 @@ export function MobileNavigation () {
       label: 'Messages',
       active: pathname === '/messages' || pathname.startsWith('/messages/'),
       badge: counts.messages
-    },
-    {
-      href: '/profile',
-      icon: User,
-      label: 'Profil',
-      active: pathname === '/profile' || pathname.startsWith('/profile/')
     }
   ]
 
@@ -78,6 +73,7 @@ export function MobileNavigation () {
             )}
           </Link>
         ))}
+        <MemberAccountMenu variant='mobile' />
       </nav>
     </div>
   )
