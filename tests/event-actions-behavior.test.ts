@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getServerSessionMock = vi.hoisted(() => vi.fn())
 const notifyEventReservationAdminsMock = vi.hoisted(() => vi.fn())
+const requestParticipationMock = vi.hoisted(() => vi.fn())
+const withdrawParticipationMock = vi.hoisted(() => vi.fn())
 const sqlMock = vi.hoisted(() => {
   const fn = vi.fn()
   return Object.assign(fn, { query: vi.fn() })
@@ -23,6 +25,11 @@ vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
 }))
 
+vi.mock('@/lib/event-participation-service', () => ({
+  requestParticipation: requestParticipationMock,
+  withdrawParticipation: withdrawParticipationMock
+}))
+
 vi.mock('@/lib/member-activity-email', () => ({
   sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
 }))
@@ -37,6 +44,8 @@ describe('event actions behavior', () => {
     sqlMock.query.mockReset()
     notifyEventReservationAdminsMock.mockReset()
     notifyEventReservationAdminsMock.mockResolvedValue({ success: true, emailSent: true })
+    requestParticipationMock.mockReset()
+    withdrawParticipationMock.mockReset()
   })
 
   it('creates an event with separated event date and event time', async () => {
@@ -87,6 +96,48 @@ describe('event actions behavior', () => {
     expect(values).toContain('member')
   })
 
+  it('stores the organizer as accepted and allows an unconfirmed room invitation', async () => {
+    sqlMock.mockResolvedValueOnce([{ id: 'event-room' }])
+
+    const { createEvent } = await import('@/actions/event-actions')
+
+    await createEvent({
+      title: 'Rideaux ouverts vendredi',
+      location: 'Love Hotel Pigalle',
+      date: '2026-07-18T22:00',
+      creator_id: 'user-1',
+      venue: 'pigalle',
+      experience_type: 'open_curtains',
+      max_participants: 3,
+      booking_confirmed: false
+    })
+
+    const query = (sqlMock.mock.calls[0][0] as TemplateStringsArray).join('')
+    const values = sqlMock.mock.calls[0].slice(1)
+    expect(query).toContain('booking_confirmed')
+    expect(query).toContain('inserted_organizer')
+    expect(query).toContain("'accepted'")
+    expect(values).toContain(false)
+  })
+
+  it('requires a booking reference only when Rideaux ouverts is confirmed', async () => {
+    const { createEvent } = await import('@/actions/event-actions')
+
+    await expect(createEvent({
+      title: 'Rideaux ouverts confirmé',
+      location: 'Love Hotel Châtelet',
+      date: '2026-07-18T22:00',
+      creator_id: 'user-1',
+      venue: 'chatelet',
+      experience_type: 'open_curtains',
+      max_participants: 3,
+      booking_confirmed: true,
+      booking_reference: '   '
+    })).rejects.toThrow('référence de réservation')
+
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
   it('publishes admin-created events and keeps the event clock in the upcoming query', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'admin-1', role: 'admin' }
@@ -114,7 +165,10 @@ describe('event actions behavior', () => {
     sqlMock.query.mockReset()
     sqlMock.mockResolvedValueOnce([])
     await getUpcomingEvents('admin-1')
-    expect(sqlMock.mock.calls[0][0].join('')).toContain("COALESCE(e.event_time, '23:59:59'::time)")
+    const upcomingQuery = sqlMock.mock.calls[0][0].join('')
+    expect(upcomingQuery).toContain("COALESCE(e.event_time, '23:59:59'::time)")
+    expect(upcomingQuery).toContain("ep2.status = 'accepted'")
+    expect(upcomingQuery).toContain('ep.status as participation_status')
   })
 
   it('rejects standby event formats before writing to the database', async () => {
@@ -154,35 +208,14 @@ describe('event actions behavior', () => {
   })
 
   it('lets the connected member join a published upcoming event', async () => {
-    sqlMock
-      .mockResolvedValueOnce([
-        {
-          id: 'event-1',
-          max_participants: 3,
-          participant_count: '2',
-          event_date: new Date(Date.now() + 86_400_000).toISOString(),
-          publication_status: 'published'
-        }
-      ])
-      .mockResolvedValueOnce([])
+    requestParticipationMock.mockResolvedValueOnce({ success: true, status: 'pending' })
 
     const { subscribeToEvent } = await import('@/actions/event-actions')
 
     const result = await subscribeToEvent('event-1', 'user-1')
 
-    expect(result).toEqual({ success: true })
-    expect(sqlMock).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.stringContaining('INSERT INTO event_participants')
-      ]),
-      'event-1',
-      'user-1'
-    )
-    expect(notifyEventReservationAdminsMock).toHaveBeenCalledWith({
-      action: 'join',
-      eventId: 'event-1',
-      userId: 'user-1'
-    })
+    expect(result).toEqual({ success: true, status: 'pending' })
+    expect(requestParticipationMock).toHaveBeenCalledWith({ eventId: 'event-1', actorId: 'user-1' })
   })
 
   it('loads upcoming events even when the publication status migration is not applied yet', async () => {
@@ -229,42 +262,25 @@ describe('event actions behavior', () => {
   })
 
   it('rejects participation when the event is full', async () => {
-    sqlMock.mockResolvedValueOnce([
-      {
-        id: 'event-1',
-        max_participants: 3,
-        participant_count: '3',
-        event_date: new Date(Date.now() + 86_400_000).toISOString(),
-        publication_status: 'published'
-      }
-    ])
+    requestParticipationMock.mockResolvedValueOnce({ success: false, error: 'L’événement est complet.' })
 
     const { subscribeToEvent } = await import('@/actions/event-actions')
 
     const result = await subscribeToEvent('event-1', 'user-1')
 
-    expect(result).toEqual({ success: false, error: 'Événement complet' })
-    expect(sqlMock).toHaveBeenCalledTimes(1)
-    expect(notifyEventReservationAdminsMock).not.toHaveBeenCalled()
+    expect(result).toEqual({ success: false, error: 'L’événement est complet.' })
+    expect(requestParticipationMock).toHaveBeenCalledOnce()
   })
 
   it('rejects participation when the event is not published', async () => {
-    sqlMock.mockResolvedValueOnce([
-      {
-        id: 'event-1',
-        max_participants: 3,
-        participant_count: '0',
-        event_date: new Date(Date.now() + 86_400_000).toISOString(),
-        publication_status: 'pending_review'
-      }
-    ])
+    requestParticipationMock.mockResolvedValueOnce({ success: false, error: 'Cet événement n’est pas encore publié.' })
 
     const { subscribeToEvent } = await import('@/actions/event-actions')
 
     const result = await subscribeToEvent('event-1', 'user-1')
 
-    expect(result).toEqual({ success: false, error: 'Événement non publié' })
-    expect(sqlMock).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ success: false, error: 'Cet événement n’est pas encore publié.' })
+    expect(requestParticipationMock).toHaveBeenCalledOnce()
   })
 
   it('loads event details with participant state using a parameterized query', async () => {
@@ -274,7 +290,9 @@ describe('event actions behavior', () => {
           id: 'event-1',
           title: 'Apéro jacuzzi',
           participant_count: '1',
-          is_participating: true
+          is_participating: true,
+          publication_status: 'published',
+          creator_id: 'owner-1'
         }
       ])
       .mockResolvedValueOnce([

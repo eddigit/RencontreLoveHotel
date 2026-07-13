@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -128,7 +129,9 @@ export default function AdminEventsPage() {
                   return (
                     <article key={event.id} className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
                       <div className="grid gap-0 md:grid-cols-[180px_minmax(0,1fr)]">
-                        <img src={event.image || fallbackImage} alt={event.title} className="h-44 w-full object-cover md:h-full" />
+                        <div className="relative h-44 w-full md:h-full">
+                          <Image src={event.image || fallbackImage} alt={event.title} fill sizes="180px" unoptimized className="object-cover" />
+                        </div>
                         <div className="p-4">
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -140,6 +143,13 @@ export default function AdminEventsPage() {
                             </Button>
                           </div>
                           <p className="mt-3 text-sm text-white/70">{event.description || 'Aucune description fournie.'}</p>
+                          {event.experience_type === 'open_curtains' && (
+                            <p className="mt-3 rounded-md border border-[#94ffc9]/20 bg-[#94ffc9]/5 px-3 py-2 text-xs text-[#caffdf]">
+                              {event.booking_confirmed
+                                ? `Chambre réservée · référence ${event.booking_reference}`
+                                : 'Chambre à confirmer'}
+                            </p>
+                          )}
                           <p className="mt-3 text-xs text-white/52">Proposé par <Link className="text-[#ffb3d8] underline" href={`/profile/${event.creator_id}`}>{event.creator_name || 'Membre'}</Link> · capacité {event.max_participants}</p>
                           <textarea
                             value={note}

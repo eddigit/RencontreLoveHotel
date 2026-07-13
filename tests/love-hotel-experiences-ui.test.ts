@@ -47,10 +47,13 @@ describe('Love Hotel experiences UI', () => {
   it('limits admin and member event categories to active hotel formats', () => {
     const activeFallback = 'jacuzzi|Apéro jacuzzi 2 à 4 couples\\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
 
-    for (const source of [listPage, adminCreatePage, adminEditPage, memberEditPage, adminOptionsPage]) {
+    for (const source of [adminCreatePage, adminEditPage, memberEditPage, adminOptionsPage]) {
       expect(source).toContain(activeFallback)
       expect(source).not.toContain('speed-dating|Speed Dating\\njacuzzi|Jacuzzi\\nrestaurant|Restaurant')
     }
+
+    expect(listPage).toContain("jacuzzi: 'Apéro jacuzzi'")
+    expect(listPage).toContain("open_curtains: 'Rideaux ouverts'")
 
     expect(adminCreatePage).toContain('activeEventCategoryValues')
     expect(adminEditPage).toContain('activeEventCategoryValues')
@@ -61,13 +64,13 @@ describe('Love Hotel experiences UI', () => {
     expect(listPage).toContain('Événements à venir')
     expect(listPage).toContain('Apéro jacuzzi')
     expect(listPage).toContain('Rideaux ouverts')
-    expect(listPage).toContain('Mes propositions')
+    expect(listPage).toContain('Mes événements')
   })
 
   it('event cards show experience metadata', () => {
     expect(eventCard).toContain('experienceType')
     expect(eventCard).toContain('venue')
     expect(eventCard).toContain('maxParticipants')
-    expect(eventCard).toContain('Publié en bêta')
+    expect(eventCard).toContain('Demander à participer')
   })
 })

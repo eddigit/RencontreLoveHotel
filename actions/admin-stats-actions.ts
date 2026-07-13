@@ -82,7 +82,9 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
 
       (SELECT COUNT(*) FROM events) AS total_events,
       (SELECT COUNT(*) FROM events WHERE created_at >= NOW() - INTERVAL '24 hours') AS events_last_24h,
-      (SELECT COUNT(*) FROM events WHERE event_date >= NOW()) AS upcoming_events,
+      (SELECT COUNT(*) FROM events
+       WHERE (event_date + COALESCE(event_time, '23:59:59'::time)) > NOW()
+         AND publication_status = 'published') AS upcoming_events,
       (SELECT COUNT(*) FROM event_participants WHERE created_at >= NOW() - INTERVAL '24 hours') AS event_subscriptions_last_24h,
 
       (SELECT COUNT(*) FROM conversations) AS total_conversations,

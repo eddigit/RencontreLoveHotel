@@ -416,9 +416,17 @@ CREATE TABLE events
     max_participants INTEGER DEFAULT 50,
     image VARCHAR(500),
     category VARCHAR(100),
+    experience_type TEXT,
+    booking_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    booking_reference TEXT,
     creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT events_open_curtains_booking_check CHECK (
+        experience_type IS DISTINCT FROM 'open_curtains'
+        OR booking_confirmed = FALSE
+        OR char_length(trim(COALESCE(booking_reference, ''))) > 0
+    )
 );
 
 -- Table des participants aux événements
@@ -427,8 +435,14 @@ CREATE TABLE event_participants
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'accepted',
+    decided_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    decided_at TIMESTAMPTZ,
     joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT event_participants_status_check
+        CHECK (status IN ('pending', 'accepted', 'rejected', 'withdrawn')),
     CONSTRAINT unique_event_participation UNIQUE (event_id, user_id)
 );
 
@@ -474,3 +488,5 @@ CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_creator ON events(creator_id);
 CREATE INDEX idx_event_participants_event_id ON event_participants(event_id);
 CREATE INDEX idx_event_participants_user_id ON event_participants(user_id);
+CREATE INDEX idx_event_participants_event_status ON event_participants(event_id, status, created_at DESC);
+CREATE INDEX idx_event_participants_user_status ON event_participants(user_id, status, created_at DESC);

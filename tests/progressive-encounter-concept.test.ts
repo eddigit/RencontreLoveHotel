@@ -22,12 +22,15 @@ describe('Progressive Love Hotel encounter concept', () => {
 
   it('positions events as visual formats around real Love Hotel places', () => {
     const events = readFile('app/events/page.tsx')
+    const creation = readFile('app/events/new.tsx')
 
     expect(events).toContain('Événements à venir')
-    expect(events).toContain('Apéro jacuzzi 2 à 4 couples')
-    expect(events).toContain('Rideaux ouverts 2 ou 3 chambres')
-    expect(events).toContain('/apero-jacuzzi-rencontre.jpg')
-    expect(events).toContain('/rideaux-ouverts-rencontre.jpg')
+    expect(creation).toContain("label: 'Apéro jacuzzi'")
+    expect(creation).toContain("detail: '2 à 4 couples'")
+    expect(creation).toContain("label: 'Rideaux ouverts'")
+    expect(creation).toContain("detail: '2 ou 3 chambres'")
+    expect(creation).toContain('/apero-jacuzzi-rencontre.jpg')
+    expect(creation).toContain('/rideaux-ouverts-rencontre.jpg')
   })
 
   it('frames Love Rooms as the physical trigger for community encounters', () => {

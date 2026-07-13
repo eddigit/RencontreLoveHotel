@@ -1,239 +1,330 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
-import { CalendarDays, Hotel, Plus, UsersRound } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { CalendarDays, Check, Clock3, ExternalLink, Plus, Sparkles, UsersRound, X } from 'lucide-react'
+import { deleteEvent, getMyEventSubmissions, getUpcomingEvents } from '@/actions/event-actions'
 import {
-  deleteEvent,
-  getMyEventSubmissions,
-  getUpcomingEvents,
-  subscribeToEvent,
-  unsubscribeFromEvent
-} from '@/actions/event-actions'
+  decideEventParticipation,
+  getMyEventParticipations,
+  getOwnedEventRequests,
+  requestEventParticipation,
+  withdrawEventParticipation
+} from '@/actions/event-participation-actions'
 import { EventCard } from '@/components/event-card'
 import MainLayout from '@/components/layout/main-layout'
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/contexts/auth-context'
-import { useNotifications } from '@/contexts/notification-context'
-import { useRouter } from 'next/navigation'
 
-const activeEventCategoriesFallback =
-  'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
-const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
+type View = 'upcoming' | 'owned' | 'participating'
+type FormatFilter = 'all' | 'jacuzzi' | 'open_curtains'
 
-function parseActiveEventCategories(rawCategories?: string | null) {
-  return (rawCategories || activeEventCategoriesFallback)
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-    .map(line => {
-      const [value, label] = line.split('|')
-      return value && label ? { value: value.trim(), label: label.trim() } : null
-    })
-    .filter((category): category is { value: string; label: string } =>
-      category !== null && activeEventCategoryValues.has(category.value)
-    )
+type EventRow = {
+  id: string
+  title: string
+  location: string
+  event_date: string | Date
+  event_time?: string | null
+  image?: string | null
+  venue?: string
+  experience_type?: string
+  category?: string
+  creator_id: string
+  creator_name?: string
+  participant_count?: number | string
+  max_participants?: number
+  participation_status?: 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+  publication_status?: string
+  moderation_note?: string | null
+  booking_confirmed?: boolean
+  pending_request_count?: number | string
 }
 
-const formats = parseActiveEventCategories().map(format => ({
-  ...format,
-  shortLabel: format.value === 'jacuzzi' ? 'Apéro jacuzzi' : 'Rideaux ouverts',
-  image: format.value === 'jacuzzi'
-    ? '/apero-jacuzzi-rencontre.jpg'
-    : '/rideaux-ouverts-rencontre.jpg'
-}))
+type ParticipationRequest = {
+  participation_id: string
+  event_id: string
+  event_title: string
+  requester_id: string
+  requester_name: string
+  requester_avatar?: string | null
+  requested_at: string | Date
+}
 
-type View = 'upcoming' | 'mine' | 'agenda'
+const views: Array<{ value: View; label: string }> = [
+  { value: 'upcoming', label: 'À venir' },
+  { value: 'owned', label: 'Mes événements' },
+  { value: 'participating', label: 'Mes participations' }
+]
+
+const formatLabels: Record<string, string> = {
+  jacuzzi: 'Apéro jacuzzi',
+  open_curtains: 'Rideaux ouverts'
+}
+
+const statusLabels: Record<string, { label: string; className: string }> = {
+  pending_review: { label: 'En attente de validation', className: 'border-[#ffd166]/30 bg-[#ffd166]/10 text-[#ffe7a3]' },
+  published: { label: 'Publié', className: 'border-[#94ffc9]/30 bg-[#94ffc9]/10 text-[#94ffc9]' },
+  rejected: { label: 'Refusé', className: 'border-red-300/25 bg-red-500/10 text-red-200' }
+}
+
+function eventDateLabel (event: EventRow) {
+  const datePart = event.event_date instanceof Date
+    ? event.event_date.toISOString().slice(0, 10)
+    : String(event.event_date).slice(0, 10)
+  const timePart = String(event.event_time || '20:00').slice(0, 5)
+  const value = new Date(`${datePart}T${timePart}`)
+  if (!Number.isFinite(value.getTime())) return `${datePart} à ${timePart}`
+  return value.toLocaleString('fr-FR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 
 export default function EventsPage () {
-  const { markAsRead } = useNotifications()
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
   const router = useRouter()
-  const [events, setEvents] = useState<any[]>([])
-  const [mySubmissions, setMySubmissions] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [actionError, setActionError] = useState('')
+  const [events, setEvents] = useState<EventRow[]>([])
+  const [ownedEvents, setOwnedEvents] = useState<EventRow[]>([])
+  const [participations, setParticipations] = useState<EventRow[]>([])
+  const [requests, setRequests] = useState<ParticipationRequest[]>([])
   const [view, setView] = useState<View>('upcoming')
-  const [formatFilter, setFormatFilter] = useState('all')
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all')
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+
+  const loadData = useCallback(async () => {
+    if (!user?.id) return
+    setLoading(true)
+    try {
+      const [upcoming, owned, memberParticipations, ownedRequests] = await Promise.all([
+        getUpcomingEvents(user.id),
+        getMyEventSubmissions(user.id),
+        getMyEventParticipations(),
+        getOwnedEventRequests()
+      ])
+      setEvents((upcoming || []) as EventRow[])
+      setOwnedEvents((owned || []) as EventRow[])
+      setParticipations((memberParticipations || []) as EventRow[])
+      setRequests((ownedRequests || []) as ParticipationRequest[])
+    } catch {
+      setMessage('Les événements ne peuvent pas être chargés pour le moment.')
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id])
 
   useEffect(() => {
+    if (isLoading) return
     if (!user?.id) {
       router.replace('/login')
       return
     }
-
-    async function loadEvents() {
-      if (!user?.id) return
-      setLoading(true)
-      try {
-        const [upcoming, submissions] = await Promise.all([
-          getUpcomingEvents(user.id),
-          getMyEventSubmissions(user.id)
-        ])
-        setEvents(upcoming)
-        setMySubmissions(submissions)
-      } finally {
-        setLoading(false)
-      }
+    const requestedView = new URLSearchParams(window.location.search).get('view')
+    if (requestedView === 'owned' || requestedView === 'participating') setView(requestedView)
+    if (new URLSearchParams(window.location.search).get('created') === '1') {
+      setMessage('Votre événement a été envoyé. Il apparaîtra ici après validation.')
     }
+    void loadData()
+  }, [isLoading, loadData, router, user?.id])
 
-    void loadEvents()
-    const eventNotifications: string[] = []
-    eventNotifications.forEach(id => markAsRead(id))
-  }, [markAsRead, router, user])
+  const visibleEvents = useMemo(() => {
+    if (formatFilter === 'all') return events
+    return events.filter(event => (event.experience_type || event.category) === formatFilter)
+  }, [events, formatFilter])
 
-  const visibleEvents = formatFilter === 'all'
-    ? events
-    : events.filter(event => (event.experience_type || event.category) === formatFilter)
-
-  async function handleSubscribeToggle(event: any) {
-    if (!user?.id) return
-    setActionError('')
-    const currentCount = Number(event.attendees || event.participant_count || 0)
-
-    if (event.is_participating) {
-      const result = await unsubscribeFromEvent(event.id, user.id)
-      if (!result.success) {
-        setActionError("La désinscription n'a pas pu être enregistrée.")
-        return
-      }
-      setEvents(current => current.map(item => item.id === event.id
-        ? { ...item, is_participating: false, attendees: Math.max(0, currentCount - 1), participant_count: Math.max(0, currentCount - 1) }
-        : item))
-      return
-    }
-
-    const result = await subscribeToEvent(event.id, user.id)
+  async function handleRequest (eventId: string) {
+    setBusyId(eventId)
+    setMessage('')
+    const result = await requestEventParticipation(eventId)
+    setBusyId(null)
     if (!result.success) {
-      setActionError(result.error || "La participation n'a pas pu être enregistrée.")
+      setMessage(result.error || 'La demande n’a pas pu être envoyée.')
       return
     }
-    setEvents(current => current.map(item => item.id === event.id
-      ? { ...item, is_participating: true, attendees: currentCount + 1, participant_count: currentCount + 1 }
-      : item))
+    setMessage('Demande envoyée à l’organisateur.')
+    await loadData()
   }
 
-  async function handleDelete(eventId: string) {
+  async function handleWithdraw (eventId: string) {
+    setBusyId(eventId)
+    const result = await withdrawEventParticipation(eventId)
+    setBusyId(null)
+    if (!result.success) {
+      setMessage(result.error || 'La participation n’a pas pu être retirée.')
+      return
+    }
+    setMessage('Votre demande a été retirée.')
+    await loadData()
+  }
+
+  async function handleDecision (participationId: string, decision: 'accept' | 'reject') {
+    setBusyId(participationId)
+    const result = await decideEventParticipation(participationId, decision)
+    setBusyId(null)
+    if (!result.success) {
+      setMessage(result.error || 'La décision n’a pas pu être enregistrée.')
+      return
+    }
+    setMessage(decision === 'accept' ? 'Participation acceptée.' : 'Demande refusée.')
+    await loadData()
+  }
+
+  async function handleDelete (eventId: string) {
     if (!window.confirm('Supprimer cet événement ?')) return
     await deleteEvent(eventId)
-    setEvents(current => current.filter(event => event.id !== eventId))
+    setMessage('Événement supprimé.')
+    await loadData()
   }
 
-  const renderEvent = (event: any) => (
-    <EventCard
-      key={event.id}
-      id={event.id}
-      title={event.title}
-      location={event.location}
-      date={event.event_date ? (typeof event.event_date === 'string' ? event.event_date : new Date(event.event_date).toLocaleString('fr-FR')) : ''}
-      image={event.image}
-      attendees={event.attendees || event.participant_count || 0}
-      prix_personne_seule={event.prix_personne_seule ?? 0}
-      prix_couple={event.prix_couple ?? 0}
-      venue={event.venue}
-      experienceType={event.experience_type}
-      maxParticipants={event.max_participants}
-      createdByRole={event.created_by_role}
-      publicationStatus={event.publication_status}
-      isParticipating={!!event.is_participating}
-      onSubscribeToggle={() => handleSubscribeToggle(event)}
-      creatorId={event.creator_id}
-      currentUserId={user?.id}
-      isAdmin={user?.role === 'admin'}
-      onEdit={() => router.push(`/events/edit?id=${event.id}`)}
-      onDelete={user?.role === 'admin' || event.creator_id === user?.id ? () => handleDelete(event.id) : undefined}
-    />
-  )
+  function renderEventCard (event: EventRow) {
+    return (
+      <EventCard
+        key={event.id}
+        id={event.id}
+        title={event.title}
+        location={event.location}
+        date={eventDateLabel(event)}
+        image={event.image}
+        attendees={Number(event.participant_count || 0)}
+        maxParticipants={event.max_participants}
+        venue={event.venue}
+        experienceType={event.experience_type || event.category}
+        creatorName={event.creator_name}
+        bookingConfirmed={event.booking_confirmed}
+        participationStatus={event.participation_status || null}
+        isOwner={event.creator_id === user?.id}
+        loading={busyId === event.id}
+        onRequest={() => void handleRequest(event.id)}
+        onWithdraw={() => void handleWithdraw(event.id)}
+      />
+    )
+  }
 
   return (
     <MainLayout user={user}>
-      <div className='min-h-screen pb-20 md:pb-8'>
-        <main className='container py-4 md:py-7'>
-          <header className='flex flex-wrap items-center justify-between gap-3'>
+      <div className='min-h-screen pb-24 md:pb-8'>
+        <main className='container py-5 md:py-7'>
+          <header className='flex flex-wrap items-end justify-between gap-4'>
             <div>
               <p className='text-xs font-bold uppercase text-[#ff8cc8]'>Communauté</p>
-              <h1 className='mt-1 text-2xl font-black md:text-3xl'>Événements à venir</h1>
+              <h1 className='mt-1 text-2xl font-black md:text-3xl'>Événements</h1>
+              <p className='mt-1 text-sm text-white/60'>Proposez un moment, rencontrez les membres, gardez le contrôle des invitations.</p>
             </div>
-            <Button asChild className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-              <Link href='/events/new'><Plus className='mr-2 h-4 w-4' />Créer un événement</Link>
+            <Button asChild className='h-11 bg-[#ff4fa3] font-bold text-white hover:bg-[#ff6cb4]'>
+              <Link href='/events/new'><Plus className='mr-2 h-4 w-4' />Proposer un événement</Link>
             </Button>
           </header>
 
-          <div className='mt-5 grid gap-3 sm:grid-cols-2'>
-            {formats.map(format => (
-              <button
-                key={format.value}
-                type='button'
-                onClick={() => { setView('upcoming'); setFormatFilter(current => current === format.value ? 'all' : format.value) }}
-                className={`group relative aspect-[16/5] min-h-28 overflow-hidden rounded-lg border text-left ${formatFilter === format.value ? 'border-[#ff8cc8] ring-2 ring-[#ff4fa3]/25' : 'border-white/10'}`}
-              >
-                <img src={format.image} alt='' className='absolute inset-0 h-full w-full object-cover transition group-hover:scale-[1.02]' />
-                <div className='absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent' />
-                <div className='absolute inset-y-0 left-0 flex max-w-[75%] flex-col justify-center p-4'>
-                  <strong className='text-lg'>{format.shortLabel}</strong>
-                  <span className='mt-1 text-sm text-white/75'>{format.label.replace(`${format.shortLabel} `, '')}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <nav className='mt-5 flex gap-1 overflow-x-auto border-b border-white/10' aria-label='Sections événements'>
-            {[
-              ['upcoming', 'À venir'],
-              ['mine', `Mes propositions${mySubmissions.length ? ` (${mySubmissions.length})` : ''}`],
-              ['agenda', 'Agenda Rideaux ouverts']
-            ].map(([value, label]) => (
-              <button key={value} type='button' onClick={() => setView(value as View)} className={`shrink-0 border-b-2 px-4 py-3 text-sm font-semibold ${view === value ? 'border-[#ff4fa3] text-white' : 'border-transparent text-white/55 hover:text-white'}`}>
-                {label}
+          <nav className='mt-6 grid grid-cols-3 border-b border-white/10' aria-label='Sections événements'>
+            {views.map(item => (
+              <button key={item.value} type='button' onClick={() => setView(item.value)} className={`min-h-12 border-b-2 px-2 text-sm font-bold ${view === item.value ? 'border-[#ff4fa3] text-white' : 'border-transparent text-white/50 hover:text-white'}`}>
+                {item.label}
               </button>
             ))}
           </nav>
 
-          {actionError && <div className='mt-5 rounded-lg border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>{actionError}</div>}
+          {message && <div role='status' className='mt-4 rounded-md border border-[#ff8cc8]/25 bg-[#ff4fa3]/10 px-4 py-3 text-sm text-white'>{message}</div>}
 
           {view === 'upcoming' && (
             <section className='mt-5'>
-              {!loading && events.length > 0 && (
-                <div className='mb-4 flex flex-wrap items-center gap-3 text-sm text-white/60'>
-                  <span className='flex items-center gap-1.5'><CalendarDays className='h-4 w-4 text-[#ff8cc8]' />{visibleEvents.length} à venir</span>
-                  <span className='flex items-center gap-1.5'><UsersRound className='h-4 w-4 text-[#94ffc9]' />Rejoignez directement depuis la fiche</span>
-                  <Button asChild variant='outline' size='sm' className='ml-auto border-white/15 bg-white/5'><Link href='/love-rooms'><Hotel className='mr-2 h-4 w-4' />Réserver une chambre</Link></Button>
-                </div>
-              )}
-              <div className='grid gap-4 sm:grid-cols-2 lg:grid-cols-3'>
-                {loading ? <p className='text-sm text-white/55'>Chargement...</p> : visibleEvents.length ? visibleEvents.map(renderEvent) : <EmptyEventsState />}
+              <h2 className='mb-4 text-xl font-black'>Événements à venir</h2>
+              <div className='flex flex-wrap items-center gap-2'>
+                {[
+                  ['all', 'Tous'],
+                  ['jacuzzi', 'Jacuzzi'],
+                  ['open_curtains', 'Rideaux ouverts']
+                ].map(([value, label]) => (
+                  <button key={value} type='button' onClick={() => setFormatFilter(value as FormatFilter)} className={`rounded-full border px-4 py-2 text-sm font-semibold ${formatFilter === value ? 'border-[#ff8cc8] bg-[#ff4fa3]/15 text-white' : 'border-white/10 text-white/55 hover:text-white'}`}>
+                    {label}
+                  </button>
+                ))}
+                <a href='https://lovehotelaparis.fr/wp-json/zlhu_api/v3/rideaux_ouverts/' target='_blank' rel='noreferrer' className='ml-auto inline-flex items-center gap-2 text-sm text-[#94ffc9] underline'>
+                  Voir l’agenda Rideaux ouverts <ExternalLink className='h-4 w-4' />
+                </a>
+                <Link href='/love-rooms' className='inline-flex items-center gap-2 text-sm text-[#ffb3d8] underline'>
+                  Réserver une chambre
+                </Link>
+              </div>
+
+              <div className='mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+                {loading ? <LoadingEvents /> : visibleEvents.length ? visibleEvents.map(renderEventCard) : <EmptyEvents />}
               </div>
             </section>
           )}
 
-          {view === 'mine' && (
-            <section className='mt-5'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
-                <p className='text-sm text-white/60'>L’équipe valide les propositions des membres avant leur publication.</p>
-                <Button asChild variant='outline' size='sm' className='border-white/15 bg-white/5'><Link href='/events/new'>Nouvelle proposition</Link></Button>
-              </div>
-              {loading ? <p className='text-sm text-white/55'>Chargement...</p> : mySubmissions.length ? (
-                <div className='grid gap-3 md:grid-cols-2 lg:grid-cols-3'>
-                  {mySubmissions.map(submission => (
-                    <article key={submission.id} className='rounded-lg border border-white/10 bg-white/[0.04] p-4'>
-                      <div className='flex items-start justify-between gap-3'>
-                        <div><strong>{submission.title}</strong><p className='mt-1 text-xs text-white/55'>{submission.venue === 'chatelet' ? 'Châtelet' : 'Pigalle'} · {submission.experience_type === 'jacuzzi' ? 'Apéro jacuzzi' : 'Rideaux ouverts'}</p></div>
-                        <span className={`rounded-full border px-2 py-1 text-[11px] font-bold ${submission.publication_status === 'rejected' ? 'border-red-300/20 bg-red-500/10 text-red-200' : 'border-[#ffd166]/25 bg-[#ffd166]/10 text-[#ffe7a3]'}`}>{submission.publication_status === 'rejected' ? 'Refusé' : 'À valider'}</span>
+          {view === 'owned' && (
+            <section className='mt-5 space-y-5'>
+              {loading ? <LoadingEvents /> : ownedEvents.length ? ownedEvents.map(event => {
+                const status = statusLabels[event.publication_status || 'pending_review'] || statusLabels.pending_review
+                const eventRequests = requests.filter(request => request.event_id === event.id)
+                return (
+                  <article key={event.id} className='rounded-lg border border-white/10 bg-white/[0.035] p-4 md:p-5'>
+                    <div className='flex flex-wrap items-start justify-between gap-3'>
+                      <div>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          <Link href={`/events/${event.id}`} className='font-black text-white hover:text-[#ff9dce]'>{event.title}</Link>
+                          <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${status.className}`}>{status.label}</span>
+                        </div>
+                        <p className='mt-1 text-sm text-white/55'>{formatLabels[event.experience_type || ''] || 'Événement'} · {eventDateLabel(event)}</p>
+                        {event.experience_type === 'open_curtains' && <p className='mt-1 text-xs text-white/55'>{event.booking_confirmed ? 'Chambre réservée' : 'Chambre à confirmer'}</p>}
                       </div>
-                      {submission.moderation_note && <p className='mt-3 text-sm text-white/65'>{submission.moderation_note}</p>}
-                    </article>
-                  ))}
+                      <div className='flex gap-2'>
+                        <Button asChild size='sm' variant='outline' className='border-white/15'><Link href={`/events/edit?id=${event.id}`}>Modifier</Link></Button>
+                        <Button size='sm' variant='ghost' onClick={() => void handleDelete(event.id)} className='text-red-200'>Supprimer</Button>
+                      </div>
+                    </div>
+
+                    {event.moderation_note && <p className='mt-3 rounded-md bg-black/20 p-3 text-sm text-white/65'>{event.moderation_note}</p>}
+
+                    {event.publication_status === 'published' && (
+                      <div className='mt-4 border-t border-white/10 pt-4'>
+                        <h2 className='flex items-center gap-2 text-sm font-black'><UsersRound className='h-4 w-4 text-[#ffd166]' />Demandes reçues ({eventRequests.length})</h2>
+                        {eventRequests.length ? (
+                          <div className='mt-3 grid gap-2 md:grid-cols-2'>
+                            {eventRequests.map(request => (
+                              <div key={request.participation_id} className='flex items-center gap-3 rounded-md border border-white/10 bg-black/15 p-3'>
+                                <Link href={`/profile/${request.requester_id}`} className='h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                                  <Image src={request.requester_avatar || '/default-avatar.png'} alt='' width={40} height={40} unoptimized className='h-full w-full object-cover' />
+                                </Link>
+                                <Link href={`/profile/${request.requester_id}`} className='min-w-0 flex-1 font-semibold text-white hover:text-[#ff9dce]'>{request.requester_name}</Link>
+                                <Button size='sm' disabled={busyId === request.participation_id} onClick={() => void handleDecision(request.participation_id, 'accept')} className='bg-[#35c982] text-white'><Check className='h-4 w-4' /><span className='sr-only'>Accepter</span></Button>
+                                <Button size='sm' variant='outline' disabled={busyId === request.participation_id} onClick={() => void handleDecision(request.participation_id, 'reject')} className='border-red-300/25 text-red-200'><X className='h-4 w-4' /><span className='sr-only'>Refuser</span></Button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : <p className='mt-2 text-sm text-white/45'>Aucune demande en attente.</p>}
+                      </div>
+                    )}
+                  </article>
+                )
+              }) : (
+                <div className='rounded-lg border border-dashed border-white/15 p-8 text-center'>
+                  <Sparkles className='mx-auto h-6 w-6 text-[#ff8cc8]' />
+                  <h2 className='mt-3 text-xl font-black'>Vous n’avez pas encore proposé d’événement</h2>
+                  <Button asChild className='mt-4 bg-[#ff4fa3] text-white'><Link href='/events/new'>Lancer mon premier événement</Link></Button>
                 </div>
-              ) : (
-                <div className='rounded-lg border border-dashed border-white/15 p-8 text-center'><p>Aucune proposition en attente.</p><Button asChild className='mt-4 bg-[#ff4fa3] text-white'><Link href='/events/new'>Créer mon premier événement</Link></Button></div>
               )}
             </section>
           )}
 
-          {view === 'agenda' && (
-            <section className='mt-5 overflow-hidden rounded-lg border border-white/10 bg-white/[0.03]'>
-              <iframe src='https://lovehotelaparis.fr/wp-json/zlhu_api/v3/rideaux_ouverts/' title='Agenda Rideaux ouverts' className='h-[1200px] w-full border-0' />
+          {view === 'participating' && (
+            <section className='mt-5'>
+              <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+                {loading ? <LoadingEvents /> : participations.length ? participations.map(renderEventCard) : (
+                  <div className='col-span-full rounded-lg border border-dashed border-white/15 p-8 text-center'>
+                    <CalendarDays className='mx-auto h-6 w-6 text-[#94ffc9]' />
+                    <h2 className='mt-3 text-xl font-black'>Aucune participation pour le moment</h2>
+                    <Button type='button' onClick={() => setView('upcoming')} className='mt-4 bg-[#ff4fa3] text-white'>Découvrir les événements</Button>
+                  </div>
+                )}
+              </div>
             </section>
           )}
         </main>
@@ -243,12 +334,16 @@ export default function EventsPage () {
   )
 }
 
-function EmptyEventsState () {
+function LoadingEvents () {
+  return <div className='col-span-full flex items-center gap-2 py-10 text-sm text-white/55'><Clock3 className='h-4 w-4 animate-spin' />Chargement des événements...</div>
+}
+
+function EmptyEvents () {
   return (
-    <div className='col-span-full rounded-lg border border-dashed border-[#ff8cc8]/30 bg-white/[0.03] p-8 text-center'>
-      <h2 className='text-xl font-black'>Aucun événement dans ce format</h2>
-      <p className='mt-2 text-sm text-white/60'>Proposez le premier rendez-vous à la communauté.</p>
-      <Button asChild className='mt-5 bg-[#ff4fa3] text-white'><Link href='/events/new'>Créer un événement</Link></Button>
+    <div className='col-span-full rounded-lg border border-dashed border-[#ff8cc8]/30 bg-white/[0.025] p-8 text-center'>
+      <h2 className='text-xl font-black'>Aucun événement publié pour le moment</h2>
+      <p className='mt-2 text-sm text-white/55'>La communauté attend peut-être votre idée.</p>
+      <Button asChild className='mt-4 bg-[#ff4fa3] text-white'><Link href='/events/new'>Lancer le premier événement</Link></Button>
     </div>
   )
 }

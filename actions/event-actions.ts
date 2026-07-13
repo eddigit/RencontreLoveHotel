@@ -1,11 +1,11 @@
 "use server"
 
 import { sql } from "@/lib/db"
-import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
 import { createAppNotificationRecord } from '@/lib/notification-service'
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 import { sendMemberActivityEmail } from '@/lib/member-activity-email'
+import { requestParticipation, withdrawParticipation } from '@/lib/event-participation-service'
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
@@ -66,16 +66,9 @@ function normalizeEventDateTime(value: string) {
   }
 }
 
-function eventDateTimeHasPassed(event: any) {
-  if (!event?.event_date) return false
-
-  const datePart = event.event_date instanceof Date
-    ? event.event_date.toISOString().slice(0, 10)
-    : String(event.event_date).slice(0, 10)
-  const timePart = event.event_time ? String(event.event_time).slice(0, 8) : '23:59:59'
-  const eventDate = new Date(`${datePart}T${timePart}`)
-
-  return Number.isFinite(eventDate.getTime()) && eventDate < new Date()
+function hideBookingReference<T extends Record<string, unknown>>(event: T) {
+  const { booking_reference: _bookingReference, ...safeEvent } = event
+  return safeEvent
 }
 
 export type EventModerationDecision = 'publish' | 'request_correction' | 'reject'
@@ -111,6 +104,8 @@ export async function getPendingEventModeration() {
         e.description,
         e.venue,
         e.experience_type,
+        e.booking_confirmed,
+        e.booking_reference,
         e.max_participants,
         e.publication_status,
         e.created_at,
@@ -229,10 +224,12 @@ export async function getUpcomingEvents(userId?: string) {
     ? await requireSameUserOrAdmin(userId)
     : await requireCurrentUser()
   try {
-    return await getUpcomingEventsQuery(userId || currentUser.id, true)
+    const events = await getUpcomingEventsQuery(userId || currentUser.id, true)
+    return events.map(hideBookingReference)
   } catch (error) {
     if (isMissingPublicationStatusColumn(error)) {
-      return await getUpcomingEventsQuery(userId || currentUser.id, false)
+      const events = await getUpcomingEventsQuery(userId || currentUser.id, false)
+      return events.map(hideBookingReference)
     }
     throw error
   }
@@ -244,22 +241,15 @@ export async function getMyEventSubmissions(userId: string) {
   return sql.query(
     `
       SELECT
-        id,
-        title,
-        image,
-        event_date,
-        event_time,
-        venue,
-        experience_type,
-        publication_status,
-        moderation_note,
-        moderated_at,
-        created_at
-      FROM events
-      WHERE creator_id = $1
-        AND publication_status <> 'published'
-      ORDER BY created_at DESC
-      LIMIT 12
+        e.*,
+        (SELECT COUNT(*) FROM event_participants accepted
+         WHERE accepted.event_id = e.id AND accepted.status = 'accepted') AS participant_count,
+        (SELECT COUNT(*) FROM event_participants requested
+         WHERE requested.event_id = e.id AND requested.status = 'pending') AS pending_request_count
+      FROM events e
+      WHERE e.creator_id = $1
+      ORDER BY e.created_at DESC
+      LIMIT 24
     `,
     [userId]
   )
@@ -279,10 +269,12 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
     const events = withPublicationStatus
       ? await sql`
           SELECT
-            e.*, e.creator_id,
-            (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count,
-            CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
+            e.*, e.creator_id, owner.name as creator_name, owner.avatar as creator_avatar,
+            (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id AND ep2.status = 'accepted') as participant_count,
+            ep.status as participation_status,
+            CASE WHEN ep.status = 'accepted' THEN true ELSE false END as is_participating
           FROM events e
+          LEFT JOIN users owner ON owner.id = e.creator_id
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
           WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
             AND e.publication_status = 'published'
@@ -290,10 +282,12 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
         `
       : await sql`
           SELECT
-            e.*, e.creator_id,
+            e.*, e.creator_id, owner.name as creator_name, owner.avatar as creator_avatar,
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count,
+            ep.status as participation_status,
             CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
           FROM events e
+          LEFT JOIN users owner ON owner.id = e.creator_id
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
           WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
           ORDER BY e.event_date ASC
@@ -304,7 +298,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
       ? await sql`
           SELECT
             e.*, e.creator_id,
-            (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
+            (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id AND ep2.status = 'accepted') as participant_count
           FROM events e
           WHERE (e.event_date + COALESCE(e.event_time, '23:59:59'::time)) > NOW()
             AND e.publication_status = 'published'
@@ -334,6 +328,7 @@ export async function getEventParticipants(eventId: string) {
     JOIN users u ON ep.user_id = u.id
     LEFT JOIN user_profiles up ON u.id = up.user_id
     WHERE ep.event_id = ${eventId}
+      AND ep.status = 'accepted'
   `
 
   return participants || []
@@ -355,6 +350,8 @@ export async function createEvent({
   venue,
   experience_type,
   max_participants,
+  booking_confirmed = false,
+  booking_reference,
   publication_status = 'published',
   created_by_role = 'member'
 }: {
@@ -373,6 +370,8 @@ export async function createEvent({
   venue?: 'pigalle' | 'chatelet';
   experience_type?: ActiveExperienceType | string;
   max_participants?: number;
+  booking_confirmed?: boolean;
+  booking_reference?: string;
   publication_status?: 'published' | 'pending_review' | 'rejected';
   created_by_role?: 'hotel' | 'admin' | 'member';
 }) {
@@ -389,53 +388,75 @@ export async function createEvent({
     normalizedExperienceType,
     max_participants
   )
+  const bookingConfirmed = normalizedExperienceType === 'open_curtains' && booking_confirmed === true
+  const bookingReference = (booking_reference || '').trim().slice(0, 120) || null
+  if (bookingConfirmed && !bookingReference) {
+    throw new Error('La référence de réservation est obligatoire pour une chambre confirmée.')
+  }
 
   const [event] = await sql`
-    INSERT INTO events (
-      title, 
-      location, 
-      event_date, 
-      event_time,
-      image, 
-      category, 
-      description, 
-      creator_id,
-      price,
-      prix_personne_seule,
-      prix_couple,
-      payment_mode,
-      conditions,
-      venue,
-      experience_type,
-      max_participants,
-      publication_status,
-      created_by_role,
-      created_at,
-      updated_at
+    WITH inserted_event AS (
+      INSERT INTO events (
+        title,
+        location,
+        event_date,
+        event_time,
+        image,
+        category,
+        description,
+        creator_id,
+        price,
+        prix_personne_seule,
+        prix_couple,
+        payment_mode,
+        conditions,
+        venue,
+        experience_type,
+        max_participants,
+        booking_confirmed,
+        booking_reference,
+        publication_status,
+        created_by_role,
+        created_at,
+        updated_at
+      )
+      VALUES (
+        ${title},
+        ${location},
+        ${eventDate},
+        ${eventTime},
+        ${image || null},
+        ${normalizedCategory},
+        ${description || null},
+        ${creator_id},
+        ${price},
+        ${prix_personne_seule},
+        ${prix_couple},
+        ${payment_mode},
+        ${conditions || null},
+        ${venue || null},
+        ${normalizedExperienceType},
+        ${normalizedMaxParticipants},
+        ${bookingConfirmed},
+        ${bookingReference},
+        ${publicationStatus},
+        ${effectiveCreatedByRole},
+        NOW(),
+        NOW()
+      )
+      RETURNING *
+    ), inserted_organizer AS (
+      INSERT INTO event_participants (
+        event_id, user_id, status, joined_at, created_at, updated_at
+      )
+      SELECT id, ${creator_id}, 'accepted', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      FROM inserted_event
+      ON CONFLICT (event_id, user_id) DO NOTHING
+      RETURNING event_id
     )
-    VALUES (
-      ${title}, 
-      ${location}, 
-      ${eventDate},
-      ${eventTime},
-      ${image || null}, 
-      ${normalizedCategory},
-      ${description || null}, 
-      ${creator_id},
-      ${price},
-      ${prix_personne_seule},
-      ${prix_couple},
-      ${payment_mode},
-      ${conditions || null},
-      ${venue || null},
-      ${normalizedExperienceType},
-      ${normalizedMaxParticipants},
-      ${publicationStatus},
-      ${effectiveCreatedByRole},
-      NOW(),
-      NOW()
-    )
-    RETURNING *
+    SELECT inserted_event.*
+    FROM inserted_event
+    LEFT JOIN inserted_organizer ON inserted_organizer.event_id = inserted_event.id
   `
   await notifyAdminByEmail({
     kind: 'event_created',
@@ -599,52 +620,12 @@ export async function resetAllEvents() {
 
 export async function subscribeToEvent(eventId: string, userId: string) {
   await requireSameUserOrAdmin(userId)
-
-  const [event] = await sql`
-    SELECT
-      id,
-      max_participants,
-      event_date,
-      event_time,
-      publication_status,
-      (SELECT COUNT(*) FROM event_participants WHERE event_id = ${eventId}) as participant_count
-    FROM events
-    WHERE id = ${eventId}
-  `
-
-  if (!event) {
-    return { success: false, error: 'Événement introuvable' }
-  }
-
-  if (event.publication_status && event.publication_status !== 'published') {
-    return { success: false, error: 'Événement non publié' }
-  }
-
-  if (eventDateTimeHasPassed(event)) {
-    return { success: false, error: 'Impossible de participer à un événement passé' }
-  }
-
-  if (event?.max_participants && Number(event.participant_count || 0) >= Number(event.max_participants)) {
-    return { success: false, error: 'Événement complet' }
-  }
-
-  await sql`
-    INSERT INTO event_participants (event_id, user_id)
-    VALUES (${eventId}, ${userId})
-    ON CONFLICT DO NOTHING
-  `
-  await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
-  return { success: true }
+  return requestParticipation({ eventId, actorId: userId })
 }
 
 export async function unsubscribeFromEvent(eventId: string, userId: string) {
   await requireSameUserOrAdmin(userId)
-
-  await sql`
-    DELETE FROM event_participants WHERE event_id = ${eventId} AND user_id = ${userId}
-  `
-  await notifyEventReservationAdmins({ eventId, userId, action: 'leave' })
-  return { success: true }
+  return withdrawParticipation({ eventId, actorId: userId })
 }
 
 export async function removeSubscriberFromEvent(eventId: string, userId: string) {
@@ -683,9 +664,11 @@ export async function getEventById(eventId: string, userId?: string) {
       ? `
       SELECT 
         e.*,
-        (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = e.id) as participant_count,
+        (SELECT COUNT(*) FROM event_participants accepted WHERE accepted.event_id = e.id AND accepted.status = 'accepted') as participant_count,
         u.name as creator_name,
-        CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
+        u.avatar as creator_avatar,
+        ep.status as participation_status,
+        CASE WHEN ep.status = 'accepted' THEN true ELSE false END as is_participating
       FROM events e
       LEFT JOIN users u ON e.creator_id = u.id
       LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = $2
@@ -694,8 +677,10 @@ export async function getEventById(eventId: string, userId?: string) {
       : `
       SELECT
         e.*,
-        (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = e.id) as participant_count,
+        (SELECT COUNT(*) FROM event_participants accepted WHERE accepted.event_id = e.id AND accepted.status = 'accepted') as participant_count,
         u.name as creator_name,
+        u.avatar as creator_avatar,
+        NULL as participation_status,
         false as is_participating
       FROM events e
       LEFT JOIN users u ON e.creator_id = u.id
@@ -705,6 +690,14 @@ export async function getEventById(eventId: string, userId?: string) {
     const [event] = await sql.query<any[]>(eventQuery, eventParams)
 
     if (!event) {
+      return null
+    }
+
+    if (
+      event.publication_status !== 'published' &&
+      event.creator_id !== currentUser.id &&
+      currentUser.role !== 'admin'
+    ) {
       return null
     }
 
@@ -719,14 +712,19 @@ export async function getEventById(eventId: string, userId?: string) {
       FROM event_participants ep
       JOIN users u ON ep.user_id = u.id
       WHERE ep.event_id = $1
+        AND ep.status = 'accepted'
       ORDER BY ep.joined_at ASC
       LIMIT 20
     `,
       [eventId]
     )
 
+    const visibleEvent = event.creator_id === currentUser.id || currentUser.role === 'admin'
+      ? event
+      : hideBookingReference(event)
+
     return {
-      ...event,
+      ...visibleEvent,
       participants: participants || []
     }
   } catch (error) {

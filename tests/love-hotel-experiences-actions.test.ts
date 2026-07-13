@@ -4,6 +4,7 @@ import path from 'path'
 
 describe('Love Hotel experience event actions', () => {
   const source = fs.readFileSync(path.join(process.cwd(), 'actions/event-actions.ts'), 'utf8')
+  const participationSource = fs.readFileSync(path.join(process.cwd(), 'lib/event-participation-service.ts'), 'utf8')
 
   it('writes experience fields on event creation', () => {
     expect(source).toContain('venue')
@@ -19,8 +20,8 @@ describe('Love Hotel experience event actions', () => {
   })
 
   it('prevents subscribing past capacity when max_participants is set', () => {
-    expect(source).toContain('max_participants')
-    expect(source).toContain('participant_count')
-    expect(source).toContain('Événement complet')
+    expect(participationSource).toContain('max_participants')
+    expect(participationSource).toContain('accepted_count')
+    expect(participationSource).toContain('L’événement est complet.')
   })
 })
