@@ -134,7 +134,7 @@ export async function acceptMatch(userId: string, matchId: string) {
     await executeQuery(
       `
       UPDATE user_matches
-      SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
+      SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE (user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)
     `,
       [userId, matchId],
@@ -155,7 +155,7 @@ export async function rejectMatch(userId: string, matchId: string) {
     await executeQuery(
       `
       UPDATE user_matches
-      SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+      SET status = 'rejected', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP
       WHERE (user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)
     `,
       [userId, matchId],

@@ -460,7 +460,7 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     const result = await sql`
       INSERT INTO user_matches (user_id_1, user_id_2, status, match_score)
       VALUES (${requesterId}, ${receiverId}, 'pending', ${matchScore})
-      ON CONFLICT (user_id_1, user_id_2) DO UPDATE SET status = 'pending', updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
+      ON CONFLICT (user_id_1, user_id_2) DO UPDATE SET status = 'pending', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
     `
     // Send notification to receiver
     await createNotification({
@@ -485,7 +485,7 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
   try {
     const result = await sql`
       UPDATE user_matches
-      SET status = 'accepted', updated_at = CURRENT_TIMESTAMP
+      SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE user_id_1 = ${requesterId} AND user_id_2 = ${receiverId} AND status = 'pending'
     `
     if ((result as any).rowCount === 0) {
@@ -512,7 +512,7 @@ export async function declineMatchRequest(requesterId: string, receiverId: strin
   try {
     const result = await sql`
       UPDATE user_matches
-      SET status = 'rejected', updated_at = CURRENT_TIMESTAMP
+      SET status = 'rejected', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP
       WHERE user_id_1 = ${requesterId} AND user_id_2 = ${receiverId} AND status = 'pending'
     `
     if ((result as any).rowCount === 0) {
@@ -734,7 +734,7 @@ export async function getMatchesStats({ startDate, endDate, scale }: { startDate
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM user_matches
-    WHERE status = 'accepted' AND created_at BETWEEN $1 AND $2
+    WHERE status = 'accepted' AND accepted_at BETWEEN $1 AND $2
     GROUP BY period
     ORDER BY period ASC
   `;

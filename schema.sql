@@ -115,6 +115,7 @@ CREATE TABLE user_matches
     -- Score de compatibilité entre 0 et 100
     status VARCHAR(50) DEFAULT 'pending',
     -- 'pending', 'accepted', 'rejected'
+    accepted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_match UNIQUE (user_id_1, user_id_2)
@@ -418,6 +419,7 @@ CREATE INDEX idx_user_meeting_types_user_id ON user_meeting_types(user_id);
 CREATE INDEX idx_user_additional_options_user_id ON user_additional_options(user_id);
 CREATE INDEX idx_user_matches_user_id_1 ON user_matches(user_id_1);
 CREATE INDEX idx_user_matches_user_id_2 ON user_matches(user_id_2);
+CREATE INDEX IF NOT EXISTS idx_user_matches_accepted_at ON user_matches(accepted_at) WHERE status = 'accepted';
 CREATE INDEX idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
 CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(user_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
