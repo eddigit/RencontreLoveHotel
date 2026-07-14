@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { useNotifications } from '@/contexts/notification-context'
 import { getUserConversations } from '@/actions/conversation-actions'
@@ -266,7 +265,6 @@ export default function MessagesPage () {
             </div>
           </aside>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )

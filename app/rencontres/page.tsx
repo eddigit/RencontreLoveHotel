@@ -6,12 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Heart, Star, Users, Calendar, Gift, Coffee, Wine, Key, Sparkles } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { LandingHeader } from "@/components/landing-header"
 
 export default function RencontresPage() {
   return (
     <div className="min-h-screen bg-[#120821]">
-      <LandingHeader />
 
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">

@@ -1,4 +1,3 @@
-import { MobileNavigation } from "@/components/mobile-navigation"
 
 export default function MatchesLoading() {
   return (
@@ -9,7 +8,6 @@ export default function MatchesLoading() {
           <p className="text-white">Chargement de vos matchs...</p>
         </div>
       </div>
-      <MobileNavigation />
     </div>
   )
 }

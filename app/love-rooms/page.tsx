@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
@@ -201,7 +200,6 @@ export default function LoveRoomsPage () {
           </Tabs>
         </div>
 
-        <MobileNavigation />
       </div>
     </MainLayout>
   )

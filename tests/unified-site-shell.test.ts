@@ -1,8 +1,20 @@
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
+import { join } from 'path'
 import { describe, expect, it } from 'vitest'
 
 function readWhenPresent(path: string) {
   return existsSync(path) ? readFileSync(path, 'utf8') : ''
+}
+
+function sourceFiles(directory: string): string[] {
+  return readdirSync(directory).flatMap(entry => {
+    const path = join(directory, entry)
+    return statSync(path).isDirectory() ? sourceFiles(path) : [path]
+  }).filter(path => /\.(tsx|ts)$/.test(path))
+}
+
+function filesContaining(token: string) {
+  return sourceFiles('app').filter(path => readFileSync(path, 'utf8').includes(token))
 }
 
 describe('unified public site shell', () => {
@@ -50,5 +62,10 @@ describe('unified public site shell', () => {
     expect(mainLayout).toContain('<Header session={session} user={user} />')
     expect(v2Shell).not.toContain("<aside className='hidden")
     expect(v2Shell).not.toContain("src='/lhr-official-logo.png'")
+  })
+
+  it('does not render legacy page-level navigation', () => {
+    expect(filesContaining('<LandingHeader')).toEqual([])
+    expect(filesContaining('<MobileNavigation')).toEqual([])
   })
 })

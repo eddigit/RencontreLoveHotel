@@ -6,7 +6,6 @@ import { Check, Calendar, Clock, MapPin, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { MobileNavigation } from "@/components/mobile-navigation"
 import { motion } from "framer-motion"
 import MainLayout from "@/components/layout/main-layout"
 
@@ -134,7 +133,6 @@ export default function ReservationConfirmationPage() {
         </motion.div>
       </div>
 
-      <MobileNavigation />
     </div></MainLayout>
   )
 }

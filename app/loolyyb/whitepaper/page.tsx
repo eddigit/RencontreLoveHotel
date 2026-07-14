@@ -5,12 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Download, FileText } from "lucide-react"
 import Link from "next/link"
-import { LandingHeader } from "@/components/landing-header"
 
 export default function WhitepaperPage() {
   return (
     <div className="min-h-screen bg-[#120821]">
-      <LandingHeader />
 
       {/* Header */}
       <section className="py-12 md:py-16">

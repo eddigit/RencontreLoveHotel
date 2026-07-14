@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, Heart, Info, MapPin, Star, Users } from "lucide-react"
 import Image from "next/image"
-import { MobileNavigation } from "@/components/mobile-navigation"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
@@ -598,7 +597,6 @@ export default function LoveRoomDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      <MobileNavigation />
     </div>
   )
 }

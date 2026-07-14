@@ -6,14 +6,12 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Check, Star, Gift, Key, Crown, Shield, Users } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { LandingHeader } from "@/components/landing-header"
 import MainLayout from "@/components/layout/main-layout"
 
 export default function PremiumPage() {
   return (
     <MainLayout>
       <div className="min-h-screen bg-[#120821]">
-        <LandingHeader />
 
         {/* Hero Section */}
         <section className="relative py-20 overflow-hidden">

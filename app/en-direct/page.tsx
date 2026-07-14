@@ -6,12 +6,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Heart, MessageCircle, Video, Users, Eye, Shield, Clock } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { LandingHeader } from "@/components/landing-header"
 
 export default function EnDirectPage() {
   return (
     <div className="min-h-screen bg-[#120821]">
-      <LandingHeader />
 
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">

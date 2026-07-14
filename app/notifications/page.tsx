@@ -4,7 +4,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Bell, Calendar, Heart, MessageCircle, UserPlus } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname, useSearchParams } from 'next/navigation'
@@ -251,7 +250,6 @@ export default function NotificationsPage (props: any) {
           </Tabs>
         </div>
 
-        <MobileNavigation />
       </div>
     </MainLayout>
   )

@@ -3,14 +3,11 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
-import { LandingHeader } from "@/components/landing-header"
 import { AdvertisementBanner } from "@/components/advertisement-banner"
 
 export default function LoolyyBMemeCoinPage() {
   return (
     <div className="min-h-screen bg-[#120821] overflow-x-hidden">
-      {/* Header */}
-      <LandingHeader />
 
       {/* Hero Section */}
       <section className="py-8 md:py-16 relative overflow-hidden">

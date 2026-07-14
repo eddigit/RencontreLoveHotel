@@ -6,7 +6,7 @@ const root = process.cwd()
 
 describe('LHR V2 shell', () => {
   it('exposes the core dating product navigation', () => {
-    const shell = readFileSync(join(root, 'components/lhr-v2-shell.tsx'), 'utf8')
+    const shell = readFileSync(join(root, 'components/site-shell.tsx'), 'utf8')
 
     expect(shell).toContain("href: '/discover'")
     expect(shell).toContain("href: '/messages'")
@@ -16,11 +16,9 @@ describe('LHR V2 shell', () => {
   })
 
   it('removes the legacy header from V2 member screens', () => {
-    const header = readFileSync(join(root, 'components/header.tsx'), 'utf8')
+    const layout = readFileSync(join(root, 'components/layout/main-layout.tsx'), 'utf8')
 
-    expect(header).toContain("pathname === '/discover'")
-    expect(header).toContain("pathname === '/messages'")
-    expect(header).toContain("pathname.startsWith('/messages/')")
-    expect(header).toContain("pathname.startsWith('/profile/')")
+    expect(layout).toContain("pathname.startsWith('/admin')")
+    expect(layout).toContain('return <>{children}</>')
   })
 })

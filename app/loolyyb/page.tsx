@@ -5,12 +5,10 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Lock, Star, Zap } from "lucide-react"
 import Link from "next/link"
-import { LandingHeader } from "@/components/landing-header"
 
 export default function LoolyyBPage() {
   return (
     <div className="min-h-screen bg-[#120821]">
-      <LandingHeader />
 
       {/* Hero Section */}
       <section className="relative py-20 overflow-hidden">

@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { getDiscoverProfiles, getUserMatches } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
@@ -660,7 +659,6 @@ export default function DiscoverPage () {
             </div>
           </aside>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )

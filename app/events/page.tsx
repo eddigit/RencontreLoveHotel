@@ -1,6 +1,5 @@
 'use client'
 
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { useNotifications } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
@@ -456,7 +455,6 @@ export default function EventsPage () {
             </Button>
           </Link>
         </div>
-        <MobileNavigation />
       </div>
     </MainLayout>
   )

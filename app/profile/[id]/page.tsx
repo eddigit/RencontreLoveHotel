@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { MatchRequestButton } from '@/components/match-request-button'
 import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
@@ -266,7 +265,6 @@ export default async function ProfilePage ({
             </div>
           </aside>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )

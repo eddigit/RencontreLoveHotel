@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { useAuth } from '@/contexts/auth-context'
 import {
   declineMatchRequest,
@@ -278,7 +277,6 @@ export default function MatchesPage () {
             </div>
           </aside>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )

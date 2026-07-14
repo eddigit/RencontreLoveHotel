@@ -12,7 +12,6 @@ import { UserProfileEditor } from '@/components/UserProfileEditor'
 import { PreferencesEditor } from '@/components/PreferencesEditor'
 import { UserPhotosManager } from '@/components/UserPhotosManager'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
@@ -552,7 +551,6 @@ export default async function ProfilePage () {
             </div>
           </aside>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )

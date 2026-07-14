@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import ConciergerieForm from '@/components/ConciergerieForm'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
-import { MobileNavigation } from '@/components/mobile-navigation'
 import { authOptions } from '@/lib/auth'
 
 const possibilities = [
@@ -127,7 +126,6 @@ export default async function ConciergeriePage() {
             <ConciergerieForm />
           </div>
         </div>
-        <MobileNavigation />
       </LhrV2Shell>
     </MainLayout>
   )
