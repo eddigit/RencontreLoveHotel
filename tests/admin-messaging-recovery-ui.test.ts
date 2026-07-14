@@ -38,9 +38,25 @@ describe('admin messaging recovery dashboard', () => {
       'utf8'
     )
 
-    expect(component).toContain('dataKey="startedConversations"')
-    expect(component).toContain('dataKey="messages"')
-    expect(component).toContain('dataKey="acceptedMatches"')
+    expect(component).toContain("dataKey='messages'")
+    expect(component).toContain("dataKey='activeConversations'")
+    expect(component).toContain("dataKey='acceptedMatches'")
     expect(component).toContain('Impossible de charger les KPI de messagerie')
+  })
+
+  it('shows lifetime activity on dual axes with a recovery comparison', () => {
+    const component = readFileSync(
+      'components/admin-messaging-recovery.tsx',
+      'utf8'
+    )
+
+    expect(component).toContain('getMessagingRecoveryHistory')
+    expect(component).toContain('Activité depuis le lancement')
+    expect(component).toContain('30 derniers jours complets')
+    expect(component).toContain("yAxisId='messages'")
+    expect(component).toContain("yAxisId='activity'")
+    expect(component).toContain("dataKey='createdConversations'")
+    expect(component).toContain("dataKey='activeConversations'")
+    expect(component).toContain('Impossible de charger l’historique')
   })
 })
