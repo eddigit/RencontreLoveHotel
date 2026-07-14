@@ -16,16 +16,15 @@ export function BrandLogo({
           compact ? 'w-10' : 'mx-auto aspect-[1162/1354] w-full max-w-[148px]'
         }`}
       >
-        <span className={compact ? 'relative block aspect-[1162/1354] w-10' : 'absolute inset-0'}>
-          <Image
-            src='/lhr-official-logo.png'
-            alt='Love Hotel Rencontre'
-            fill
-            className='object-contain'
-            sizes={compact ? '40px' : '148px'}
-            priority={priority}
-          />
-        </span>
+        <Image
+          src='/lhr-official-logo.png'
+          alt='Love Hotel Rencontre'
+          width={1162}
+          height={1354}
+          className='block h-auto w-full object-contain'
+          sizes={compact ? '40px' : '148px'}
+          priority={priority}
+        />
       </span>
       {compact ? (
         <span className='truncate text-sm font-black tracking-tight text-white sm:text-base'>

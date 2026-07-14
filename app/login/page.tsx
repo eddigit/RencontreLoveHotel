@@ -215,12 +215,12 @@ export default function LoginPage (props: any) {
           </div>
         </main>
 
-        <footer className='py-6 border-t'>
+        <div className='hidden' aria-hidden='true'>
           <div className='container mx-auto px-4 text-center text-sm text-muted-foreground'>
             &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
             réservés.
           </div>
-        </footer>
+        </div>
       </div>
     </MainLayout>
   )

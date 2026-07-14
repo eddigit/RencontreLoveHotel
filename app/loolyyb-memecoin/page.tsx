@@ -322,7 +322,7 @@ export default function LoolyyBMemeCoinPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#2d1155] mt-8 md:mt-12 py-8 md:py-12">
+      <div className="hidden" aria-hidden='true'>
         <div className="container px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -468,7 +468,7 @@ export default function LoolyyBMemeCoinPage() {
             <p>&copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits réservés.</p>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   )
 }

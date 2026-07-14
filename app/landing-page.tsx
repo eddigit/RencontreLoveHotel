@@ -15,7 +15,7 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-[url('/purple-glow-pattern.png')] opacity-20 mix-blend-overlay"></div>
         </div>
         <div className="container px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center relative z-10">
-          <div className="space-y-6 md:space-y-8 -mt-[15vh]">
+          <div className="space-y-6 md:space-y-8">
             <div className="space-y-3 md:space-y-4">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase text-white leading-tight tracking-tight">
                 LE FRISSON DE <br />
@@ -303,7 +303,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[#2d1155] mt-8 md:mt-12 py-8 md:py-12">
+      <div className="hidden" aria-hidden='true'>
         <div className="container px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -449,7 +449,7 @@ export default function LandingPage() {
             <p>&copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits réservés.</p>
           </div>
         </div>
-      </footer>
+      </div>
     </div>
   )
 }

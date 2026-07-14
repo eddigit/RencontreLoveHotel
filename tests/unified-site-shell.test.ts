@@ -67,5 +67,12 @@ describe('unified public site shell', () => {
   it('does not render legacy page-level navigation', () => {
     expect(filesContaining('<LandingHeader')).toEqual([])
     expect(filesContaining('<MobileNavigation')).toEqual([])
+    expect(filesContaining('<footer')).toEqual([])
+  })
+
+  it('keeps the landing hero inside the unified shell viewport', () => {
+    const landing = readFileSync('app/landing-page.tsx', 'utf8')
+
+    expect(landing).not.toContain('-mt-[15vh]')
   })
 })
