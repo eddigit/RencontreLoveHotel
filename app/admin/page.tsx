@@ -20,6 +20,7 @@ import { getUpcomingEvents } from '@/actions/event-actions'
 import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
 import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
+import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
 
 export default function AdminPage () {
@@ -44,6 +45,8 @@ export default function AdminPage () {
         <div className='container py-10'>
           <AdminHeader user={user} />
           <AdminTabs />
+
+          <AdminMessagingRecovery />
           
           {/* Nouvelles statistiques temps réel */}
           <div className="mb-8">
