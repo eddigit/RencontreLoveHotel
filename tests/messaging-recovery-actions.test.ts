@@ -11,7 +11,10 @@ vi.mock('@/lib/db', () => ({
 }))
 
 import { sql } from '@/lib/db'
-import { getMessagingRecoveryStats } from '@/actions/messaging-recovery-actions'
+import {
+  getMessagingRecoveryHistory,
+  getMessagingRecoveryStats
+} from '@/actions/messaging-recovery-actions'
 
 describe('messaging recovery admin KPIs', () => {
   beforeEach(() => {
@@ -116,5 +119,96 @@ describe('messaging recovery admin KPIs', () => {
     ).rejects.toThrow('Impossible de charger les KPI de messagerie')
 
     expect((sql.query as any).mock.calls[0][1]).toEqual([90])
+  })
+
+  it('requires an administrator before reading lifetime messaging history', async () => {
+    requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
+
+    await expect(
+      getMessagingRecoveryHistory({ scale: 'week' })
+    ).rejects.toThrow('administrateur')
+
+    expect(sql.query).not.toHaveBeenCalled()
+  })
+
+  it('returns continuous lifetime activity and a recovery signal', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([
+        {
+          starts_at: '2025-01-01',
+          period: '2025-01-01',
+          messages: '0',
+          active_conversations: '0',
+          created_conversations: '0',
+          accepted_matches: '0'
+        },
+        {
+          starts_at: '2025-01-01',
+          period: '2025-01-08',
+          messages: '24',
+          active_conversations: '5',
+          created_conversations: '3',
+          accepted_matches: '2'
+        }
+      ])
+      .mockResolvedValueOnce([
+        { recent_messages: '100', previous_messages: '80' }
+      ])
+
+    const result = await getMessagingRecoveryHistory({ scale: 'week' })
+
+    expect(result).toEqual({
+      startsAt: '2025-01-01',
+      trend: {
+        status: 'recovering',
+        changePercent: 25,
+        recentMessages: 100,
+        previousMessages: 80
+      },
+      series: [
+        {
+          period: '2025-01-01',
+          messages: 0,
+          activeConversations: 0,
+          createdConversations: 0,
+          acceptedMatches: 0
+        },
+        {
+          period: '2025-01-08',
+          messages: 24,
+          activeConversations: 5,
+          createdConversations: 3,
+          acceptedMatches: 2
+        }
+      ]
+    })
+
+    const historySql = (sql.query as any).mock.calls[0][0]
+    const comparisonSql = (sql.query as any).mock.calls[1][0]
+    expect(historySql).toContain('generate_series')
+    expect(historySql).toContain('MIN(activity_at)')
+    expect(historySql).toContain("BOOL_OR(u.role = 'admin')")
+    expect(historySql).toContain('COUNT(DISTINCT m.conversation_id)')
+    expect(comparisonSql).toContain("INTERVAL '60 days'")
+    expect(comparisonSql).toContain('m.created_at < CURRENT_DATE')
+  })
+
+  it('keeps zero-baseline trend stable or marks new activity as recovery', async () => {
+    ;(sql.query as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ recent_messages: '0', previous_messages: '0' }])
+
+    await expect(getMessagingRecoveryHistory()).resolves.toMatchObject({
+      startsAt: null,
+      trend: { status: 'stable', changePercent: 0 }
+    })
+
+    ;(sql.query as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ recent_messages: '12', previous_messages: '0' }])
+
+    await expect(getMessagingRecoveryHistory()).resolves.toMatchObject({
+      trend: { status: 'recovering', changePercent: 100 }
+    })
   })
 })

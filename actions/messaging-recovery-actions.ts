@@ -29,6 +29,29 @@ export interface MessagingRecoveryStats {
   series: MessagingRecoveryPoint[]
 }
 
+export type MessagingRecoveryTrendStatus = 'recovering' | 'stable' | 'declining'
+
+export interface MessagingRecoveryHistoryPoint {
+  period: string
+  messages: number
+  activeConversations: number
+  createdConversations: number
+  acceptedMatches: number
+}
+
+export interface MessagingRecoveryTrend {
+  status: MessagingRecoveryTrendStatus
+  changePercent: number
+  recentMessages: number
+  previousMessages: number
+}
+
+export interface MessagingRecoveryHistory {
+  startsAt: string | null
+  trend: MessagingRecoveryTrend
+  series: MessagingRecoveryHistoryPoint[]
+}
+
 type SummaryRow = Record<string, string | number | null>
 type SeriesRow = SummaryRow & { period: string | Date }
 
@@ -225,5 +248,142 @@ export async function getMessagingRecoveryStats({
   } catch (error) {
     console.error('Erreur lors du chargement des KPI de messagerie:', error)
     throw new Error('Impossible de charger les KPI de messagerie')
+  }
+}
+
+function trendFromMessages(recentMessages: number, previousMessages: number) {
+  const changePercent = previousMessages === 0
+    ? recentMessages > 0 ? 100 : 0
+    : Math.round(((recentMessages - previousMessages) / previousMessages) * 1000) / 10
+
+  const status: MessagingRecoveryTrendStatus = changePercent > 5
+    ? 'recovering'
+    : changePercent < -5
+      ? 'declining'
+      : 'stable'
+
+  return { status, changePercent, recentMessages, previousMessages }
+}
+
+export async function getMessagingRecoveryHistory({
+  scale = 'week'
+}: {
+  scale?: MessagingRecoveryScale
+} = {}): Promise<MessagingRecoveryHistory> {
+  await requireAdmin()
+
+  const safeScale: MessagingRecoveryScale = scale in scaleSql ? scale : 'week'
+  const { unit, interval } = scaleSql[safeScale]
+
+  try {
+    const historyQuery = `
+      WITH ${conversationCtes},
+      activity_dates AS (
+        SELECT ct.created_at AS activity_at
+        FROM conversation_types ct
+        WHERE ct.is_member
+        UNION ALL
+        SELECT m.created_at AS activity_at
+        FROM messages m
+        JOIN conversation_types ct ON ct.id = m.conversation_id
+        WHERE ct.is_member
+        UNION ALL
+        SELECT um.accepted_at AS activity_at
+        FROM user_matches um
+        WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
+      ),
+      bounds AS (
+        SELECT
+          DATE_TRUNC('${unit}', COALESCE(MIN(activity_at), CURRENT_DATE)) AS starts_at,
+          DATE_TRUNC('${unit}', CURRENT_DATE) AS ends_at
+        FROM activity_dates
+      ),
+      periods AS (
+        SELECT generate_series(starts_at, ends_at, INTERVAL '${interval}') AS period
+        FROM bounds
+      ),
+      created_counts AS (
+        SELECT DATE_TRUNC('${unit}', ct.created_at) AS period, COUNT(*) AS count
+        FROM conversation_types ct
+        WHERE ct.is_member
+        GROUP BY 1
+      ),
+      message_counts AS (
+        SELECT
+          DATE_TRUNC('${unit}', m.created_at) AS period,
+          COUNT(*) AS count,
+          COUNT(DISTINCT m.conversation_id) AS active
+        FROM messages m
+        JOIN conversation_types ct ON ct.id = m.conversation_id
+        WHERE ct.is_member
+        GROUP BY 1
+      ),
+      match_counts AS (
+        SELECT DATE_TRUNC('${unit}', um.accepted_at) AS period, COUNT(*) AS count
+        FROM user_matches um
+        WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
+        GROUP BY 1
+      )
+      SELECT
+        TO_CHAR(b.starts_at, 'YYYY-MM-DD') AS starts_at,
+        TO_CHAR(p.period, 'YYYY-MM-DD') AS period,
+        COALESCE(mc.count, 0) AS messages,
+        COALESCE(mc.active, 0) AS active_conversations,
+        COALESCE(cc.count, 0) AS created_conversations,
+        COALESCE(mac.count, 0) AS accepted_matches
+      FROM periods p
+      CROSS JOIN bounds b
+      LEFT JOIN message_counts mc ON mc.period = p.period
+      LEFT JOIN created_counts cc ON cc.period = p.period
+      LEFT JOIN match_counts mac ON mac.period = p.period
+      ORDER BY p.period ASC
+    `
+
+    const comparisonQuery = `
+      WITH ${conversationCtes},
+      member_messages AS (
+        SELECT m.created_at
+        FROM messages m
+        JOIN conversation_types ct ON ct.id = m.conversation_id
+        WHERE ct.is_member
+      )
+      SELECT
+        COUNT(*) FILTER (
+          WHERE m.created_at >= CURRENT_DATE - INTERVAL '30 days'
+            AND m.created_at < CURRENT_DATE
+        ) AS recent_messages,
+        COUNT(*) FILTER (
+          WHERE m.created_at >= CURRENT_DATE - INTERVAL '60 days'
+            AND m.created_at < CURRENT_DATE - INTERVAL '30 days'
+        ) AS previous_messages
+      FROM member_messages m
+    `
+
+    const [historyRows, comparisonRows] = await Promise.all([
+      sql.query<SeriesRow[]>(historyQuery),
+      sql.query<SummaryRow[]>(comparisonQuery)
+    ])
+    const comparison = comparisonRows[0] || {}
+    const recentMessages = toNumber(comparison.recent_messages)
+    const previousMessages = toNumber(comparison.previous_messages)
+
+    return {
+      startsAt: historyRows[0]?.starts_at
+        ? String(historyRows[0].starts_at)
+        : null,
+      trend: trendFromMessages(recentMessages, previousMessages),
+      series: historyRows.map(row => ({
+        period: row.period instanceof Date
+          ? row.period.toISOString().slice(0, 10)
+          : String(row.period),
+        messages: toNumber(row.messages),
+        activeConversations: toNumber(row.active_conversations),
+        createdConversations: toNumber(row.created_conversations),
+        acceptedMatches: toNumber(row.accepted_matches)
+      }))
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement de l’historique de messagerie:', error)
+    throw new Error('Impossible de charger l’historique de messagerie')
   }
 }
