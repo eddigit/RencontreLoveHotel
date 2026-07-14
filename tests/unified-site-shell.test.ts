@@ -37,4 +37,18 @@ describe('unified public site shell', () => {
     expect(logo).toContain('object-contain')
     expect(logo).not.toContain('object-cover')
   })
+
+  it('mounts the shell globally and removes competing layout navigation', () => {
+    const rootLayout = readFileSync('app/layout.tsx', 'utf8')
+    const mainLayout = readFileSync('components/layout/main-layout.tsx', 'utf8')
+    const v2Shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
+
+    expect(rootLayout).toContain("import { SiteShell } from '@/components/site-shell'")
+    expect(rootLayout).toContain('<SiteShell>')
+    expect(mainLayout).toContain("pathname.startsWith('/admin')")
+    expect(mainLayout).toContain('return <>{children}</>')
+    expect(mainLayout).toContain('<Header session={session} user={user} />')
+    expect(v2Shell).not.toContain("<aside className='hidden")
+    expect(v2Shell).not.toContain("src='/lhr-official-logo.png'")
+  })
 })

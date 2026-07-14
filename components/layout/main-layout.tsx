@@ -3,6 +3,7 @@
 import type React from "react"
 import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
+import { usePathname } from 'next/navigation'
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -11,6 +12,12 @@ interface MainLayoutProps {
 }
 
 export default function MainLayout({ children, session, user }: MainLayoutProps) {
+  const pathname = usePathname()
+
+  if (!pathname.startsWith('/admin')) {
+    return <>{children}</>
+  }
+
   return (
     <>
       <Header session={session} user={user} />

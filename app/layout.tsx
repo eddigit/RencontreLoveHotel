@@ -4,6 +4,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
 import PwaUpdateNotification from '@/components/PwaUpdateNotification'
+import { SiteShell } from '@/components/site-shell'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,7 +30,7 @@ export default function RootLayout ({
         suppressHydrationWarning
       >
         <Providers>
-          {children}
+          <SiteShell>{children}</SiteShell>
           <PwaUpdateNotification />
         </Providers>
       </body>
