@@ -1,455 +1,254 @@
-"use client"
+import Image from 'next/image'
+import Link from 'next/link'
+import {
+  ArrowRight,
+  CalendarPlus,
+  Eye,
+  HeartHandshake,
+  MapPin,
+  MessageCircleHeart,
+  Sparkles,
+  UsersRound,
+  Waves
+} from 'lucide-react'
 
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
-import Image from "next/image"
-import { AdvertisementBannerBottom } from "@/components/advertisement-banner-bottom"
+const heroExperiences = [
+  {
+    title: 'APÉROS JACUZZI',
+    subtitle: 'Des rencontres en petit groupe',
+    image: '/apero-jacuzzi-rencontre.jpg',
+    alt: 'Apéro jacuzzi entre membres de la communauté'
+  },
+  {
+    title: 'SOPHIA',
+    subtitle: 'Une communauté bien réelle',
+    image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/public/amethyst-glow-YU11au0rIIGAWH8iymdMmtFrC6ZFIb.png',
+    alt: 'Sophia, membre de la communauté Love Hôtel'
+  },
+  {
+    title: 'VOS ÉVÉNEMENTS',
+    subtitle: 'Imaginez votre propre format',
+    image: '/events-offers.avif',
+    alt: 'Événement créé par la communauté Love Hôtel'
+  },
+  {
+    title: 'RIDEAUX OUVERTS',
+    subtitle: 'Voir ou être vu, toujours consenti',
+    image: '/rideaux-ouverts-rencontre.jpg',
+    alt: 'Expérience Rideaux Ouverts au Love Hôtel'
+  }
+]
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#120821] overflow-x-hidden">
-      {/* Hero Section */}
-      <section className="py-8 md:py-16 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#1a0d2e] via-[#3d1155] to-[#1a0d2e] opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('/purple-glow-pattern.png')] opacity-20 mix-blend-overlay"></div>
-        </div>
-        <div className="container px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center relative z-10">
-          <div className="space-y-6 md:space-y-8">
-            <div className="space-y-3 md:space-y-4">
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase text-white leading-tight tracking-tight">
-                LE FRISSON DE <br />
-                LA <span className="text-[#ff3b8b]">RENCONTRE</span>, <br />
-                LE PLAISIR DU <br />
-                <span className="text-[#ff3b8b]">RÉEL </span> <span className="text-4xl">🔥</span>
-              </h1>
+    <div className='overflow-hidden bg-[#120821] text-white'>
+      <section id='concept' className='relative isolate overflow-hidden'>
+        <div className='absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_12%,rgba(255,59,139,0.25),transparent_34%),radial-gradient(circle_at_82%_28%,rgba(124,58,237,0.28),transparent_38%),linear-gradient(135deg,#120821_0%,#2d0a43_52%,#14051f_100%)]' />
+        <div className='absolute inset-0 -z-10 bg-[url("/purple-glow-pattern.png")] opacity-15 mix-blend-overlay' />
 
-              <p className="text-gray-300 text-base md:text-lg max-w-xl">
-                Entrez dans l'univers Love Hôtel : l'unique application qui relie rencontres virtuelles et plaisirs
-                réels. Rejoignez une communauté authentique de 40 000 membres, et vivez des expériences exclusives dans
-                nos Love Rooms, spas, bars et restaurants.
-              </p>
+        <div className='mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-[1440px] items-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:px-10 lg:py-20'>
+          <div className='max-w-2xl'>
+            <div className='mb-5 inline-flex items-center gap-2 rounded-full border border-[#ff8cc8]/25 bg-[#ff3b8b]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#ff9bce]'>
+              <Sparkles className='h-4 w-4' />
+              Deux hôtels, une communauté
             </div>
-
-            <div className="flex flex-wrap gap-3 md:gap-4">
-              <Button
-                asChild
-                className="bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] hover:opacity-90 text-white rounded-full px-6 py-5 text-base md:text-lg border-0"
+            <h1 className='text-4xl font-black uppercase leading-[0.98] tracking-[-0.045em] sm:text-5xl md:text-6xl xl:text-7xl'>
+              Les rencontres en ligne deviennent{' '}
+              <span className='bg-gradient-to-r from-[#ff3b8b] to-[#ff9bce] bg-clip-text text-transparent'>
+                des expériences réelles
+              </span>
+            </h1>
+            <p className='mt-6 max-w-xl text-base leading-7 text-white/68 sm:text-lg sm:leading-8'>
+              Love Hôtel relie une communauté libre et curieuse à deux lieux parisiens, Pigalle et Châtelet.
+              Échangez, créez un événement et retrouvez-vous autour d’un jacuzzi ou d’une expérience imaginée ensemble.
+            </p>
+            <div className='mt-8 flex flex-wrap gap-3'>
+              <Link
+                href='/register'
+                className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-6 py-3.5 text-sm font-black shadow-xl shadow-[#ff3b8b]/20 transition hover:-translate-y-0.5'
               >
-                <Link href="/rencontres">Pourquoi nous rejoindre ?</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="text-white border-white hover:bg-white/10 rounded-full px-6 py-5 text-base md:text-lg"
+                Rejoindre la communauté
+                <ArrowRight className='h-4 w-4' />
+              </Link>
+              <Link
+                href='#experiences'
+                className='inline-flex items-center rounded-full border border-white/18 bg-white/[0.045] px-6 py-3.5 text-sm font-black transition hover:bg-white/[0.09]'
               >
-                <Link href="/register">Devenir membre</Link>
-              </Button>
+                Découvrir les expériences
+              </Link>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 md:gap-4 mt-4 md:mt-0">
-            <div className="space-y-3 md:space-y-4">
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-purple-900/30">
-                <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/public/images/luxury-jacuzzi-group-f7nIeUbLIQISpGe5YmIcboYSMPeCeg.png"
-                  alt="Espace Spa"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a0d2e]/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-[#1a0d2e]/50 backdrop-blur-sm">
-                  <p className="text-base md:text-lg font-bold text-white">JACUZZI PRIVATIF</p>
-                  <p className="text-xs md:text-sm text-white/80">Expérience privative</p>
-                </div>
-              </div>
-
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-purple-900/30">
-                <Image
-                  src="/speed-dating-restaurant-chic.png"
-                  alt="Speed Dating Restaurant Chic"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a0d2e]/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-[#1a0d2e]/50 backdrop-blur-sm">
-                  <p className="text-base md:text-lg font-bold text-white">SPEED DATING</p>
-                  <p className="text-xs md:text-sm text-white/80">Rencontres exclusives</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3 md:space-y-4 mt-6 md:mt-8">
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-purple-900/30">
-                <Image
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/public/amethyst-glow-YU11au0rIIGAWH8iymdMmtFrC6ZFIb.png"
-                  alt="Sophia"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a0d2e]/80 via-transparent to-transparent"></div>
-                <div className="absolute top-2 right-2">
-                  <span className="live-badge">LIVE</span>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-[#1a0d2e]/50 backdrop-blur-sm">
-                  <p className="text-base md:text-lg font-bold text-white">SOPHIA</p>
-                  <p className="text-xs md:text-sm text-white/80">En ligne maintenant</p>
-                </div>
-              </div>
-
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-lg shadow-purple-900/30">
-                <Image
-                  src="https://lovehotelaparis.fr/wp-content/uploads/2025/04/image1.jpg"
-                  alt="Expérience Rideaux Ouverts"
-                  fill
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#1a0d2e]/80 via-transparent to-transparent"></div>
-                <div className="absolute bottom-0 left-0 right-0 p-3 md:p-4 bg-[#1a0d2e]/50 backdrop-blur-sm">
-                  <p className="text-base md:text-lg font-bold text-white">RIDEAUX OUVERTS</p>
-                  <p className="text-xs md:text-sm text-white/80">Expérience unique</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-12 md:py-16 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1a0d2e] to-[#3d1155]"></div>
-          <div className="absolute inset-0 bg-[url('/purple-glow-pattern.png')] opacity-20 mix-blend-overlay"></div>
-        </div>
-        <div className="container px-4 relative z-10">
-          <h2 className="text-2xl md:text-4xl font-bold text-white text-center mb-8 md:mb-12">
-            Pourquoi Choisir <span className="text-[#ff3b8b]">Love Hotel</span>
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            <div className="bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm p-6 rounded-2xl border border-purple-800/20 shadow-lg shadow-purple-900/20">
-              <div className="h-14 w-14 bg-gradient-to-br from-[#ff3b8b]/30 to-[#ff8cc8]/20 rounded-full flex items-center justify-center mb-4 md:mb-6">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-7 w-7 text-[#ff3b8b]"
-                >
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path>
-                </svg>
-              </div>
-              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-white">Rencontrez, Vibrez, Vivez</h3>
-              <p className="text-gray-300 text-sm md:text-base">
-                Avec plus de 40 000 membres actifs, Love Hôtel vous connecte à une vraie communauté prête à se
-                rencontrer dans des lieux exclusifs.
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm p-6 rounded-2xl border border-purple-800/20 shadow-lg shadow-purple-900/20">
-              <div className="h-14 w-14 bg-gradient-to-br from-[#ff3b8b]/30 to-[#ff8cc8]/20 rounded-full flex items-center justify-center mb-4 md:mb-6">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-7 w-7 text-[#ff3b8b]"
-                >
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"></path>
-                </svg>
-              </div>
-              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-white">Des Événements Uniques</h3>
-              <p className="text-gray-300 text-sm md:text-base">
-                Participez à nos soirées coquines, speed datings et expériences "Rideaux Ouverts" pour provoquer des
-                connexions réelles.
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm p-6 rounded-2xl border border-purple-800/20 shadow-lg shadow-purple-900/20">
-              <div className="h-14 w-14 bg-gradient-to-br from-[#ff3b8b]/30 to-[#ff8cc8]/20 rounded-full flex items-center justify-center mb-4 md:mb-6">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-7 w-7 text-[#ff3b8b]"
-                >
-                  <path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12"></path>
-                  <circle cx="17" cy="7" r="5"></circle>
-                </svg>
-              </div>
-              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-white">Vos Fantasmes, Nos Love Rooms</h3>
-              <p className="text-gray-300 text-sm md:text-base">
-                Réservez directement depuis l'application nos Love Rooms thématiques, nos jacuzzis privatifs ou nos
-                espaces détente.
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-br from-[#2d1155]/70 to-[#3d1155]/50 backdrop-blur-sm p-6 rounded-2xl border border-purple-800/20 shadow-lg shadow-purple-900/20">
-              <div className="h-14 w-14 bg-gradient-to-br from-[#ff3b8b]/30 to-[#ff8cc8]/20 rounded-full flex items-center justify-center mb-4 md:mb-6">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-7 w-7 text-[#ff3b8b]"
-                >
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                </svg>
-              </div>
-              <h3 className="text-lg md:text-xl font-bold mb-2 md:mb-3 text-white">
-                Le Virtuel qui se Vit dans le Réel
-              </h3>
-              <p className="text-gray-300 text-sm md:text-base">
-                Fini les faux profils ! Sur Love Hôtel, les échanges se concrétisent dans la vraie vie, dans un cadre
-                sûr et élégant.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA section */}
-      <section className="py-8 md:py-16">
-        <div className="container px-4">
-          <div className="bg-gradient-to-r from-[#3d1155] to-[#ff3b8b] rounded-3xl p-6 md:p-12 flex flex-col lg:flex-row items-center justify-between shadow-lg shadow-purple-900/30">
-            <div className="lg:w-2/3 mb-6 lg:mb-0">
-              <h2 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4 text-white">
-                Prêt à Commencer Votre Aventure ?
-              </h2>
-              <p className="text-base md:text-xl text-white/90">
-                Rejoignez des milliers d'utilisateurs satisfaits et découvrez un monde de plaisir dès aujourd'hui.
-              </p>
-            </div>
-            <div>
-              <Button
-                asChild
-                size="lg"
-                className="bg-white text-[#ff3b8b] hover:bg-white/90 rounded-full text-base md:text-lg px-6 py-5 w-full lg:w-auto shadow-lg shadow-purple-900/20"
+          <div className='grid grid-cols-2 gap-3 sm:gap-4'>
+            {heroExperiences.map((experience, index) => (
+              <article
+                key={experience.title}
+                className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/30 ${
+                  index % 2 === 1 ? 'translate-y-5' : ''
+                }`}
               >
-                <Link href="/register">Commencer Maintenant</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* LOOLYYB Promotion Section */}
-      <section className="py-8 md:py-12 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1a0d2e] to-[#3d1155] opacity-90"></div>
-          <div className="absolute inset-0 bg-[url('https://t3.ftcdn.net/jpg/12/40/80/76/240_F_1240807692_IvVnohNpSPVxUXBLRrxuRLdRPWjuw9Vl.jpg')] bg-center bg-cover bg-no-repeat opacity-60"></div>
-          <div className="absolute inset-0 bg-[url('/purple-glow-pattern.png')] opacity-20 mix-blend-overlay"></div>
-        </div>
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-            <div className="md:w-1/2 text-center md:text-left">
-              <p className="text-white text-lg md:text-xl font-medium mb-1">
-                LOOLYYB, plus qu'une simple cryptomonnaie
-              </p>
-              <h2 className="text-white text-3xl md:text-5xl font-black tracking-tight mb-2 drop-shadow-lg">
-                C'EST LA <span className="text-[#ff3b8b]">MONNAIE DES LOVERS</span>
-              </h2>
-              <p className="text-white/90 text-lg md:text-2xl font-medium">
-                Investissez dans le LOOLYYB dès maintenant !
-              </p>
-            </div>
-            <div className="md:w-1/2 flex items-center justify-center md:justify-end">
-              <div className="flex flex-col space-y-3">
-                <Button
-                  className="bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] hover:opacity-90 text-white border-0 shadow-lg shadow-[#ff3b8b]/20"
-                  size="lg"
-                  asChild
-                >
-                  <Link href="/loolyyb-memecoin">Acheter</Link>
-                </Button>
-                <Button variant="outline" className="border-white/30 text-white hover:bg-white/10" asChild>
-                  <Link href="/loolyyb/whitepaper">En savoir plus</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Advertisement Banner Bottom */}
-      <section className="py-8 md:py-12">
-        <div className="container mx-auto px-4">
-          <AdvertisementBannerBottom />
-        </div>
-      </section>
-
-      {/* Footer */}
-      <div className="hidden" aria-hidden='true'>
-        <div className="container px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">Love Hotel</h3>
-              <p className="text-gray-400 text-sm">
-                L'unique application qui relie rencontres virtuelles et plaisirs réels dans des lieux d'exception.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">Liens Rapides</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/rencontres" className="text-gray-400 hover:text-white transition-colors">
-                    Rencontres
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/en-direct" className="text-gray-400 hover:text-white transition-colors">
-                    En Direct
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/premium" className="text-gray-400 hover:text-white transition-colors">
-                    Premium
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/love-rooms" className="text-gray-400 hover:text-white transition-colors">
-                    Love Rooms
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">Informations</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                    À propos
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="text-gray-400 hover:text-white transition-colors">
-                    Confidentialité
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/terms" className="text-gray-400 hover:text-white transition-colors">
-                    Conditions d'utilisation
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
-                    Contact
-                  </Link>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-white font-bold text-lg mb-4">Suivez-nous</h3>
-              <div className="flex space-x-4">
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                  </svg>
-                </Link>
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                    <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
-                  </svg>
-                </Link>
-                <Link href="#" className="text-gray-400 hover:text-white transition-colors">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5"
-                  >
-                    <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                  </svg>
-                </Link>
-              </div>
-              <div className="mt-6">
-                <h4 className="text-white font-bold text-sm mb-2">Téléchargez notre application</h4>
-                <div className="flex space-x-2">
-                  <Link href="#" className="block">
-                    <Image
-                      src="/app-store-badge-generic.png"
-                      alt="App Store"
-                      width={120}
-                      height={40}
-                      className="h-10 w-auto"
-                    />
-                  </Link>
-                  <Link href="#" className="block">
-                    <Image
-                      src="/google-play-badge-generic.png"
-                      alt="Google Play"
-                      width={120}
-                      height={40}
-                      className="h-10 w-auto"
-                    />
-                  </Link>
+                <Image
+                  src={experience.image}
+                  alt={experience.alt}
+                  fill
+                  priority={index < 2}
+                  className='object-cover transition duration-700 group-hover:scale-105'
+                  sizes='(max-width: 1024px) 50vw, 25vw'
+                />
+                <div className='absolute inset-0 bg-gradient-to-t from-[#12051c] via-[#12051c]/12 to-transparent' />
+                <div className='absolute inset-x-0 bottom-0 p-4 sm:p-5'>
+                  <h2 className='text-sm font-black sm:text-lg'>{experience.title}</h2>
+                  <p className='mt-1 text-xs text-white/70 sm:text-sm'>{experience.subtitle}</p>
                 </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id='hotels' className='relative py-16 sm:py-20 lg:py-24'>
+        <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
+          <div className='mx-auto max-w-3xl text-center'>
+            <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff72b5]'>Deux adresses parisiennes</p>
+            <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Le virtuel prend rendez-vous à l’hôtel</h2>
+            <p className='mt-5 text-base leading-7 text-white/62 sm:text-lg'>
+              Les conversations ne restent pas derrière un écran. Pigalle et Châtelet deviennent les points de rencontre
+              où les membres donnent vie à leurs envies, à leur rythme.
+            </p>
+          </div>
+
+          <div className='mt-10 grid gap-5 md:grid-cols-2'>
+            <article className='relative overflow-hidden rounded-3xl border border-[#ff72b5]/20 bg-[radial-gradient(circle_at_10%_0%,rgba(255,59,139,0.24),transparent_40%),linear-gradient(135deg,#2a0a38,#180622)] p-7 sm:p-9'>
+              <MapPin className='h-9 w-9 text-[#ff72b5]' />
+              <p className='mt-8 text-xs font-bold uppercase tracking-[0.22em] text-white/48'>Paris 9e</p>
+              <h3 className='mt-2 text-3xl font-black'>Love Hôtel Pigalle</h3>
+              <p className='mt-4 max-w-lg leading-7 text-white/62'>
+                Une adresse intime pour organiser un apéro jacuzzi, prolonger une rencontre et vivre une expérience
+                choisie avec d’autres membres.
+              </p>
+            </article>
+
+            <article className='relative overflow-hidden rounded-3xl border border-violet-400/20 bg-[radial-gradient(circle_at_90%_0%,rgba(124,58,237,0.3),transparent_42%),linear-gradient(135deg,#251038,#16051f)] p-7 sm:p-9'>
+              <MapPin className='h-9 w-9 text-violet-300' />
+              <p className='mt-8 text-xs font-bold uppercase tracking-[0.22em] text-white/48'>Paris centre</p>
+              <h3 className='mt-2 text-3xl font-black'>Love Hôtel Châtelet</h3>
+              <p className='mt-4 max-w-lg leading-7 text-white/62'>
+                Un second point de rendez-vous au cœur de Paris pour réunir la communauté et multiplier les possibilités
+                d’événements en petit comité.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id='experiences' className='border-y border-white/8 bg-white/[0.025] py-16 sm:py-20 lg:py-24'>
+        <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
+          <div className='max-w-3xl'>
+            <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff72b5]'>À vivre ensemble</p>
+            <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Des expériences, pas seulement des profils</h2>
+            <p className='mt-5 text-base leading-7 text-white/62 sm:text-lg'>
+              Chaque format crée une occasion claire de se rencontrer. Vous choisissez votre niveau d’ouverture et les
+              personnes avec qui vous souhaitez le vivre.
+            </p>
+          </div>
+
+          <div className='mt-10 grid gap-5 lg:grid-cols-3'>
+            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#1b0926]'>
+              <div className='relative aspect-[16/10]'>
+                <Image src='/apero-jacuzzi-rencontre.jpg' alt='Apéros jacuzzi entre membres' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
               </div>
+              <div className='p-6'>
+                <Waves className='h-7 w-7 text-[#ff72b5]' />
+                <h3 className='mt-5 text-2xl font-black'>Apéros jacuzzi</h3>
+                <p className='mt-3 leading-7 text-white/60'>
+                  Deux à quatre couples, une invitation précise et un moment chaleureux pour faire connaissance sans
+                  brusquer la rencontre.
+                </p>
+              </div>
+            </article>
+
+            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#1b0926]'>
+              <div className='relative aspect-[16/10]'>
+                <Image src='/events-offers.avif' alt='Événement communautaire au Love Hôtel' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
+              </div>
+              <div className='p-6'>
+                <CalendarPlus className='h-7 w-7 text-violet-300' />
+                <h3 className='mt-5 text-2xl font-black'>Événements communautaires</h3>
+                <p className='mt-3 leading-7 text-white/60'>
+                  Speed dating, rencontre thématique ou idée spontanée : les membres proposent le format et invitent les
+                  personnes qui partagent la même envie.
+                </p>
+              </div>
+            </article>
+
+            <article className='overflow-hidden rounded-3xl border border-[#ff72b5]/18 bg-[#1b0926]'>
+              <div className='relative aspect-[16/10]'>
+                <Image src='/rideaux-ouverts-rencontre.jpg' alt='Expérience Rideaux Ouverts' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
+              </div>
+              <div className='p-6'>
+                <Eye className='h-7 w-7 text-[#ff72b5]' />
+                <h3 className='mt-5 text-2xl font-black'>RIDEAUX OUVERTS</h3>
+                <p className='mt-3 leading-7 text-white/60'>
+                  Des chambres face à face : certains choisissent de s’exhiber derrière un rideau ouvert, d’autres
+                  d’observer. Les envies et les limites sont posées avant l’expérience.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id='communaute' className='relative py-16 sm:py-20 lg:py-24'>
+        <div className='absolute inset-0 -z-10 bg-[radial-gradient(circle_at_75%_40%,rgba(255,59,139,0.14),transparent_32%)]' />
+        <div className='mx-auto grid w-full max-w-[1280px] gap-12 px-4 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:px-10'>
+          <div>
+            <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff72b5]'>La communauté donne le rythme</p>
+            <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Créez vos propres événements</h2>
+            <p className='mt-5 text-base leading-7 text-white/62 sm:text-lg'>
+              Love Hôtel fournit les lieux et la plateforme. Les membres imaginent les occasions de se rencontrer,
+              échangent avant le rendez-vous et construisent une expérience qui leur ressemble.
+            </p>
+            <div className='mt-8 flex flex-wrap gap-3'>
+              <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-black text-[#20102b]'>
+                Créer mon profil
+                <ArrowRight className='h-4 w-4' />
+              </Link>
+              <Link href='/events' className='rounded-full border border-white/18 px-6 py-3.5 text-sm font-black'>Voir les événements</Link>
             </div>
           </div>
 
-          <div className="border-t border-[#2d1155] mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits réservés.</p>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            {[
+              { icon: MessageCircleHeart, title: 'Échangez', text: 'Discutez, trouvez les bonnes affinités et posez vos envies clairement.' },
+              { icon: CalendarPlus, title: 'Proposez', text: 'Créez un apéro jacuzzi, un speed dating ou votre propre idée.' },
+              { icon: UsersRound, title: 'Invitez', text: 'Choisissez un petit groupe et réunissez des personnes réellement intéressées.' },
+              { icon: HeartHandshake, title: 'Rencontrez-vous', text: 'Passez du profil au réel à Pigalle ou à Châtelet, dans un cadre identifié.' }
+            ].map(step => {
+              const Icon = step.icon
+              return (
+                <article key={step.title} className='rounded-2xl border border-white/10 bg-white/[0.04] p-6'>
+                  <Icon className='h-7 w-7 text-[#ff72b5]' />
+                  <h3 className='mt-5 text-xl font-black'>{step.title}</h3>
+                  <p className='mt-2 leading-6 text-white/58'>{step.text}</p>
+                </article>
+              )
+            })}
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className='px-4 pb-16 sm:px-6 sm:pb-20 lg:px-10 lg:pb-24'>
+        <div className='mx-auto max-w-[1280px] overflow-hidden rounded-[2rem] border border-[#ff8cc8]/20 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.12),transparent_25%),linear-gradient(110deg,#7b1b66,#ff3b8b_58%,#ff8cc8)] px-6 py-10 text-center shadow-2xl shadow-[#ff3b8b]/15 sm:px-10 sm:py-14'>
+          <h2 className='text-3xl font-black sm:text-4xl lg:text-5xl'>La prochaine rencontre peut commencer ici</h2>
+          <p className='mx-auto mt-4 max-w-2xl text-base leading-7 text-white/82 sm:text-lg'>
+            Rejoignez la communauté, partagez vos envies et créez une vraie occasion de vous retrouver dans l’un des deux Love Hôtels.
+          </p>
+          <Link href='/register' className='mt-7 inline-flex items-center gap-2 rounded-full bg-[#17051f] px-7 py-3.5 text-sm font-black text-white'>
+            Devenir membre
+            <ArrowRight className='h-4 w-4' />
+          </Link>
+        </div>
+      </section>
     </div>
   )
 }
