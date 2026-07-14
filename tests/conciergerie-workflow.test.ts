@@ -38,15 +38,13 @@ describe('conciergerie workflow', () => {
   })
 
   it('promotes concierge as a main member navigation destination', () => {
-    const header = readFileSync('components/header.tsx', 'utf8')
-    const shell = readFileSync('components/lhr-v2-shell.tsx', 'utf8')
+    const shell = readFileSync('components/site-shell.tsx', 'utf8')
     const page = readFileSync('app/conciergerie/page.tsx', 'utf8')
     const discover = readFileSync('app/discover/page.tsx', 'utf8')
 
-    expect(header).toContain("href='/conciergerie'")
-    expect(header).toContain('Conciergerie')
-    expect(header).not.toContain('Escapade')
     expect(shell).toContain("href: '/conciergerie'")
+    expect(shell).toContain("label: 'Conciergerie'")
+    expect(shell).not.toContain('Escapade')
     expect(page).toContain('Conciergerie coquine')
     expect(page).toContain('/conciergerie-service.jpg')
     expect(page).toContain('Conciergerie privée Love Hotel')

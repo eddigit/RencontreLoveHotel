@@ -5,14 +5,16 @@ import { describe, expect, it } from 'vitest'
 const root = process.cwd()
 
 describe('official LHR logo', () => {
-  it('is stored locally and used by member navigation only', () => {
+  it('is stored locally and displayed without cropping in the global shell', () => {
     expect(existsSync(join(root, 'public/lhr-official-logo.png'))).toBe(true)
 
-    const shell = readFileSync(join(root, 'components/lhr-v2-shell.tsx'), 'utf8')
-    const header = readFileSync(join(root, 'components/header.tsx'), 'utf8')
+    const logo = readFileSync(join(root, 'components/brand-logo.tsx'), 'utf8')
+    const shell = readFileSync(join(root, 'components/site-shell.tsx'), 'utf8')
 
-    expect(shell).toContain('/lhr-official-logo.png')
-    expect(shell).toContain("sizes='208px'")
-    expect(header).toContain('Love Hotel rencontre')
+    expect(logo).toContain('/lhr-official-logo.png')
+    expect(logo).toContain('object-contain')
+    expect(logo).not.toContain('object-cover')
+    expect(logo).toContain('Love Hotel Rencontre')
+    expect(shell).toContain('<BrandLogo')
   })
 })
