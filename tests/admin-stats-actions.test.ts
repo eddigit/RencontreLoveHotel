@@ -13,7 +13,11 @@ vi.mock('@/lib/server-auth', () => ({
   requireAdmin: requireAdminMock
 }))
 
-import { getAdminDashboardStats, getRealTimeMetrics } from '../actions/admin-stats-actions'
+import {
+  getAdminDashboardStats,
+  getAdminLoginStatus,
+  getRealTimeMetrics
+} from '../actions/admin-stats-actions'
 import { sql } from '@/lib/db'
 
 describe('Admin Stats Actions', () => {
@@ -172,6 +176,81 @@ describe('Admin Stats Actions', () => {
       expect(metrics.messagesLast5Min).toBe(0)
       expect(metrics.errorsLast5Min).toBe(0)
       expect(metrics.timestamp).toBeDefined()
+    })
+  })
+
+  describe('getAdminLoginStatus', () => {
+    it('requires admin access before loading login status', async () => {
+      requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
+
+      await expect(getAdminLoginStatus()).rejects.toThrow('administrateur')
+
+      expect(sql.query).not.toHaveBeenCalled()
+    })
+
+    it('separates administrator and user login activity', async () => {
+      ;(sql.query as any)
+        .mockResolvedValueOnce([
+          { role: 'admin', total_count: 3, online_count: 1, active_24h_count: 2 },
+          { role: 'user', total_count: 120, online_count: 8, active_24h_count: 31 }
+        ])
+        .mockResolvedValueOnce([{
+          admin_login_count: 4,
+          user_login_count: 27,
+          admin_failure_count: 1,
+          user_failure_count: 3,
+          total_failure_count: 5
+        }])
+        .mockResolvedValueOnce([
+          {
+            id: 'log-1',
+            user_id: 'admin-1',
+            name: 'Armand',
+            email: 'admin@example.com',
+            role: 'admin',
+            provider: 'credentials',
+            created_at: '2026-07-14T19:00:00.000Z'
+          }
+        ])
+
+      const status = await getAdminLoginStatus()
+
+      expect(status.admins).toEqual({
+        total: 3,
+        online: 1,
+        active24h: 2,
+        logins24h: 4,
+        failures24h: 1
+      })
+      expect(status.users).toEqual({
+        total: 120,
+        online: 8,
+        active24h: 31,
+        logins24h: 27,
+        failures24h: 3
+      })
+      expect(status.unknownFailures24h).toBe(1)
+      expect(status.recentLogins[0]).toMatchObject({
+        role: 'admin',
+        provider: 'credentials'
+      })
+      expect(status.auditAvailable).toBe(true)
+    })
+
+    it('keeps presence status available when the audit table is unavailable', async () => {
+      ;(sql.query as any)
+        .mockResolvedValueOnce([
+          { role: 'user', total_count: 12, online_count: 2, active_24h_count: 5 }
+        ])
+        .mockRejectedValueOnce(new Error('auth_logs missing'))
+        .mockRejectedValueOnce(new Error('auth_logs missing'))
+
+      const status = await getAdminLoginStatus()
+
+      expect(status.users.online).toBe(2)
+      expect(status.users.logins24h).toBe(0)
+      expect(status.recentLogins).toEqual([])
+      expect(status.auditAvailable).toBe(false)
     })
   })
 })

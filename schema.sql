@@ -432,6 +432,8 @@ CREATE INDEX IF NOT EXISTS idx_moderation_queue_status_created ON moderation_que
 CREATE INDEX IF NOT EXISTS idx_moderation_queue_user ON moderation_queue(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target ON admin_audit_log(target_type, target_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_auth_logs_level_created ON auth_logs(level, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_event_created ON auth_logs(event, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_email_created ON auth_logs(LOWER(email), created_at DESC) WHERE email IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_conciergerie_requests_created ON conciergerie_requests(created_at DESC);
 CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_creator ON events(creator_id);

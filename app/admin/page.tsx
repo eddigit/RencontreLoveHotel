@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
 import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
 import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
+import { AdminLoginStatus } from '@/components/admin-login-status'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
 
 export default function AdminPage () {
@@ -47,6 +48,8 @@ export default function AdminPage () {
           <AdminTabs />
 
           <AdminMessagingRecovery />
+
+          <AdminLoginStatus />
           
           {/* Nouvelles statistiques temps réel */}
           <div className="mb-8">

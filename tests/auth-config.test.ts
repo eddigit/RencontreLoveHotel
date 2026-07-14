@@ -4,12 +4,17 @@ const getOrCreateOAuthUserMock = vi.hoisted(() => vi.fn())
 const getUserByEmailMock = vi.hoisted(() => vi.fn())
 const getUserByIdMock = vi.hoisted(() => vi.fn())
 const verifyUserCredentialsMock = vi.hoisted(() => vi.fn())
+const recordAuthEventMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/user-service', () => ({
   getOrCreateOAuthUser: getOrCreateOAuthUserMock,
   getUserByEmail: getUserByEmailMock,
   getUserById: getUserByIdMock,
   verifyUserCredentials: verifyUserCredentialsMock
+}))
+
+vi.mock('@/lib/auth-audit', () => ({
+  recordAuthEvent: recordAuthEventMock
 }))
 
 import { authOptions } from '../lib/auth'
@@ -20,6 +25,8 @@ describe('authOptions', () => {
     getUserByEmailMock.mockReset()
     getUserByIdMock.mockReset()
     verifyUserCredentialsMock.mockReset()
+    recordAuthEventMock.mockReset()
+    recordAuthEventMock.mockResolvedValue(undefined)
   })
 
   it('does not expose invalid NextAuth route-only options', () => {
@@ -44,5 +51,47 @@ describe('authOptions', () => {
 
     expect(token.email_verified).toBe(false)
     expect(token.onboardingCompleted).toBe(false)
+  })
+
+  it('records successful sign-ins with role and provider', async () => {
+    await authOptions.callbacks!.signIn!({
+      user: {
+        id: 'admin-1',
+        email: 'Admin@Example.com',
+        name: 'Admin',
+        role: 'admin'
+      },
+      account: { provider: 'credentials' },
+      profile: undefined,
+      email: undefined,
+      credentials: undefined
+    } as any)
+
+    expect(recordAuthEventMock).toHaveBeenCalledWith({
+      userId: 'admin-1',
+      email: 'Admin@Example.com',
+      role: 'admin',
+      provider: 'credentials',
+      success: true
+    })
+  })
+
+  it('records refused credentials without exposing the password', async () => {
+    verifyUserCredentialsMock.mockResolvedValue(null)
+    const credentialsProvider = authOptions.providers.find(
+      provider => provider.id === 'credentials'
+    ) as any
+
+    await credentialsProvider.options.authorize(
+      { email: 'member@example.com', password: 'secret-value' },
+      {}
+    )
+
+    expect(recordAuthEventMock).toHaveBeenCalledWith({
+      email: 'member@example.com',
+      provider: 'credentials',
+      success: false
+    })
+    expect(JSON.stringify(recordAuthEventMock.mock.calls)).not.toContain('secret-value')
   })
 })

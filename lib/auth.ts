@@ -8,6 +8,7 @@ import {
   getUserById,
   verifyUserCredentials
 } from '@/lib/user-service'
+import { recordAuthEvent } from '@/lib/auth-audit'
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
@@ -35,14 +36,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
+        const email = credentials?.email
+
         try {
-          if (!credentials?.email || !credentials?.password) return null
+          if (!email || !credentials?.password) {
+            if (email) {
+              await recordAuthEvent({
+                email,
+                provider: 'credentials',
+                success: false
+              })
+            }
+            return null
+          }
           const user = await verifyUserCredentials(
-            credentials.email,
+            email,
             credentials.password
           )
 
-          if (!user) return null
+          if (!user) {
+            await recordAuthEvent({
+              email,
+              provider: 'credentials',
+              success: false
+            })
+            return null
+          }
 
           return {
             id: user.id,
@@ -54,6 +73,13 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Erreur dans authorize:', error)
+          if (email) {
+            await recordAuthEvent({
+              email,
+              provider: 'credentials',
+              success: false
+            })
+          }
           return null
         }
       }
@@ -67,13 +93,24 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async signIn({ user, account }) {
+      let auditUser = user
+
       if (account?.provider && account.provider !== 'credentials') {
-        await getOrCreateOAuthUser({
+        const dbUser = await getOrCreateOAuthUser({
           email: user.email!,
           name: user.name ?? undefined,
           avatar: user.image ?? undefined
         })
+        if (dbUser) auditUser = { ...user, ...dbUser }
       }
+
+      await recordAuthEvent({
+        userId: auditUser.id,
+        email: auditUser.email,
+        role: 'role' in auditUser ? auditUser.role as string : null,
+        provider: account?.provider || 'unknown',
+        success: true
+      })
       return true
     },
     async session({ session, token }) {

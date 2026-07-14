@@ -43,6 +43,42 @@ export interface AdminStatsData {
   }
 }
 
+export interface AdminLoginRoleStatus {
+  total: number
+  online: number
+  active24h: number
+  logins24h: number
+  failures24h: number
+}
+
+export interface AdminRecentLogin {
+  id: string
+  userId: string | null
+  name: string | null
+  email: string | null
+  role: 'admin' | 'user'
+  provider: string
+  createdAt: string
+}
+
+export interface AdminLoginStatusData {
+  admins: AdminLoginRoleStatus
+  users: AdminLoginRoleStatus
+  unknownFailures24h: number
+  recentLogins: AdminRecentLogin[]
+  auditAvailable: boolean
+  timestamp: string
+}
+
+function emptyRoleStatus(): AdminLoginRoleStatus {
+  return { total: 0, online: 0, active24h: 0, logins24h: 0, failures24h: 0 }
+}
+
+function asNumber(value: unknown): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
 export async function getAdminDashboardStats(): Promise<AdminStatsData> {
   await requireAdmin()
 
@@ -258,5 +294,127 @@ export async function getRealTimeMetrics() {
       errorsLast5Min: 0,
       timestamp: new Date().toISOString()
     }
+  }
+}
+
+export async function getAdminLoginStatus(): Promise<AdminLoginStatusData> {
+  await requireAdmin()
+
+  const admins = emptyRoleStatus()
+  const users = emptyRoleStatus()
+  let unknownFailures24h = 0
+  let recentLogins: AdminRecentLogin[] = []
+  let auditAvailable = true
+
+  try {
+    const presenceRows = await sql.query<any[]>(`
+      SELECT
+        CASE WHEN role = 'admin' THEN 'admin' ELSE 'user' END AS role,
+        COUNT(*)::int AS total_count,
+        COUNT(*) FILTER (
+          WHERE last_seen_at >= NOW() - INTERVAL '10 minutes'
+        )::int AS online_count,
+        COUNT(*) FILTER (
+          WHERE last_seen_at >= NOW() - INTERVAL '24 hours'
+        )::int AS active_24h_count
+      FROM users
+      GROUP BY CASE WHEN role = 'admin' THEN 'admin' ELSE 'user' END
+    `)
+
+    for (const row of presenceRows) {
+      const target = row.role === 'admin' ? admins : users
+      target.total = asNumber(row.total_count)
+      target.online = asNumber(row.online_count)
+      target.active24h = asNumber(row.active_24h_count)
+    }
+  } catch (error) {
+    console.warn('État de présence indisponible:', error)
+  }
+
+  try {
+    const auditRows = await sql.query<any[]>(`
+      SELECT
+        COUNT(*) FILTER (
+          WHERE al.event = 'sign_in_success'
+            AND COALESCE(u.role, al.metadata->>'role') = 'admin'
+        )::int AS admin_login_count,
+        COUNT(*) FILTER (
+          WHERE al.event = 'sign_in_success'
+            AND COALESCE(u.role, al.metadata->>'role', 'user') <> 'admin'
+        )::int AS user_login_count,
+        COUNT(*) FILTER (
+          WHERE al.event = 'sign_in_failure'
+            AND COALESCE(u.role, al.metadata->>'role') = 'admin'
+        )::int AS admin_failure_count,
+        COUNT(*) FILTER (
+          WHERE al.event = 'sign_in_failure'
+            AND COALESCE(u.role, al.metadata->>'role') IS NOT NULL
+            AND COALESCE(u.role, al.metadata->>'role') <> 'admin'
+        )::int AS user_failure_count,
+        COUNT(*) FILTER (WHERE al.event = 'sign_in_failure')::int AS total_failure_count
+      FROM auth_logs al
+      LEFT JOIN users u
+        ON u.id = al.user_id
+        OR (al.user_id IS NULL AND LOWER(u.email) = LOWER(al.email))
+      WHERE al.created_at >= NOW() - INTERVAL '24 hours'
+    `)
+    const audit = auditRows[0] || {}
+
+    admins.logins24h = asNumber(audit.admin_login_count)
+    admins.failures24h = asNumber(audit.admin_failure_count)
+    users.logins24h = asNumber(audit.user_login_count)
+    users.failures24h = asNumber(audit.user_failure_count)
+    unknownFailures24h = Math.max(
+      0,
+      asNumber(audit.total_failure_count) - admins.failures24h - users.failures24h
+    )
+  } catch (error) {
+    auditAvailable = false
+    console.warn("Historique d'authentification indisponible:", error)
+  }
+
+  try {
+    const recentRows = await sql.query<any[]>(`
+      SELECT
+        al.id,
+        COALESCE(u.id, al.user_id) AS user_id,
+        u.name,
+        COALESCE(u.email, al.email) AS email,
+        CASE
+          WHEN COALESCE(u.role, al.metadata->>'role') = 'admin' THEN 'admin'
+          ELSE 'user'
+        END AS role,
+        COALESCE(al.metadata->>'provider', 'unknown') AS provider,
+        al.created_at
+      FROM auth_logs al
+      LEFT JOIN users u
+        ON u.id = al.user_id
+        OR (al.user_id IS NULL AND LOWER(u.email) = LOWER(al.email))
+      WHERE al.event = 'sign_in_success'
+      ORDER BY al.created_at DESC
+      LIMIT 12
+    `)
+
+    recentLogins = recentRows.map(row => ({
+      id: String(row.id),
+      userId: row.user_id ? String(row.user_id) : null,
+      name: row.name ? String(row.name) : null,
+      email: row.email ? String(row.email) : null,
+      role: row.role === 'admin' ? 'admin' : 'user',
+      provider: String(row.provider || 'unknown'),
+      createdAt: new Date(row.created_at).toISOString()
+    }))
+  } catch (error) {
+    auditAvailable = false
+    console.warn('Dernières connexions indisponibles:', error)
+  }
+
+  return {
+    admins,
+    users,
+    unknownFailures24h,
+    recentLogins,
+    auditAvailable,
+    timestamp: new Date().toISOString()
   }
 }
