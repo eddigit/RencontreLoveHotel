@@ -22,6 +22,7 @@ import {
 import { BrandLogo } from '@/components/brand-logo'
 import { Footer } from '@/components/footer'
 import { NotificationsButton } from '@/components/notifications-button'
+import { VisitorLandingHeader } from '@/components/visitor-landing-header'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
 
@@ -99,6 +100,16 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (pathname.startsWith('/admin')) {
     return children
+  }
+
+  if (pathname === '/') {
+    return (
+      <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#120821] text-white'>
+        <VisitorLandingHeader isAuthenticated={Boolean(user)} />
+        <main>{children}</main>
+        <Footer />
+      </div>
+    )
   }
 
   const navigation = (
