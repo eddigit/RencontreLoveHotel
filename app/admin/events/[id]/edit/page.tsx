@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import type { ChangeEvent } from 'react'
+import { EventPhotoField } from "@/components/event-photo-field"
 
 const activeEventCategoriesFallback =
   'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
@@ -172,7 +173,12 @@ export default function AdminEditEventPage() {
                   <input name="title" placeholder="Titre" value={form.title} onChange={handleChange} className="w-full border rounded p-2" required />
                   <input name="location" placeholder="Lieu" value={form.location} onChange={handleChange} className="w-full border rounded p-2" required />
                   <input name="date" type="datetime-local" placeholder="Date" value={form.date} onChange={handleChange} className="w-full border rounded p-2" required />
-                  <input name="image" placeholder="Image (URL)" value={form.image} onChange={handleChange} className="w-full border rounded p-2" />
+                  <EventPhotoField
+                    value={form.image}
+                    onChange={value => setForm(prev => ({ ...prev, image: value }))}
+                    category={form.category}
+                    experienceType={form.category}
+                  />
                   <select name="category" value={form.category} onChange={handleChange} className="w-full border rounded p-2">
                     <option value="">Catégorie</option>
                     {categories.map(cat => (

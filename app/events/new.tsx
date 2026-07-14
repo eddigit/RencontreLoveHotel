@@ -13,6 +13,7 @@ import { createEvent } from '@/actions/event-actions'
 import MainLayout from '@/components/layout/main-layout'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { useAuth } from '@/contexts/auth-context'
+import { EventPhotoField } from '@/components/event-photo-field'
 
 type Venue = 'pigalle' | 'chatelet'
 type ExperienceType = 'jacuzzi' | 'open_curtains'
@@ -234,16 +235,12 @@ export default function CreateEventPage () {
               />
             </div>
 
-            <div className='space-y-2'>
-              <Label htmlFor='image' className='text-white/80'>Image (URL)</Label>
-              <Input
-                id='image'
-                value={form.image}
-                onChange={e => handleChange('image', e.target.value)}
-                placeholder="URL de l'image"
-                className='border-white/10 bg-black/20 text-white placeholder:text-white/35'
-              />
-            </div>
+            <EventPhotoField
+              value={form.image}
+              onChange={value => handleChange('image', value)}
+              category={form.category}
+              experienceType={form.experience_type}
+            />
 
             {error && (
               <div className='rounded-xl border border-red-400/20 bg-red-500/12 p-3 text-sm text-red-100'>
@@ -274,10 +271,10 @@ export default function CreateEventPage () {
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
               <div className='flex items-center gap-3'>
                 <Sparkles className='h-5 w-5 text-[#ff8cc8]' />
-                <h2 className='font-black'>Publication bêta</h2>
+                <h2 className='font-black'>Publication</h2>
               </div>
               <p className='mt-3 text-sm text-white/62'>
-                Pour la démo, l'expérience est publiée automatiquement. En production, les créations membres passeront en validation admin.
+                Votre proposition est enregistrée avec les règles de publication actuellement actives.
               </p>
             </div>
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>

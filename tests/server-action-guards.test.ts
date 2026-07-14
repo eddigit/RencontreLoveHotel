@@ -105,6 +105,19 @@ describe('server action authorization guards', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
+  it('blocks event participant lists for non-admin users', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+
+    const { getEventParticipants } = await import('@/actions/event-actions')
+
+    await expect(getEventParticipants('event-1')).rejects.toThrow(
+      'administrateur'
+    )
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
   it('returns no accepted matches for another account without querying the database', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }

@@ -13,7 +13,7 @@ function normalizeActiveExperienceType(value?: string | null): ActiveExperienceT
   }
 
   if (!activeExperienceTypes.includes(value as ActiveExperienceType)) {
-    throw new Error("Ce format d'événement est en standby")
+    throw new Error("Ce format d'événement n'est pas encore disponible")
   }
 
   return value as ActiveExperienceType
@@ -107,7 +107,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
           WHERE e.event_date > NOW()
             AND e.publication_status = 'published'
-          ORDER BY e.event_date ASC
+          ORDER BY e.event_date ASC, e.event_time ASC
         `
       : await sql`
           SELECT
@@ -117,7 +117,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
           FROM events e
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
           WHERE e.event_date > NOW()
-          ORDER BY e.event_date ASC
+          ORDER BY e.event_date ASC, e.event_time ASC
         `
     return events || []
   } else {
@@ -129,7 +129,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
           FROM events e
           WHERE e.event_date > NOW()
             AND e.publication_status = 'published'
-          ORDER BY event_date ASC
+          ORDER BY e.event_date ASC, e.event_time ASC
         `
       : await sql`
           SELECT
@@ -137,13 +137,56 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
           FROM events e
           WHERE e.event_date > NOW()
-          ORDER BY event_date ASC
-        `
+          ORDER BY e.event_date ASC, e.event_time ASC
+    `
     return events || []
   }
 }
 
+export async function getPublishedEventsForMember(userId: string) {
+  await requireSameUserOrAdmin(userId)
+
+  try {
+    return await getPublishedEventsForMemberQuery(userId, true)
+  } catch (error) {
+    if (isMissingPublicationStatusColumn(error)) {
+      return await getPublishedEventsForMemberQuery(userId, false)
+    }
+    throw error
+  }
+}
+
+async function getPublishedEventsForMemberQuery(
+  userId: string,
+  withPublicationStatus = true
+) {
+  const events = withPublicationStatus
+    ? await sql`
+        SELECT
+          e.*, e.creator_id,
+          (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count,
+          CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
+        FROM events e
+        LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
+        WHERE e.publication_status = 'published'
+        ORDER BY e.event_date ASC, e.event_time ASC
+      `
+    : await sql`
+        SELECT
+          e.*, e.creator_id,
+          (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count,
+          CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
+        FROM events e
+        LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
+        ORDER BY e.event_date ASC, e.event_time ASC
+      `
+
+  return events || []
+}
+
 export async function getEventParticipants(eventId: string) {
+  await requireAdmin()
+
   const participants = await sql`
     SELECT
       u.id,
@@ -287,6 +330,7 @@ export async function updateEvent(eventId: string, {
   const normalizedCategory = category
     ? normalizeActiveExperienceType(category)
     : undefined
+  const normalizedDateTime = date ? normalizeEventDateTime(date) : undefined
   const [existingEvent] = await sql`
     SELECT creator_id FROM events WHERE id = ${eventId}
   `
@@ -304,7 +348,8 @@ export async function updateEvent(eventId: string, {
     SET
       title = COALESCE(${title}, title),
       location = COALESCE(${location}, location),
-      event_date = COALESCE(${date}, event_date),
+      event_date = COALESCE(${normalizedDateTime?.eventDate}, event_date),
+      event_time = COALESCE(${normalizedDateTime?.eventTime}, event_time),
       image = COALESCE(${image}, image),
       category = COALESCE(${normalizedCategory}, category),
       description = COALESCE(${description}, description),
@@ -414,6 +459,8 @@ export async function removeSubscriberFromEvent(eventId: string, userId: string)
 }
 
 export async function getEventSubscriptionsStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
+  await requireAdmin()
+
   let dateTrunc;
   if (scale === "day") {
     dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";

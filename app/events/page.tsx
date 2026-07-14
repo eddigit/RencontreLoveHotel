@@ -1,32 +1,39 @@
 'use client'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 import { MobileNavigation } from '@/components/mobile-navigation'
 import { useNotifications } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { EventCard } from '@/components/event-card'
 import MainLayout from '@/components/layout/main-layout'
 import {
-  getUpcomingEvents,
+  deleteEvent,
+  getPublishedEventsForMember,
   subscribeToEvent,
-  unsubscribeFromEvent,
-  deleteEvent
+  unsubscribeFromEvent
 } from '@/actions/event-actions'
 import { getOption } from '@/actions/user-actions'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-
-function isTonight (event: any) {
-  if (!event.event_date) return false
-  const eventDate = new Date(event.event_date)
-  const now = new Date()
-  return eventDate.toDateString() === now.toDateString()
-}
+import {
+  EMPTY_EVENTS_STATE,
+  EVENT_TIME_ZONE,
+  formatEventDateTime,
+  isPastEvent,
+  sortEventsChronologically
+} from '@/lib/event-presentation'
 
 const activeEventCategoriesFallback =
   'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
 const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
+
+const venueLabels: Record<string, string> = {
+  pigalle: 'Pigalle',
+  chatelet: 'Châtelet'
+}
+
+const emptyEventsTitle = 'Aucun événement programmé pour le moment'
 
 function parseActiveEventCategories(rawCategories?: string | null) {
   return (rawCategories || activeEventCategoriesFallback)
@@ -45,6 +52,62 @@ function parseActiveEventCategories(rawCategories?: string | null) {
     )
 }
 
+function getEventType(event: any) {
+  return event.experience_type || event.category || ''
+}
+
+function getEventDatePart(event: any) {
+  if (!event.event_date) return ''
+  if (event.event_date instanceof Date) {
+    return event.event_date.toISOString().slice(0, 10)
+  }
+  return String(event.event_date).slice(0, 10)
+}
+
+function getTodayInParis() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: EVENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date())
+}
+
+function isWeekendEvent(event: any) {
+  const datePart = getEventDatePart(event)
+  if (!datePart) return false
+  const date = new Date(`${datePart}T12:00:00`)
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+function filterEvents(
+  events: any[],
+  filters: { period: string; type: string; venue: string }
+) {
+  const today = getTodayInParis()
+
+  return events.filter(event => {
+    if (filters.type !== 'all' && getEventType(event) !== filters.type) {
+      return false
+    }
+
+    if (filters.venue !== 'all' && event.venue !== filters.venue) {
+      return false
+    }
+
+    if (filters.period === 'today') {
+      return getEventDatePart(event) === today
+    }
+
+    if (filters.period === 'weekend') {
+      return isWeekendEvent(event)
+    }
+
+    return true
+  })
+}
+
 export default function EventsPage () {
   const { markAsRead } = useNotifications()
   const { user: authUser } = useAuth()
@@ -56,23 +119,10 @@ export default function EventsPage () {
   const [categories, setCategories] = useState<
     { value: string; label: string }[]
   >([])
-  const [activeTab, setActiveTab] = useState('all')
+  const [periodFilter, setPeriodFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [venueFilter, setVenueFilter] = useState('all')
 
-  // Compute the correct Tailwind grid-cols class for the TabsList
-  const gridColsClass =
-    {
-      1: 'md:grid-cols-2',
-      2: 'md:grid-cols-3',
-      3: 'md:grid-cols-4',
-      4: 'md:grid-cols-5',
-      5: 'md:grid-cols-6',
-      6: 'md:grid-cols-7',
-      7: 'md:grid-cols-8',
-      8: 'md:grid-cols-9',
-      9: 'md:grid-cols-10'
-    }[categories.length + 1] || 'md:grid-cols-2'
-
-  // Redirect if not logged in
   useEffect(() => {
     if (!authUser?.id) {
       router.replace('/login')
@@ -82,26 +132,45 @@ export default function EventsPage () {
     async function fetchEventsAndCategories () {
       if (!authUser?.id) return
       setLoading(true)
-      const [result, rawCategories] = await Promise.all([
-        getUpcomingEvents(authUser.id),
-        getOption('event_categories')
-      ])
-      setEvents(result)
-      setCategories(parseActiveEventCategories(rawCategories))
-      setLoading(false)
+      setActionError('')
+
+      try {
+        const [result, rawCategories] = await Promise.all([
+          getPublishedEventsForMember(authUser.id),
+          getOption('event_categories')
+        ])
+        setEvents(sortEventsChronologically(result))
+        setCategories(parseActiveEventCategories(rawCategories))
+      } catch (error) {
+        setActionError("Les événements n'ont pas pu être chargés.")
+      } finally {
+        setLoading(false)
+      }
     }
 
     fetchEventsAndCategories()
 
-    const eventNotifications: string[] = [
-      // Only push real notification UUIDs here if available
-    ]
+    const eventNotifications: string[] = []
     const uuidRegex =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     eventNotifications.forEach((id: string) => {
       if (uuidRegex.test(id)) markAsRead(id)
     })
   }, [markAsRead, authUser, router])
+
+  const sortedEvents = useMemo(
+    () => sortEventsChronologically(events),
+    [events]
+  )
+  const upcomingEvents = sortedEvents.filter(event => !isPastEvent(event))
+  const pastEvents = sortedEvents.filter(event => isPastEvent(event)).reverse()
+  const filters = {
+    period: periodFilter,
+    type: typeFilter,
+    venue: venueFilter
+  }
+  const filteredUpcomingEvents = filterEvents(upcomingEvents, filters)
+  const filteredPastEvents = filterEvents(pastEvents, filters)
 
   const handleSubscribeToggle = async (event: any) => {
     if (!authUser?.id) return
@@ -113,93 +182,218 @@ export default function EventsPage () {
         setActionError("La désinscription n'a pas pu être enregistrée.")
         return
       }
-      setEvents(
-        events.map(e =>
-          e.id === event.id
-            ? {
-                ...e,
-                is_participating: false,
-                attendees: Math.max(0, Number(e.attendees || e.participant_count || 0) - 1),
-                participant_count: Math.max(0, Number(e.participant_count || e.attendees || 0) - 1)
-              }
-            : e
-        )
-      )
-    } else {
-      const result = await subscribeToEvent(event.id, authUser.id)
-      if (!result.success) {
-        setActionError(result.error || "La participation n'a pas pu être enregistrée.")
-        return
-      }
-      setEvents(
-        events.map(e =>
-          e.id === event.id
-            ? {
-                ...e,
-                is_participating: true,
-                attendees: Number(e.attendees || e.participant_count || 0) + 1,
-                participant_count: Number(e.participant_count || e.attendees || 0) + 1
-              }
-            : e
-        )
-      )
+      updateLocalParticipation(event.id, false)
+      return
     }
+
+    const result = await subscribeToEvent(event.id, authUser.id)
+    if (!result.success) {
+      setActionError(result.error || "La participation n'a pas pu être enregistrée.")
+      return
+    }
+    updateLocalParticipation(event.id, true)
+  }
+
+  const updateLocalParticipation = (eventId: string, isJoining: boolean) => {
+    setEvents(currentEvents =>
+      currentEvents.map(event => {
+        if (event.id !== eventId) return event
+
+        const currentCount = Number(
+          event.participant_count || event.attendees || 0
+        )
+        const nextCount = Math.max(0, currentCount + (isJoining ? 1 : -1))
+        return {
+          ...event,
+          is_participating: isJoining,
+          attendees: nextCount,
+          participant_count: nextCount
+        }
+      })
+    )
   }
 
   const handleEdit = (eventId: string) => {
     router.push(`/events/edit?id=${eventId}`)
   }
+
   const handleDelete = async (eventId: string) => {
     if (!window.confirm('Supprimer cet événement ?')) return
     await deleteEvent(eventId)
-    setEvents(events.filter(e => e.id !== eventId))
+    setEvents(currentEvents => currentEvents.filter(event => event.id !== eventId))
   }
+
+  const renderEventCard = (event: any, options: { isPast?: boolean } = {}) => (
+    <EventCard
+      key={event.id}
+      id={event.id}
+      title={event.title}
+      location={event.location}
+      date={formatEventDateTime(event)}
+      image={event.image}
+      attendees={event.attendees || event.participant_count || 0}
+      prix_personne_seule={event.prix_personne_seule ?? 0}
+      prix_couple={event.prix_couple ?? 0}
+      price={event.price ?? 0}
+      venue={event.venue}
+      experienceType={event.experience_type || event.category}
+      maxParticipants={event.max_participants}
+      createdByRole={event.created_by_role}
+      isParticipating={!!event.is_participating}
+      isPast={options.isPast}
+      onSubscribeToggle={
+        options.isPast ? undefined : () => handleSubscribeToggle(event)
+      }
+      creatorId={event.creator_id}
+      currentUserId={authUser?.id}
+      isAdmin={authUser?.role === 'admin'}
+      onEdit={() => handleEdit(event.id)}
+      onDelete={
+        authUser?.role === 'admin' || event.creator_id === authUser?.id
+          ? () => handleDelete(event.id)
+          : undefined
+      }
+    />
+  )
 
   return (
     <MainLayout user={authUser}>
       <div className='min-h-screen flex flex-col pb-16 md:pb-0'>
         <div className='container py-4 md:py-6 flex-1'>
-          <div className='flex items-center justify-between mb-4 md:mb-6'>
-            <h1 className='text-2xl md:text-3xl font-bold'>
-              Expériences Love Hotel
-            </h1>
-            <Button asChild className='hidden bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white md:inline-flex'>
-              <Link href='/events/new'>Créer une expérience</Link>
+          <header className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+            <div>
+              <h1 className='text-2xl font-bold md:text-3xl'>
+                Expériences Love Hotel
+              </h1>
+              <p className='mt-1 text-sm text-white/58'>
+                Les prochaines dates, triées de la plus proche à la plus lointaine.
+              </p>
+            </div>
+            <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+              <Link href='/events/new'>Proposer un événement</Link>
             </Button>
-          </div>
+          </header>
 
-          <div className='mb-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]'>
-            <div className='rounded-2xl border border-white/10 bg-gradient-to-br from-[#3d1155]/90 via-[#5b0f46]/80 to-[#16051f] p-5 md:p-6'>
-              <p className='text-sm font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>Ce soir au Love Hotel</p>
-              <h2 className='mt-2 text-2xl font-black md:text-4xl'>
-                De la rencontre douce à l’expérience assumée.
-              </h2>
-              <p className='mt-3 max-w-2xl text-white/68'>
-                Les membres peuvent créer leurs expériences à Pigalle ou Châtelet : apéro jacuzzi en petit comité ou chambre à rideaux modulables. Pour la bêta, les publications sont immédiates afin de montrer le potentiel communautaire et commercial.
-              </p>
+          {actionError && (
+            <div className='mb-4 rounded-xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>
+              {actionError}
             </div>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <p className='text-sm font-semibold text-white/62'>Réservation et informations</p>
-              <a href='tel:+33144826305' className='mt-2 block text-2xl font-black text-white underline decoration-[#ff3b8b] underline-offset-4'>
-                +33 1 44 82 63 05
-              </a>
-              <p className='mt-3 text-sm text-white/54'>
-                Une expérience peut pousser vers une chambre rideaux ouverts ou un créneau jacuzzi partagé, sans offre restaurant ni bar.
-              </p>
-            </div>
-          </div>
+          )}
 
-          <section className='mb-6 rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-5'>
+          <section className='mb-6 space-y-4'>
+            <div className='flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3 md:flex-row'>
+              <select
+                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                value={periodFilter}
+                onChange={event => setPeriodFilter(event.target.value)}
+                aria-label='Filtrer par date'
+              >
+                <option value='all'>Toutes les dates</option>
+                <option value='today'>Aujourd’hui</option>
+                <option value='weekend'>Ce week-end</option>
+              </select>
+
+              <select
+                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                value={typeFilter}
+                onChange={event => setTypeFilter(event.target.value)}
+                aria-label="Filtrer par type d'expérience"
+              >
+                <option value='all'>Tous les formats</option>
+                {categories.map(category => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                value={venueFilter}
+                onChange={event => setVenueFilter(event.target.value)}
+                aria-label='Filtrer par lieu'
+              >
+                <option value='all'>Tous les lieux</option>
+                {Object.entries(venueLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <div className='mb-3 flex items-end justify-between gap-3'>
+                <div>
+                  <h2 className='text-xl font-black'>Événements à venir</h2>
+                  <p className='text-sm text-white/52'>
+                    {filteredUpcomingEvents.length} date{filteredUpcomingEvents.length > 1 ? 's' : ''} disponible{filteredUpcomingEvents.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+                {loading ? (
+                  <LoadingEventCards />
+                ) : filteredUpcomingEvents.length === 0 ? (
+                  <EmptyEventsState />
+                ) : (
+                  filteredUpcomingEvents.map(event => renderEventCard(event))
+                )}
+              </div>
+            </div>
+
+            {!loading && pastEvents.length > 0 && (
+              <details className='rounded-xl border border-white/10 bg-white/[0.035] p-4'>
+                <summary className='cursor-pointer text-lg font-black'>
+                  Événements passés
+                </summary>
+                <div className='mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+                  {filteredPastEvents.length === 0 ? (
+                    <div className='col-span-full text-sm text-white/58'>
+                      Aucun ancien événement ne correspond aux filtres.
+                    </div>
+                  ) : (
+                    filteredPastEvents.map(event =>
+                      renderEventCard(event, { isPast: true })
+                    )
+                  )}
+                </div>
+              </details>
+            )}
+          </section>
+
+          {!loading && (
+            <section className='mb-6 grid gap-3 md:grid-cols-4'>
+              <StatCard
+                label='Apéros jacuzzi'
+                value={upcomingEvents.filter(event => getEventType(event) === 'jacuzzi').length}
+              />
+              <StatCard
+                label='Rideaux ouverts'
+                value={upcomingEvents.filter(event => getEventType(event) === 'open_curtains').length}
+              />
+              <StatCard
+                label='Créées par la communauté'
+                value={upcomingEvents.filter(event => event.created_by_role === 'member' || !event.created_by_role).length}
+              />
+              <StatCard label='Passés archivés' value={pastEvents.length} />
+            </section>
+          )}
+
+          <section className='mb-6 rounded-xl border border-[#ff8cc8]/20 bg-white/[0.045] p-5'>
             <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
               <div>
                 <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
                   Créer une rencontre autour d’un lieu réel
                 </p>
                 <h2 className='mt-2 text-2xl font-black'>
-                  Love Room à l’heure, Jacuzzi privatif et Chambres rideaux ouverts.
+                  De la rencontre douce à l’expérience assumée.
                 </h2>
                 <p className='mt-2 max-w-3xl text-sm leading-6 text-white/62'>
-                  Chaque expérience peut devenir une opportunité : apéro jacuzzi de 2 à 4 couples, ou rideaux ouverts dans 2 ou 3 chambres à Pigalle ou Châtelet.
+                  Chaque expérience part d’un cadre concret : Love Room à l’heure,
+                  Jacuzzi privatif et Chambres rideaux ouverts à Pigalle ou
+                  Châtelet.
                 </p>
               </div>
               <div className='flex flex-wrap gap-2'>
@@ -207,34 +401,24 @@ export default function EventsPage () {
                   <Link href='/love-rooms'>Réserver une Love Room</Link>
                 </Button>
                 <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                  <Link href='/events/new'>Créer un événement</Link>
+                  <Link href='/events/new'>Proposer un événement</Link>
                 </Button>
               </div>
             </div>
-            <div className='mt-5 grid gap-3 md:grid-cols-4'>
-              {[
-                ['Love Room à l’heure', '35 à 50 €/h selon chambre'],
-                ['Jacuzzi privatif', '2, 3 ou 4 couples maximum'],
-                ['Chambres rideaux ouverts', 'Pour rencontres assumées'],
-                ['Pigalle & Châtelet', 'Deux lieux pour organiser']
-              ].map(([title, detail]) => (
-                <div key={title} className='rounded-2xl border border-white/10 bg-black/18 p-4'>
-                  <div className='font-black'>{title}</div>
-                  <div className='mt-1 text-xs text-white/52'>{detail}</div>
-                </div>
-              ))}
-            </div>
           </section>
 
-          <section className='mb-6 rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,59,139,0.12),rgba(10,3,18,0.7))] p-5'>
+          <section className='mb-6 rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,59,139,0.12),rgba(10,3,18,0.7))] p-5'>
             <div className='flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between'>
               <div>
                 <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
-                  Formats prêts à réserver
+                  Formats disponibles
                 </p>
-                <h2 className='mt-2 text-2xl font-black'>Des expériences qui rassurent avant d’ouvrir le jeu.</h2>
+                <h2 className='mt-2 text-2xl font-black'>
+                  Des expériences lisibles avant de rejoindre.
+                </h2>
                 <p className='mt-2 max-w-3xl text-sm leading-6 text-white/62'>
-                  Chaque format part d’un lieu réel disponible : jacuzzi ou chambre avec rideaux. Les participants savent le cadre avant de rejoindre.
+                  Le format, le lieu, l’heure, le prix et les places restantes
+                  sont visibles directement sur chaque carte.
                 </p>
               </div>
               <Button asChild className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
@@ -244,10 +428,10 @@ export default function EventsPage () {
             <div className='mt-5 grid gap-3 md:grid-cols-3'>
               {[
                 ['Apéro jacuzzi 2 à 4 couples', 'Petit comité, spa et rencontre progressive.'],
-                ['Initiation rideaux modulables', '2 chambres minimum : on commence fermé, chacun choisit d’entrouvrir ou non.'],
-                ['Soirée rideaux ouverts', '2 ou 3 chambres pour profils déjà alignés sur une expérience assumée.']
+                ['Initiation rideaux modulables', '2 chambres minimum : chacun choisit son niveau d’ouverture.'],
+                ['Soirée rideaux ouverts', '2 ou 3 chambres pour profils déjà alignés.']
               ].map(([title, detail]) => (
-                <div key={title} className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
+                <div key={title} className='rounded-xl border border-white/10 bg-white/[0.045] p-4'>
                   <div className='font-black'>{title}</div>
                   <div className='mt-2 text-sm leading-5 text-white/58'>{detail}</div>
                 </div>
@@ -255,194 +439,20 @@ export default function EventsPage () {
             </div>
           </section>
 
-          {actionError && (
-            <div className='mb-5 rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100'>
-              {actionError}
-            </div>
-          )}
-
-          {/* Mobile category filter */}
-          <div className="mb-4 md:hidden px-4">
-            <select
-              className="w-full border border-gray-300 rounded-md p-2"
-              value={activeTab}
-              onChange={e => setActiveTab(e.target.value)}
-            >
-              <option value="all">Tous</option>
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-              <option value="planning-rideaux-ouverts">Agenda Rideaux ouverts</option>
-            </select>
-          </div>
-
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className='w-full'
-          >
-            <TabsList className={`hidden md:grid w-full ${gridColsClass} mb-4 md:mb-6`}>
-              <TabsTrigger value='all'>Tous</TabsTrigger>
-              {categories.map(cat => (
-                <TabsTrigger key={cat.value} value={cat.value}>
-                  {cat.label}
-                </TabsTrigger>
-              ))}
-              <TabsTrigger value='planning-rideaux-ouverts'>Agenda Rideaux ouverts</TabsTrigger>
-            </TabsList>
-            <TabsContent value='all' className='space-y-4 md:space-y-6'>
-              {!loading && (
-                <div className='grid gap-4 md:grid-cols-4'>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
-                    <p className='text-xs uppercase text-white/45'>Ce soir au Love Hotel</p>
-                    <p className='mt-2 text-2xl font-black'>{events.filter(isTonight).length}</p>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
-                    <p className='text-xs uppercase text-white/45'>Apéros jacuzzi</p>
-                    <p className='mt-2 text-2xl font-black'>
-                      {events.filter(event => event.experience_type === 'jacuzzi').length}
-                    </p>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
-                    <p className='text-xs uppercase text-white/45'>Rideaux ouverts</p>
-                    <p className='mt-2 text-2xl font-black'>
-                      {events.filter(event => event.experience_type === 'open_curtains').length}
-                    </p>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
-                    <p className='text-xs uppercase text-white/45'>Créées par la communauté</p>
-                    <p className='mt-2 text-2xl font-black'>
-                      {events.filter(event => event.created_by_role === 'member' || !event.created_by_role).length}
-                    </p>
-                  </div>
-                </div>
-              )}
-              <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-                {loading ? (
-                  <div>Chargement...</div>
-                ) : events.length === 0 ? (
-                  <EmptyEventsState />
-                ) : (
-                  events.map(event => (
-                    <EventCard
-                      key={event.id}
-                      id={event.id}
-                      title={event.title}
-                      location={event.location}
-                      date={
-                        event.event_date
-                          ? typeof event.event_date === 'string'
-                            ? event.event_date
-                            : new Date(event.event_date).toLocaleString('fr-FR')
-                          : ''
-                      }
-                      image={event.image}
-                      attendees={
-                        event.attendees || event.participant_count || 0
-                      }
-                      prix_personne_seule={event.prix_personne_seule ?? 0}
-                      prix_couple={event.prix_couple ?? 0}
-                      venue={event.venue}
-                      experienceType={event.experience_type}
-                      maxParticipants={event.max_participants}
-                      createdByRole={event.created_by_role}
-                      publicationStatus={event.publication_status}
-                      isParticipating={!!event.is_participating}
-                      onSubscribeToggle={() => handleSubscribeToggle(event)}
-                      creatorId={event.creator_id}
-                      currentUserId={authUser?.id}
-                      isAdmin={authUser?.role === 'admin'}
-                      onEdit={() => handleEdit(event.id)}
-                      onDelete={
-                        authUser?.role === 'admin' ||
-                        event.creator_id === authUser?.id
-                          ? () => handleDelete(event.id)
-                          : undefined
-                      }
-                    />
-                  ))
-                )}
-              </div>
-            </TabsContent>
-            {categories.map(cat => (
-              <TabsContent
-                key={cat.value}
-                value={cat.value}
-                className='space-y-4 md:space-y-6'
-              >
-                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-                  {loading ? (
-                    <div>Chargement...</div>
-                  ) : events.filter(event => event.category === cat.value).length === 0 ? (
-                    <EmptyEventsState />
-                  ) : (
-                    events
-                      .filter(event => event.category === cat.value)
-                      .map(event => (
-                        <EventCard
-                          key={event.id}
-                          id={event.id}
-                          title={event.title}
-                          location={event.location}
-                          date={
-                            event.event_date
-                              ? typeof event.event_date === 'string'
-                                ? event.event_date
-                                : new Date(event.event_date).toLocaleString(
-                                    'fr-FR'
-                                  )
-                              : ''
-                          }
-                          image={event.image}
-                          attendees={
-                            event.attendees || event.participant_count || 0
-                          }
-                          prix_personne_seule={event.prix_personne_seule ?? 0}
-                          prix_couple={event.prix_couple ?? 0}
-                          venue={event.venue}
-                          experienceType={event.experience_type}
-                          maxParticipants={event.max_participants}
-                          createdByRole={event.created_by_role}
-                          publicationStatus={event.publication_status}
-                          isParticipating={!!event.is_participating}
-                          onSubscribeToggle={() => handleSubscribeToggle(event)}
-                          creatorId={event.creator_id}
-                          currentUserId={authUser?.id}
-                          isAdmin={authUser?.role === 'admin'}
-                          onEdit={() => handleEdit(event.id)}
-                          onDelete={
-                            authUser?.role === 'admin' ||
-                            event.creator_id === authUser?.id
-                              ? () => handleDelete(event.id)
-                              : undefined
-                          }
-                        />
-                      ))
-                  )}
-                </div>
-              </TabsContent>
-            ))}
-            <TabsContent
-              value='planning-rideaux-ouverts'
-              className='space-y-4 md:space-y-6'
-            >
-              <div className='grid grid-cols-1'>
-                <iframe
-                  src='https://lovehotelaparis.fr/wp-json/zlhu_api/v3/rideaux_ouverts/'
-                  title='Rideaux Ouverts'
-                  className='w-full h-[1600px] border-0'
-                  frameBorder='0'
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
+          <details className='rounded-xl border border-white/10 bg-white/[0.035] p-4'>
+            <summary className='cursor-pointer font-black'>Agenda Rideaux ouverts</summary>
+            <iframe
+              src='https://lovehotelaparis.fr/wp-json/zlhu_api/v3/rideaux_ouverts/'
+              title='Rideaux Ouverts'
+              className='mt-4 h-[1200px] w-full border-0'
+            />
+          </details>
         </div>
-        <div className='fixed bottom-0 left-0 right-0 flex justify-center pb-6 pointer-events-none z-40'>
+
+        <div className='fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6 pointer-events-none md:hidden'>
           <Link href='/events/new' className='pointer-events-auto'>
-            <Button className='bg-[#ff3b8b] hover:bg-[#ff3b8b]/90 text-white rounded-full px-8 py-3 shadow-lg text-lg font-bold'>
-              Créer un évènement
+            <Button className='rounded-full bg-[#ff3b8b] px-7 py-3 text-base font-bold text-white shadow-lg hover:bg-[#ff3b8b]/90'>
+              Proposer un événement
             </Button>
           </Link>
         </div>
@@ -452,20 +462,48 @@ export default function EventsPage () {
   )
 }
 
+function LoadingEventCards () {
+  return (
+    <>
+      {[0, 1, 2].map(index => (
+        <div
+          key={index}
+          className='h-[360px] animate-pulse rounded-xl border border-white/10 bg-white/[0.04]'
+        />
+      ))}
+    </>
+  )
+}
+
 function EmptyEventsState () {
   return (
-    <div className='col-span-full rounded-2xl border border-dashed border-[#ff8cc8]/30 bg-white/[0.035] p-8 text-center'>
-      <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
-        Aucun événement publié
-      </p>
-      <h2 className='mt-2 text-2xl font-black'>Créez la première expérience Love Hotel.</h2>
-      <p className='mx-auto mt-2 max-w-xl text-sm leading-6 text-white/60'>
-        Les membres et les administrateurs peuvent lancer un apéro jacuzzi,
-        une rencontre rideaux ouverts dans 2 ou 3 chambres.
-      </p>
-      <Button asChild className='mt-5 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-        <Link href='/events/new'>Créer un événement</Link>
-      </Button>
+    <div className='col-span-full grid gap-5 rounded-xl border border-dashed border-[#ff8cc8]/30 bg-white/[0.035] p-5 md:grid-cols-[180px,minmax(0,1fr)] md:items-center'>
+      <img
+        src='/images/events/love-hotel-evenement.png'
+        alt=''
+        className='aspect-[4/3] w-full rounded-lg object-cover'
+      />
+      <div>
+        <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
+          Prochaines dates
+        </p>
+        <h2 className='mt-2 text-2xl font-black'>{emptyEventsTitle}</h2>
+        <p className='mt-2 max-w-xl text-sm leading-6 text-white/60'>
+          {EMPTY_EVENTS_STATE.description}
+        </p>
+        <Button asChild className='mt-5 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+          <Link href='/events/new'>{EMPTY_EVENTS_STATE.cta}</Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className='rounded-xl border border-white/10 bg-white/[0.045] p-4'>
+      <p className='text-xs uppercase text-white/45'>{label}</p>
+      <p className='mt-2 text-2xl font-black'>{value}</p>
     </div>
   )
 }

@@ -5,6 +5,34 @@ import { authOptions } from "@/lib/auth"
 import { randomUUID } from "crypto"
 
 import type { NextRequest } from "next/server"
+
+function normalizeDatePart(value: unknown) {
+  if (!value) return ""
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  return String(value).slice(0, 10)
+}
+
+function normalizeEventDateTime(value: unknown, original: any) {
+  if (!value) {
+    return {
+      eventDate: normalizeDatePart(original.event_date),
+      eventTime: String(original.event_time || "20:00:00").slice(0, 8)
+    }
+  }
+
+  const normalized = String(value).trim().replace(" ", "T")
+  const [datePart, rawTimePart] = normalized.split("T")
+  const timePart = rawTimePart || String(original.event_time || "20:00:00")
+  const timeMatch = timePart.match(/^(\d{2}):(\d{2})(?::(\d{2}))?/)
+
+  return {
+    eventDate: datePart,
+    eventTime: timeMatch
+      ? `${timeMatch[1]}:${timeMatch[2]}:${timeMatch[3] || "00"}`
+      : String(original.event_time || "20:00:00").slice(0, 8)
+  }
+}
+
 export async function POST(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.id) {
@@ -19,6 +47,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   // Récupérer l'événement original
   const [original] = await sql`SELECT * FROM events WHERE id = ${id}`
   if (!original) return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  const { eventDate, eventTime } = normalizeEventDateTime(body.date, original)
   // Créer un nouvel événement avec les champs modifiés ou originaux
   const newId = randomUUID()
   const [newEvent] = await sql`
@@ -29,8 +58,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
       ${body.title ?? original.title},
       ${body.description ?? original.description},
       ${body.image ?? original.image},
-      ${body.date ?? original.event_date},
-      ${original.event_time},
+      ${eventDate},
+      ${eventTime},
       ${body.location ?? original.location},
       ${body.price ?? original.price},
       ${body.max_participants ?? original.max_participants},

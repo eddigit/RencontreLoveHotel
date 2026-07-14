@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context"
 import MainLayout from "@/components/layout/main-layout"
 import { AdminTabs } from "@/components/admin-tabs"
 import { AdminHeader } from "@/components/admin-header"
+import { EventPhotoField } from "@/components/event-photo-field"
 
 export default function AdminEventsPage() {
   const { user } = useAuth()
@@ -142,6 +143,7 @@ export default function AdminEventsPage() {
                   <div className="bg-gray-900 p-0 rounded-lg shadow-lg w-full max-w-lg flex flex-col" style={{ maxHeight: '90vh' }}>
                     <h3 className="text-lg font-bold mb-2 px-8 pt-8 text-white">Reprogrammer et modifier l'événement</h3>
                     <form
+                      id="reprogram-form"
                       onSubmit={async e => {
                         e.preventDefault()
                         const formData = new FormData(e.target as HTMLFormElement)
@@ -149,7 +151,7 @@ export default function AdminEventsPage() {
                           date: formData.get("date"),
                           title: formData.get("title"),
                           description: formData.get("description"),
-                          image: formData.get("image"),
+                          image: selectedEvent.image,
                           location: formData.get("location"),
                           price: formData.get("price"),
                           max_participants: formData.get("max_participants"),
@@ -175,8 +177,18 @@ export default function AdminEventsPage() {
                       <input type="text" name="title" defaultValue={selectedEvent.title} className="mb-4 w-full border px-2 py-1 rounded" required />
                       <label className="block mb-2">Description</label>
                       <textarea name="description" defaultValue={selectedEvent.description} className="mb-4 w-full border px-2 py-1 rounded" />
-                      <label className="block mb-2">Image (URL)</label>
-                      <input type="text" name="image" defaultValue={selectedEvent.image} className="mb-4 w-full border px-2 py-1 rounded" />
+                      <div className="mb-4">
+                        <EventPhotoField
+                          value={selectedEvent.image || ""}
+                          onChange={value =>
+                            setSelectedEvent((current: any) =>
+                              current ? { ...current, image: value } : current
+                            )
+                          }
+                          category={selectedEvent.category}
+                          experienceType={selectedEvent.experience_type || selectedEvent.category}
+                        />
+                      </div>
                       <label className="block mb-2">Lieu</label>
                       <input type="text" name="location" defaultValue={selectedEvent.location} className="mb-4 w-full border px-2 py-1 rounded" />
                       <label className="block mb-2">Prix</label>

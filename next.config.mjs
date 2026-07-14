@@ -15,6 +15,11 @@ const nextConfig = {
         hostname: 'cmxmnsgbmhgpgxopmtua.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+        pathname: '/**',
+      },
     ],
   },
 }

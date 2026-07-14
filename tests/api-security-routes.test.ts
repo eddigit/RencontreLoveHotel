@@ -60,6 +60,15 @@ function photoPost(file: File) {
   }) as any
 }
 
+function eventPhotoPost(file: File) {
+  const formData = new FormData()
+  formData.set('photo', file)
+  return new Request('https://example.test/api/events/photos/upload', {
+    method: 'POST',
+    body: formData
+  }) as any
+}
+
 describe('sensitive API routes', () => {
   beforeEach(() => {
     getServerSessionMock.mockReset()
@@ -208,6 +217,35 @@ describe('sensitive API routes', () => {
     })
   })
 
+  it('rejects API event participation when the event is not published', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+    sqlMock.mockResolvedValueOnce([
+      {
+        id: 'event-1',
+        max_participants: 3,
+        event_date: new Date(Date.now() + 86_400_000).toISOString(),
+        event_time: '21:00:00',
+        publication_status: 'pending_review'
+      }
+    ])
+
+    const { POST } = await import('@/app/api/events/[id]/participate/route')
+    const response = (await POST(
+      jsonPost('https://example.test/api/events/event-1/participate', {
+        action: 'join'
+      }),
+      { params: Promise.resolve({ id: 'event-1' }) }
+    )) as Response
+    const data = await response.json()
+
+    expect(response.status).toBe(409)
+    expect(data.error).toBe('Événement non publié')
+    expect(sqlMock).toHaveBeenCalledTimes(1)
+    expect(notifyEventReservationAdminsMock).not.toHaveBeenCalled()
+  })
+
   it('requires an admin session before updating verification tokens', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
@@ -256,6 +294,49 @@ describe('sensitive API routes', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
+  it('duplicates an event with separated event date and event time', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'admin-1', role: 'admin' }
+    })
+    sqlMock
+      .mockResolvedValueOnce([
+        {
+          id: 'event-1',
+          title: 'Ancienne date',
+          description: 'Description',
+          image: null,
+          event_date: '2026-07-10',
+          event_time: '19:00:00',
+          location: 'Love Hotel Pigalle',
+          price: 0,
+          max_participants: 4,
+          category: 'jacuzzi',
+          creator_id: 'admin-1',
+          prix_personne_seule: 0,
+          prix_couple: 0,
+          payment_mode: 'sur_place',
+          conditions: null
+        }
+      ])
+      .mockResolvedValueOnce([{ id: 'event-copy' }])
+
+    const { POST } = await import(
+      '@/app/api/admin/events/[id]/duplicate/route'
+    )
+    const response = await POST(
+      jsonPost('https://example.test/api/admin/events/event-1/duplicate', {
+        date: '2026-07-12T22:15'
+      }),
+      { params: Promise.resolve({ id: 'event-1' }) }
+    )
+    const insertValues = sqlMock.mock.calls[1].slice(1)
+
+    expect(response.status).toBe(200)
+    expect(insertValues).toEqual(
+      expect.arrayContaining(['2026-07-12', '22:15:00'])
+    )
+  })
+
   it('requires an admin session before reprogramming an event', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
@@ -273,6 +354,29 @@ describe('sensitive API routes', () => {
 
     expect(response.status).toBe(403)
     expect(sqlMock).not.toHaveBeenCalled()
+  })
+
+  it('reprograms an event with separated event date and event time', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'admin-1', role: 'admin' }
+    })
+    sqlMock.mockResolvedValueOnce([{ id: 'event-1' }])
+
+    const { POST } = await import(
+      '@/app/api/admin/events/[id]/reprogram/route'
+    )
+    const response = await POST(
+      jsonPost('https://example.test/api/admin/events/event-1/reprogram', {
+        date: '2026-07-12T22:15'
+      }),
+      { params: Promise.resolve({ id: 'event-1' }) }
+    )
+    const updateValues = sqlMock.mock.calls[0].slice(1)
+
+    expect(response.status).toBe(200)
+    expect(updateValues).toEqual(
+      expect.arrayContaining(['2026-07-12', '22:15:00'])
+    )
   })
 
   it('requires an admin session before listing past admin events', async () => {
@@ -347,5 +451,31 @@ describe('sensitive API routes', () => {
     expect(blobPutMock.mock.calls[0][0]).toMatch(
       /^user-photos\/user-1-\d+\.png$/
     )
+  })
+
+  it('stores valid event photo uploads under the event photo prefix', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'admin-1', role: 'admin' }
+    })
+    blobPutMock.mockResolvedValue({ url: 'https://blob.example/event.png' })
+
+    const { POST } = await import('@/app/api/events/photos/upload/route')
+    const response = await POST(
+      eventPhotoPost(
+        new File(
+          [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+          'event.html',
+          { type: 'image/png' }
+        )
+      )
+    )
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toEqual({ success: true, url: 'https://blob.example/event.png' })
+    expect(blobPutMock.mock.calls[0][0]).toMatch(
+      /^event-photos\/admin-1-\d+\.png$/
+    )
+    expect(sqlMock).not.toHaveBeenCalled()
   })
 })

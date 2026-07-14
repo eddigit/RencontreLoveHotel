@@ -3,17 +3,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Calendar, MapPin, Sparkles, Users } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { getEventImage } from '@/lib/event-presentation'
 
 interface EventCardProps {
   title: string
   location: string
   date: string
-  image: string
+  image?: string | null
   attendees: number
   prix_personne_seule?: number
   prix_couple?: number
   price?: number
   isParticipating?: boolean
+  isPast?: boolean
   onSubscribeToggle?: () => void
   id?: string
   creatorId?: string
@@ -48,6 +50,7 @@ export function EventCard ({
   prix_couple,
   price,
   isParticipating,
+  isPast,
   onSubscribeToggle,
   id,
   creatorId,
@@ -65,11 +68,23 @@ export function EventCard ({
     isAdmin || (creatorId && currentUserId && creatorId === currentUserId)
   const singlePrice = prix_personne_seule ?? 0
   const couplePrice = prix_couple ?? 0
+  const eventImage = getEventImage({ image, experience_type: experienceType })
+  const experienceLabel = experienceType ? experienceLabels[experienceType] : ''
+  const isFull = Boolean(
+    maxParticipants && Number(attendees || 0) >= Number(maxParticipants)
+  )
+  const actionDisabled = Boolean(
+    isPast || !onSubscribeToggle || (isFull && !isParticipating)
+  )
+  const remainingPlaces = maxParticipants
+    ? Math.max(0, Number(maxParticipants) - Number(attendees || 0))
+    : null
+
   return (
     <Card className='overflow-hidden card-hover border-0 shadow-lg shadow-purple-900/20'>
       <div className='relative h-48 sm:h-56'>
         <Image
-          src={image || '/placeholder.svg'}
+          src={eventImage}
           alt={title}
           fill
           className='object-cover'
@@ -86,10 +101,10 @@ export function EventCard ({
       </div>
       <CardContent className='p-4 space-y-4 bg-gradient-to-br from-[#2d1155]/90 to-[#3d1155]/80'>
         <div className='flex flex-wrap gap-2 text-xs font-semibold'>
-          {experienceType && (
+          {experienceLabel && (
             <span className='inline-flex items-center gap-1 rounded-full bg-[#ff3b8b]/18 px-3 py-1 text-[#ff8cc8]'>
               <Sparkles className='h-3 w-3' />
-              {experienceLabels[experienceType] || 'Format en standby'}
+              {experienceLabel}
             </span>
           )}
           {venue && (
@@ -102,11 +117,6 @@ export function EventCard ({
               Communauté
             </span>
           )}
-          {publicationStatus === 'published' && (
-            <span className='rounded-full bg-emerald-400/12 px-3 py-1 text-emerald-200'>
-              Publié en bêta
-            </span>
-          )}
         </div>
         <div className='flex items-center justify-between flex-wrap gap-y-2'>
           <div className='flex items-center gap-1 text-sm text-gray-300'>
@@ -115,7 +125,11 @@ export function EventCard ({
           </div>
           <div className='flex items-center gap-1 text-sm text-gray-300'>
             <Users className='h-3 w-3 flex-shrink-0' />
-            <span>{attendees}{maxParticipants ? `/${maxParticipants}` : ''} participants</span>
+            <span>
+              {remainingPlaces !== null
+                ? `${remainingPlaces} place${remainingPlaces > 1 ? 's' : ''} restante${remainingPlaces > 1 ? 's' : ''}`
+                : `${attendees} participant${attendees > 1 ? 's' : ''}`}
+            </span>
           </div>
         </div>
         {(singlePrice > 0 || couplePrice > 0) && (
@@ -131,11 +145,17 @@ export function EventCard ({
           className={`w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] border-0 hover:opacity-90`}
           variant={isParticipating ? 'secondary' : 'default'}
           onClick={onSubscribeToggle}
+          disabled={actionDisabled}
         >
-          {isParticipating ? 'Se désinscrire' : 'Participer'}
+          {isPast
+            ? 'Terminé'
+            : isParticipating
+            ? 'Se désinscrire'
+            : isFull
+            ? 'Complet'
+            : 'Participer'}
         </Button>
         
-        {/* Bouton pour voir les détails */}
         <Link href={`/events/${id}`}>
           <Button variant="outline" className="w-full mt-2">
             Voir les détails

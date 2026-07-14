@@ -61,7 +61,7 @@ describe('event actions behavior', () => {
     )
   })
 
-  it('rejects standby event formats before writing to the database', async () => {
+  it('rejects unavailable event formats before writing to the database', async () => {
     const { createEvent } = await import('@/actions/event-actions')
 
     await expect(
@@ -74,7 +74,7 @@ describe('event actions behavior', () => {
         experience_type: 'restaurant',
         max_participants: 2
       })
-    ).rejects.toThrow('standby')
+    ).rejects.toThrow("pas encore disponible")
 
     expect(sqlMock).not.toHaveBeenCalled()
   })
@@ -152,6 +152,41 @@ describe('event actions behavior', () => {
     expect(events).toHaveLength(1)
     expect(sqlMock).toHaveBeenCalledTimes(2)
     expect(sqlMock.mock.calls[1][0].join('')).not.toContain('publication_status')
+  })
+
+  it('loads published events for the connected member ordered by date and time', async () => {
+    sqlMock.mockResolvedValueOnce([
+      { id: 'event-1', event_date: '2026-07-10', event_time: '19:00:00' }
+    ])
+
+    const { getPublishedEventsForMember } = await import('@/actions/event-actions')
+
+    const events = await getPublishedEventsForMember('user-1')
+    const query = sqlMock.mock.calls[0][0].join('')
+
+    expect(events).toHaveLength(1)
+    expect(query).toContain("e.publication_status = 'published'")
+    expect(query).toContain('ORDER BY e.event_date ASC, e.event_time ASC')
+  })
+
+  it('updates an event with separated event date and event time', async () => {
+    sqlMock
+      .mockResolvedValueOnce([{ creator_id: 'user-1' }])
+      .mockResolvedValueOnce([{ id: 'event-1' }])
+
+    const { updateEvent } = await import('@/actions/event-actions')
+
+    const event = await updateEvent('event-1', {
+      date: '2026-07-12T22:15'
+    })
+    const queryParts = sqlMock.mock.calls[1][0] as TemplateStringsArray
+    const values = sqlMock.mock.calls[1].slice(1)
+
+    expect(event).toEqual({ id: 'event-1' })
+    expect(queryParts.join('')).toContain('event_time')
+    expect(values).toEqual(
+      expect.arrayContaining(['2026-07-12', '22:15:00'])
+    )
   })
 
   it('rejects participation when the event is full', async () => {

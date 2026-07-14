@@ -12,6 +12,7 @@ import { updateEvent, getUpcomingEvents } from '@/actions/event-actions'
 import { getOption } from '@/actions/user-actions'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { EventPhotoField } from '@/components/event-photo-field'
 
 const activeEventCategoriesFallback =
   'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
@@ -215,14 +216,12 @@ export default function EditEventPage() {
                   </div>
                 </div>
 
-                <div className='space-y-2'>
-                  <Label htmlFor='image'>Image (URL)</Label>                  <Input
-                    id='image'
-                    value={form.image}
-                    onChange={(e) => handleChange('image', e.target.value)}
-                    placeholder="URL de l'image"
-                  />
-                </div>
+                <EventPhotoField
+                  value={form.image}
+                  onChange={value => handleChange('image', value)}
+                  category={form.category}
+                  experienceType={form.category}
+                />
 
                 <div className='space-y-2'>
                   <Label htmlFor='description'>Description</Label>                  <Textarea

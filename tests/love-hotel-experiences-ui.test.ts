@@ -8,6 +8,7 @@ describe('Love Hotel experiences UI', () => {
   const loveRoomsPage = fs.readFileSync(path.join(process.cwd(), 'app/love-rooms/page.tsx'), 'utf8')
   const eventCard = fs.readFileSync(path.join(process.cwd(), 'components/event-card.tsx'), 'utf8')
   const adminCreatePage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/new/page.tsx'), 'utf8')
+  const adminEventsPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/page.tsx'), 'utf8')
   const adminEditPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/[id]/edit/page.tsx'), 'utf8')
   const memberEditPage = fs.readFileSync(path.join(process.cwd(), 'app/events/edit.tsx'), 'utf8')
   const adminOptionsPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/options/page.tsx'), 'utf8')
@@ -57,16 +58,45 @@ describe('Love Hotel experiences UI', () => {
 
   it('reframes the listing as a commercial community experience page', () => {
     expect(listPage).toContain('Expériences Love Hotel')
-    expect(listPage).toContain('Ce soir au Love Hotel')
+    expect(listPage).toContain('Événements à venir')
     expect(listPage).toContain('Apéros jacuzzi')
     expect(listPage).toContain('Rideaux ouverts')
     expect(listPage).toContain('Créées par la communauté')
+  })
+
+  it('puts the actionable event list before editorial content', () => {
+    const upcomingIndex = listPage.indexOf('Événements à venir')
+    const editorialIndex = listPage.indexOf('Créer une rencontre autour d’un lieu réel')
+
+    expect(upcomingIndex).toBeGreaterThan(-1)
+    expect(editorialIndex).toBeGreaterThan(upcomingIndex)
+    expect(listPage).toContain('Aucun événement programmé pour le moment')
+    expect(listPage).toContain('Événements passés')
   })
 
   it('event cards show experience metadata', () => {
     expect(eventCard).toContain('experienceType')
     expect(eventCard).toContain('venue')
     expect(eventCard).toContain('maxParticipants')
-    expect(eventCard).toContain('Publié en bêta')
+    expect(eventCard).toContain('isPast')
+    expect(eventCard).toContain('Terminé')
+    expect(eventCard).not.toContain('Publié en bêta')
+    expect(eventCard).not.toContain('Format en standby')
+    expect(eventCard).not.toContain('/placeholder.svg')
+  })
+
+  it('uses event photo uploads and previews in creation and edition forms', () => {
+    const eventPhotoField = fs.readFileSync(path.join(process.cwd(), 'components/event-photo-field.tsx'), 'utf8')
+    const detailPage = fs.readFileSync(path.join(process.cwd(), 'app/events/[id]/EventDetailPage.tsx'), 'utf8')
+
+    for (const source of [createPage, adminCreatePage, adminEditPage, memberEditPage, adminEventsPage]) {
+      expect(source).toContain('EventPhotoField')
+      expect(source).not.toContain('Image (URL)')
+    }
+
+    expect(createPage).not.toContain('Publication bêta')
+    expect(eventPhotoField).toContain('/api/events/photos/upload')
+    expect(eventPhotoField).toContain('Aperçu')
+    expect(detailPage).not.toContain('/placeholder.svg')
   })
 })

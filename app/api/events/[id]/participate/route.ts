@@ -4,6 +4,7 @@ import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { notifyEventReservationAdmins } from '@/lib/event-reservation-notifications'
 import { randomUUID } from 'crypto'
+import { isPastEvent } from '@/lib/event-presentation'
 
 export async function POST(
   request: NextRequest,
@@ -39,7 +40,7 @@ export async function POST(
       return NextResponse.json({ error: 'Action invalide' }, { status: 400 })
     }    // Vérifier que l'événement existe
     const [event] = await sql`
-      SELECT id, max_participants, event_date
+      SELECT id, max_participants, event_date, event_time, publication_status
       FROM events 
       WHERE id = ${eventId}
     `
@@ -48,8 +49,11 @@ export async function POST(
       return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 })
     }
 
-    // Vérifier que l'événement n'est pas passé
-    if (new Date(event.event_date) < new Date()) {
+    if (event.publication_status && event.publication_status !== 'published') {
+      return NextResponse.json({ error: 'Événement non publié' }, { status: 409 })
+    }
+
+    if (isPastEvent(event)) {
       return NextResponse.json({ error: 'Impossible de participer à un événement passé' }, { status: 400 })
     }
 

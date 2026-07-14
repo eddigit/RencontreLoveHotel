@@ -13,6 +13,7 @@ import { Calendar, MapPin, Users, Clock, ArrowLeft, Heart, Share2 } from 'lucide
 import Link from 'next/link'
 import MainLayout from '@/components/layout/main-layout'
 import { ParticipantProfilePopup } from '@/components/participant-profile-popup'
+import { formatEventDateTime, getEventImage } from '@/lib/event-presentation'
 
 interface Event {
   id: string
@@ -30,6 +31,8 @@ interface Event {
   participant_count: number
   image: string
   category: string
+  experience_type?: string
+  venue?: string
   creator_name: string
   participants: Array<{
     id: string
@@ -173,6 +176,14 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   const isEventFull = participantCount >= event.max_participants
   const eventDateTime = new Date(`${String(event.event_date).slice(0, 10)}T${event.event_time || '23:59:59'}`)
   const isEventPast = Number.isFinite(eventDateTime.getTime()) && eventDateTime < new Date()
+  const eventImage = getEventImage({
+    image: event.image,
+    category: event.category,
+    experience_type: event.experience_type || event.category
+  })
+  const formattedEventDateTime = formatEventDateTime(event)
+  const itineraryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
+  const calendarHref = buildCalendarHref(event)
 
   if (!user) {
     return null // Évite le flash avant la redirection
@@ -193,7 +204,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
         {/* Image de l'événement */}
         <div className="relative h-64 md:h-96 mb-8 rounded-lg overflow-hidden">
           <img 
-            src={event.image || '/placeholder.svg'}
+            src={eventImage}
             alt={event.title}
             className="w-full h-full object-cover"
           />
@@ -227,6 +238,12 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             {/* Titre et informations principales */}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4">{event.title}</h1>
+              <div className="mb-6 rounded-xl border border-primary/20 bg-primary/10 p-4">
+                <div className="flex items-center gap-3 text-lg font-semibold">
+                  <Calendar className="w-5 h-5 text-primary" />
+                  <span>{formattedEventDateTime}</span>
+                </div>
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="flex items-center gap-3">
@@ -245,6 +262,18 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                   <Users className="w-5 h-5 text-primary" />
                   <span>{participantCount}/{event.max_participants} participants</span>
                 </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <a href={itineraryUrl} target="_blank" rel="noreferrer">
+                    Itinéraire
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <a href={calendarHref} download={`${event.title}.ics`}>
+                    Ajouter à mon calendrier
+                  </a>
+                </Button>
               </div>
             </div>
             
@@ -413,4 +442,40 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
       </div>
     </MainLayout>
   )
+}
+
+function formatIcsDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  const second = String(date.getSeconds()).padStart(2, '0')
+  return `${year}${month}${day}T${hour}${minute}${second}`
+}
+
+function buildCalendarHref(event: Event) {
+  const datePart = String(event.event_date).slice(0, 10)
+  const timePart = event.event_time || '20:00:00'
+  const startDate = new Date(`${datePart}T${timePart}`)
+  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000)
+  const description = [event.description, event.conditions]
+    .filter(Boolean)
+    .join('\n\n')
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Love Hotel Rencontre//Events//FR',
+    'BEGIN:VEVENT',
+    `UID:${event.id}@rencontrelovehotel.com`,
+    `DTSTART:${formatIcsDate(startDate)}`,
+    `DTEND:${formatIcsDate(endDate)}`,
+    `SUMMARY:${event.title}`,
+    `LOCATION:${event.location}`,
+    `DESCRIPTION:${description.replace(/\n/g, '\\n')}`,
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n')
+
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`
 }
