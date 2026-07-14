@@ -1,0 +1,229 @@
+'use server'
+
+import { sql } from '@/lib/db'
+import { requireAdmin } from '@/lib/server-auth'
+
+export type MessagingRecoveryScale = 'day' | 'week' | 'month'
+
+export interface MessagingRecoveryMetrics {
+  createdConversations: number
+  startedConversations: number
+  messages: number
+  activeConversations: number
+  respondedConversations: number
+  responseRate: number
+  acceptedMatches: number
+}
+
+export interface MessagingRecoveryPoint extends MessagingRecoveryMetrics {
+  period: string
+}
+
+export interface MessagingRecoveryStats {
+  summary: MessagingRecoveryMetrics
+  previous: MessagingRecoveryMetrics
+  service: {
+    messages: number
+    activeConversations: number
+  }
+  series: MessagingRecoveryPoint[]
+}
+
+type SummaryRow = Record<string, string | number | null>
+type SeriesRow = SummaryRow & { period: string | Date }
+
+const scaleSql: Record<MessagingRecoveryScale, { unit: string; interval: string }> = {
+  day: { unit: 'day', interval: '1 day' },
+  week: { unit: 'week', interval: '1 week' },
+  month: { unit: 'month', interval: '1 month' }
+}
+
+function toNumber(value: string | number | null | undefined) {
+  const parsed = Number(value || 0)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function responseRate(started: number, responded: number) {
+  return started > 0 ? Math.round((responded / started) * 1000) / 10 : 0
+}
+
+function mapMetrics(row: SummaryRow, suffix: 'today' | 'previous'): MessagingRecoveryMetrics {
+  const createdConversations = toNumber(row[`created_${suffix}`])
+  const startedConversations = toNumber(row[`started_${suffix}`])
+  const messages = toNumber(row[`messages_${suffix}`])
+  const activeConversations = toNumber(row[`active_${suffix}`])
+  const respondedConversations = toNumber(row[`responded_${suffix}`])
+  const acceptedMatches = toNumber(row[`accepted_${suffix}`])
+
+  return {
+    createdConversations,
+    startedConversations,
+    messages,
+    activeConversations,
+    respondedConversations,
+    responseRate: responseRate(startedConversations, respondedConversations),
+    acceptedMatches
+  }
+}
+
+const conversationCtes = `
+  conversation_types AS (
+    SELECT
+      c.id,
+      c.created_at,
+      COUNT(cp.user_id) = 2 AND NOT BOOL_OR(u.role = 'admin') AS is_member,
+      BOOL_OR(u.role = 'admin') AS is_service
+    FROM conversations c
+    JOIN conversation_participants cp ON cp.conversation_id = c.id
+    JOIN users u ON u.id = cp.user_id
+    GROUP BY c.id, c.created_at
+  ),
+  message_rollup AS (
+    SELECT
+      m.conversation_id,
+      MIN(m.created_at) AS first_message_at,
+      COUNT(DISTINCT m.sender_id) AS distinct_senders
+    FROM messages m
+    GROUP BY m.conversation_id
+  )
+`
+
+export async function getMessagingRecoveryStats({
+  scale = 'day',
+  days = 30
+}: {
+  scale?: MessagingRecoveryScale
+  days?: number
+} = {}): Promise<MessagingRecoveryStats> {
+  await requireAdmin()
+
+  const safeScale: MessagingRecoveryScale = scale in scaleSql ? scale : 'day'
+  const safeDays = Math.min(90, Math.max(7, Math.round(Number(days) || 30)))
+  const { unit, interval } = scaleSql[safeScale]
+
+  try {
+    const summaryQuery = `
+      WITH requested_window AS (
+        SELECT $1::int AS days
+      ),
+      ${conversationCtes},
+      member_messages AS (
+        SELECT m.*
+        FROM messages m
+        JOIN conversation_types ct ON ct.id = m.conversation_id
+        WHERE ct.is_member
+      )
+      SELECT
+        (SELECT COUNT(*) FROM conversation_types ct WHERE ct.is_member AND ct.created_at >= CURRENT_DATE) AS created_today,
+        (SELECT COUNT(*) FROM conversation_types ct WHERE ct.is_member AND ct.created_at >= CURRENT_DATE - INTERVAL '1 day' AND ct.created_at < CURRENT_DATE) AS created_previous,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE) AS started_today,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE - INTERVAL '1 day' AND mr.first_message_at < CURRENT_DATE) AS started_previous,
+        (SELECT COUNT(*) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE) AS messages_today,
+        (SELECT COUNT(*) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE - INTERVAL '1 day' AND mm.created_at < CURRENT_DATE) AS messages_previous,
+        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE) AS active_today,
+        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE - INTERVAL '1 day' AND mm.created_at < CURRENT_DATE) AS active_previous,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE AND mr.distinct_senders >= 2) AS responded_today,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE - INTERVAL '1 day' AND mr.first_message_at < CURRENT_DATE AND mr.distinct_senders >= 2) AS responded_previous,
+        (SELECT COUNT(*) FROM user_matches um WHERE um.status = 'accepted' AND um.accepted_at >= CURRENT_DATE) AS accepted_today,
+        (SELECT COUNT(*) FROM user_matches um WHERE um.status = 'accepted' AND um.accepted_at >= CURRENT_DATE - INTERVAL '1 day' AND um.accepted_at < CURRENT_DATE) AS accepted_previous,
+        (SELECT COUNT(*) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id WHERE ct.is_service AND m.created_at >= CURRENT_DATE) AS service_messages_today,
+        (SELECT COUNT(DISTINCT m.conversation_id) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id WHERE ct.is_service AND m.created_at >= CURRENT_DATE) AS service_conversations_today
+      FROM requested_window
+    `
+
+    const seriesQuery = `
+      WITH bounds AS (
+        SELECT
+          DATE_TRUNC('${unit}', CURRENT_DATE - (($1::int - 1) * INTERVAL '1 day')) AS starts_at,
+          DATE_TRUNC('${unit}', CURRENT_DATE) AS ends_at
+      ),
+      periods AS (
+        SELECT generate_series(starts_at, ends_at, INTERVAL '${interval}') AS period
+        FROM bounds
+      ),
+      ${conversationCtes},
+      created_counts AS (
+        SELECT DATE_TRUNC('${unit}', ct.created_at) AS period, COUNT(*) AS count
+        FROM conversation_types ct
+        WHERE ct.is_member
+        GROUP BY 1
+      ),
+      started_counts AS (
+        SELECT
+          DATE_TRUNC('${unit}', mr.first_message_at) AS period,
+          COUNT(*) AS count,
+          COUNT(*) FILTER (WHERE mr.distinct_senders >= 2) AS responded
+        FROM message_rollup mr
+        JOIN conversation_types ct ON ct.id = mr.conversation_id
+        WHERE ct.is_member
+        GROUP BY 1
+      ),
+      message_counts AS (
+        SELECT
+          DATE_TRUNC('${unit}', m.created_at) AS period,
+          COUNT(*) AS count,
+          COUNT(DISTINCT m.conversation_id) AS active
+        FROM messages m
+        JOIN conversation_types ct ON ct.id = m.conversation_id
+        WHERE ct.is_member
+        GROUP BY 1
+      ),
+      match_counts AS (
+        SELECT DATE_TRUNC('${unit}', um.accepted_at) AS period, COUNT(*) AS count
+        FROM user_matches um
+        WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
+        GROUP BY 1
+      )
+      SELECT
+        TO_CHAR(p.period, 'YYYY-MM-DD') AS period,
+        COALESCE(cc.count, 0) AS created_conversations,
+        COALESCE(sc.count, 0) AS started_conversations,
+        COALESCE(mc.count, 0) AS messages,
+        COALESCE(mc.active, 0) AS active_conversations,
+        COALESCE(sc.responded, 0) AS responded_conversations,
+        COALESCE(mac.count, 0) AS accepted_matches
+      FROM periods p
+      LEFT JOIN created_counts cc ON cc.period = p.period
+      LEFT JOIN started_counts sc ON sc.period = p.period
+      LEFT JOIN message_counts mc ON mc.period = p.period
+      LEFT JOIN match_counts mac ON mac.period = p.period
+      ORDER BY p.period ASC
+    `
+
+    const [summaryRows, seriesRows] = await Promise.all([
+      sql.query<SummaryRow[]>(summaryQuery, [safeDays]),
+      sql.query<SeriesRow[]>(seriesQuery, [safeDays])
+    ])
+    const row = summaryRows[0] || {}
+
+    return {
+      summary: mapMetrics(row, 'today'),
+      previous: mapMetrics(row, 'previous'),
+      service: {
+        messages: toNumber(row.service_messages_today),
+        activeConversations: toNumber(row.service_conversations_today)
+      },
+      series: seriesRows.map(seriesRow => {
+        const startedConversations = toNumber(seriesRow.started_conversations)
+        const respondedConversations = toNumber(seriesRow.responded_conversations)
+
+        return {
+          period:
+            seriesRow.period instanceof Date
+              ? seriesRow.period.toISOString().slice(0, 10)
+              : String(seriesRow.period),
+          createdConversations: toNumber(seriesRow.created_conversations),
+          startedConversations,
+          messages: toNumber(seriesRow.messages),
+          activeConversations: toNumber(seriesRow.active_conversations),
+          respondedConversations,
+          responseRate: responseRate(startedConversations, respondedConversations),
+          acceptedMatches: toNumber(seriesRow.accepted_matches)
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des KPI de messagerie:', error)
+    throw new Error('Impossible de charger les KPI de messagerie')
+  }
+}
