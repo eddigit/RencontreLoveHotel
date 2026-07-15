@@ -16,14 +16,21 @@ import {
   Wine
 } from 'lucide-react'
 import { AdvancedFilters, defaultFilters, FilterOptions } from '@/components/advanced-filters'
+import { CommunityWall } from '@/components/community-wall'
 import { CommunityFeedbackWidget } from '@/components/community-feedback-widget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
-import { getDiscoverProfiles, getUserMatches } from '@/actions/user-actions'
+import {
+  getCommunityMemberStats,
+  getDiscoverProfiles,
+  getOnlineCommunityMembers,
+  getUserMatches
+} from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
+import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
 
 type DiscoverProfile = {
   id: string
@@ -36,6 +43,8 @@ type DiscoverProfile = {
   popularity?: number
   matchScore?: number | null
   online?: boolean
+  is_current_user?: boolean
+  created_at?: string | Date | null
 }
 
 type MatchRow = {
@@ -58,6 +67,11 @@ type EventRow = {
   image?: string | null
   category?: string | null
   participant_count?: number | string
+}
+
+type CommunityMemberStats = {
+  totalMembers: number
+  newMembersLast24h: number
 }
 
 const jacuzziMeetupImageUrl = '/apero-jacuzzi-rencontre.jpg'
@@ -90,13 +104,22 @@ function eventDateLabel (value?: string) {
   })
 }
 
+function formatCount (value: number) {
+  return new Intl.NumberFormat('fr-FR').format(value)
+}
+
 export default function DiscoverPage () {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([])
+  const [onlineMembers, setOnlineMembers] = useState<DiscoverProfile[]>([])
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
+  const [memberStats, setMemberStats] = useState<CommunityMemberStats>({
+    totalMembers: 0,
+    newMembersLast24h: 0
+  })
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -108,15 +131,19 @@ export default function DiscoverPage () {
       setLoading(true)
       setError(null)
       try {
-        const [profileResult, matchResult, eventResult] = await Promise.all([
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await Promise.all([
           getDiscoverProfiles(user.id, 1, 36, currentFilters || filters),
+          getOnlineCommunityMembers(),
           getUserMatches(user.id),
-          getUpcomingEvents(user.id)
+          getUpcomingEvents(user.id),
+          getCommunityMemberStats()
         ])
 
         setProfiles(profileResult.profiles || [])
+        setOnlineMembers((onlineResult || []) as DiscoverProfile[])
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
+        setMemberStats(statsResult)
       } catch (error) {
         console.error('Error fetching community home:', error)
         setError('Impossible de charger la communauté pour le moment.')
@@ -137,6 +164,18 @@ export default function DiscoverPage () {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router])
 
+  useEffect(() => {
+    if (!user?.id) return
+
+    const refreshOnlineMembers = async () => {
+      const result = await getOnlineCommunityMembers()
+      setOnlineMembers((result || []) as DiscoverProfile[])
+    }
+
+    const interval = window.setInterval(refreshOnlineMembers, PRESENCE_HEARTBEAT_MS)
+    return () => window.clearInterval(interval)
+  }, [user?.id])
+
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     fetchCommunity(newFilters)
@@ -152,11 +191,24 @@ export default function DiscoverPage () {
     )
   }, [profiles, searchQuery])
 
-  const onlineProfiles = filteredProfiles.filter(profile => profile.online)
-  const newProfiles = filteredProfiles.slice(0, 8)
+  const onlineProfiles = onlineMembers
+  const newProfiles = [...filteredProfiles]
+    .sort((left, right) => {
+      const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
+      const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0
+      return rightTime - leftTime
+    })
+    .slice(0, 8)
   const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
   const recentMatches = matches.slice(0, 5)
+  const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
+  const memberGrowthLabel = memberStats.newMembersLast24h > 0
+    ? `+${formatCount(memberStats.newMembersLast24h)} en 24 h`
+    : `${totalMembersLabel} adhérents`
+  const newProfilesSummary = memberStats.totalMembers > 0
+    ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} adhérents.`
+    : `Les ${newProfiles.length} derniers profils visibles.`
 
   if (isLoading) {
     return (
@@ -230,8 +282,8 @@ export default function DiscoverPage () {
               </div>
               <div className='mt-5 space-y-3 text-sm'>
                 <Link href='#new-profiles' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>Profils visibles</span>
-                  <span className='font-bold'>{filteredProfiles.length}</span>
+                  <span className='text-white/58'>Nouveaux membres</span>
+                  <span className='text-right font-bold'>{totalMembersLabel} adhérents</span>
                 </Link>
                 <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
                   <span className='text-white/58'>Vos matchs</span>
@@ -244,15 +296,28 @@ export default function DiscoverPage () {
               </div>
             </div>
 
+            <Link
+              href='#new-profiles'
+              className='flex items-center gap-3 rounded-2xl border border-[#94ffc9]/25 bg-[#94ffc9]/10 p-4 transition hover:border-[#94ffc9]/50 hover:bg-[#94ffc9]/15'
+            >
+              <Search className='h-5 w-5 shrink-0 text-[#94ffc9]' />
+              <div className='min-w-0'>
+                <div className='font-black'>Voir les nouveaux membres</div>
+                <div className='text-xs text-white/58'>{totalMembersLabel} profils visibles</div>
+              </div>
+              <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
+            </Link>
+
             <CommunityFeedbackWidget />
           </aside>
 
           <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
             <div className='grid gap-3 md:grid-cols-3'>
-              <Link href='#online-now' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
+              <Link href='#new-profiles' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
-                <div className='text-2xl font-black'>{onlineProfiles.length}</div>
-                <div className='text-sm text-white/56'>En ligne maintenant</div>
+                <div className='text-2xl font-black'>{totalMembersLabel}</div>
+                <div className='text-sm text-white/56'>adhérents</div>
+                <div className='mt-1 text-xs font-bold text-[#94ffc9]'>{memberGrowthLabel}</div>
               </Link>
               <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>
                 <Heart className='mb-3 h-5 w-5 text-[#ff8cc8]' />
@@ -283,35 +348,44 @@ export default function DiscoverPage () {
               </div>
             )}
 
-            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
+            <section id='new-profiles' className='scroll-mt-24'>
+              <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <h2 className='text-xl font-black'>En ligne maintenant</h2>
-                  <p className='text-sm text-white/56'>
-                    {onlineProfiles.length > 0
-                      ? 'Des membres disponibles pour échanger tout de suite.'
-                      : 'Aucun membre vu dans les dernières minutes.'}
-                  </p>
+                  <h2 className='text-xl font-black'>Nouveaux membres</h2>
+                  <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
                 </div>
-                <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
-                  <Link href='/messages'>Messages</Link>
-                </Button>
+                <span className='shrink-0 text-right text-sm text-white/52'>
+                  {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
+                </span>
               </div>
-              <div className='flex gap-3 overflow-x-auto pb-2'>
-                {onlineProfiles.map((profile, index) => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
-                    <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
+              <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
+                {newProfiles.map((profile, index) => (
+                  <Link
+                    key={profile.id}
+                    href={`/profile/${profile.id}`}
+                    className='group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] transition hover:-translate-y-0.5 hover:bg-white/[0.07]'
+                  >
+                    <div className='relative aspect-[4/5] bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
-                      <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
+                      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
+                      <div className='absolute bottom-3 left-3 right-3'>
+                        <div className='text-lg font-black'>
+                          {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                        </div>
+                        <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
+                      </div>
                     </div>
-                    <div className='mt-2 truncate text-sm font-bold'>
-                      {profile.name}{profile.age ? `, ${profile.age}` : ''}
+                    <div className='p-3'>
+                      <p className='line-clamp-2 text-sm leading-5 text-white/62'>
+                        {profile.bio || 'Profil disponible pour une rencontre élégante autour du Love Hotel.'}
+                      </p>
                     </div>
-                    <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
                   </Link>
                 ))}
               </div>
             </section>
+
+            <CommunityWall currentUserId={user.id} />
 
             <section className='rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-4'>
               <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
@@ -373,38 +447,6 @@ export default function DiscoverPage () {
               </div>
             </section>
 
-            <section id='new-profiles' className='scroll-mt-24'>
-              <div className='mb-4 flex items-center justify-between'>
-                <h2 className='text-xl font-black'>Nouveaux profils</h2>
-                <span className='text-sm text-white/52'>{loading ? 'Actualisation...' : `${newProfiles.length} profils`}</span>
-              </div>
-              <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
-                {newProfiles.map((profile, index) => (
-                  <Link
-                    key={profile.id}
-                    href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] transition hover:-translate-y-0.5 hover:bg-white/[0.07]'
-                  >
-                    <div className='relative aspect-[4/5] bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
-                      <div className='absolute bottom-3 left-3 right-3'>
-                        <div className='text-lg font-black'>
-                          {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                        </div>
-                        <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
-                      </div>
-                    </div>
-                    <div className='p-3'>
-                      <p className='line-clamp-2 text-sm leading-5 text-white/62'>
-                        {profile.bio || 'Profil disponible pour une rencontre élégante autour du Love Hotel.'}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
             <section className='grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'>
               <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
                 <div className='mb-4 flex items-center justify-between'>
@@ -448,6 +490,36 @@ export default function DiscoverPage () {
                     <Link href='/messages'>Inviter un match</Link>
                   </Button>
                 </div>
+              </div>
+            </section>
+
+            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
+              <div className='mb-4 flex items-center justify-between gap-3'>
+                <div>
+                  <h2 className='text-xl font-black'>En ligne maintenant</h2>
+                  <p className='text-sm text-white/56'>
+                    {onlineProfiles.length > 0
+                      ? 'Des membres disponibles pour échanger tout de suite.'
+                      : 'Aucun membre vu dans les dernières minutes.'}
+                  </p>
+                </div>
+                <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
+                  <Link href='/messages'>Messages</Link>
+                </Button>
+              </div>
+              <div className='flex gap-3 overflow-x-auto pb-2'>
+                {onlineProfiles.map(profile => (
+                  <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
+                    <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
+                      {mediaImage(profileImage(profile), profile.name)}
+                      <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
+                    </div>
+                    <div className='mt-2 truncate text-sm font-bold'>
+                      {profile.is_current_user ? 'Vous' : profile.name}{profile.age ? `, ${profile.age}` : ''}
+                    </div>
+                    <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
+                  </Link>
+                ))}
               </div>
             </section>
           </section>
@@ -556,35 +628,6 @@ export default function DiscoverPage () {
                     <Link href='/conciergerie'>Faire une demande</Link>
                   </Button>
                 </div>
-              </div>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
-                <div>
-                  <h2 className='font-black'>En ligne dans la communauté</h2>
-                  <p className='text-xs text-white/50'>Profils actifs maintenant</p>
-                </div>
-                <UsersRound className='h-5 w-5 text-[#94ffc9]' />
-              </div>
-              <div className='space-y-3'>
-                {onlineProfiles.length === 0 && (
-                  <p className='text-sm text-white/58'>Aucun membre vu récemment.</p>
-                )}
-                {onlineProfiles.slice(0, 6).map(profile => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
-                    <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <span className='absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full border border-[#170321] bg-[#35e48d]' />
-                    </div>
-                    <div className='min-w-0'>
-                      <div className='truncate font-bold'>
-                        {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                      </div>
-                      <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
-                    </div>
-                  </Link>
-                ))}
               </div>
             </div>
 

@@ -17,7 +17,7 @@ describe('Love Hotel commercial bridges', () => {
   })
 
   it('keeps community profiles visible before the commercial bridge', () => {
-    expect(discover.indexOf('Des membres disponibles pour échanger tout de suite.')).toBeLessThan(
+    expect(discover.indexOf("id='new-profiles'")).toBeLessThan(
       discover.indexOf('Expériences officielles Love Hotel')
     )
     expect(discover).not.toContain("lg:grid-cols-[minmax(0,1fr)_280px]")

@@ -15,6 +15,6 @@ describe('Jacuzzi meetup sidebar promo', () => {
     expect(discover).toMatch(/<img\s+src=\{jacuzziMeetupImageUrl\}/)
     expect(discover).toContain('Créer un apéro jacuzzi')
     expect(discover.indexOf('RIDEAUX OUVERTS')).toBeLessThan(discover.indexOf('Apéro jacuzzi rencontre'))
-    expect(discover.indexOf('Apéro jacuzzi rencontre')).toBeLessThan(discover.indexOf('En ligne dans la communauté'))
+    expect(discover.indexOf("id='online-now'")).toBeLessThan(discover.indexOf('Apéro jacuzzi rencontre'))
   })
 })

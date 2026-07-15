@@ -8,11 +8,17 @@ import type { UserProfile } from "@/utils/matching-algorithm"
 import {
   ensurePresenceSchema,
   isUserRecentlySeen,
+  markUserSeen,
   onlinePresenceCondition
 } from "@/lib/presence"
-import { requireAdmin, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
+
+type CommunityMemberStats = {
+  totalMembers: number
+  newMembersLast24h: number
+}
 
 export async function getUserProfile(userId: string) {
   const user = await sql`
@@ -105,6 +111,73 @@ export async function getUserMatches(userId: string) {
   `
 
   return matches || []
+}
+
+export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
+  await requireCurrentUser()
+
+  const [stats] = await sql.query<Array<{
+    total_members: string | number
+    new_members_last_24h: string | number
+  }>>(
+    `
+      SELECT
+        COUNT(*) FILTER (
+          WHERE COALESCE(u.is_banned, false) = false
+            AND COALESCE(u.status, 'active') <> 'banned'
+            AND u.onboarding_completed = TRUE
+            AND up.display_profile = TRUE
+        ) AS total_members,
+        COUNT(*) FILTER (
+          WHERE COALESCE(u.is_banned, false) = false
+            AND COALESCE(u.status, 'active') <> 'banned'
+            AND u.onboarding_completed = TRUE
+            AND up.display_profile = TRUE
+            AND u.created_at >= NOW() - INTERVAL '24 hours'
+        ) AS new_members_last_24h
+      FROM users u
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+    `,
+    []
+  )
+
+  return {
+    totalMembers: Number(stats?.total_members || 0),
+    newMembersLast24h: Number(stats?.new_members_last_24h || 0)
+  }
+}
+
+export async function getOnlineCommunityMembers(limit = 12) {
+  const currentUser = await requireCurrentUser()
+  await markUserSeen(currentUser.id)
+
+  const safeLimit = Math.min(24, Math.max(1, Math.floor(Number(limit) || 12)))
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at'
+  const onlineCondition = onlinePresenceCondition(presenceColumn)
+
+  return await sql.query<any[]>(
+    `
+      SELECT
+        u.id,
+        u.name,
+        u.avatar AS image,
+        up.age,
+        up.location,
+        TRUE AS online,
+        u.id = $1 AS is_current_user
+      FROM users u
+      JOIN user_profiles up ON up.user_id = u.id
+      WHERE up.display_profile = TRUE
+        AND u.onboarding_completed = TRUE
+        AND COALESCE(u.is_banned, false) = false
+        AND COALESCE(u.status, 'active') <> 'banned'
+        AND ${onlineCondition}
+      ORDER BY (u.id = $1) DESC, ${presenceColumn} DESC
+      LIMIT $2
+    `,
+    [currentUser.id, safeLimit]
+  )
 }
 
 export async function getMemberRelationships(userId: string) {
@@ -305,6 +378,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       u.id,
       u.name,
       u.avatar as image,
+      u.created_at,
       up.age,
       up.location,
       up.orientation,
