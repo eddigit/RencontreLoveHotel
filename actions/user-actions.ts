@@ -877,6 +877,10 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
 export async function updateUserByAdmin(userId: string, { name, email, role, avatar }: { name?: string, email?: string, role?: string, avatar?: string }) {
   await requireAdmin()
 
+  if (role && !['user', 'community_moderator', 'admin'].includes(role)) {
+    throw new Error('Rôle utilisateur invalide')
+  }
+
   const [user] = await sql`
     UPDATE users
     SET

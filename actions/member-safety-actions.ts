@@ -11,6 +11,7 @@ const reportReasons = [
   'inappropriate_content',
   'spam',
   'underage_concern',
+  'paid_sexual_solicitation',
   'other'
 ] as const
 
@@ -91,20 +92,46 @@ export async function reportMember(input: {
   )
   if (!report) throw new Error('Signalement impossible')
 
-  const admins = await sql.query<Array<{ id: string }>>(
-    `SELECT id FROM users WHERE role = 'admin' AND COALESCE(is_banned, false) = false`,
+  let moderationCaseId: string | null = null
+  if (input.reason === 'paid_sexual_solicitation') {
+    const [moderationCase] = await sql.query<Array<{ id: string }>>(
+      `INSERT INTO moderation_queue (
+         source_type, source_id, user_id, reporter_id, conversation_id,
+         severity, status, reason, excerpt, metadata, score, outcome,
+         policy_version, subject_pseudonym, retention_until
+       ) VALUES (
+         'user', $1, $1, $2, $3, 'high', 'new',
+         'Signalement membre : sollicitation sexuelle rémunérée ou contre avantage',
+         $4, $5::jsonb, 0, 'hold', 'member-report-2026-07-15', $6,
+         NOW() + INTERVAL '365 days'
+       )
+       RETURNING id`,
+      [
+        input.targetUserId,
+        currentUser.id,
+        input.conversationId || null,
+        details,
+        JSON.stringify({ reportId: report.id, automationContributed: false }),
+        `Membre-${input.targetUserId.slice(0, 8)}`
+      ]
+    )
+    moderationCaseId = moderationCase?.id || null
+  }
+
+  const reviewers = await sql.query<Array<{ id: string; role: string }>>(
+    `SELECT id, role FROM users WHERE role IN ('admin', 'community_moderator') AND COALESCE(is_banned, false) = false`,
     []
-  )
-  await Promise.all(admins.map(admin => createAppNotification({
-    userId: admin.id,
+  ) || []
+  await Promise.all(reviewers.map(reviewer => createAppNotification({
+    userId: reviewer.id,
     type: 'member_report',
     title: 'Nouveau signalement membre',
-    description: 'Un signalement attend une vérification dans le cockpit.',
-    link: '/admin/diagnostic',
+    description: 'Un dossier confidentiel attend un examen humain.',
+    link: moderationCaseId ? `/moderation/${moderationCaseId}` : '/admin/diagnostic',
     priority: 'high',
     category: 'moderation',
-    audience: 'admin',
-    metadata: { reportId: report.id },
+    audience: reviewer.role === 'admin' ? 'admin' : 'user',
+    metadata: { reportId: report.id, caseId: moderationCaseId },
     createdBy: currentUser.id
   })))
 

@@ -6,6 +6,10 @@ import { saveOnboardingData } from "@/lib/onboarding-service"
 import { createUser, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
 import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import {
+  isCurrentRegistrationConsent,
+  type RegistrationConsent
+} from '@/lib/legal-policy'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -105,9 +109,21 @@ export async function saveUserPreferences(userId: string, data: OnboardingData) 
 }
 
 // Fonction pour s'inscrire
-export async function registerUser(email: string, password: string, name: string) {
+export async function registerUser(
+  email: string,
+  password: string,
+  name: string,
+  consent: RegistrationConsent
+) {
+  if (!isCurrentRegistrationConsent(consent)) {
+    return {
+      success: false,
+      error: 'Vous devez confirmer votre majorité et accepter les règles obligatoires.'
+    }
+  }
+
   try {
-    const user = await createUser(email, password, name)
+    const user = await createUser(email, password, name, 'user', consent)
     return { success: !!user, user }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)

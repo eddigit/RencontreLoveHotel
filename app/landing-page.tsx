@@ -106,6 +106,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className='border-y border-[#ff8cc8]/15 bg-[#ff3b8b]/[0.06] px-4 py-8 sm:px-6'>
+        <div className='mx-auto flex max-w-[1280px] flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+          <div>
+            <p className='text-lg font-black'>Aucune prestation sexuelle rémunérée.</p>
+            <p className='mt-1 max-w-3xl text-sm leading-6 text-white/68'>
+              LHR est une communauté adulte de rencontres libres et consenties. Toute sollicitation contre argent,
+              cadeau, service ou avantage est interdite et traitée par des adhérents-modérateurs habilités.
+            </p>
+          </div>
+          <Link href='/community-safety' className='shrink-0 rounded-full border border-white/18 px-5 py-3 text-sm font-black'>
+            Notre charte de sécurité
+          </Link>
+        </div>
+      </section>
+
       <section id='hotels' className='relative py-16 sm:py-20 lg:py-24'>
         <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
           <div className='mx-auto max-w-3xl text-center'>

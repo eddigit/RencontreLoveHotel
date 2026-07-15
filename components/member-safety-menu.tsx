@@ -27,10 +27,10 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
           disabled={pending}
           variant='outline'
           className='rounded-xl border-white/12 bg-white/[0.03] text-xs'
-          onClick={() => report('inappropriate_content')}
+          onClick={() => report('paid_sexual_solicitation')}
         >
           <Flag className='mr-1.5 h-3.5 w-3.5' />
-          Signaler
+          Sollicitation tarifée
         </Button>
         <Button
           type='button'

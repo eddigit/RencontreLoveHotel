@@ -147,12 +147,19 @@ export async function createModerationKeyword(input: {
 
   const [rule] = await sql.query<ModerationKeywordRule[]>(
     `
-      INSERT INTO moderation_keywords (keyword, severity, action, created_by)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO moderation_keywords (
+        keyword, severity, action, created_by, policy_version, weight
+      )
+      VALUES (
+        $1, $2, $3, $4, 'anti-solicitation-2026-07-15',
+        CASE $2 WHEN 'critical' THEN 6 WHEN 'high' THEN 4 WHEN 'medium' THEN 2 ELSE 1 END
+      )
       ON CONFLICT (keyword)
       DO UPDATE SET
         severity = EXCLUDED.severity,
         action = EXCLUDED.action,
+        policy_version = EXCLUDED.policy_version,
+        weight = EXCLUDED.weight,
         active = true,
         updated_at = CURRENT_TIMESTAMP
       RETURNING id, keyword, severity, action, active, created_at

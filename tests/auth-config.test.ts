@@ -94,4 +94,23 @@ describe('authOptions', () => {
     })
     expect(JSON.stringify(recordAuthEventMock.mock.calls)).not.toContain('secret-value')
   })
+
+  it('refuses creation of an OAuth account without versioned legal consent', async () => {
+    getOrCreateOAuthUserMock.mockResolvedValue(null)
+
+    const result = await authOptions.callbacks!.signIn!({
+      user: { id: 'oauth-user', email: 'new@example.com', name: 'Nouveau' },
+      account: { provider: 'google' },
+      profile: undefined,
+      email: undefined,
+      credentials: undefined
+    } as any)
+
+    expect(result).toBe(false)
+    expect(recordAuthEventMock).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'new@example.com',
+      provider: 'google',
+      success: false
+    }))
+  })
 })

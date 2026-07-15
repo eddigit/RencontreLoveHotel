@@ -42,6 +42,7 @@ describe('sendMessage attachments', () => {
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440003' }])
       .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([
         {
           id: '550e8400-e29b-41d4-a716-446655440010',

@@ -7,7 +7,6 @@ import {
   Ban,
   ListChecks,
   MessageSquareWarning,
-  Radar,
   ShieldAlert
 } from 'lucide-react'
 import MainLayout from '@/components/layout/main-layout'
@@ -20,7 +19,6 @@ import { useAuth } from '@/contexts/auth-context'
 import {
   createModerationKeyword,
   getModerationDashboard,
-  scanRecentMessagesForModeration,
   type AdminModerationDashboard,
   type ModerationSeverity
 } from '@/actions/admin-moderation-actions'
@@ -31,7 +29,6 @@ export default function AdminModerationPage () {
   const { user } = useAuth()
   const [dashboard, setDashboard] = useState<AdminModerationDashboard | null>(null)
   const [loading, setLoading] = useState(true)
-  const [scanning, setScanning] = useState(false)
   const [savingKeyword, setSavingKeyword] = useState(false)
   const [keyword, setKeyword] = useState('')
   const [severity, setSeverity] = useState<ModerationSeverity>('medium')
@@ -49,25 +46,6 @@ export default function AdminModerationPage () {
   useEffect(() => {
     loadDashboard()
   }, [])
-
-  async function handleScan () {
-    setScanning(true)
-    setStatus('')
-    try {
-      const result = await scanRecentMessagesForModeration({
-        limit: 250,
-        adminId: user?.id
-      })
-      setStatus(
-        `${result.flagged} alerte(s) detectee(s) sur ${result.scanned} message(s) analyses.`
-      )
-      await loadDashboard()
-    } catch (error) {
-      setStatus('Impossible de lancer le scan de moderation pour le moment.')
-    } finally {
-      setScanning(false)
-    }
-  }
 
   async function handleCreateKeyword (event: FormEvent) {
     event.preventDefault()
@@ -110,16 +88,8 @@ export default function AdminModerationPage () {
               </p>
             </div>
             <div className='flex flex-wrap gap-2'>
-              <Button
-                onClick={handleScan}
-                disabled={scanning}
-                className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'
-              >
-                <Radar className='mr-2 h-4 w-4' />
-                {scanning ? 'Scan en cours...' : 'Scanner les messages'}
-              </Button>
               <Button asChild variant='outline'>
-                <Link href='/admin/messages'>Moderation messages</Link>
+                <Link href='/moderation'>Ouvrir les dossiers ciblés</Link>
               </Button>
             </div>
           </div>

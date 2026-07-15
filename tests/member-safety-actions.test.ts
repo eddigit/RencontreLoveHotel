@@ -52,4 +52,20 @@ describe('member safety actions', () => {
       'Contenu déplacé dans le profil.'
     ])
   })
+
+  it('accepts a dedicated paid sexual solicitation report reason', async () => {
+    query
+      .mockResolvedValueOnce([{ id: 'report-2' }])
+      .mockResolvedValueOnce([{ id: 'case-2' }])
+      .mockResolvedValueOnce([])
+
+    await expect(reportMember({
+      targetUserId: targetId,
+      reason: 'paid_sexual_solicitation'
+    })).resolves.toEqual({ success: true, reportId: 'report-2' })
+
+    expect(query.mock.calls[0][1][3]).toBe('paid_sexual_solicitation')
+    expect(query.mock.calls[1][0]).toContain('INSERT INTO moderation_queue')
+    expect(query.mock.calls[2][0]).toContain("role IN ('admin', 'community_moderator')")
+  })
 })

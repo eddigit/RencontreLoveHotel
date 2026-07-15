@@ -1,6 +1,7 @@
 import { executeQuery } from "./db"
 import { hash, compare } from "bcryptjs"
 import { v4 as uuidv4 } from "uuid"
+import type { RegistrationConsent } from '@/lib/legal-policy'
 
 // Types
 export interface User {
@@ -23,17 +24,50 @@ export async function createUser(
   password: string,
   name: string,
   role: "user" | "admin" = "user",
+  consent?: RegistrationConsent
 ): Promise<User | null> {
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const hashedPassword = await hash(password, 10)
     const userId = uuidv4()
-    const query = `
+    const query = consent ? `
+      WITH inserted_user AS (
+        INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      ), recorded_acceptances AS (
+        INSERT INTO legal_acceptances (
+          user_id, document_type, document_version, adult_confirmed, metadata
+        )
+        SELECT inserted_user.id, acceptance.document_type, acceptance.document_version, true,
+               jsonb_build_object('source', 'registration')
+        FROM inserted_user
+        CROSS JOIN (VALUES
+          ('terms', $8::text),
+          ('privacy', $9::text),
+          ('anti_solicitation', $10::text)
+        ) AS acceptance(document_type, document_version)
+      )
+      SELECT * FROM inserted_user
+    ` : `
       INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
     `
-    const params = [userId, normalizedEmail, hashedPassword, name, role, true, null]
+    const params = [
+      userId,
+      normalizedEmail,
+      hashedPassword,
+      name,
+      role,
+      true,
+      null,
+      ...(consent ? [
+        consent.versions.terms,
+        consent.versions.privacy,
+        consent.versions.antiSolicitation
+      ] : [])
+    ]
     const result = (await executeQuery<User[]>(query, params)) ?? []
     return result.length ? result[0] : null
   } catch (error) {
@@ -146,7 +180,7 @@ export async function updateOnboardingStatus(userId: string, completed: boolean)
   }
 }
 
-// Créer un utilisateur (ou le récupérer) à partir d'un email (pour OAuth)
+// Récupérer un compte OAuth existant. Toute création exige les consentements versionnés.
 export async function getOrCreateOAuthUser({ email, name, avatar }: { email: string, name?: string, avatar?: string }) {
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
@@ -156,21 +190,7 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
   if (existing.length > 0) {
     return existing[0]
   }
-  // Créer un nouvel utilisateur avec un UUID, sans mot de passe
-  const userId = uuidv4()
-  const query = `
-    INSERT INTO users (id, email, name, role, avatar, onboarding_completed)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
-  `
-  const params = [userId, email, name || "", "user", avatar || null, false]
-  const result = (await executeQuery<User[]>(query, params)) ?? []
-  // Créer un profil vide associé
-  await executeQuery(
-    `INSERT INTO user_profiles (id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
-    [uuidv4(), userId]
-  )
-  return result.length ? result[0] : null
+  return null
 }
 
 // Mettre à jour le token de réinitialisation du mot de passe d'un utilisateur

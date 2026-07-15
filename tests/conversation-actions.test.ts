@@ -112,6 +112,7 @@ describe('conversation-actions', () => {
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440010' }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])

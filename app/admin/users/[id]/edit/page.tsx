@@ -83,6 +83,7 @@ export default function AdminUserEditPage() {
                   <input name="email" placeholder="Email" value={form.email} onChange={handleChange} className="w-full border rounded p-2" required />
                   <select name="role" value={form.role} onChange={handleChange} className="w-full border rounded p-2">
                     <option value="user">Utilisateur</option>
+                    <option value="community_moderator">Adhérent-modérateur</option>
                     <option value="admin">Admin</option>
                   </select>
                   <input name="avatar" placeholder="Avatar (URL)" value={form.avatar} onChange={handleChange} className="w-full border rounded p-2" />

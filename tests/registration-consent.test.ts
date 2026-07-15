@@ -1,0 +1,75 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { createUser } = vi.hoisted(() => ({ createUser: vi.fn() }))
+
+vi.mock('@/lib/user-service', () => ({
+  createUser,
+  verifyUserCredentials: vi.fn()
+}))
+
+vi.mock('@/lib/onboarding-service', () => ({ saveOnboardingData: vi.fn() }))
+vi.mock('@/lib/db', () => ({ executeQuery: vi.fn(), sql: vi.fn() }))
+
+import { registerUser } from '@/app/actions'
+
+const LEGAL_POLICY_VERSIONS = {
+  terms: '2026-07-15',
+  privacy: '2026-07-15',
+  antiSolicitation: '2026-07-15'
+} as const
+
+describe('registration legal consent', () => {
+  beforeEach(() => {
+    createUser.mockReset()
+    createUser.mockResolvedValue({ id: 'user-1' })
+  })
+
+  it('rejects registration when one commitment is missing', async () => {
+    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+      adult: true,
+      terms: true,
+      antiSolicitation: false,
+      versions: LEGAL_POLICY_VERSIONS
+    })
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Vous devez confirmer votre majorité et accepter les règles obligatoires.'
+    })
+    expect(createUser).not.toHaveBeenCalled()
+  })
+
+  it('rejects stale legal document versions', async () => {
+    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: { ...LEGAL_POLICY_VERSIONS, antiSolicitation: 'ancienne-version' }
+    })
+
+    expect(result.success).toBe(false)
+    expect(createUser).not.toHaveBeenCalled()
+  })
+
+  it('passes complete versioned consent to user creation', async () => {
+    await registerUser('member@example.test', 'secret-value', 'Membre', {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: LEGAL_POLICY_VERSIONS
+    })
+
+    expect(createUser).toHaveBeenCalledWith(
+      'member@example.test',
+      'secret-value',
+      'Membre',
+      'user',
+      expect.objectContaining({
+        adult: true,
+        terms: true,
+        antiSolicitation: true,
+        versions: LEGAL_POLICY_VERSIONS
+      })
+    )
+  })
+})

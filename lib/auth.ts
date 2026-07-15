@@ -101,7 +101,15 @@ export const authOptions: NextAuthOptions = {
           name: user.name ?? undefined,
           avatar: user.image ?? undefined
         })
-        if (dbUser) auditUser = { ...user, ...dbUser }
+        if (!dbUser) {
+          await recordAuthEvent({
+            email: user.email,
+            provider: account.provider,
+            success: false
+          })
+          return false
+        }
+        auditUser = { ...user, ...dbUser }
       }
 
       await recordAuthEvent({

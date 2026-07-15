@@ -97,7 +97,19 @@ export default function TermsPage () {
           <p className='pb-4'>
             Les comptes peuvent être suspendus ou supprimés en cas de
             non-respect des CGU. Un bouton de signalement permet d’alerter les
-            modérateurs en cas d’abus ou de comportements inappropriés.
+            modérateurs en cas d’abus ou de comportements inappropriés. Toute
+            sollicitation sexuelle rémunérée, ou proposée contre un cadeau,
+            un service, un hébergement ou un autre avantage, est formellement
+            interdite. Les tarifs officiels des chambres, événements et services
+            LHR ne constituent pas une rémunération entre membres.
+          </p>
+          <p className='pb-4'>
+            Des outils automatisés proportionnés peuvent produire une alerte,
+            mais aucune sanction permanente ne repose uniquement sur un mot-clé
+            ou une décision automatisée. Les personnes habilitées accèdent aux
+            seuls éléments nécessaires. Toute décision grave est motivée et peut
+            faire l’objet d’un réexamen humain. Voir la{' '}
+            <a href='/community-safety'>charte de sécurité communautaire</a>.
           </p>
           <h3 className='text-2xl my-1'>
             7. Protection des données personnelles

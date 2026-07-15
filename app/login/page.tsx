@@ -96,6 +96,11 @@ export default function LoginPage (props: any) {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className='mb-5 rounded-xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/8 p-3 text-sm leading-5'>
+                  <strong>Aucune prestation sexuelle rémunérée.</strong> Cette communauté adulte est protégée par des
+                  adhérents-modérateurs habilités.{' '}
+                  <Link href='/community-safety' className='text-primary hover:underline'>Voir la charte</Link>
+                </div>
                 <form onSubmit={handleSubmit} className='space-y-4'>
                   <div className='space-y-2'>
                     <Label htmlFor='email'>Email</Label>

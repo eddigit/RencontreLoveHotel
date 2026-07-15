@@ -399,11 +399,23 @@ export default function ConversationPage ({
         content: currentMessage,
         attachments: attachmentsToSend
       })
+      if (newMessage.delivery_status === 'held') {
+        setMessages(prevMessages =>
+          prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+        )
+        setMessage(currentMessage)
+        setPendingAttachments(attachmentsToSend)
+        setSendError('Ce message n’a pas été remis. Il attend un réexamen humain selon la charte de sécurité communautaire.')
+        return
+      }
       setMessages(prevMessages =>
         prevMessages.map(msg =>
           msg.id === optimisticMessage.id ? (newMessage as Message) : msg
         )
       )
+      if (newMessage.moderation_outcome === 'warn') {
+        setSendError('Rappel : aucune sollicitation sexuelle contre argent, cadeau, service ou avantage n’est autorisée.')
+      }
     } catch (error) {
       console.error('Failed to send message:', error)
       setMessages(prevMessages =>

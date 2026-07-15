@@ -26,7 +26,8 @@ describe('admin notifications email moderation UI entrypoints', () => {
 
     expect(source).toContain("<ProtectedRoute allowedRoles={['admin']}>")
     expect(source).toContain('Centre de moderation')
-    expect(source).toContain('Scanner les messages')
+    expect(source).toContain("href='/moderation'")
+    expect(source).not.toContain('Scanner les messages')
   })
 
   it('protects the admin options page', () => {

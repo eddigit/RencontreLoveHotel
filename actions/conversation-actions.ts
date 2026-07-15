@@ -8,6 +8,10 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
 import { trackProductEvents, type ProductEventInput } from '@/lib/product-events'
+import {
+  createModerationCase,
+  evaluateMessageModeration
+} from '@/lib/moderation-case-service'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -238,7 +242,10 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   }
   // Verify that the sender is a participant in this conversation
   const participantRows = await sql.query(
-    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    `SELECT u.messaging_restricted_until
+     FROM conversation_participants cp
+     JOIN users u ON u.id = cp.user_id
+     WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
     [conversationId, senderId]
   )
   const [participant] = participantRows
@@ -246,6 +253,13 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   if (!participant) {
   log('warn', 'Access denied sending message', { conversationId, senderId })
   throw new Error('Access denied: You are not a participant in this conversation')
+  }
+
+  if (
+    participant.messaging_restricted_until &&
+    new Date(participant.messaging_restricted_until).getTime() > Date.now()
+  ) {
+    throw new Error('Votre messagerie est temporairement restreinte. Vous pouvez contester cette mesure depuis votre espace recours.')
   }
 
   const recipients = await sql.query(
@@ -288,6 +302,34 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   if (acceptedMatchRows.length === 0 && adminParticipantRows.length === 0) {
     log('warn', 'Message blocked without accepted match', { conversationId, senderId })
     throw new Error('La messagerie nécessite un match accepté avant échange.')
+  }
+
+  const moderation = await evaluateMessageModeration({
+    senderId,
+    content: messageContent
+  })
+
+  if (moderation.outcome === 'hold' || moderation.outcome === 'restrict') {
+    const moderationCase = await createModerationCase({
+      conversationId,
+      senderId,
+      content: messageContent,
+      evaluation: moderation
+    })
+    if (moderation.outcome === 'restrict') {
+      await sql.query(
+        `UPDATE users
+         SET messaging_restricted_until = NOW() + INTERVAL '24 hours', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [senderId]
+      )
+    }
+    return {
+      delivery_status: 'held' as const,
+      moderation_outcome: moderation.outcome,
+      case_id: moderationCase.id,
+      reason: 'Ce message attend un réexamen humain au titre de la charte de sécurité.'
+    }
   }
 
   // Insert the new message
@@ -360,6 +402,18 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   }
   await trackProductEvents(activationEvents)
 
+  let moderationCaseId: string | null = null
+  if (moderation.shouldCreateCase) {
+    const moderationCase = await createModerationCase({
+      conversationId,
+      senderId,
+      content: messageContent,
+      sourceId: newMessage.id,
+      evaluation: moderation
+    })
+    moderationCaseId = moderationCase.id
+  }
+
   // Notify all recipients except the sender
   for (const recipient of recipients) {
     await createNotification({
@@ -371,7 +425,13 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
     })
   }
 
-  return { ...newMessage, attachments: savedAttachments };
+  return {
+    ...newMessage,
+    attachments: savedAttachments,
+    delivery_status: 'delivered' as const,
+    moderation_outcome: moderation.outcome,
+    case_id: moderationCaseId
+  };
 }
 
 export async function findOrCreateConversation(userId1: string, userId2: string) {

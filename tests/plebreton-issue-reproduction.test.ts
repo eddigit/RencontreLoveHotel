@@ -132,12 +132,15 @@ describe('Reproduction du problème plebreton', () => {
       { ok: true }
     ])
 
-    // Quatrième requête: insertion du message
+    // Quatrième requête: règles de modération contextuelle
+    ;(sql.query as any).mockResolvedValueOnce([])
+
+    // Cinquième requête: insertion du message
     ;(sql.query as any).mockResolvedValueOnce([
       { id: '550e8400-e29b-41d4-a716-446655440005' }
     ])
     
-    // Cinquième requête: mise à jour de la conversation
+    // Sixième requête: mise à jour de la conversation
     ;(sql.query as any).mockResolvedValueOnce([])
     
     // Test: plebreton envoie un message
@@ -150,10 +153,10 @@ describe('Reproduction du problème plebreton', () => {
     // Vérifications
     expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440005')
     // Participant, destinataire, match, message, conversation et deux événements d'activation.
-    expect(sql.query).toHaveBeenCalledTimes(7)
+    expect(sql.query).toHaveBeenCalledTimes(8)
     
     // Vérification de l'insertion du message
-    expect(sql.query).toHaveBeenNthCalledWith(4,
+    expect(sql.query).toHaveBeenNthCalledWith(5,
       expect.stringContaining('INSERT INTO messages'),
       expect.arrayContaining(['550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440002', 'Mon message'])
     )

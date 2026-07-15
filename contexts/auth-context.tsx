@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useSession, signIn, signOut } from "next-auth/react"
 
 // Types d'utilisateurs
-export type UserRole = "user" | "admin"
+export type UserRole = "user" | "community_moderator" | "admin"
 
 export type User = {
   id: string
@@ -65,7 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: session.user.id,
           email: session.user.email,
           name: session.user.name,
-          role: (session.user.role === 'admin' ? 'admin' : 'user') as UserRole,
+          role: (
+            session.user.role === 'admin' || session.user.role === 'community_moderator'
+              ? session.user.role
+              : 'user'
+          ) as UserRole,
           avatar: session.user.avatar || '',
           onboardingCompleted: Boolean(session.user.onboardingCompleted),
           email_verified: session.user.email_verified ?? true
