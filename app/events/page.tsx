@@ -9,6 +9,7 @@ import MainLayout from '@/components/layout/main-layout'
 import {
   deleteEvent,
   getPublishedEventsForMember,
+  getUpcomingEvents,
   subscribeToEvent,
   unsubscribeFromEvent
 } from '@/actions/event-actions'
@@ -124,20 +125,16 @@ export default function EventsPage () {
   const [venueFilter, setVenueFilter] = useState('all')
 
   useEffect(() => {
-    if (!authUser?.id) {
-      router.replace('/login')
-      return
-    }
-
     async function fetchEventsAndCategories () {
-      if (!authUser?.id) return
       setLoading(true)
       setActionError('')
 
       try {
         const [result, rawCategories] = await Promise.all([
-          getPublishedEventsForMember(authUser.id),
-          getOption('event_categories')
+          authUser?.id
+            ? getPublishedEventsForMember(authUser.id)
+            : getUpcomingEvents(),
+          authUser?.id ? getOption('event_categories') : Promise.resolve(null)
         ])
         setEvents(sortEventsChronologically(result))
         setCategories(parseActiveEventCategories(rawCategories))
@@ -242,7 +239,7 @@ export default function EventsPage () {
       isParticipating={!!event.is_participating}
       isPast={options.isPast}
       onSubscribeToggle={
-        options.isPast ? undefined : () => handleSubscribeToggle(event)
+        options.isPast || !authUser?.id ? undefined : () => handleSubscribeToggle(event)
       }
       creatorId={event.creator_id}
       currentUserId={authUser?.id}
@@ -270,7 +267,9 @@ export default function EventsPage () {
               </p>
             </div>
             <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-              <Link href='/events/new'>Proposer un événement</Link>
+              <Link href={authUser?.id ? '/events/new' : '/login'}>
+                {authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}
+              </Link>
             </Button>
           </header>
 
@@ -401,7 +400,7 @@ export default function EventsPage () {
                   <Link href='/love-rooms'>Réserver une Love Room</Link>
                 </Button>
                 <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                  <Link href='/events/new'>Proposer un événement</Link>
+                  <Link href={authUser?.id ? '/events/new' : '/login'}>Proposer un événement</Link>
                 </Button>
               </div>
             </div>
@@ -422,7 +421,7 @@ export default function EventsPage () {
                 </p>
               </div>
               <Button asChild className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                <Link href='/events/new'>Créer un format</Link>
+                <Link href={authUser?.id ? '/events/new' : '/login'}>Créer un format</Link>
               </Button>
             </div>
             <div className='mt-5 grid gap-3 md:grid-cols-3'>
@@ -450,7 +449,7 @@ export default function EventsPage () {
         </div>
 
         <div className='fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6 pointer-events-none md:hidden'>
-          <Link href='/events/new' className='pointer-events-auto'>
+          <Link href={authUser?.id ? '/events/new' : '/login'} className='pointer-events-auto'>
             <Button className='rounded-full bg-[#ff3b8b] px-7 py-3 text-base font-bold text-white shadow-lg hover:bg-[#ff3b8b]/90'>
               Proposer un événement
             </Button>

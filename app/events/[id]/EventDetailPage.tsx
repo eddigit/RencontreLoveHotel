@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -48,7 +47,6 @@ interface EventDetailPageProps {
 
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { user } = useAuth()
-  const router = useRouter()
   const [isParticipating, setIsParticipating] = useState(false)
   const [participantCount, setParticipantCount] = useState(event.participant_count)
   const [loading, setLoading] = useState(false)
@@ -61,14 +59,6 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
       setIsParticipating(participating)
     }
   }, [user, participants])
-
-  // Rediriger si non connecté
-  useEffect(() => {
-    if (!user?.id) {
-      router.replace('/login')
-      return
-    }
-  }, [user, router])
 
   const handleParticipation = async () => {
     if (!user?.id) {
@@ -185,9 +175,6 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   const itineraryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`
   const calendarHref = buildCalendarHref(event)
 
-  if (!user) {
-    return null // Évite le flash avant la redirection
-  }
   return (
     <MainLayout user={user}>
       <div className="container mx-auto px-4 py-6 max-w-6xl">
@@ -366,25 +353,21 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                   </div>
                 </div>
                 
-                <Button 
-                  onClick={handleParticipation}
-                  className="w-full"
-                  variant={isParticipating ? "outline" : "default"}
-                  disabled={loading || isEventPast || (isEventFull && !isParticipating)}
-                  size="lg"
-                >
-                  {loading ? (
-                    "Chargement..."
-                  ) : isEventPast ? (
-                    "Événement terminé"
-                  ) : isParticipating ? (
-                    "Ne plus participer"
-                  ) : isEventFull ? (
-                    "Complet"
-                  ) : (
-                    "Participer"
-                  )}
-                </Button>
+                {user?.id ? (
+                  <Button 
+                    onClick={handleParticipation}
+                    className="w-full"
+                    variant={isParticipating ? "outline" : "default"}
+                    disabled={loading || isEventPast || (isEventFull && !isParticipating)}
+                    size="lg"
+                  >
+                    {loading ? "Chargement..." : isEventPast ? "Événement terminé" : isParticipating ? "Ne plus participer" : isEventFull ? "Complet" : "Participer"}
+                  </Button>
+                ) : (
+                  <Button asChild className="w-full" size="lg">
+                    <Link href='/login'>Se connecter pour participer</Link>
+                  </Button>
+                )}
                 
                 {isEventFull && !isParticipating && !isEventPast && (
                   <Badge variant="destructive" className="w-full justify-center">
@@ -401,7 +384,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             </Card>
             
             {/* Liste des participants */}
-            {participants && participants.length > 0 && (
+            {user?.id && participants && participants.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Participants ({participantCount})</CardTitle>

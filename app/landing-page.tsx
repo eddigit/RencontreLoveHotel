@@ -20,10 +20,10 @@ const heroExperiences = [
     alt: 'Apéro jacuzzi entre membres de la communauté'
   },
   {
-    title: 'SOPHIA',
-    subtitle: 'Une communauté bien réelle',
+    title: 'PORTRAIT D’AMBIANCE',
+    subtitle: 'L’univers de la communauté',
     image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/public/amethyst-glow-YU11au0rIIGAWH8iymdMmtFrC6ZFIb.png',
-    alt: 'Sophia, membre de la communauté Love Hôtel'
+    alt: 'Portrait illustratif de l’univers Love Hôtel'
   },
   {
     title: 'VOS ÉVÉNEMENTS',

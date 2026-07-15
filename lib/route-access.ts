@@ -2,6 +2,7 @@ const exactPublicPaths = new Set([
   '/',
   '/about',
   '/concept',
+  '/events',
   '/forgot-password',
   '/goodbye',
   '/login',
@@ -64,6 +65,7 @@ function matchesPrefix(pathname: string, prefix: string) {
 export function isPublicPath(pathname: string) {
   const normalized = normalizePath(pathname)
   if (exactPublicPaths.has(normalized)) return true
+  if (/^\/events\/[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(normalized)) return true
   return publicPrefixes.some(prefix => matchesPrefix(normalized, prefix))
 }
 

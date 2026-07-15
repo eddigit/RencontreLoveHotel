@@ -511,8 +511,8 @@ export async function getEventById(eventId: string, userId?: string) {
       return null
     }
 
-    // Récupérer les participants
-    const participants = await sql.query<any[]>(
+    // Les identités des participants restent réservées aux membres connectés.
+    const participants = userId ? await sql.query<any[]>(
       `
       SELECT 
         u.id,
@@ -526,7 +526,7 @@ export async function getEventById(eventId: string, userId?: string) {
       LIMIT 20
     `,
       [eventId]
-    )
+    ) : []
 
     return {
       ...event,

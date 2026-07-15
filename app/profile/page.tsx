@@ -15,6 +15,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
+import { calculateProfileCompletion } from '@/lib/profile-completion'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -389,22 +390,21 @@ export default async function ProfilePage () {
     is_primary: p.is_primary
   }))
 
-  const completionItems = [
-    Boolean(userData.avatar),
-    Boolean(userData.name),
-    Boolean(userData.status),
-    Boolean(userData.age),
-    Boolean(userData.orientation),
-    Boolean(userData.gender),
-    Boolean(userData.bio),
-    userData.interests.length > 0,
-    Boolean(preferences.interested_in_dating || preferences.interested_in_events),
-    Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains),
-    userPhotos.length > 0
-  ]
-  const profileScore = Math.round(
-    (completionItems.filter(Boolean).length / completionItems.length) * 100
-  )
+  const profileCompletion = calculateProfileCompletion({
+    name: userData.name,
+    avatar: userData.avatar,
+    age: userData.age,
+    location: userData.location,
+    status: userData.status,
+    orientation: userData.orientation,
+    gender: userData.gender,
+    bio: userData.bio,
+    interests: userData.interests,
+    photoCount: userPhotos.length,
+    hasDatingPreference: Boolean(preferences.interested_in_dating || preferences.interested_in_events),
+    hasMeetingIntent: Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains)
+  })
+  const profileScore = profileCompletion.score
 
   return (
     <MainLayout user={dbUser}>
@@ -445,6 +445,11 @@ export default async function ProfilePage () {
                     style={{ width: `${profileScore}%` }}
                   />
                 </div>
+                {profileCompletion.nextActions.length > 0 && (
+                  <p className='mt-3 text-xs leading-5 text-white/55'>
+                    Prochaine étape : {profileCompletion.nextActions[0]}
+                  </p>
+                )}
               </div>
             </div>
 
