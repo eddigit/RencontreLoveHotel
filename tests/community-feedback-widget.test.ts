@@ -16,7 +16,7 @@ describe('community feedback widget', () => {
     const action = readFileSync('actions/community-feedback-actions.ts', 'utf8')
     const config = readFileSync('lib/community-feedback-config.ts', 'utf8')
 
-    expect(config).toContain('loolyyb@gmail.com')
+    expect(config).toContain('OPERATIONAL_CONTACT_EMAIL')
     expect(action).toContain("@/lib/community-feedback-config")
     expect(action).toContain('getUserByEmail(FEEDBACK_RECIPIENT_EMAIL)')
     expect(action).toContain('createAppNotification')

@@ -3,11 +3,13 @@ import { getServerSession } from 'next-auth/next'
 import nodemailer from 'nodemailer'
 import { authOptions } from '@/lib/auth'
 import { sql } from '@/lib/db'
+import { OPERATIONAL_CONTACT_EMAIL } from '@/lib/operational-contact'
 
 const CONCIERGERIE_RECIPIENT_EMAIL =
   process.env.CONCIERGERIE_RECIPIENT_EMAIL ||
   process.env.ADMIN_NOTIFICATION_EMAIL ||
-  process.env.FEEDBACK_RECIPIENT_EMAIL
+  process.env.FEEDBACK_RECIPIENT_EMAIL ||
+  OPERATIONAL_CONTACT_EMAIL
 
 type ResponsePreference = 'chat' | 'email'
 

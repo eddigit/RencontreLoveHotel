@@ -1,11 +1,12 @@
 import nodemailer from 'nodemailer'
 import { sql } from '@/lib/db'
+import { OPERATIONAL_CONTACT_EMAIL } from '@/lib/operational-contact'
 
 export const EVENT_RESERVATION_RECIPIENT_EMAIL =
   process.env.EVENT_RESERVATION_RECIPIENT_EMAIL ||
   process.env.ADMIN_NOTIFICATION_EMAIL ||
   process.env.FEEDBACK_RECIPIENT_EMAIL ||
-  'loolyyb@gmail.com'
+  OPERATIONAL_CONTACT_EMAIL
 
 type EventReservationAction = 'join' | 'leave'
 

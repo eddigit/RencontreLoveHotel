@@ -1,2 +1,4 @@
+import { OPERATIONAL_CONTACT_EMAIL } from '@/lib/operational-contact'
+
 export const FEEDBACK_RECIPIENT_EMAIL =
-  process.env.FEEDBACK_RECIPIENT_EMAIL || 'loolyyb@gmail.com'
+  process.env.FEEDBACK_RECIPIENT_EMAIL || OPERATIONAL_CONTACT_EMAIL

@@ -6,7 +6,7 @@ describe('event reservation admin notifications', () => {
     const source = readFileSync('lib/event-reservation-notifications.ts', 'utf8')
 
     expect(source).toContain('EVENT_RESERVATION_RECIPIENT_EMAIL')
-    expect(source).toContain('loolyyb@gmail.com')
+    expect(source).toContain('OPERATIONAL_CONTACT_EMAIL')
     expect(source).toContain('event_participants')
     expect(source).toContain('INSERT INTO notifications')
     expect(source).toContain('sendMail')
