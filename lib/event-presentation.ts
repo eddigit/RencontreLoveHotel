@@ -3,7 +3,7 @@ export const EVENT_TIME_ZONE = 'Europe/Paris'
 export const DEFAULT_EVENT_IMAGES = {
   jacuzzi: '/images/events/apero-jacuzzi-rencontre.jpg',
   open_curtains: '/images/events/rideaux-ouverts-rencontre.jpg',
-  default: '/images/events/love-hotel-evenement.png'
+  default: '/paris-event-masquerade.png'
 } as const
 
 export const EMPTY_EVENTS_STATE = {

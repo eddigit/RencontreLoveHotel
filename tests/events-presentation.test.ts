@@ -18,6 +18,10 @@ describe('events presentation helpers', () => {
         experience_type: 'open_curtains'
       })
     ).toBe('/images/events/rideaux-ouverts-rencontre.jpg')
+
+    expect(getEventImage({ image: null, category: 'community' })).toBe(
+      '/paris-event-masquerade.png'
+    )
   })
 
   it('keeps a custom event photo when one is provided', () => {

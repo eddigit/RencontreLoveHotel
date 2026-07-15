@@ -14,6 +14,7 @@ import {
 } from '@/actions/event-actions'
 import { getOption } from '@/actions/user-actions'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
   EMPTY_EVENTS_STATE,
@@ -475,13 +476,18 @@ function LoadingEventCards () {
 
 function EmptyEventsState () {
   return (
-    <div className='col-span-full grid gap-5 rounded-xl border border-dashed border-[#ff8cc8]/30 bg-white/[0.035] p-5 md:grid-cols-[180px,minmax(0,1fr)] md:items-center'>
-      <img
-        src='/images/events/love-hotel-evenement.png'
-        alt=''
-        className='aspect-[4/3] w-full rounded-lg object-cover'
-      />
-      <div>
+    <div className='col-span-full grid overflow-hidden rounded-2xl border border-[#ff8cc8]/25 bg-white/[0.035] md:grid-cols-[minmax(260px,0.85fr),minmax(0,1fr)] md:items-stretch'>
+      <div className='relative min-h-56 md:min-h-72'>
+        <Image
+          src='/paris-event-limousine.png'
+          alt='Soirée parisienne en limousine avec vue sur la tour Eiffel'
+          fill
+          className='object-cover'
+          sizes='(max-width: 768px) 100vw, 42vw'
+        />
+        <div className='absolute inset-0 bg-gradient-to-t from-[#16051f]/65 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#16051f]/35' />
+      </div>
+      <div className='flex flex-col justify-center p-6 md:p-8'>
         <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
           Prochaines dates
         </p>

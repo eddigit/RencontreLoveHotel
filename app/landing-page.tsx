@@ -28,8 +28,8 @@ const heroExperiences = [
   {
     title: 'VOS ÉVÉNEMENTS',
     subtitle: 'Imaginez votre propre format',
-    image: '/images/events/love-hotel-evenement.png',
-    alt: 'Événement créé par la communauté Love Hôtel'
+    image: '/paris-event-masquerade.png',
+    alt: 'Soirée parisienne avec masque, champagne et escarpin rouge'
   },
   {
     title: 'RIDEAUX OUVERTS',
@@ -169,7 +169,7 @@ export default function LandingPage() {
 
             <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#1b0926]'>
               <div className='relative aspect-[16/10]'>
-                 <Image src='/images/events/love-hotel-evenement.png' alt='Événement communautaire au Love Hôtel' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
+                 <Image src='/paris-event-limousine.png' alt='Soirée parisienne en limousine avec vue sur la tour Eiffel' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
               </div>
               <div className='p-6'>
                 <CalendarPlus className='h-7 w-7 text-violet-300' />
