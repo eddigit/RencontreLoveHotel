@@ -42,9 +42,9 @@ export default function CommunitySafetyPage () {
               l’autorise. Aucun partenariat institutionnel n’est revendiqué sans convention réelle.
             </p>
           </section>
-          <p className='rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm text-amber-50'>
-            Projet de charte au 15 juillet 2026 — validation juridique par un professionnel du droit ou un DPO requise
-            avant publication définitive.
+          <p className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-4 text-sm text-[#d8ffea]'>
+            Charte de sécurité en vigueur — version du 15 juillet 2026. Cette version est opposable dans le cadre
+            des Conditions générales d’utilisation acceptées par chaque membre.
           </p>
         </div>
         <div className='mt-8 flex flex-wrap gap-3'>

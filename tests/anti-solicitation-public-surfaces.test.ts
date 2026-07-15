@@ -24,7 +24,8 @@ describe('anti-solicitation public commitment', () => {
     expect(charter).toContain('argent, cadeau, hébergement, transport, service ou avantage')
     expect(charter).toContain('tarifs officiels des événements, Love Rooms et services de conciergerie')
     expect(charter).toContain('réexamen humain')
-    expect(charter).toContain('validation juridique')
+    expect(charter).toContain('Charte de sécurité en vigueur')
+    expect(charter).not.toContain('avant publication définitive')
     expect(terms).toContain('sollicitation sexuelle rémunérée')
   })
 
