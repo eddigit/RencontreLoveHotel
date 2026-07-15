@@ -10,6 +10,7 @@ import MainLayout from '@/components/layout/main-layout'
 import { MatchRequestButton } from '@/components/match-request-button'
 import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
+import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { authOptions } from '@/lib/auth'
 import {
   acceptMatchRequest,
@@ -17,7 +18,6 @@ import {
   getMatchStatus,
   getUserProfile
 } from '@/actions/user-actions'
-import { findOrCreateConversation } from '@/actions/conversation-actions'
 
 type SessionUser = {
   id?: string
@@ -197,13 +197,7 @@ export default async function ProfilePage ({
                             matchStatus.user_id_1,
                             matchStatus.user_id_2
                           )
-                          if (accepted?.success) {
-                            const conversationId = await findOrCreateConversation(
-                              matchStatus.user_id_2,
-                              matchStatus.user_id_1
-                            )
-                            if (conversationId) redirect(`/messages/${conversationId}`)
-                          }
+                          if (accepted?.conversationId) redirect(`/messages/${accepted.conversationId}`)
                         }}
                       >
                         <Button type='submit' className='w-full rounded-2xl bg-[#21b56f] hover:bg-[#25c97d]'>
@@ -250,6 +244,7 @@ export default async function ProfilePage ({
                       </Link>
                     </Button>
                   </div>
+                  <MemberSafetyMenu targetUserId={String(profile.user_id)} />
                 </div>
               </div>
             )}

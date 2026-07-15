@@ -7,6 +7,7 @@ import { messageSchema, getMessagesSchema, createConversationSchema, validateSch
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
+import { trackProductEvents, type ProductEventInput } from '@/lib/product-events'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -262,6 +263,11 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
              OR
              (user_id_2 = $1 AND user_id_1 = ANY($2::uuid[]))
            )
+           AND NOT EXISTS (
+             SELECT 1 FROM user_blocks
+             WHERE (blocker_id = $1 AND blocked_id = ANY($2::uuid[]))
+                OR (blocked_id = $1 AND blocker_id = ANY($2::uuid[]))
+           )
          LIMIT 1`,
         [senderId, recipientIds]
       )
@@ -286,7 +292,21 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
 
   // Insert the new message
   const [newMessage] = await sql.query(
-    `INSERT INTO messages (conversation_id, sender_id, content, is_read) VALUES ($1, $2, $3, false) RETURNING *;`,
+    `WITH message_state AS (
+       SELECT
+         COUNT(*)::int AS prior_message_count,
+         COUNT(DISTINCT sender_id)::int AS prior_sender_count,
+         BOOL_OR(sender_id = $2) AS sender_had_messages
+       FROM messages
+       WHERE conversation_id = $1
+     ), inserted_message AS (
+       INSERT INTO messages (conversation_id, sender_id, content, is_read)
+       VALUES ($1, $2, $3, false)
+       RETURNING *
+     )
+     SELECT inserted_message.*, message_state.prior_message_count,
+       message_state.prior_sender_count, COALESCE(message_state.sender_had_messages, false) AS sender_had_messages
+     FROM inserted_message CROSS JOIN message_state;`,
     [conversationId, senderId, messageContent]
   )
 
@@ -315,6 +335,30 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
 
   // Update the conversation's updated_at timestamp
   await sql.query(`UPDATE conversations SET updated_at = CURRENT_TIMESTAMP WHERE id = $1;`, [conversationId])
+
+  const activationEvents: ProductEventInput[] = [{
+    eventName: 'message_sent' as const,
+    userId: senderId,
+    metadata: {
+      surface: 'conversation',
+      media_type: messageAttachments[0]?.mediaType || 'text'
+    }
+  }]
+  if (Number(newMessage.prior_message_count || 0) === 0) {
+    activationEvents.push({
+      eventName: 'conversation_started',
+      userId: senderId,
+      metadata: { surface: 'conversation', media_type: messageAttachments[0]?.mediaType || 'text' }
+    })
+  }
+  if (Number(newMessage.prior_message_count || 0) > 0 && !newMessage.sender_had_messages) {
+    activationEvents.push({
+      eventName: 'message_replied',
+      userId: senderId,
+      metadata: { surface: 'conversation', media_type: messageAttachments[0]?.mediaType || 'text' }
+    })
+  }
+  await trackProductEvents(activationEvents)
 
   // Notify all recipients except the sender
   for (const recipient of recipients) {
