@@ -8,7 +8,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
   return (
     <header className='sticky top-0 z-50 border-b border-white/10 bg-[#120821]/92 backdrop-blur-xl'>
       <div className='mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-4 px-4 sm:h-20 sm:px-6 lg:px-10'>
-        <Link href='/' aria-label='Accueil Love Hotel Rencontre' className='shrink-0'>
+        <Link href='/' aria-label='Accueil Love Hotel Rencontre' className='min-w-0 max-w-[min(48vw,230px)] shrink'>
           <BrandLogo compact priority />
         </Link>
 

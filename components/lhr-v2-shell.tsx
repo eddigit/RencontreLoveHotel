@@ -32,7 +32,11 @@ export function LhrV2Shell({
             <p className='mt-1 max-w-3xl text-sm leading-6 text-white/64'>{subtitle}</p>
           ) : null}
         </div>
-        {action}
+        {action ? (
+          <div className='flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end'>
+            {action}
+          </div>
+        ) : null}
       </header>
 
       <div className='p-3 sm:p-4 lg:p-5'>{children}</div>

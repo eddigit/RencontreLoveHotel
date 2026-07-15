@@ -221,7 +221,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
         <div className='min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#180422]/78 shadow-2xl shadow-black/25 backdrop-blur-xl'>
           <header className='sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#180422]/95 px-3 backdrop-blur-xl sm:px-4 lg:hidden'>
-            <Link href={user ? '/discover' : '/'}>
+            <Link href={user ? '/discover' : '/'} className='min-w-0 max-w-[min(60vw,230px)]'>
               <BrandLogo compact priority />
             </Link>
             <div className='flex items-center gap-2'>
