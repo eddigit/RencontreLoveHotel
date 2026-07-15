@@ -10,6 +10,7 @@ import {
   Crown,
   Heart,
   MessageCircle,
+  RefreshCw,
   Search,
   Sparkles,
   UsersRound,
@@ -27,6 +28,7 @@ import {
   getCommunityMemberStats,
   getDiscoverProfiles,
   getOnlineCommunityMembers,
+  recordProfileImpressions,
   getUserMatches
 } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
@@ -122,17 +124,18 @@ export default function DiscoverPage () {
   })
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [profileBatch, setProfileBatch] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   const fetchCommunity = useCallback(
-    async (currentFilters?: FilterOptions) => {
+    async (currentFilters?: FilterOptions, batch = 0) => {
       if (!user?.id) return
 
       setLoading(true)
       setError(null)
       try {
         const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await Promise.all([
-          getDiscoverProfiles(user.id, 1, 36, currentFilters || filters),
+          getDiscoverProfiles(user.id, 1, 240, currentFilters || filters, batch),
           getOnlineCommunityMembers(),
           getUserMatches(user.id),
           getUpcomingEvents(user.id),
@@ -140,6 +143,11 @@ export default function DiscoverPage () {
         ])
 
         setProfiles(profileResult.profiles || [])
+        void recordProfileImpressions(
+          user.id,
+          (profileResult.profiles || []).slice(0, 12).map((profile: DiscoverProfile) => profile.id),
+          batch
+        )
         setOnlineMembers((onlineResult || []) as DiscoverProfile[])
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
@@ -178,7 +186,14 @@ export default function DiscoverPage () {
 
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
-    fetchCommunity(newFilters)
+    setProfileBatch(0)
+    fetchCommunity(newFilters, 0)
+  }
+
+  const showAnotherBatch = () => {
+    const nextBatch = profileBatch + 1
+    setProfileBatch(nextBatch)
+    fetchCommunity(filters, nextBatch)
   }
 
   const filteredProfiles = useMemo(() => {
@@ -192,13 +207,7 @@ export default function DiscoverPage () {
   }, [profiles, searchQuery])
 
   const onlineProfiles = onlineMembers
-  const newProfiles = [...filteredProfiles]
-    .sort((left, right) => {
-      const leftTime = left.created_at ? new Date(left.created_at).getTime() : 0
-      const rightTime = right.created_at ? new Date(right.created_at).getTime() : 0
-      return rightTime - leftTime
-    })
-    .slice(0, 8)
+  const newProfiles = [...filteredProfiles].slice(0, 12)
   const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
   const recentMatches = matches.slice(0, 5)
@@ -354,9 +363,15 @@ export default function DiscoverPage () {
                   <h2 className='text-xl font-black'>Nouveaux membres</h2>
                   <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
                 </div>
-                <span className='shrink-0 text-right text-sm text-white/52'>
-                  {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
-                </span>
+                <div className='flex shrink-0 flex-col items-end gap-2'>
+                  <span className='text-right text-sm text-white/52'>
+                    {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
+                  </span>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading} className='border-white/12 bg-white/[0.04]'>
+                    <RefreshCw className='mr-2 h-3.5 w-3.5' />
+                    Découvrir d’autres profils
+                  </Button>
+                </div>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map((profile, index) => (

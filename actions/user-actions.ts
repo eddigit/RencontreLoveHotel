@@ -14,6 +14,8 @@ import {
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
+import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
+import { trackProductEvents } from '@/lib/product-events'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -185,7 +187,7 @@ export async function getMemberRelationships(userId: string) {
   return getMemberRelationshipOverview(userId)
 }
 
-export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions) {
+export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions, batch = 0) {
   log('info', 'Discover profiles requested', { operation: 'getDiscoverProfiles', page, pageSize });
 
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUserId);
@@ -229,6 +231,19 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
   // Only show profiles with display_profile = TRUE
   whereClauses.push("up.display_profile = TRUE");
+  whereClauses.push(`NOT EXISTS (SELECT 1 FROM user_blocks ub
+    WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
+       OR (ub.blocker_id = u.id AND ub.blocked_id = $1))`)
+  whereClauses.push(`NOT EXISTS (
+    SELECT 1 FROM user_matches um_existing
+    WHERE ((um_existing.user_id_1 = $1 AND um_existing.user_id_2 = u.id)
+        OR (um_existing.user_id_1 = u.id AND um_existing.user_id_2 = $1))
+      AND (
+        um_existing.status IN ('accepted', 'pending')
+        OR (um_existing.status = 'rejected' AND um_existing.updated_at >= NOW() - INTERVAL '30 days')
+      )
+      AND (um_existing.status <> 'pending' OR um_existing.expires_at IS NULL OR um_existing.expires_at > NOW())
+  )`)
 
   if (currentUserProfileGender && currentUserProfileOrientation) {
     const genderOrientationMatchingClauses: string[] = [];
@@ -387,6 +402,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       up.birthday,
       up.bio,
       up.interests,
+      u.updated_at,
       upref_filter.interested_in_restaurant,
       upref_filter.interested_in_events,
       upref_filter.interested_in_dating,
@@ -402,13 +418,15 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       ${hasPresenceColumn ? 'u.last_seen_at,' : 'NULL as last_seen_at,'}
       ${onlineCondition} as online,
       false as featured,
-      (SELECT COUNT(*) FROM user_matches WHERE (user_id_1 = u.id OR user_id_2 = u.id) AND status = 'accepted') as match_count
+      (SELECT COUNT(*) FROM product_events pe
+        WHERE pe.event_name = 'profile_impression'
+          AND pe.subject_id = u.id
+          AND pe.created_at >= NOW() - INTERVAL '14 days') AS impressions_14d
     ${baseFromClause}
     ${whereCondition}
     ORDER BY
+      impressions_14d ASC,
       (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN u.avatar IS NOT NULL AND u.avatar != '' THEN 1 ELSE 0 END) DESC,
-      match_count DESC,
       u.created_at DESC
     LIMIT ${limitPlaceholder}
     OFFSET ${offsetPlaceholder}
@@ -458,25 +476,51 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         interests: profile.interests ? JSON.parse(profile.interests) : [],
         preferences,
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
-        popularity: profile.match_count || 0
+        impressions14d: Number(profile.impressions_14d || 0),
+        profileQuality: Math.round((
+          (profile.image ? 35 : 0) +
+          (profile.bio ? 25 : 0) +
+          (profile.age ? 15 : 0) +
+          (profile.location ? 15 : 0) +
+          (profile.interests ? 10 : 0)
+        )),
+        lastSeenAt: profile.last_seen_at,
+        createdAt: profile.created_at
       };
     })
-    .sort((a: any, b: any) => Number(b.matchScore || 0) - Number(a.matchScore || 0));
+  const rankedProfiles = rankDiscoveryCandidates<any>(mappedProfiles, {
+    viewerId: currentUserId,
+    batch: Math.max(0, Math.floor(Number(batch) || 0))
+  })
 
   const result = {
-    profiles: mappedProfiles,
+    profiles: rankedProfiles,
     totalCount,
     currentPage: page,
     totalPages: Math.ceil(totalCount / pageSize),
-    hasMore: (offset + mappedProfiles.length) < totalCount
+    hasMore: (offset + rankedProfiles.length) < totalCount
   };
   log('info', 'Discover profiles completed', {
     operation: 'getDiscoverProfiles',
-    count: mappedProfiles.length,
+    count: rankedProfiles.length,
     totalCount,
     page
   });
   return result;
+}
+
+export async function recordProfileImpressions(userId: string, profileIds: string[], batch = 0) {
+  await requireSameUserOrAdmin(userId)
+  const safeIds = Array.from(new Set(profileIds))
+    .filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+    .slice(0, 12)
+
+  await trackProductEvents(safeIds.map((subjectId, position) => ({
+    eventName: 'profile_impression' as const,
+    userId,
+    subjectId,
+    metadata: { surface: 'community', batch, position }
+  })))
 }
 
 // Send a match request (creates a pending match if not already exists)

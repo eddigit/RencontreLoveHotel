@@ -7,17 +7,16 @@ export async function ensurePresenceSchema() {
   if (presenceSchemaReady !== null) return presenceSchemaReady
 
   try {
-    await sql.query(
-      'ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ',
+    const result = await sql.query<Array<{ present: boolean }>>(
+      `SELECT EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'last_seen_at'
+      ) AS present`,
       []
     )
-    await sql.query(
-      'CREATE INDEX IF NOT EXISTS idx_users_last_seen_at ON users(last_seen_at DESC)',
-      []
-    )
-    presenceSchemaReady = true
+    presenceSchemaReady = Boolean(result[0]?.present)
   } catch (error) {
-    console.error('Unable to prepare user presence schema:', error)
+    console.error('Unable to inspect user presence schema:', error)
     presenceSchemaReady = false
   }
 

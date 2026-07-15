@@ -129,9 +129,6 @@ export function calculateMatchScore(userA: UserProfile, userB: UserProfile): num
   if (a.age && b.age && ageDifference <= 5) score += 8
   else if (a.age && b.age && ageDifference <= 10) score += 4
 
-  if (userB.featured) score += 8
-  if (b.premiumAccess) score += 3
-
   return Math.max(0, Math.min(100, Math.round(score)))
 }
 

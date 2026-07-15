@@ -34,6 +34,22 @@ const baseProfile = {
 } as any
 
 describe('matching algorithm', () => {
+  it('does not alter compatibility for premium or featured profiles', () => {
+    const other = {
+      ...baseProfile,
+      id: 'other',
+      featured: false,
+      preferences: { ...baseProfile.preferences, premium_access: false }
+    } as any
+    const promoted = {
+      ...other,
+      featured: true,
+      preferences: { ...other.preferences, premium_access: true }
+    } as any
+
+    expect(calculateMatchScore(baseProfile, promoted)).toBe(calculateMatchScore(baseProfile, other))
+  })
+
   it('scores real database-shaped profile preferences with snake_case fields', () => {
     const userB = {
       ...baseProfile,
