@@ -11,6 +11,7 @@ const tabs = [
   { label: 'Modération', href: '/admin/moderation' },
   { label: 'Emails', href: '/admin/email-campaigns' },
   { label: 'Conciergerie', href: '/admin/conciergerie' },
+  { label: 'Diagnostic', href: '/admin/diagnostic' },
   { label: 'Roadmap', href: '/admin/roadmap' },
   { label: 'Paramètres', href: '/admin/options' }
   // Add more admin sections here as needed
