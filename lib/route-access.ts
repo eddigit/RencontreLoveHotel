@@ -36,7 +36,6 @@ const protectedPagePrefixes = [
   '/conciergerie',
   '/discover',
   '/en-direct',
-  '/events',
   '/matches',
   '/messages',
   '/notifications',
