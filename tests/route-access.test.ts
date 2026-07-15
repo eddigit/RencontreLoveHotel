@@ -11,6 +11,8 @@ describe('route access policy', () => {
   it('keeps the landing page public without making every route public', () => {
     expect(isPublicPath('/')).toBe(true)
     expect(isPublicPath('/login')).toBe(true)
+    expect(isPublicPath('/rencontres')).toBe(true)
+    expect(isPublicPath('/premium')).toBe(true)
     expect(isPublicPath('/version.json')).toBe(true)
     expect(isPublicPath('/manifest.webmanifest')).toBe(true)
     expect(isPublicPath('/login/help')).toBe(false)

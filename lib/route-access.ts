@@ -9,7 +9,9 @@ const exactPublicPaths = new Set([
   '/loolyyb-memecoin',
   '/love-rooms',
   '/publicite',
+  '/premium',
   '/register',
+  '/rencontres',
   '/reset-password',
   '/tarifs-publicite',
   '/terms',
@@ -38,9 +40,7 @@ const protectedPagePrefixes = [
   '/messages',
   '/notifications',
   '/onboarding',
-  '/premium',
   '/profile',
-  '/rencontres',
   '/unsubscribe'
 ]
 
