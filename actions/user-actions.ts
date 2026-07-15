@@ -15,7 +15,7 @@ import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/
 import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
 import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
-import { trackProductEvents } from '@/lib/product-events'
+import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -524,7 +524,11 @@ export async function recordProfileImpressions(userId: string, profileIds: strin
 }
 
 // Send a match request (creates a pending match if not already exists)
-export async function sendMatchRequest(requesterId: string, receiverId: string) {
+export async function sendMatchRequest(
+  requesterId: string,
+  receiverId: string,
+  context?: { type?: string; source?: string }
+) {
   await requireSameUserOrAdmin(requesterId)
 
   if (requesterId === receiverId) return { success: false, error: "Vous ne pouvez pas vous matcher vous-même." }
@@ -534,6 +538,27 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     return { success: false, error: "L'utilisateur cible n'existe pas." }
   }
   try {
+    const [blocked, recentRequestCount] = await Promise.all([
+      sql`
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = ${requesterId} AND blocked_id = ${receiverId})
+           OR (blocker_id = ${receiverId} AND blocked_id = ${requesterId})
+        LIMIT 1
+      `,
+      sql`
+        SELECT COUNT(*)::int AS count
+        FROM user_matches
+        WHERE user_id_1 = ${requesterId}
+          AND created_at >= NOW() - INTERVAL '1 hour'
+      `
+    ])
+    if (blocked.length > 0) {
+      return { success: false, error: "Cette interaction n'est pas disponible." }
+    }
+    if (Number(recentRequestCount[0]?.count || 0) >= 20) {
+      return { success: false, error: "Trop de demandes rapprochées. Réessayez un peu plus tard." }
+    }
+
     // Check if a match already exists (in either direction)
     const existing = await sql`
       SELECT * FROM user_matches
@@ -542,9 +567,14 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     `
     if (existing.length > 0) {
       const status = existing[0].status
-      if (status === "pending") return { success: false, error: "Demande déjà envoyée." }
+      const pendingIsActive = status === "pending" && (
+        !existing[0].expires_at || new Date(existing[0].expires_at).getTime() > Date.now()
+      )
+      if (pendingIsActive) return { success: false, error: "Demande déjà envoyée." }
       if (status === "accepted") return { success: false, error: "Vous êtes déjà en match." }
-      // If previously rejected, allow to send again (optional: you can block this if you want)
+      if (status === 'rejected' && new Date(existing[0].updated_at).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000) {
+        return { success: false, error: "Cette demande pourra être renouvelée plus tard." }
+      }
     }
     // Fetch both user profiles for score calculation
     const requesterProfile = await getUserProfile(requesterId)
@@ -555,11 +585,30 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     if (requester && receiver) {
       matchScore = calculateMatchScore(requester, receiver)
     }
-    await sql`
-      INSERT INTO user_matches (user_id_1, user_id_2, status, match_score)
-      VALUES (${requesterId}, ${receiverId}, 'pending', ${matchScore})
-      ON CONFLICT (user_id_1, user_id_2) DO UPDATE SET status = 'pending', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
-    `
+    const safeContext = {
+      type: typeof context?.type === 'string' ? context.type.slice(0, 40) : 'profile',
+      source: typeof context?.source === 'string' ? context.source.slice(0, 40) : 'community'
+    }
+    if (existing.length > 0) {
+      await sql`
+        UPDATE user_matches
+        SET user_id_1 = ${requesterId}, user_id_2 = ${receiverId}, status = 'pending',
+            accepted_at = NULL, responded_at = NULL,
+            expires_at = CURRENT_TIMESTAMP + INTERVAL '30 days',
+            context = ${JSON.stringify(safeContext)}::jsonb,
+            updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
+        WHERE id = ${existing[0].id}
+      `
+    } else {
+      await sql`
+        INSERT INTO user_matches (
+          user_id_1, user_id_2, status, match_score, expires_at, context
+        ) VALUES (
+          ${requesterId}, ${receiverId}, 'pending', ${matchScore},
+          CURRENT_TIMESTAMP + INTERVAL '30 days', ${JSON.stringify(safeContext)}::jsonb
+        )
+      `
+    }
     // Send notification to receiver
     await createNotification({
       userId: receiverId,
@@ -567,6 +616,12 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       title: 'Nouvelle demande de match',
       description: 'Vous avez reçu une nouvelle demande de match.',
       link: '/matches',
+    })
+    await trackProductEvent({
+      eventName: 'match_request_sent',
+      userId: requesterId,
+      subjectId: receiverId,
+      metadata: { context_type: safeContext.type, source: safeContext.source }
     })
     log('info', 'Match request stored', { operation: 'sendMatchRequest' })
     return { success: true }
@@ -584,12 +639,63 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
   await requireSameUserOrAdmin(receiverId)
 
   try {
-    const result = await sql`
-      UPDATE user_matches
-      SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE user_id_1 = ${requesterId} AND user_id_2 = ${receiverId} AND status = 'pending'
-    `
-    if ((result as any).rowCount === 0) {
+    const result = await sql.query<Array<{ conversation_id: string }>>(
+      `
+        WITH accepted_match AS (
+          UPDATE user_matches
+          SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP,
+              responded_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id_1 = $1 AND user_id_2 = $2 AND status = 'pending'
+            AND (expires_at IS NULL OR expires_at > NOW())
+            AND NOT EXISTS (
+              SELECT 1 FROM user_blocks
+              WHERE (blocker_id = $1 AND blocked_id = $2)
+                 OR (blocker_id = $2 AND blocked_id = $1)
+            )
+          RETURNING id
+        ),
+        existing_conversation AS (
+          SELECT c.id
+          FROM conversations c
+          WHERE EXISTS (SELECT 1 FROM accepted_match)
+            AND EXISTS (
+              SELECT 1 FROM conversation_participants cp
+              WHERE cp.conversation_id = c.id AND cp.user_id = $1
+            )
+            AND EXISTS (
+              SELECT 1 FROM conversation_participants cp
+              WHERE cp.conversation_id = c.id AND cp.user_id = $2
+            )
+            AND (SELECT COUNT(*) FROM conversation_participants cp WHERE cp.conversation_id = c.id) = 2
+          LIMIT 1
+        ),
+        created_conversation AS (
+          INSERT INTO conversations (created_at, updated_at)
+          SELECT CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          WHERE EXISTS (SELECT 1 FROM accepted_match)
+            AND NOT EXISTS (SELECT 1 FROM existing_conversation)
+          RETURNING id
+        ),
+        selected_conversation AS (
+          SELECT id FROM existing_conversation
+          UNION ALL
+          SELECT id FROM created_conversation
+          LIMIT 1
+        ),
+        inserted_participants AS (
+          INSERT INTO conversation_participants (conversation_id, user_id)
+          SELECT id, $1 FROM selected_conversation
+          UNION ALL
+          SELECT id, $2 FROM selected_conversation
+          ON CONFLICT (conversation_id, user_id) DO NOTHING
+          RETURNING conversation_id
+        )
+        SELECT id AS conversation_id FROM selected_conversation
+      `,
+      [requesterId, receiverId]
+    )
+    const conversationId = result[0]?.conversation_id
+    if (!conversationId) {
       return { success: false, error: "Aucune demande à accepter." }
     }
     // Send notification to requester
@@ -598,9 +704,15 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
       type: 'match_accepted',
       title: 'Votre demande de match a été acceptée',
       description: 'Votre demande de match a été acceptée !',
-      link: '/matches',
+      link: `/messages/${conversationId}`,
     })
-    return { success: true }
+    await trackProductEvent({
+      eventName: 'match_accepted',
+      userId: receiverId,
+      subjectId: requesterId,
+      metadata: { surface: 'matches' }
+    })
+    return { success: true, conversationId }
   } catch (error) {
     return { success: false, error: "Erreur lors de l'acceptation." }
   }
@@ -613,8 +725,10 @@ export async function declineMatchRequest(requesterId: string, receiverId: strin
   try {
     const result = await sql`
       UPDATE user_matches
-      SET status = 'rejected', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP
+      SET status = 'rejected', accepted_at = NULL, responded_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
       WHERE user_id_1 = ${requesterId} AND user_id_2 = ${receiverId} AND status = 'pending'
+        AND (expires_at IS NULL OR expires_at > NOW())
     `
     if ((result as any).rowCount === 0) {
       return { success: false, error: "Aucune demande à refuser." }
@@ -682,6 +796,7 @@ export async function getIncomingMatchRequests(userId: string) {
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_2 = ${userId} AND status = 'pending'
+      AND (expires_at IS NULL OR expires_at > NOW())
     ORDER BY created_at DESC
   `
 }
@@ -697,6 +812,7 @@ export async function getOutgoingMatchRequests(userId: string) {
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_1 = ${userId} AND status = 'pending'
+      AND (expires_at IS NULL OR expires_at > NOW())
     ORDER BY created_at DESC
   `
 }

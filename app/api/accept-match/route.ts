@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
 import { acceptMatchRequest } from "@/actions/user-actions"
-import { findOrCreateConversation } from "@/actions/conversation-actions"
 import { authOptions } from "@/lib/auth"
 
 export async function POST(req: NextRequest) {
@@ -25,12 +24,7 @@ export async function POST(req: NextRequest) {
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error || "Failed to accept match" }, { status: 500 })
     }
-    // Create/find conversation
-    const conversationId = await findOrCreateConversation(receiverId, requesterId)
-    if (!conversationId) {
-      return NextResponse.json({ success: false, error: "Could not create conversation" }, { status: 500 })
-    }
-    return NextResponse.json({ success: true, conversationId })
+    return NextResponse.json({ success: true, conversationId: result.conversationId })
   } catch (err) {
     console.error("[ACCEPT-MATCH] Server error:", err)
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 })

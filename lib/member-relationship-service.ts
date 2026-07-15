@@ -18,6 +18,8 @@ export type RelationshipRow = {
   other_user_age?: number | null
   other_user_location?: string | null
   match_score?: number | null
+  expires_at?: string | null
+  context?: Record<string, unknown> | null
 }
 
 export type RelationshipOverview = {
@@ -129,7 +131,9 @@ export async function getMemberRelationshipOverview(
         COALESCE(other_user.avatar, primary_photo.url) AS other_user_avatar,
         other_profile.age AS other_user_age,
         other_profile.location AS other_user_location,
-        um.match_score
+        um.match_score,
+        um.expires_at,
+        um.context
       FROM user_matches um
       JOIN users other_user ON other_user.id = CASE
         WHEN um.user_id_1 = $1 THEN um.user_id_2
@@ -145,6 +149,7 @@ export async function getMemberRelationshipOverview(
       ) primary_photo ON true
       WHERE (um.user_id_1 = $1 OR um.user_id_2 = $1)
         AND um.status IN ('accepted', 'pending')
+        AND (um.status <> 'pending' OR um.expires_at IS NULL OR um.expires_at > NOW())
       ORDER BY um.updated_at DESC, um.created_at DESC
     `,
     [userId]

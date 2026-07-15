@@ -48,4 +48,10 @@ describe('member relationship service', () => {
       outgoing: [expect.objectContaining({ other_user_id: 'c' })]
     })
   })
+
+  it('does not expose expired pending requests', async () => {
+    query.mockResolvedValueOnce([])
+    await getMemberRelationshipOverview('member-1')
+    expect(query.mock.calls[0][0]).toContain('um.expires_at IS NULL OR um.expires_at > NOW()')
+  })
 })
