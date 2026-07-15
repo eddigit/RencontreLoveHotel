@@ -12,6 +12,7 @@ import {
 } from "@/lib/presence"
 import { requireAdmin, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { log } from "@/utils/logger"
+import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
 
 export async function getUserProfile(userId: string) {
   const user = await sql`
@@ -104,6 +105,11 @@ export async function getUserMatches(userId: string) {
   `
 
   return matches || []
+}
+
+export async function getMemberRelationships(userId: string) {
+  await requireSameUserOrAdmin(userId)
+  return getMemberRelationshipOverview(userId)
 }
 
 export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions) {

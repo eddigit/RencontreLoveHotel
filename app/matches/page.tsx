@@ -13,12 +13,10 @@ import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 import {
   declineMatchRequest,
-  getIncomingMatchRequests,
-  getOutgoingMatchRequests,
-  getUserMatches,
-  getUserProfile,
+  getMemberRelationships,
   removeMatch
 } from '@/actions/user-actions'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 type MatchProfile = {
   id: string
@@ -29,17 +27,14 @@ type MatchProfile = {
   matchScore?: number | null
 }
 
-async function toProfile (userId: string, matchScore?: number | null): Promise<MatchProfile | null> {
-  const data = await getUserProfile(userId)
-  if (!data?.user) return null
-  const primaryPhoto = data.photos?.find((photo: any) => photo.is_primary)?.url
+function toProfile (relationship: any): MatchProfile {
   return {
-    id: data.user.user_id || data.user.id,
-    name: data.user.name || 'Membre',
-    age: data.user.age,
-    location: data.user.location || 'Paris',
-    image: data.user.avatar || primaryPhoto || '/elegant-woman-purple-glow.png',
-    matchScore
+    id: relationship.other_user_id,
+    name: relationship.other_user_name || 'Membre',
+    age: relationship.other_user_age,
+    location: relationship.other_user_location || 'Paris',
+    image: relationship.other_user_avatar || '/elegant-woman-purple-glow.png',
+    matchScore: relationship.match_score
   }
 }
 
@@ -69,31 +64,14 @@ export default function MatchesPage () {
       setLoading(true)
       setError(null)
       try {
-        const [acceptedRows, incomingRows, outgoingRows] = await Promise.all([
-          getUserMatches(user.id),
-          getIncomingMatchRequests(user.id),
-          getOutgoingMatchRequests(user.id)
-        ])
-
-        const acceptedProfiles = await Promise.all(
-          acceptedRows.map(async (match: any) => {
-            const otherId = match.user_id_1 === user.id ? match.user_id_2 : match.user_id_1
-            return toProfile(otherId, match.match_score)
-          })
-        )
-        const incomingProfiles = await Promise.all(
-          incomingRows.map((request: any) => toProfile(request.user_id_1, request.match_score))
-        )
-        const outgoingProfiles = await Promise.all(
-          outgoingRows.map((request: any) => toProfile(request.user_id_2, request.match_score))
-        )
-
-        setMatches(acceptedProfiles.filter(Boolean) as MatchProfile[])
-        setIncoming(incomingProfiles.filter(Boolean) as MatchProfile[])
-        setOutgoing(outgoingProfiles.filter(Boolean) as MatchProfile[])
+        const overview = await getMemberRelationships(user.id)
+        setMatches(overview.accepted.map(toProfile))
+        setIncoming(overview.incoming.map(toProfile))
+        setOutgoing(overview.outgoing.map(toProfile))
       } catch (err) {
-        console.error('Failed to fetch matches data:', err)
-        setError('Impossible de charger les matchs pour le moment.')
+        if (!recoverFromStaleServerAction(err)) {
+          setError('Impossible de charger les matchs pour le moment. Rechargez la page pour réessayer.')
+        }
       } finally {
         setLoading(false)
       }

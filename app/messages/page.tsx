@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
-import { useNotifications } from '@/contexts/notification-context'
 import { getUserConversations } from '@/actions/conversation-actions'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 interface Conversation {
   id: string
@@ -42,7 +42,6 @@ export default function MessagesPage () {
   const { user: authUser } = useAuth()
   const router = useRouter()
   const { data: session } = useSession()
-  const { markAsRead } = useNotifications()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -54,6 +53,7 @@ export default function MessagesPage () {
 
   useEffect(() => {
     let cancelled = false
+    let pollingStopped = false
 
     async function fetchConversations (showLoader = false) {
       if (!session?.user?.id) return
@@ -75,8 +75,10 @@ export default function MessagesPage () {
           }))
         )
       } catch (error) {
-        console.error('Failed to fetch conversations:', error)
-        if (!cancelled) setError('Impossible de charger vos conversations pour le moment.')
+        pollingStopped = true
+        if (!cancelled && !recoverFromStaleServerAction(error)) {
+          setError('Impossible de charger vos conversations pour le moment. Rechargez la page pour réessayer.')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -84,7 +86,7 @@ export default function MessagesPage () {
 
     fetchConversations(true)
     const interval = setInterval(() => {
-      if (document.visibilityState !== 'hidden') {
+      if (!pollingStopped && document.visibilityState !== 'hidden') {
         fetchConversations(false)
       }
     }, 8000)
@@ -93,7 +95,7 @@ export default function MessagesPage () {
       cancelled = true
       clearInterval(interval)
     }
-  }, [session?.user?.id, markAsRead])
+  }, [session?.user?.id])
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -112,9 +114,9 @@ export default function MessagesPage () {
     <MainLayout user={authUser}>
       <LhrV2Shell
         user={authUser}
-        eyebrow='Messagerie V2'
+        eyebrow='Vos échanges'
         title='Messages'
-        subtitle='Une messagerie claire, stable et présentable pour un produit de rencontre moderne.'
+        subtitle='Retrouvez vos conversations et poursuivez les échanges avec vos matchs.'
         action={
           <Button className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
             <Plus className='mr-2 h-4 w-4' />
@@ -232,7 +234,7 @@ export default function MessagesPage () {
                 <MessageCircle className='h-10 w-10 text-white/32' />
                 <h2 className='mt-4 text-xl font-black'>Sélectionnez une conversation</h2>
                 <p className='mt-2 max-w-sm text-sm leading-6 text-white/56'>
-                  La messagerie V2 mettra ici les échanges, les états d’envoi et le contexte relationnel.
+                   Vos échanges apparaissent ici dès qu’un match est accepté.
                 </p>
               </div>
             )}
@@ -247,21 +249,20 @@ export default function MessagesPage () {
                   <dd className='font-bold'>{conversations.length}</dd>
                 </div>
                 <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Statut</dt>
-                  <dd className='font-bold'>stable</dd>
+                   <dt className='text-white/58'>Accès</dt>
+                   <dd className='font-bold'>Match accepté</dd>
                 </div>
                 <div className='flex justify-between'>
-                  <dt className='text-white/58'>Version</dt>
-                  <dd className='font-bold'>V2</dd>
+                   <dt className='text-white/58'>Confidentialité</dt>
+                   <dd className='font-bold'>Privée</dd>
                 </div>
               </dl>
             </div>
             <div className='mt-4 rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='font-black'>Architecture cible</h3>
-              <p className='mt-3 text-sm leading-6 text-white/62'>
-                API messages, service métier, repository SQL, lecture par participant,
-                erreurs explicites et états d’envoi visibles.
-              </p>
+               <h3 className='font-black'>Un échange à votre rythme</h3>
+               <p className='mt-3 text-sm leading-6 text-white/62'>
+                 Prenez le temps de faire connaissance avant de proposer une rencontre ou un événement.
+               </p>
             </div>
           </aside>
         </div>

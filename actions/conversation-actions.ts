@@ -6,6 +6,7 @@ import { createNotification } from "@/actions/notification-actions"
 import { messageSchema, getMessagesSchema, createConversationSchema, validateSchema, type MessageAttachmentInput } from "@/lib/validation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
+import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -21,7 +22,7 @@ export async function getUserConversations(userId?: string) {
   const currentUser = await requireAuth()
   
   // Utiliser l'ID de l'utilisateur connecté si non fourni
-  const targetUserId = userId || currentUser.id
+  const targetUserId = userId || String(currentUser.id)
   
   // Vérifier que l'utilisateur ne peut accéder qu'à ses propres conversations
   if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
@@ -31,76 +32,7 @@ export async function getUserConversations(userId?: string) {
     })
     throw new Error('Accès non autorisé aux conversations')
   }
-  const query = `
-    WITH user_conversations AS (
-      SELECT
-        c.id,
-        c.created_at,
-        c.updated_at,
-        cp.user_id AS participant_user_id
-      FROM conversations c
-      JOIN conversation_participants cp ON c.id = cp.conversation_id
-      WHERE cp.user_id = $1
-    ),
-    valid_conversations AS (
-      SELECT DISTINCT uc.id, uc.created_at, uc.updated_at
-      FROM user_conversations uc
-      JOIN conversation_participants cp_other ON uc.id = cp_other.conversation_id AND cp_other.user_id != $1
-      JOIN users viewer_user ON viewer_user.id = $1
-      JOIN users other_user ON other_user.id = cp_other.user_id
-      LEFT JOIN user_matches um ON
-        ((um.user_id_1 = $1 AND um.user_id_2 = cp_other.user_id) OR
-         (um.user_id_1 = cp_other.user_id AND um.user_id_2 = $1))
-        AND um.status = 'accepted'
-      WHERE um.id IS NOT NULL
-        OR viewer_user.role = 'admin'
-        OR other_user.role = 'admin'
-    ),
-    last_messages AS (
-      SELECT
-        m.conversation_id,
-        CASE
-          WHEN NULLIF(TRIM(m.content), '') IS NOT NULL THEN m.content
-          WHEN EXISTS (SELECT 1 FROM message_attachments ma WHERE ma.message_id = m.id AND ma.media_type = 'audio') THEN 'Message vocal'
-          WHEN EXISTS (SELECT 1 FROM message_attachments ma WHERE ma.message_id = m.id AND ma.media_type = 'video') THEN 'Video partagee'
-          WHEN EXISTS (SELECT 1 FROM message_attachments ma WHERE ma.message_id = m.id AND ma.media_type = 'image') THEN 'Image partagee'
-          ELSE m.content
-        END as content,
-        m.created_at,
-        m.sender_id,
-        ROW_NUMBER() OVER (PARTITION BY m.conversation_id ORDER BY m.created_at DESC) as rn
-      FROM messages m
-      JOIN valid_conversations vc ON m.conversation_id = vc.id
-    ),
-    conversation_users AS (
-      SELECT
-        cp.conversation_id,
-        u.id as user_id,
-        u.name,
-        u.avatar
-      FROM conversation_participants cp
-      JOIN users u ON cp.user_id = u.id
-      WHERE cp.user_id != $1
-        AND cp.conversation_id IN (SELECT id FROM valid_conversations)
-    )
-    SELECT
-      vc.id,
-      vc.created_at,
-      vc.updated_at,
-      lm.content as last_message,
-      lm.created_at as last_message_date,
-      lm.sender_id as last_message_sender_id,
-      cu.user_id as other_user_id,
-      cu.name as other_user_name,
-      cu.avatar as other_user_avatar
-    FROM valid_conversations vc
-    LEFT JOIN last_messages lm ON vc.id = lm.conversation_id AND lm.rn = 1
-    LEFT JOIN conversation_users cu ON vc.id = cu.conversation_id
-    ORDER BY lm.created_at DESC NULLS LAST
-  `
-
-  const conversations = await sql.query(query, [targetUserId])
-  return conversations || []
+  return getMemberConversationSummaries(targetUserId)
 }
 
 export async function getConversationMessages(conversationId: string, userId?: string) {

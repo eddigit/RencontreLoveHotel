@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/actions"
 import { useAuth } from "@/contexts/auth-context"
 import type { Notification } from "@/components/notifications-dropdown"
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 type NotificationCounts = {
   total: number
@@ -39,17 +40,20 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (!userId) return;
     const currentUserId = userId
     let isMounted = true;
+    let pollingStopped = false;
     let interval: NodeJS.Timeout;
     async function loadNotifications() {
+      if (pollingStopped || document.visibilityState === 'hidden') return
       try {
         const { notifications } = await getNotifications(currentUserId)
         if (isMounted) setNotifications(notifications)
       } catch (error) {
-        if (isMounted) console.error("Failed to load notifications:", error)
+        pollingStopped = true
+        if (isMounted) recoverFromStaleServerAction(error)
       }
     }
     loadNotifications()
-    interval = setInterval(loadNotifications, 15000) // Poll every 15 seconds
+    interval = setInterval(loadNotifications, 15000)
     return () => {
       isMounted = false;
       clearInterval(interval)
@@ -80,7 +84,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       await markNotificationAsRead(id)
     } catch (e) {
-      // Optionally handle error
+      recoverFromStaleServerAction(e)
     }
   }
 
@@ -90,7 +94,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       try {
         await markAllNotificationsAsRead(user.id)
       } catch (e) {
-        // Optionally handle error
+        recoverFromStaleServerAction(e)
       }
     }
   }
