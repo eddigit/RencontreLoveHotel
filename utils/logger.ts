@@ -4,19 +4,63 @@ interface LogEntry {
   timestamp: string
   level: LogLevel
   message: string
-  meta?: any
-  userId?: string
-  ip?: string
-  userAgent?: string
+  meta?: Record<string, string | number | boolean | null>
+}
+
+const safeMetaKeys = new Set([
+  'operation',
+  'event',
+  'environment',
+  'route',
+  'method',
+  'status',
+  'reason',
+  'count',
+  'totalCount',
+  'page',
+  'pageSize',
+  'currentPage',
+  'totalPages',
+  'hasMore',
+  'success',
+  'errorName',
+  'errorCode',
+  'conversationId',
+  'matchId',
+  'userId',
+  'currentUserId',
+  'targetUserId',
+  'senderId',
+  'requesterId',
+  'receiverId'
+])
+
+export function sanitizeMeta(meta?: Record<string, any>) {
+  if (!meta) return undefined
+
+  const safe: Record<string, string | number | boolean | null> = {}
+  for (const [key, value] of Object.entries(meta)) {
+    if (!safeMetaKeys.has(key)) continue
+    if (
+      typeof value !== 'string' &&
+      typeof value !== 'number' &&
+      typeof value !== 'boolean' &&
+      value !== null
+    ) continue
+
+    safe[key] = typeof value === 'string' ? value.slice(0, 160) : value
+  }
+
+  return Object.keys(safe).length > 0 ? safe : undefined
 }
 
 export function log(level: LogLevel, message: string, meta?: Record<string, any>) {
+  const safeMeta = sanitizeMeta(meta)
   const entry: LogEntry = {
     timestamp: new Date().toISOString(),
     level,
     message,
-    meta,
-    userId: meta?.userId || meta?.currentUserId,
+    meta: safeMeta,
   }
 
   // En production, vous pourriez envoyer à un service de logging
@@ -35,7 +79,7 @@ export function log(level: LogLevel, message: string, meta?: Record<string, any>
     
     console.log(
       `${colors[level]}[${level.toUpperCase()}]${reset} ${entry.timestamp} - ${message}`,
-      meta ? '\n' + JSON.stringify(meta, null, 2) : ''
+      safeMeta || ''
     )
   }
 }
@@ -52,9 +96,12 @@ export function logSecurityEvent(event: string, details: any) {
 
 // Fonction pour les erreurs avec stack trace
 export function logError(error: Error, context?: any) {
-  log('error', error.message, {
-    stack: error.stack,
-    context,
-    name: error.name
+  log('error', 'Unhandled application error', {
+    ...sanitizeMeta(context),
+    errorName: error.name,
+    errorCode:
+      'code' in error && typeof error.code === 'string'
+        ? error.code
+        : undefined
   })
 }

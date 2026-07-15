@@ -11,6 +11,7 @@ import {
   onlinePresenceCondition
 } from "@/lib/presence"
 import { requireAdmin, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { log } from "@/utils/logger"
 
 export async function getUserProfile(userId: string) {
   const user = await sql`
@@ -106,11 +107,11 @@ export async function getUserMatches(userId: string) {
 }
 
 export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions) {
-  console.log(`[getDiscoverProfiles] Called for user: ${currentUserId}, page: ${page}, filters:`, JSON.stringify(filters, null, 2));
+  log('info', 'Discover profiles requested', { operation: 'getDiscoverProfiles', page, pageSize });
 
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUserId);
   if (!isValidUUID) {
-    console.error(`[getDiscoverProfiles] Invalid currentUserId: ${currentUserId}`);
+    log('warn', 'Discover profiles rejected: invalid identifier', { operation: 'getDiscoverProfiles' });
     return {
       profiles: [],
       totalCount: 0,
@@ -125,8 +126,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   const hasPresenceColumn = await ensurePresenceSchema();
   const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at';
   const onlineCondition = onlinePresenceCondition(presenceColumn);
-  // console.log(`[getDiscoverProfiles] Initializing currentUserProfileGender and currentUserProfileOrientation.`);
-
   try {
     const currentUserProfileResult = await sql`
       SELECT gender, orientation
@@ -134,32 +133,25 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       WHERE user_id = ${currentUserId}
       LIMIT 1;
     `;
-    // console.log(`[getDiscoverProfiles] Raw currentUserProfileResult from DB:`, currentUserProfileResult);
     if (currentUserProfileResult && currentUserProfileResult.length > 0) {
       currentUserProfileGender = currentUserProfileResult[0].gender?.toLowerCase(); // Ensure lowercase
       currentUserProfileOrientation = currentUserProfileResult[0].orientation?.toLowerCase(); // Ensure lowercase
-      console.log(`[getDiscoverProfiles] Current user (${currentUserId}) profile fetched: Gender=${currentUserProfileGender}, Orientation=${currentUserProfileOrientation}`);
     } else {
-      console.warn(`[getDiscoverProfiles] User ${currentUserId} has no profile set in user_profiles or gender/orientation is missing.`);
+      log('info', 'Discover profile preferences are incomplete', { operation: 'getDiscoverProfiles' });
     }
   } catch (error) {
-    console.error("[getDiscoverProfiles] Error fetching current user profile:", error);
+    log('error', 'Unable to load discovery preferences', { operation: 'getDiscoverProfiles', errorName: error instanceof Error ? error.name : 'UnknownError' });
   }
 
   const offset = (page - 1) * pageSize;
-  // console.log(`[getDiscoverProfiles] Calculated offset: ${offset}`);
-
   let baseParams: any[] = [currentUserId];
   let whereClauses = [`u.id != $1`];
-  // console.log(`[getDiscoverProfiles] Initial baseParams:`, JSON.stringify(baseParams));
-  // console.log(`[getDiscoverProfiles] Initial whereClauses:`, JSON.stringify(whereClauses));
 
 
   // Only show profiles with display_profile = TRUE
   whereClauses.push("up.display_profile = TRUE");
 
   if (currentUserProfileGender && currentUserProfileOrientation) {
-    // console.log(`[getDiscoverProfiles] Applying primary gender/orientation compatibility logic for current user: ${currentUserProfileGender}/${currentUserProfileOrientation}.`);
     const genderOrientationMatchingClauses: string[] = [];
 
     const cUserPGender = currentUserProfileGender; // Already lowercased
@@ -176,7 +168,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     // Determine current user's effective searching role (male/female)
     const isCurrentUserEffectivelyMale = (cUserPGender === 'male' || cUserPGender === 'single_male' || cUserPGender === 'married_male' || cUserPGender === 'couple_mm');
     const isCurrentUserEffectivelyFemale = (cUserPGender === 'female' || cUserPGender === 'single_female' || cUserPGender === 'married_female' || cUserPGender === 'couple_ff');
-    console.log(`[getDiscoverProfiles] Current user effective roles: isMale=${isCurrentUserEffectivelyMale}, isFemale=${isCurrentUserEffectivelyFemale}`);
 
     if (cUserOrientation === 'hetero' || cUserOrientation === 'straight') {
       if (isCurrentUserEffectivelyMale) {
@@ -190,7 +181,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         // Placeholder: assume they are open to male or female entities who are hetero/bi.
         genderOrientationMatchingClauses.push(`(${targetMaleEntitiesSQL} OR ${targetFemaleEntitiesSQL})`);
         genderOrientationMatchingClauses.push(targetOrientationHeteroBiCompatibleSQL);
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' hetero is a broad placeholder.`);
       }
     } else if (cUserOrientation === 'gay' || cUserOrientation === 'homo') {
       if (isCurrentUserEffectivelyMale) {
@@ -201,7 +191,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         genderOrientationMatchingClauses.push(targetOrientationGayBiCompatibleSQL);
       } else if (cUserPGender === 'couple_mf') {
         // Gay/Homo couple_mf: Contradictory for the unit's orientation.
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' gay/homo is undefined as it's contradictory.`);
       }
     } else if (cUserOrientation === 'bisexual' || cUserOrientation === 'bi') {
       if (isCurrentUserEffectivelyMale) { // Bi Male
@@ -214,15 +203,13 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         // Placeholder: Open to (Male Gay/Bi) OR (Female Hetero/Bi) OR (Female Gay/Bi)
         // This covers seeking males for the male part, females for the male part, females for the female part, males for the female part, with compatible orientations.
         genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}))`);
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' bisexual is a broad placeholder.`);
       }
     }
-    // console.log(`[getDiscoverProfiles] Generated genderOrientationMatchingClauses:`, JSON.stringify(genderOrientationMatchingClauses));
     if (genderOrientationMatchingClauses.length > 0) {
       whereClauses.push(`(${genderOrientationMatchingClauses.join(' AND ')})`);
     }
   } else {
-    console.log("[getDiscoverProfiles] Skipping primary gender/orientation compatibility clauses as current user data is insufficient.");
+    log('info', 'Discovery compatibility filter skipped', { operation: 'getDiscoverProfiles' });
   }
 
   if (filters) {
@@ -233,7 +220,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Age Range Filter
     if (filters.ageRange) {
-      // console.log(`[getDiscoverProfiles] Applying ageRange filter: ${filters.ageRange[0]} - ${filters.ageRange[1]}`);
       baseParams.push(filters.ageRange[0]);
       const ageMinPlaceholder = `$${baseParams.length}`;
       baseParams.push(filters.ageRange[1]);
@@ -247,7 +233,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Status Filter
     if (filters.status && filters.status !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying status filter: ${filters.status}`);
       const filterStatus = filters.status.toLowerCase(); // Ensure filter value is lowercase
       if (filterStatus === "single") {
         whereClauses.push(`(LOWER(up.status) LIKE 'single_%' OR up.status IS NULL OR up.status = '')`);
@@ -260,7 +245,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Orientation Filter
     if (filters.orientation && filters.orientation !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying explicit orientation filter for others: ${filters.orientation}`);
       baseParams.push(filters.orientation.toLowerCase()); // Ensure filter value is lowercase
       const orientationPlaceholder = `$${baseParams.length}`;
       // Compare with lowercase orientation from filter, and allow for NULL target orientation
@@ -269,7 +253,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Meeting Types Filter
     if (filters.meetingTypes) {
-      // console.log(`[getDiscoverProfiles] Applying meetingTypes filter for others:`, JSON.stringify(filters.meetingTypes));
       const activeMeetingTypes = Object.entries(filters.meetingTypes)
         .filter(([, isActive]) => isActive)
         .map(([type]) => type);
@@ -277,7 +260,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         activeMeetingTypes.forEach(type => {
           if (['friendly', 'romantic', 'playful', 'open_curtains', 'libertine'].includes(type)) {
              whereClauses.push(`umt_filter.${type.toLowerCase()} = TRUE`); // Assuming umt_filter columns are lowercase
-             // console.log(`[getDiscoverProfiles] Added meeting type clause for others: umt_filter.${type.toLowerCase()} = TRUE`);
           }
         });
       }
@@ -285,7 +267,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Curtain Preference Filter
     if (filters.curtainPreference && filters.curtainPreference !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying curtainPreference filter for others: ${filters.curtainPreference}`);
       const curtainPref = filters.curtainPreference.toLowerCase();
       if (curtainPref === "open") {
         whereClauses.push(`(upref_filter.prefer_curtain_open = TRUE OR upref_filter.prefer_curtain_open IS NULL)`);
@@ -295,7 +276,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     }
   }
 
-  // console.log("[getDiscoverProfiles] Constructed whereClauses:", JSON.stringify(whereClauses, null, 2));
   const baseFromClause = `
     FROM users u
     JOIN user_profiles up ON u.id = up.user_id
@@ -304,21 +284,15 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   `;
   const whereCondition = whereClauses.length > 1 ? `WHERE ${whereClauses.join(" AND ")}` : (whereClauses.length === 1 ? `WHERE ${whereClauses[0]}` : "");
 
-  console.log(`[getDiscoverProfiles] Final whereCondition for SQL: ${whereCondition}`);
-  console.log("[getDiscoverProfiles] Final baseParams for count query:", JSON.stringify(baseParams, null, 2));
-
   const totalCountQuery = `SELECT COUNT(DISTINCT u.id) as total ${baseFromClause} ${whereCondition}`;
-  console.log(`[getDiscoverProfiles] Total count query SQL: ${totalCountQuery}`);
   const totalCountResult = await sql.query(totalCountQuery, baseParams);
   const totalCount = totalCountResult && totalCountResult.length > 0 ? parseInt(totalCountResult[0].total, 10) : 0;
-  console.log(`[getDiscoverProfiles] Total count of profiles found: ${totalCount}`);
 
   let profilesParams = [...baseParams];
   profilesParams.push(pageSize);
   const limitPlaceholder = `$${profilesParams.length}`;
   profilesParams.push(offset);
   const offsetPlaceholder = `$${profilesParams.length}`;
-  // console.log("[getDiscoverProfiles] Final profilesParams for profiles query:", JSON.stringify(profilesParams, null, 2)); // Existing log
 
   const profilesQuery = `
     SELECT
@@ -359,11 +333,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     LIMIT ${limitPlaceholder}
     OFFSET ${offsetPlaceholder}
   `;
-  // console.log("[getDiscoverProfiles] Profiles Query:", profilesQuery); // Existing log
-
   const profilesResult = await sql.query(profilesQuery, profilesParams);
   const profilesData = profilesResult || [];
-  console.log(`[getDiscoverProfiles] Fetched ${profilesData.length} raw profiles from DB.`);
 
   const currentMatchingProfile = buildMatchingProfile(await getUserProfile(currentUserId));
   const mappedProfiles = profilesData
@@ -411,7 +382,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       };
     })
     .sort((a: any, b: any) => Number(b.matchScore || 0) - Number(a.matchScore || 0));
-  console.log(`[getDiscoverProfiles] Mapped ${mappedProfiles.length} profiles for client.`);
 
   const result = {
     profiles: mappedProfiles,
@@ -420,7 +390,12 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     totalPages: Math.ceil(totalCount / pageSize),
     hasMore: (offset + mappedProfiles.length) < totalCount
   };
-  console.log("[getDiscoverProfiles] Returning final result object:", JSON.stringify(result, null, 2));
+  log('info', 'Discover profiles completed', {
+    operation: 'getDiscoverProfiles',
+    count: mappedProfiles.length,
+    totalCount,
+    page
+  });
   return result;
 }
 
@@ -441,7 +416,6 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       WHERE (user_id_1 = ${requesterId} AND user_id_2 = ${receiverId})
          OR (user_id_1 = ${receiverId} AND user_id_2 = ${requesterId})
     `
-    console.log("Existing match: ", existing)
     if (existing.length > 0) {
       const status = existing[0].status
       if (status === "pending") return { success: false, error: "Demande déjà envoyée." }
@@ -457,7 +431,7 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     if (requester && receiver) {
       matchScore = calculateMatchScore(requester, receiver)
     }
-    const result = await sql`
+    await sql`
       INSERT INTO user_matches (user_id_1, user_id_2, status, match_score)
       VALUES (${requesterId}, ${receiverId}, 'pending', ${matchScore})
       ON CONFLICT (user_id_1, user_id_2) DO UPDATE SET status = 'pending', accepted_at = NULL, updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
@@ -470,10 +444,13 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       description: 'Vous avez reçu une nouvelle demande de match.',
       link: '/matches',
     })
-    console.log("Insert/Update result: ", result)
+    log('info', 'Match request stored', { operation: 'sendMatchRequest' })
     return { success: true }
   } catch (error) {
-    console.error("Erreur lors de l'envoi de la demande:", error)
+    log('error', 'Match request failed', {
+      operation: 'sendMatchRequest',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    })
     return { success: false, error: "Erreur lors de l'envoi de la demande." }
   }
 }
@@ -544,13 +521,16 @@ export async function removeMatch(userId1: string, userId2: string) {
     // Assuming 'sql' result for DELETE has a 'rowCount' property.
     // Using 'as any' to bypass potential overly generic typing from the sql tag.
     if ((result as any).rowCount === 0) {
-      console.warn(`No accepted match found to remove between ${userId1} and ${userId2}`);
+      log('info', 'No accepted match to remove', { operation: 'removeMatch' });
       return { success: true, message: "No active match to remove or already removed." };
     }
     // Optionally, send notifications or perform other cleanup
     return { success: true };
   } catch (error) {
-    console.error("Erreur lors de la suppression du match:", error);
+    log('error', 'Match removal failed', {
+      operation: 'removeMatch',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return { success: false, error: "Erreur lors de la suppression du match." };
   }
 }
@@ -616,7 +596,10 @@ export async function getTotalUsersCount() {
     const result = await sql`SELECT COUNT(*) as count FROM users`;
     return result[0].count as number;
   } catch (error) {
-    console.error("Error fetching total users count:", error);
+    log('error', 'Total user count failed', {
+      operation: 'getTotalUsersCount',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return 0;
   }
 }
@@ -643,7 +626,10 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
       count: parseInt(row.count as string, 10)
     }));
   } catch (error) {
-    console.error('Erreur lors de la récupération des comptes par genre:', error);
+    log('error', 'User count by gender failed', {
+      operation: 'getUserCountsByGender',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return null;
   }
 }

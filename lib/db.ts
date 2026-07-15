@@ -2,6 +2,7 @@ import { config } from 'dotenv';
 config();
 
 import { Pool } from 'pg'
+import { log } from '@/utils/logger'
 
 let pool: Pool | null = null
 
@@ -71,7 +72,14 @@ export async function executeQuery<T = any>(query: string, params: any[] = []): 
     const result = await db.query(query, params)
     return result.rows as T
   } catch (error) {
-    console.error("Erreur lors de l'exécution de la requête SQL:", error)
+    log('error', 'Database query failed', {
+      operation: 'executeQuery',
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      errorCode:
+        typeof error === 'object' && error && 'code' in error
+          ? String(error.code)
+          : undefined
+    })
     throw error
   }
 }
