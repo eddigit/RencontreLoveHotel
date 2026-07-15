@@ -84,8 +84,7 @@ describe('sensitive API routes', () => {
 
   it('blocks anonymous match acceptance before touching match data', async () => {
     getServerSessionMock.mockResolvedValue(null)
-    acceptMatchRequestMock.mockResolvedValue({ success: true })
-    findOrCreateConversationMock.mockResolvedValue('conversation-1')
+    acceptMatchRequestMock.mockResolvedValue({ success: true, conversationId: 'conversation-1' })
 
     const { POST } = await import('@/app/api/accept-match/route')
     const response = await POST(
@@ -124,8 +123,7 @@ describe('sensitive API routes', () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'receiver-1', role: 'user' }
     })
-    acceptMatchRequestMock.mockResolvedValue({ success: true })
-    findOrCreateConversationMock.mockResolvedValue('conversation-1')
+    acceptMatchRequestMock.mockResolvedValue({ success: true, conversationId: 'conversation-1' })
 
     const { POST } = await import('@/app/api/accept-match/route')
     const response = await POST(
@@ -142,10 +140,7 @@ describe('sensitive API routes', () => {
       'requester-1',
       'receiver-1'
     )
-    expect(findOrCreateConversationMock).toHaveBeenCalledWith(
-      'receiver-1',
-      'requester-1'
-    )
+    expect(findOrCreateConversationMock).not.toHaveBeenCalled()
   })
 
   it('blocks anonymous event participation before querying the database', async () => {

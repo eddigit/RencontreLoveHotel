@@ -34,7 +34,7 @@ describe('messaging recovery match timestamps', () => {
       /SET status = 'accepted',\s*accepted_at = CURRENT_TIMESTAMP/
     )
     expect(userActions).toMatch(
-      /DO UPDATE SET status = 'pending',\s*accepted_at = NULL/
+      /status = 'pending',[\s\S]*accepted_at = NULL, responded_at = NULL/
     )
     expect(userActions).toMatch(
       /SET status = 'rejected',\s*accepted_at = NULL/
