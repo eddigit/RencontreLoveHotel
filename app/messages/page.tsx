@@ -39,7 +39,7 @@ function formatMessageDate (date: Date): string {
 }
 
 export default function MessagesPage () {
-  const { user: authUser } = useAuth()
+  const { user: authUser, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const { data: session } = useSession()
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -48,8 +48,8 @@ export default function MessagesPage () {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    if (!authUser?.id) router.replace('/login')
-  }, [authUser?.id, router])
+    if (!authLoading && !authUser?.id) router.replace('/login')
+  }, [authLoading, authUser?.id, router])
 
   useEffect(() => {
     let cancelled = false
@@ -106,7 +106,7 @@ export default function MessagesPage () {
     )
   }, [conversations, search])
 
-  if (!authUser?.id) return null
+  if (authLoading || !authUser?.id) return null
 
   const activeConversation = filteredConversations[0]
 

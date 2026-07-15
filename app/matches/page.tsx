@@ -44,7 +44,7 @@ function scoreLabel (score?: number | null) {
 }
 
 export default function MatchesPage () {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('active')
   const [loading, setLoading] = useState(true)
@@ -54,10 +54,12 @@ export default function MatchesPage () {
   const [outgoing, setOutgoing] = useState<MatchProfile[]>([])
 
   useEffect(() => {
-    if (!user?.id) {
+    if (!authLoading && !user?.id) {
       router.replace('/login')
       return
     }
+
+    if (authLoading) return
 
     async function fetchMatches () {
       if (!user?.id) return
@@ -78,7 +80,7 @@ export default function MatchesPage () {
     }
 
     fetchMatches()
-  }, [user?.id, router])
+  }, [authLoading, user?.id, router])
 
   async function acceptIncoming (profile: MatchProfile) {
     if (!user?.id) return
@@ -117,7 +119,7 @@ export default function MatchesPage () {
     setError(result.error || "Le match n'a pas pu être supprimé.")
   }
 
-  if (!user?.id) return null
+  if (authLoading || !user?.id) return null
 
   return (
     <MainLayout user={user}>

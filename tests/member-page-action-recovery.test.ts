@@ -9,8 +9,12 @@ describe('member page action recovery', () => {
 
     expect(messages).toContain('recoverFromStaleServerAction')
     expect(messages).toContain('pollingStopped')
+    expect(messages).toContain('isLoading: authLoading')
+    expect(messages).toContain('if (!authLoading && !authUser?.id)')
     expect(matches).toContain('recoverFromStaleServerAction')
     expect(matches).toContain('getMemberRelationships')
+    expect(matches).toContain('isLoading: authLoading')
+    expect(matches).toContain('if (!authLoading && !user?.id)')
     expect(notifications).toContain('recoverFromStaleServerAction')
     expect(notifications).toContain('pollingStopped')
   })
