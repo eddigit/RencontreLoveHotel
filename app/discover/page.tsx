@@ -281,9 +281,9 @@ export default function DiscoverPage () {
                 </div>
               </div>
               <div className='mt-5 space-y-3 text-sm'>
-                <Link href='#new-profiles' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>Nouveaux membres</span>
-                  <span className='text-right font-bold'>{totalMembersLabel} adhérents</span>
+                <Link href='#online-now' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
+                  <span className='text-white/58'>En ligne maintenant</span>
+                  <span className='text-right font-bold'>{onlineProfiles.length}</span>
                 </Link>
                 <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
                   <span className='text-white/58'>Vos matchs</span>
