@@ -1,6 +1,48 @@
 -- LHR anti-solicitation compliance foundation. Additive and idempotent.
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Production may predate the original moderation module. Establish its
+-- minimal foundations before applying the additive compliance extensions.
+CREATE TABLE IF NOT EXISTS moderation_keywords (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  keyword TEXT NOT NULL UNIQUE,
+  severity TEXT NOT NULL DEFAULT 'medium'
+    CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  action TEXT NOT NULL DEFAULT 'flag'
+    CHECK (action IN ('flag', 'hide', 'escalate')),
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS moderation_queue (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  source_type TEXT NOT NULL
+    CHECK (source_type IN ('message', 'profile', 'event', 'user')),
+  source_id UUID,
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
+  severity TEXT NOT NULL DEFAULT 'medium'
+    CHECK (severity IN ('low', 'medium', 'high', 'critical')),
+  status TEXT NOT NULL DEFAULT 'new'
+    CHECK (status IN ('new', 'in_review', 'ignored', 'actioned', 'escalated')),
+  reason TEXT NOT NULL,
+  matched_keywords TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+  excerpt TEXT,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+  resolved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  resolved_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_moderation_queue_status_created
+  ON moderation_queue(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_moderation_queue_user
+  ON moderation_queue(user_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS legal_acceptances (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
