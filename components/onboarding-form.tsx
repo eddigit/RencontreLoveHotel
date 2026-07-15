@@ -327,21 +327,6 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
 
               <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
                 <Checkbox
-                  id="restaurant"
-                  checked={formData.interestedInRestaurant}
-                  onCheckedChange={(checked) => updateFormData("interestedInRestaurant", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="restaurant" className="font-medium cursor-pointer">
-                    Restaurant du Love Hôtel
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Dîners romantiques et ambiance intimiste</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
                   id="events"
                   checked={formData.interestedInEvents}
                   onCheckedChange={(checked) => updateFormData("interestedInEvents", checked === true)}

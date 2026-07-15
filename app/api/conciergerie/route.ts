@@ -51,7 +51,8 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
   weekend: 'Week-end particulier',
   love_room: 'Love Room et chambre préparée',
   limousine: 'Limousine / arrivée scénarisée',
-  restaurant: 'Restaurant ou partenaire sur mesure',
+  // Valeur historique encore acceptée pour les anciennes demandes enregistrées.
+  restaurant: 'Demande partenaire historique',
   open_curtains: 'Rideaux ouverts',
   jacuzzi: 'Apéro jacuzzi privé',
   libertine_event: 'Événement libertin spécifique',

@@ -45,11 +45,6 @@ const requestTypes = [
     description: 'Mise en scène premium avant la chambre.'
   },
   {
-    value: 'restaurant',
-    label: 'Restaurant partenaire sur étude',
-    description: 'À organiser hors établissement si pertinent.'
-  },
-  {
     value: 'libertine_event',
     label: 'Événement libertin spécifique',
     description: 'Demande cadrée, consentie et préparée.'

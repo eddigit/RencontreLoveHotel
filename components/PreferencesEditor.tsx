@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { CalendarHeart, HeartHandshake, Save, Sparkles, Wine } from "lucide-react"
+import { CalendarHeart, HeartHandshake, Save, Sparkles } from "lucide-react"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Checkbox } from "./ui/checkbox"
@@ -74,7 +74,7 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
 
   return (
     <form onSubmit={handleSubmit} className="mt-5 space-y-6 text-white">
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2">
         <PreferenceTile
           icon={<HeartHandshake className="h-5 w-5 text-[#ff8cc8]" />}
           title="Rencontres"
@@ -86,12 +86,6 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
           title="Événements"
           checked={form.interested_in_events}
           onCheckedChange={value => setForm(f => ({ ...f, interested_in_events: value }))}
-        />
-        <PreferenceTile
-          icon={<Wine className="h-5 w-5 text-[#ffd166]" />}
-          title="Restaurant / bar"
-          checked={form.interested_in_restaurant}
-          onCheckedChange={value => setForm(f => ({ ...f, interested_in_restaurant: value }))}
         />
       </section>
 

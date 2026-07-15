@@ -32,7 +32,7 @@ describe('conciergerie workflow', () => {
     expect(form).toContain('responsePreference')
     expect(form).toContain('email')
     expect(form).toContain('limousine')
-    expect(form).toContain('restaurant')
+    expect(form).not.toContain("value: 'restaurant'")
     expect(form).toContain('week-end')
     expect(form).toContain('libertin')
   })
