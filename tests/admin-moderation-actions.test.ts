@@ -80,7 +80,7 @@ describe('admin moderation actions', () => {
       highSeverityItems: 1,
       activeKeywords: 4,
       bannedMembers: 2,
-      messagesLast24h: 18
+      messagesToday: 18
     })
     expect(dashboard.keywordRules[0].keyword).toBe('spam')
     expect(dashboard.recentItems[0].id).toBe('queue-1')

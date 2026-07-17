@@ -41,7 +41,7 @@ export type AdminModerationDashboard = {
     highSeverityItems: number
     activeKeywords: number
     bannedMembers: number
-    messagesLast24h: number
+    messagesToday: number
   }
   keywordRules: ModerationKeywordRule[]
   recentItems: ModerationQueueItem[]
@@ -96,7 +96,7 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
     highSeverityItems,
     activeKeywords,
     bannedMembers,
-    messagesLast24h,
+    messagesToday,
     keywordRules,
     recentItems
   ] = await Promise.all([
@@ -104,7 +104,7 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
     safeCount(`SELECT COUNT(*) as count FROM moderation_queue WHERE status IN ('new', 'in_review', 'escalated') AND severity IN ('high', 'critical')`),
     safeCount(`SELECT COUNT(*) as count FROM moderation_keywords WHERE active = true`),
     safeCount(`SELECT COUNT(*) as count FROM users WHERE COALESCE(is_banned, false) = true OR status = 'banned'`),
-    safeCount(`SELECT COUNT(*) as count FROM messages WHERE created_at >= NOW() - INTERVAL '24 hours'`),
+    safeCount(`SELECT COUNT(*) as count FROM messages WHERE created_at >= CURRENT_DATE`),
     safeRows<ModerationKeywordRule>(`
       SELECT id, keyword, severity, action, active, created_at
       FROM moderation_keywords
@@ -126,7 +126,7 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
       highSeverityItems,
       activeKeywords,
       bannedMembers,
-      messagesLast24h
+      messagesToday
     },
     keywordRules,
     recentItems

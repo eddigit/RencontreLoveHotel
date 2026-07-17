@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { Heart } from 'lucide-react'
-import { DeploymentStamp } from './deployment-stamp'
 
 export function Footer () {
   return (
@@ -20,10 +19,16 @@ export function Footer () {
               À propos
             </Link>
             <Link
-              href='/unsubscribe'
+              href='/privacy'
               className='hover:text-foreground transition-colors'
             >
               Confidentialité
+            </Link>
+            <Link
+              href='/community-safety'
+              className='hover:text-foreground transition-colors'
+            >
+              Sécurité
             </Link>
             <Link
               href='/terms'
@@ -44,7 +49,6 @@ export function Footer () {
               &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
               réservés.
             </span>
-            <DeploymentStamp />
           </div>
         </div>
       </div>

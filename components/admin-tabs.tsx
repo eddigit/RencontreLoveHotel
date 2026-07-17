@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const tabs = [
-  { label: 'Dashboard', href: '/admin' },
+  { label: 'Vue d’ensemble', href: '/admin' },
   { label: 'Utilisateurs', href: '/admin/users' },
   { label: 'Événements', href: '/admin/events' },
   { label: 'Messages', href: '/admin/messages' },
@@ -21,7 +21,10 @@ const tabs = [
 export function AdminTabs () {
   const pathname = usePathname()
   return (
-    <nav className='mb-8 flex gap-2 overflow-x-auto border-b border-muted pb-px md:gap-4'>
+    <nav
+      className='mb-8 flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-2 shadow-lg shadow-black/10 backdrop-blur-xl'
+      aria-label='Navigation administration'
+    >
       {tabs.map(tab => {
         const isDashboard = tab.href === '/admin'
         const isActive = isDashboard
@@ -31,10 +34,10 @@ export function AdminTabs () {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm transition-colors md:px-4 ${
+            className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition md:px-4 ${
               isActive
-                ? 'border-primary text-primary font-semibold'
-                : 'border-transparent text-muted-foreground hover:text-primary'
+                ? 'bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white shadow-md shadow-[#ff3b8b]/15'
+                : 'text-white/58 hover:bg-white/[0.06] hover:text-white'
             }`}
           >
             {tab.label}

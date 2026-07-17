@@ -59,6 +59,17 @@ body {
   padding-right: 1rem;
 }
 
+.admin-shell .container {
+  max-width: 1680px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.admin-shell .card,
+.auth-shell [data-slot="card"] {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+}
+
 @media (min-width: 640px) {
   .container {
     max-width: none;

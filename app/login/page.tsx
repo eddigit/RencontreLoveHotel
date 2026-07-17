@@ -14,16 +14,15 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { signIn } from 'next-auth/react'
-import MainLayout from '@/components/layout/main-layout'
+import { AuthPageShell } from '@/components/auth-page-shell'
 import { shouldShowOAuthProviders } from '@/lib/oauth-visibility'
 
-export default function LoginPage (props: any) {
+export default function LoginPage () {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -73,20 +72,8 @@ export default function LoginPage (props: any) {
   }
 
   return (
-    <MainLayout>
-      <div className='min-h-screen flex flex-col'>
-        <header className='py-4 border-b'>
-          <div className='container flex items-center'>
-            <Link href='/' className='flex items-center gap-2'>
-              <ArrowLeft className='h-5 w-5' />
-              <span className='text-sm font-medium'>Retour</span>
-            </Link>
-          </div>
-        </header>
-
-        <main className='flex-1 flex items-center justify-center p-4'>
-          <div className='w-full max-w-md'>
-            <Card>
+    <AuthPageShell>
+            <Card className='border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
               <CardHeader className='space-y-1'>
                 <CardTitle className='text-2xl font-bold text-center'>
                   Connexion
@@ -217,16 +204,6 @@ export default function LoginPage (props: any) {
                 </div>
               </CardFooter>
             </Card>
-          </div>
-        </main>
-
-        <div className='hidden' aria-hidden='true'>
-          <div className='container mx-auto px-4 text-center text-sm text-muted-foreground'>
-            &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
-            réservés.
-          </div>
-        </div>
-      </div>
-    </MainLayout>
+    </AuthPageShell>
   )
 }

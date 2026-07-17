@@ -14,13 +14,13 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-import { User, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { registerUser } from '@/app/actions'
-import MainLayout from '@/components/layout/main-layout'
+import { AuthPageShell } from '@/components/auth-page-shell'
 import { LEGAL_POLICY_VERSIONS } from '@/lib/legal-policy'
 
 export default function RegisterPage () {
@@ -79,20 +79,8 @@ export default function RegisterPage () {
   }
 
   return (
-    <MainLayout>
-      <div className='min-h-screen flex flex-col'>
-        <header className='py-4 border-b'>
-          <div className='container flex items-center justify-between'>
-            <Link href='/' className='flex items-center gap-2'>
-              <ArrowLeft className='h-5 w-5' />
-              <span className='text-sm font-medium'>Retour</span>
-            </Link>
-          </div>
-        </header>
-
-        <main className='flex-1 flex items-center justify-center p-4 py-6'>
-          <div className='w-full max-w-md'>
-            <Card>
+    <AuthPageShell>
+            <Card className='border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
               <CardHeader className='space-y-1'>
                 <CardTitle className='text-2xl font-bold text-center'>
                   Créer un compte
@@ -235,9 +223,6 @@ export default function RegisterPage () {
                 </div>
               </CardFooter>
             </Card>
-          </div>
-        </main>
-      </div>
-    </MainLayout>
+    </AuthPageShell>
   )
 }

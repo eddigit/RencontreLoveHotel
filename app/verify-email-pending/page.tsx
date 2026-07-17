@@ -1,6 +1,6 @@
 'use client'
 
-import MainLayout from '@/components/layout/main-layout'
+import { AuthPageShell } from '@/components/auth-page-shell'
 import { Button } from '@/components/ui/button'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
@@ -34,9 +34,8 @@ export default function VerifyEmailPendingPage () {
   }
 
   return (
-    <MainLayout>
-      <div className='min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]'>
-        <div className='bg-white/10 rounded-lg p-8 shadow-lg max-w-md w-full text-center'>
+    <AuthPageShell backHref='/login' backLabel='Connexion'>
+        <div className='w-full rounded-3xl border border-white/10 bg-black/25 p-8 text-center shadow-2xl shadow-black/25 backdrop-blur-xl'>
           <h1 className='text-2xl font-bold mb-4 text-white'>
             Vérification de l'email requise
           </h1>
@@ -54,7 +53,6 @@ export default function VerifyEmailPendingPage () {
           </Button>
           {message && <div className='text-purple-100 mt-2'>{message}</div>}
         </div>
-      </div>
-    </MainLayout>
+    </AuthPageShell>
   )
 }

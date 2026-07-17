@@ -13,10 +13,10 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
         </Link>
 
         <nav className='hidden items-center gap-6 text-sm font-semibold text-white/70 lg:flex' aria-label='Navigation accueil'>
-          <Link href='#concept' className='transition hover:text-white'>Le concept</Link>
-          <Link href='#hotels' className='transition hover:text-white'>Nos hôtels</Link>
-          <Link href='#experiences' className='transition hover:text-white'>Expériences</Link>
-          <Link href='#communaute' className='transition hover:text-white'>La communauté</Link>
+          <Link href='/concept' className='transition hover:text-white'>Le concept</Link>
+          <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer' className='transition hover:text-white'>Nos hôtels</Link>
+          <Link href='/events' className='transition hover:text-white'>Expériences</Link>
+          <Link href='/rencontres' className='transition hover:text-white'>La communauté</Link>
         </nav>
 
         {isAuthenticated ? (

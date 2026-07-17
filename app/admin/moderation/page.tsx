@@ -79,17 +79,21 @@ export default function AdminModerationPage () {
           <AdminHeader user={user} />
           <AdminTabs />
 
-          <div className='mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between'>
-            <div>
-              <h1 className='text-2xl font-bold'>Centre de moderation</h1>
-              <p className='mt-2 max-w-3xl text-sm text-muted-foreground'>
-                Pilotage des mots-cles, alertes messages, bannissements et
-                actions sensibles. Les alertes critiques notifient les admins.
-              </p>
-            </div>
-            <div className='flex flex-wrap gap-2'>
-              <Button asChild variant='outline'>
-                <Link href='/moderation'>Ouvrir les dossiers ciblés</Link>
+          <div className='mb-8 overflow-hidden rounded-3xl border border-[#ff8cc8]/20 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(124,58,237,0.13),rgba(0,0,0,0.18))] p-6 shadow-2xl shadow-black/15 sm:p-8'>
+            <div className='flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
+              <div className='max-w-3xl'>
+                <div className='mb-3 flex items-center gap-2 text-[#ff9bce]'>
+                  <ShieldAlert className='h-5 w-5' />
+                  <span className='text-xs font-black uppercase tracking-[0.2em]'>Centre de modération</span>
+                </div>
+                <h1 className='text-3xl font-black tracking-tight sm:text-4xl'>Dossiers ciblés à examiner</h1>
+                <p className='mt-3 text-sm leading-6 text-white/65 sm:text-base'>
+                  Retrouvez les signalements et alertes qualifiés, prenez une décision humaine et conservez une trace
+                  claire de chaque action. La messagerie privée complète n’est jamais ouverte en masse.
+                </p>
+              </div>
+              <Button asChild className='h-12 shrink-0 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-6 font-black text-white'>
+                <Link href='/moderation'>Ouvrir la file sécurisée</Link>
               </Button>
             </div>
           </div>
@@ -100,19 +104,19 @@ export default function AdminModerationPage () {
             </div>
           )}
 
-          <div className='grid gap-5 md:grid-cols-2 xl:grid-cols-5'>
+          <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-5'>
             <ModerationStat
               title='Alertes ouvertes'
               value={loading ? '...' : counts?.pendingItems || 0}
               icon={ListChecks}
             />
             <ModerationStat
-              title='Haute priorite'
+              title='Haute priorité'
               value={loading ? '...' : counts?.highSeverityItems || 0}
               icon={ShieldAlert}
             />
             <ModerationStat
-              title='Mots-cles actifs'
+              title='Mots-clés actifs'
               value={loading ? '...' : counts?.activeKeywords || 0}
               icon={MessageSquareWarning}
             />
@@ -122,16 +126,16 @@ export default function AdminModerationPage () {
               icon={Ban}
             />
             <ModerationStat
-              title='Messages 24h'
-              value={loading ? '...' : counts?.messagesLast24h || 0}
+              title='Messages aujourd’hui'
+              value={loading ? '...' : counts?.messagesToday || 0}
               icon={AlertTriangle}
             />
           </div>
 
-          <div className='mt-6 grid gap-6 xl:grid-cols-[420px_minmax(0,1fr)]'>
-            <Card>
+          <div className='mt-6 grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]'>
+            <Card className='border-white/10 bg-black/20'>
               <CardHeader>
-                <CardTitle>Regles par mots-cles</CardTitle>
+                <CardTitle>Règles par mots-clés</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateKeyword} className='space-y-3'>
@@ -139,7 +143,7 @@ export default function AdminModerationPage () {
                     value={keyword}
                     onChange={event => setKeyword(event.target.value)}
                     className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[#ff8cc8]'
-                    placeholder='Mot-cle a surveiller'
+                    placeholder='Mot-clé à surveiller'
                   />
                   <select
                     value={severity}
@@ -157,7 +161,7 @@ export default function AdminModerationPage () {
                     disabled={savingKeyword || !keyword.trim()}
                     className='w-full'
                   >
-                    {savingKeyword ? 'Enregistrement...' : 'Ajouter la regle'}
+                    {savingKeyword ? 'Enregistrement...' : 'Ajouter la règle'}
                   </Button>
                 </form>
 
@@ -183,9 +187,9 @@ export default function AdminModerationPage () {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className='border-white/10 bg-black/20'>
               <CardHeader>
-                <CardTitle>File de moderation recente</CardTitle>
+                <CardTitle>Alertes récentes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className='space-y-3'>

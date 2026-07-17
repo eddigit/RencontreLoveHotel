@@ -14,6 +14,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from 'next/navigation'
+import { AuthPageShell } from '@/components/auth-page-shell'
 
 function ResetPasswordForm () {
   const searchParams = useSearchParams()
@@ -111,8 +112,7 @@ function ResetPasswordForm () {
   if (error && !token) {
     // If token was invalid from the start
     return (
-      <div className='min-h-screen flex items-center justify-center p-4'>
-        <Card className='w-full max-w-md'>
+        <Card className='w-full border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
           <CardHeader>
             <CardTitle className='text-center text-2xl font-bold'>
               Erreur
@@ -128,15 +128,13 @@ function ResetPasswordForm () {
             </Button>
           </CardContent>
         </Card>
-      </div>
     )
   }
 
   if (message) {
     // If password reset was successful
     return (
-      <div className='min-h-screen flex items-center justify-center p-4'>
-        <Card className='w-full max-w-md'>
+        <Card className='w-full border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
           <CardHeader>
             <CardTitle className='text-center text-2xl font-bold'>
               Succès
@@ -152,13 +150,11 @@ function ResetPasswordForm () {
             </Button>
           </CardContent>
         </Card>
-      </div>
     )
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center p-4'>
-      <Card className='w-full max-w-md'>
+      <Card className='w-full border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
         <CardHeader>
           <CardTitle className='text-center text-2xl font-bold'>
             Réinitialiser le mot de passe
@@ -208,14 +204,15 @@ function ResetPasswordForm () {
           )}
         </CardContent>
       </Card>
-    </div>
   )
 }
 
 export default function ResetPasswordPage () {
   return (
-    <Suspense fallback={<div>Chargement...</div>}>
-      <ResetPasswordForm />
-    </Suspense>
+    <AuthPageShell backHref='/login' backLabel='Connexion'>
+      <Suspense fallback={<div className='text-center text-white/70'>Chargement...</div>}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthPageShell>
   )
 }

@@ -56,7 +56,25 @@ const publicStandaloneRoutes = new Set([
   '/forgot-password',
   '/reset-password',
   '/verify-email',
-  '/verify-email-pending'
+  '/verify-email-pending',
+  '/unauthorized',
+  '/goodbye'
+])
+
+const publicPresentationRoutes = new Set([
+  '/about',
+  '/community-safety',
+  '/concept',
+  '/conciergerie',
+  '/en-direct',
+  '/events',
+  '/love-rooms',
+  '/premium',
+  '/privacy',
+  '/publicite',
+  '/rencontres',
+  '/tarifs-publicite',
+  '/terms'
 ])
 
 function NavigationLink({
@@ -111,7 +129,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
     return children
   }
 
-  if (pathname === '/') {
+  const isPublicPresentation = [...publicPresentationRoutes].some(route =>
+    pathname === route || pathname.startsWith(`${route}/`)
+  )
+
+  if (pathname === '/' || (!user && isPublicPresentation)) {
     return (
       <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#120821] text-white'>
         <VisitorLandingHeader isAuthenticated={Boolean(user)} />
@@ -123,13 +145,8 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (publicStandaloneRoutes.has(pathname)) {
     return (
-      <div className='min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(255,59,139,0.22),transparent_34%),linear-gradient(135deg,#170522_0%,#26063a_52%,#13031f_100%)] text-white'>
-        <header className='mx-auto flex w-full max-w-6xl items-center justify-center px-4 py-5 sm:justify-start'>
-          <Link href='/' aria-label='Retour à l’accueil' className='w-24 rounded-2xl border border-white/10 bg-black/35 p-2 sm:w-28'>
-            <BrandLogo priority />
-          </Link>
-        </header>
-        <main>{children}</main>
+      <div className='auth-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(255,59,139,0.22),transparent_34%),linear-gradient(135deg,#170522_0%,#26063a_52%,#13031f_100%)] text-white'>
+        {children}
       </div>
     )
   }

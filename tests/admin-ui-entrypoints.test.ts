@@ -25,7 +25,7 @@ describe('admin notifications email moderation UI entrypoints', () => {
     const source = readFileSync('app/admin/moderation/page.tsx', 'utf8')
 
     expect(source).toContain("<ProtectedRoute allowedRoles={['admin']}>")
-    expect(source).toContain('Centre de moderation')
+    expect(source).toContain('Centre de modération')
     expect(source).toContain("href='/moderation'")
     expect(source).not.toContain('Scanner les messages')
   })

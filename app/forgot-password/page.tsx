@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
+import { AuthPageShell } from '@/components/auth-page-shell'
 
 export default function ForgotPasswordPage () {
   const [email, setEmail] = useState('')
@@ -56,9 +57,8 @@ export default function ForgotPasswordPage () {
   }
 
   return (
-    <div className='min-h-screen flex items-center justify-center p-4'>
-      <div className='w-full max-w-md'>
-        <Card>
+    <AuthPageShell backHref='/login' backLabel='Connexion'>
+        <Card className='border-white/10 bg-[#130d18]/92 shadow-2xl shadow-black/35 backdrop-blur-xl'>
           <CardHeader>
             <CardTitle className='text-center text-2xl font-bold'>
               Mot de passe oublié
@@ -93,7 +93,6 @@ export default function ForgotPasswordPage () {
             </form>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </AuthPageShell>
   )
 }

@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-import { Footer } from "@/components/footer"
-import { Header } from "@/components/header"
 import { usePathname } from 'next/navigation'
 
 interface MainLayoutProps {
@@ -11,7 +9,7 @@ interface MainLayoutProps {
   user?: any
 }
 
-export default function MainLayout({ children, session, user }: MainLayoutProps) {
+export default function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname()
 
   if (!pathname.startsWith('/admin')) {
@@ -19,10 +17,8 @@ export default function MainLayout({ children, session, user }: MainLayoutProps)
   }
 
   return (
-    <>
-      <Header session={session} user={user} />
+    <div className='admin-shell min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(255,59,139,0.18),transparent_28%),linear-gradient(145deg,#12051d,#220a33_55%,#13051f)] text-white'>
       <main>{children}</main>
-      <Footer />
-    </>
+    </div>
   )
 }
