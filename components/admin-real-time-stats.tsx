@@ -245,9 +245,9 @@ export function AdminRealTimeStats() {
         />
         
         <StatCard
-          title="Utilisateurs Actifs"
+          title="Actifs aujourd’hui"
           value={stats.activeUsersToday}
-          changeLabel="dernières 24h"
+          changeLabel="ayant envoyé un message"
           icon={<UserCheck className="h-4 w-4" />}
           color="green"
           trend="up"
@@ -319,7 +319,7 @@ export function AdminRealTimeStats() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Clock className="mr-2 h-5 w-5 text-blue-500" />
-            Activité Récente (24h)
+            Activité aujourd’hui
           </CardTitle>
         </CardHeader>
         <CardContent>

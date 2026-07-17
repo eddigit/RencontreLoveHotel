@@ -44,4 +44,12 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).toContain('Messages internes')
     expect(source).toContain('sendInternalMessageToAllUsers')
   })
+
+  it('labels calendar-day dashboard KPIs as today rather than rolling 24 hours', () => {
+    const source = readFileSync('components/admin-real-time-stats.tsx', 'utf8')
+
+    expect(source).toContain('Activité aujourd’hui')
+    expect(source).toContain('Actifs aujourd’hui')
+    expect(source).not.toContain('Activité Récente (24h)')
+  })
 })
