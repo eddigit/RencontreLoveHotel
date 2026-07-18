@@ -918,7 +918,7 @@ export async function getNewUsersStats({ startDate, endDate, scale }: { startDat
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM users
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -941,7 +941,7 @@ export async function getActiveUsersStats({ startDate, endDate, scale }: { start
   const query = `
     SELECT ${dateTrunc} as period, COUNT(DISTINCT sender_id) as count
     FROM messages
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -955,16 +955,16 @@ export async function getMatchesStats({ startDate, endDate, scale }: { startDate
 
   let dateTrunc;
   if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE(accepted_at), 'YYYY-MM-DD')";
   } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE_TRUNC('week', accepted_at), 'YYYY-MM-DD')";
   } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE_TRUNC('month', accepted_at), 'YYYY-MM-DD')";
   }
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM user_matches
-    WHERE status = 'accepted' AND accepted_at BETWEEN $1 AND $2
+    WHERE status = 'accepted' AND accepted_at >= $1 AND accepted_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;

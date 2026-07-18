@@ -70,25 +70,29 @@ function trendPresentation(history: MessagingRecoveryHistory) {
   }
 }
 
-function comparisonLabel(current: number, previous: number, suffix = '') {
+function comparisonLabel(current: number, previous: number, previousPeriodLabel: string) {
   if (previous === 0) {
-    return current === 0 ? 'Stable par rapport à hier' : 'Nouvelle activité vs hier'
+    return current === 0
+      ? `Stable par rapport à ${previousPeriodLabel}`
+      : `Nouvelle activité vs ${previousPeriodLabel}`
   }
 
   const change = Math.round(((current - previous) / previous) * 100)
-  return `${change > 0 ? '+' : ''}${change}% vs hier${suffix}`
+  return `${change > 0 ? '+' : ''}${change}% vs ${previousPeriodLabel}`
 }
 
 function KpiCard({
   title,
   value,
   previous,
+  previousPeriodLabel,
   icon,
   suffix = ''
 }: {
   title: string
   value: number
   previous: number
+  previousPeriodLabel: string
   icon: React.ReactNode
   suffix?: string
 }) {
@@ -104,7 +108,7 @@ function KpiCard({
           {suffix}
         </div>
         <p className='mt-1 text-xs text-muted-foreground'>
-          {comparisonLabel(value, previous)}
+          {comparisonLabel(value, previous, previousPeriodLabel)}
         </p>
       </CardContent>
     </Card>
@@ -145,6 +149,16 @@ export function AdminMessagingRecovery() {
   const [error, setError] = useState<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const selectedPeriodLabel = {
+    day: 'Aujourd’hui',
+    week: 'Cette semaine',
+    month: 'Ce mois'
+  }[scale]
+  const previousPeriodLabel = {
+    day: 'hier',
+    week: 'la semaine précédente',
+    month: 'le mois précédent'
+  }[scale]
 
   useEffect(() => {
     let active = true
@@ -199,7 +213,7 @@ export function AdminMessagingRecovery() {
             Relance de la messagerie
           </h2>
           <p className='mt-1 text-sm text-muted-foreground'>
-            Activité entre membres aujourd’hui et évolution depuis le lancement.
+            Activité entre membres — {selectedPeriodLabel.toLocaleLowerCase('fr-FR')} — et évolution depuis le lancement.
           </p>
         </div>
         <div className='flex w-fit gap-1 rounded-xl border bg-card p-1'>
@@ -236,36 +250,43 @@ export function AdminMessagingRecovery() {
             <KpiCard
               title='Conversations créées'
               {...metric(stats, 'createdConversations')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<MessagesSquare className='h-4 w-4' />}
             />
             <KpiCard
               title='Conversations démarrées'
               {...metric(stats, 'startedConversations')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<Send className='h-4 w-4' />}
             />
             <KpiCard
               title='Messages envoyés'
               {...metric(stats, 'messages')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<MessageCircleMore className='h-4 w-4' />}
             />
             <KpiCard
               title='Matchs acceptés'
               {...metric(stats, 'acceptedMatches')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<HeartHandshake className='h-4 w-4' />}
             />
             <KpiCard
               title='Conversations actives'
               {...metric(stats, 'activeConversations')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<Activity className='h-4 w-4' />}
             />
             <KpiCard
               title='Conversations avec réponse'
               {...metric(stats, 'respondedConversations')}
+              previousPeriodLabel={previousPeriodLabel}
               icon={<UsersRound className='h-4 w-4' />}
             />
             <KpiCard
               title='Taux de réponse'
               {...metric(stats, 'responseRate')}
+              previousPeriodLabel={previousPeriodLabel}
               suffix='%'
               icon={<RefreshCw className='h-4 w-4' />}
             />
@@ -278,7 +299,7 @@ export function AdminMessagingRecovery() {
                   {stats.service.messages.toLocaleString('fr-FR')}
                 </div>
                 <p className='text-xs text-muted-foreground'>
-                  messages dans {stats.service.activeConversations.toLocaleString('fr-FR')}{' '}
+                  {selectedPeriodLabel} : messages dans {stats.service.activeConversations.toLocaleString('fr-FR')}{' '}
                   conversation(s) de service
                 </p>
               </CardContent>

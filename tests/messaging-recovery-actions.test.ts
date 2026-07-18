@@ -121,6 +121,17 @@ describe('messaging recovery admin KPIs', () => {
     expect((sql.query as any).mock.calls[0][1]).toEqual([90])
   })
 
+  it('computes cards from the selected Paris calendar period instead of always today', async () => {
+    ;(sql.query as any).mockResolvedValueOnce([{}]).mockResolvedValueOnce([])
+
+    await getMessagingRecoveryStats({ scale: 'week', days: 30 })
+
+    const summarySql = (sql.query as any).mock.calls[0][0]
+    expect(summarySql).toContain("DATE_TRUNC('week', timezone('Europe/Paris', CURRENT_TIMESTAMP))")
+    expect(summarySql).toContain("INTERVAL '1 week'")
+    expect(summarySql).toContain("timezone('Europe/Paris', mm.created_at)")
+  })
+
   it('requires an administrator before reading lifetime messaging history', async () => {
     requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
 
@@ -189,8 +200,10 @@ describe('messaging recovery admin KPIs', () => {
     expect(historySql).toContain('MIN(activity_at)')
     expect(historySql).toContain("BOOL_OR(u.role = 'admin')")
     expect(historySql).toContain('COUNT(DISTINCT m.conversation_id)')
+    expect((historySql.match(/WITH\s+conversation_types AS/g) || []).length).toBe(1)
     expect(comparisonSql).toContain("INTERVAL '60 days'")
-    expect(comparisonSql).toContain('m.created_at < CURRENT_DATE')
+    expect(comparisonSql).toContain("timezone('Europe/Paris', m.created_at)")
+    expect(comparisonSql).toContain("timezone('Europe/Paris', CURRENT_TIMESTAMP)")
   })
 
   it('keeps zero-baseline trend stable or marks new activity as recovery', async () => {

@@ -390,11 +390,11 @@ export default function DiscoverPage () {
                         <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
                       </div>
                     </div>
-                    <div className='p-3'>
-                      <p className='line-clamp-2 text-sm leading-5 text-white/62'>
-                        {profile.bio || 'Profil disponible pour une rencontre élégante autour du Love Hotel.'}
-                      </p>
-                    </div>
+                    {profile.bio && (
+                      <div className='p-3'>
+                        <p className='line-clamp-2 text-sm leading-5 text-white/62'>{profile.bio}</p>
+                      </div>
+                    )}
                   </Link>
                 ))}
               </div>

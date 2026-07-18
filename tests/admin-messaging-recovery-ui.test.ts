@@ -20,6 +20,7 @@ describe('admin messaging recovery dashboard', () => {
     expect(component).toContain('Jour')
     expect(component).toContain('Semaine')
     expect(component).toContain('Mois')
+    expect(component).toContain('selectedPeriodLabel')
   })
 
   it('places recovery visibility before the generic real-time dashboard', () => {

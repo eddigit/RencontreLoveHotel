@@ -112,10 +112,9 @@ export default async function ProfilePage ({
                   {profile.name}
                   {profile.age ? `, ${profile.age}` : ''}
                 </h2>
-                <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>
-                  {profile.bio ||
-                    'Une personnalité élégante et spontanée. Recherche une rencontre discrète, dans un lieu premium, avec une vraie conversation avant tout.'}
-                </p>
+                {profile.bio && (
+                  <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>{profile.bio}</p>
+                )}
 
                 <div className='mt-6 grid gap-3 sm:grid-cols-3'>
                   <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
@@ -146,16 +145,15 @@ export default async function ProfilePage ({
               </p>
             </div>
 
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
-                Intentions
-              </h3>
-              <p className='mt-3 text-sm leading-6 text-white/68'>
-                {profile.bio ||
-                  'Rencontre élégante, lieu discret, ambiance premium, échange avant rendez-vous.'}
-              </p>
-            </div>
+            {profile.bio && (
+              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+                <h3 className='flex items-center gap-2 font-black'>
+                  <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
+                  Intentions
+                </h3>
+                <p className='mt-3 text-sm leading-6 text-white/68'>{profile.bio}</p>
+              </div>
+            )}
 
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
               <h3 className='font-black'>Centres d’intérêt</h3>

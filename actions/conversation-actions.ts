@@ -8,6 +8,7 @@ import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
 import { trackProductEvents, type ProductEventInput } from '@/lib/product-events'
+import { requireAdmin } from '@/lib/server-auth'
 import {
   createModerationCase,
   evaluateMessageModeration
@@ -478,6 +479,8 @@ export async function findOrCreateConversation(userId1: string, userId2: string)
 
 // Get messages sent grouped by day/week/month
 export async function getMessagesStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
+  await requireAdmin()
+
   let dateTrunc;
   if (scale === "day") {
     dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
@@ -489,7 +492,7 @@ export async function getMessagesStats({ startDate, endDate, scale }: { startDat
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM messages
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;

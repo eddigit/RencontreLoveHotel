@@ -5,14 +5,14 @@ import { getNewUsersStats, getActiveUsersStats, getMatchesStats } from "@/action
 import { getMessagesStats } from "@/actions/conversation-actions"
 import { getEventSubscriptionsStats } from "@/actions/event-actions"
 
-const today = new Date()
 const defaultScale = "week"
 const defaultRange = 90 // days
 
 function getDateRange(days: number) {
-  const end = new Date(today)
-  const start = new Date(today)
+  const end = new Date()
+  const start = new Date(end)
   start.setDate(start.getDate() - days)
+  end.setDate(end.getDate() + 1)
   return {
     startDate: start.toISOString().slice(0, 10),
     endDate: end.toISOString().slice(0, 10),

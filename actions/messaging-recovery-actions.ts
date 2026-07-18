@@ -129,6 +129,18 @@ export async function getMessagingRecoveryStats({
       WITH requested_window AS (
         SELECT $1::int AS days
       ),
+      period_bounds AS (
+        SELECT
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', CURRENT_TIMESTAMP)) AS current_start,
+          INTERVAL '${interval}' AS period_size
+      ),
+      window_bounds AS (
+        SELECT
+          current_start,
+          current_start + period_size AS current_end,
+          current_start - period_size AS previous_start
+        FROM period_bounds
+      ),
       ${conversationCtes},
       member_messages AS (
         SELECT m.*
@@ -137,28 +149,28 @@ export async function getMessagingRecoveryStats({
         WHERE ct.is_member
       )
       SELECT
-        (SELECT COUNT(*) FROM conversation_types ct WHERE ct.is_member AND ct.created_at >= CURRENT_DATE) AS created_today,
-        (SELECT COUNT(*) FROM conversation_types ct WHERE ct.is_member AND ct.created_at >= CURRENT_DATE - INTERVAL '1 day' AND ct.created_at < CURRENT_DATE) AS created_previous,
-        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE) AS started_today,
-        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE - INTERVAL '1 day' AND mr.first_message_at < CURRENT_DATE) AS started_previous,
-        (SELECT COUNT(*) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE) AS messages_today,
-        (SELECT COUNT(*) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE - INTERVAL '1 day' AND mm.created_at < CURRENT_DATE) AS messages_previous,
-        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE) AS active_today,
-        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm WHERE mm.created_at >= CURRENT_DATE - INTERVAL '1 day' AND mm.created_at < CURRENT_DATE) AS active_previous,
-        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE AND mr.distinct_senders >= 2) AS responded_today,
-        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id WHERE ct.is_member AND mr.first_message_at >= CURRENT_DATE - INTERVAL '1 day' AND mr.first_message_at < CURRENT_DATE AND mr.distinct_senders >= 2) AS responded_previous,
-        (SELECT COUNT(*) FROM user_matches um WHERE um.status = 'accepted' AND um.accepted_at >= CURRENT_DATE) AS accepted_today,
-        (SELECT COUNT(*) FROM user_matches um WHERE um.status = 'accepted' AND um.accepted_at >= CURRENT_DATE - INTERVAL '1 day' AND um.accepted_at < CURRENT_DATE) AS accepted_previous,
-        (SELECT COUNT(*) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id WHERE ct.is_service AND m.created_at >= CURRENT_DATE) AS service_messages_today,
-        (SELECT COUNT(DISTINCT m.conversation_id) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id WHERE ct.is_service AND m.created_at >= CURRENT_DATE) AS service_conversations_today
+        (SELECT COUNT(*) FROM conversation_types ct, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', ct.created_at) >= wb.current_start AND timezone('Europe/Paris', ct.created_at) < wb.current_end) AS created_today,
+        (SELECT COUNT(*) FROM conversation_types ct, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', ct.created_at) >= wb.previous_start AND timezone('Europe/Paris', ct.created_at) < wb.current_start) AS created_previous,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', mr.first_message_at) >= wb.current_start AND timezone('Europe/Paris', mr.first_message_at) < wb.current_end) AS started_today,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', mr.first_message_at) >= wb.previous_start AND timezone('Europe/Paris', mr.first_message_at) < wb.current_start) AS started_previous,
+        (SELECT COUNT(*) FROM member_messages mm, window_bounds wb WHERE timezone('Europe/Paris', mm.created_at) >= wb.current_start AND timezone('Europe/Paris', mm.created_at) < wb.current_end) AS messages_today,
+        (SELECT COUNT(*) FROM member_messages mm, window_bounds wb WHERE timezone('Europe/Paris', mm.created_at) >= wb.previous_start AND timezone('Europe/Paris', mm.created_at) < wb.current_start) AS messages_previous,
+        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm, window_bounds wb WHERE timezone('Europe/Paris', mm.created_at) >= wb.current_start AND timezone('Europe/Paris', mm.created_at) < wb.current_end) AS active_today,
+        (SELECT COUNT(DISTINCT mm.conversation_id) FROM member_messages mm, window_bounds wb WHERE timezone('Europe/Paris', mm.created_at) >= wb.previous_start AND timezone('Europe/Paris', mm.created_at) < wb.current_start) AS active_previous,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', mr.first_message_at) >= wb.current_start AND timezone('Europe/Paris', mr.first_message_at) < wb.current_end AND mr.distinct_senders >= 2) AS responded_today,
+        (SELECT COUNT(*) FROM message_rollup mr JOIN conversation_types ct ON ct.id = mr.conversation_id, window_bounds wb WHERE ct.is_member AND timezone('Europe/Paris', mr.first_message_at) >= wb.previous_start AND timezone('Europe/Paris', mr.first_message_at) < wb.current_start AND mr.distinct_senders >= 2) AS responded_previous,
+        (SELECT COUNT(*) FROM user_matches um, window_bounds wb WHERE um.status = 'accepted' AND timezone('Europe/Paris', um.accepted_at) >= wb.current_start AND timezone('Europe/Paris', um.accepted_at) < wb.current_end) AS accepted_today,
+        (SELECT COUNT(*) FROM user_matches um, window_bounds wb WHERE um.status = 'accepted' AND timezone('Europe/Paris', um.accepted_at) >= wb.previous_start AND timezone('Europe/Paris', um.accepted_at) < wb.current_start) AS accepted_previous,
+        (SELECT COUNT(*) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id, window_bounds wb WHERE ct.is_service AND timezone('Europe/Paris', m.created_at) >= wb.current_start AND timezone('Europe/Paris', m.created_at) < wb.current_end) AS service_messages_today,
+        (SELECT COUNT(DISTINCT m.conversation_id) FROM messages m JOIN conversation_types ct ON ct.id = m.conversation_id, window_bounds wb WHERE ct.is_service AND timezone('Europe/Paris', m.created_at) >= wb.current_start AND timezone('Europe/Paris', m.created_at) < wb.current_end) AS service_conversations_today
       FROM requested_window
     `
 
     const seriesQuery = `
       WITH bounds AS (
         SELECT
-          DATE_TRUNC('${unit}', CURRENT_DATE - (($1::int - 1) * INTERVAL '1 day')) AS starts_at,
-          DATE_TRUNC('${unit}', CURRENT_DATE) AS ends_at
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', CURRENT_TIMESTAMP) - (($1::int - 1) * INTERVAL '1 day')) AS starts_at,
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', CURRENT_TIMESTAMP)) AS ends_at
       ),
       periods AS (
         SELECT generate_series(starts_at, ends_at, INTERVAL '${interval}') AS period
@@ -166,14 +178,14 @@ export async function getMessagingRecoveryStats({
       ),
       ${conversationCtes},
       created_counts AS (
-        SELECT DATE_TRUNC('${unit}', ct.created_at) AS period, COUNT(*) AS count
+        SELECT DATE_TRUNC('${unit}', timezone('Europe/Paris', ct.created_at)) AS period, COUNT(*) AS count
         FROM conversation_types ct
         WHERE ct.is_member
         GROUP BY 1
       ),
       started_counts AS (
         SELECT
-          DATE_TRUNC('${unit}', mr.first_message_at) AS period,
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', mr.first_message_at)) AS period,
           COUNT(*) AS count,
           COUNT(*) FILTER (WHERE mr.distinct_senders >= 2) AS responded
         FROM message_rollup mr
@@ -183,7 +195,7 @@ export async function getMessagingRecoveryStats({
       ),
       message_counts AS (
         SELECT
-          DATE_TRUNC('${unit}', m.created_at) AS period,
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', m.created_at)) AS period,
           COUNT(*) AS count,
           COUNT(DISTINCT m.conversation_id) AS active
         FROM messages m
@@ -192,7 +204,7 @@ export async function getMessagingRecoveryStats({
         GROUP BY 1
       ),
       match_counts AS (
-        SELECT DATE_TRUNC('${unit}', um.accepted_at) AS period, COUNT(*) AS count
+        SELECT DATE_TRUNC('${unit}', timezone('Europe/Paris', um.accepted_at)) AS period, COUNT(*) AS count
         FROM user_matches um
         WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
         GROUP BY 1
@@ -279,23 +291,23 @@ export async function getMessagingRecoveryHistory({
     const historyQuery = `
       WITH ${conversationCtes},
       activity_dates AS (
-        SELECT ct.created_at AS activity_at
+        SELECT timezone('Europe/Paris', ct.created_at) AS activity_at
         FROM conversation_types ct
         WHERE ct.is_member
         UNION ALL
-        SELECT m.created_at AS activity_at
+        SELECT timezone('Europe/Paris', m.created_at) AS activity_at
         FROM messages m
         JOIN conversation_types ct ON ct.id = m.conversation_id
         WHERE ct.is_member
         UNION ALL
-        SELECT um.accepted_at AS activity_at
+        SELECT timezone('Europe/Paris', um.accepted_at) AS activity_at
         FROM user_matches um
         WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
       ),
       bounds AS (
         SELECT
-          DATE_TRUNC('${unit}', COALESCE(MIN(activity_at), CURRENT_DATE)) AS starts_at,
-          DATE_TRUNC('${unit}', CURRENT_DATE) AS ends_at
+          DATE_TRUNC('${unit}', COALESCE(MIN(activity_at), timezone('Europe/Paris', CURRENT_TIMESTAMP))) AS starts_at,
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', CURRENT_TIMESTAMP)) AS ends_at
         FROM activity_dates
       ),
       periods AS (
@@ -303,14 +315,14 @@ export async function getMessagingRecoveryHistory({
         FROM bounds
       ),
       created_counts AS (
-        SELECT DATE_TRUNC('${unit}', ct.created_at) AS period, COUNT(*) AS count
+        SELECT DATE_TRUNC('${unit}', timezone('Europe/Paris', ct.created_at)) AS period, COUNT(*) AS count
         FROM conversation_types ct
         WHERE ct.is_member
         GROUP BY 1
       ),
       message_counts AS (
         SELECT
-          DATE_TRUNC('${unit}', m.created_at) AS period,
+          DATE_TRUNC('${unit}', timezone('Europe/Paris', m.created_at)) AS period,
           COUNT(*) AS count,
           COUNT(DISTINCT m.conversation_id) AS active
         FROM messages m
@@ -319,7 +331,7 @@ export async function getMessagingRecoveryHistory({
         GROUP BY 1
       ),
       match_counts AS (
-        SELECT DATE_TRUNC('${unit}', um.accepted_at) AS period, COUNT(*) AS count
+        SELECT DATE_TRUNC('${unit}', timezone('Europe/Paris', um.accepted_at)) AS period, COUNT(*) AS count
         FROM user_matches um
         WHERE um.status = 'accepted' AND um.accepted_at IS NOT NULL
         GROUP BY 1
@@ -349,12 +361,12 @@ export async function getMessagingRecoveryHistory({
       )
       SELECT
         COUNT(*) FILTER (
-          WHERE m.created_at >= CURRENT_DATE - INTERVAL '30 days'
-            AND m.created_at < CURRENT_DATE
+          WHERE timezone('Europe/Paris', m.created_at) >= timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '30 days'
+            AND timezone('Europe/Paris', m.created_at) < timezone('Europe/Paris', CURRENT_TIMESTAMP)
         ) AS recent_messages,
         COUNT(*) FILTER (
-          WHERE m.created_at >= CURRENT_DATE - INTERVAL '60 days'
-            AND m.created_at < CURRENT_DATE - INTERVAL '30 days'
+          WHERE timezone('Europe/Paris', m.created_at) >= timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '60 days'
+            AND timezone('Europe/Paris', m.created_at) < timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '30 days'
         ) AS previous_messages
       FROM member_messages m
     `

@@ -472,7 +472,7 @@ export async function getEventSubscriptionsStats({ startDate, endDate, scale }: 
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM event_participants
-    WHERE created_at BETWEEN $1 AND $2
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;
