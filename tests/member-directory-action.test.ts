@@ -59,6 +59,7 @@ describe('member directory action', () => {
     expect(countParams).toContain('%paris%')
     expect(membersQuery).toContain('LIMIT')
     expect(membersQuery).toContain('OFFSET')
+    expect(membersQuery).toContain("NULLIF(BTRIM(u.avatar), '') IS NOT NULL")
     expect(membersParams).toContain(24)
     expect(membersParams).toContain(24)
   })

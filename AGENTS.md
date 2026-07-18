@@ -62,7 +62,15 @@ Damien/VPS2 peut aider a rappeler le contexte serveur et la migration PostgreSQL
 - Tests : `npm test -- --run`
 - Typecheck : `npm run lint`
 - Build : `npm run build`
+- Verification critique : `npm run verify:critical`
+- Verification avant livraison : `npm run verify:release`
 - Audit high : `npm audit --audit-level=high`
+
+## Branche et prevention des regressions
+
+- Travailler exclusivement sur la branche `main` pour LHR. Ne pas creer ni utiliser de branche de travail sans ordre explicite de Gilles.
+- Avant toute modification, verifier que la branche active est `main` et synchroniser uniquement en avance rapide (`git pull --ff-only`) si l'arbre de travail le permet.
+- Avant tout push ou deploiement, executer `npm run verify:release`. Aucun deploiement ne doit contourner ce controle.
 
 Note dependances :
 

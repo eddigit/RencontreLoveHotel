@@ -6,6 +6,8 @@
   "scripts": {
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "verify:critical": "vitest --run tests/critical-product-contracts.test.ts tests/member-directory-action.test.ts tests/default-member-image.test.ts tests/member-directory-regression.test.ts tests/profile-bio-integrity.test.ts tests/contact-safety-message-flow.test.ts tests/anti-solicitation-message-flow.test.ts",
+    "verify:release": "npm run verify:critical && npm test -- --run && npm run lint && npm run build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

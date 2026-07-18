@@ -298,7 +298,10 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         WHERE user_id = u.id
       ) umt ON TRUE
       ${whereCondition}
-      ORDER BY u.created_at DESC
+      ORDER BY
+        (NULLIF(BTRIM(u.avatar), '') IS NOT NULL) DESC,
+        (${onlinePresenceCondition('u.updated_at')}) DESC,
+        u.created_at DESC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
     `,
