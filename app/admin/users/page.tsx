@@ -16,6 +16,7 @@ import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
+import { ModerationAvatar } from '@/components/moderation/moderation-avatar'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // Pour le graphique
 
 // Define a more specific type for user data, including ban status
@@ -214,14 +215,15 @@ export default function AdminUsersPage () {
                   className={u.is_banned ? 'border-red-500 border-2' : ''}
                 >
                   <CardHeader>
-                    <CardTitle>
-                      {u.name}{' '}
+                    <CardTitle className='flex items-center gap-3'>
+                      <ModerationAvatar name={u.name} src={u.avatar} />
+                      <span>{u.name}{' '}
                       <span className='text-xs text-muted-foreground'>
                         ({u.role})
                       </span>{' '}
                       {u.is_banned && (
                         <span className='text-red-500 text-xs'>(BANNI)</span>
-                      )}
+                      )}</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

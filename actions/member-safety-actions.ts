@@ -95,16 +95,23 @@ export async function reportMember(input: {
   let moderationCaseId: string | null = null
   if (input.reason === 'paid_sexual_solicitation') {
     const [moderationCase] = await sql.query<Array<{ id: string }>>(
-      `INSERT INTO moderation_queue (
+      `WITH investigation AS (
+         INSERT INTO moderation_investigations (subject_user_id, category, priority)
+         VALUES ($1, 'paid_solicitation', 100)
+         ON CONFLICT (subject_user_id) DO UPDATE SET
+           category = 'paid_solicitation', priority = GREATEST(moderation_investigations.priority, 100), updated_at = NOW()
+         RETURNING id
+       )
+       INSERT INTO moderation_queue (
          source_type, source_id, user_id, reporter_id, conversation_id,
          severity, status, reason, excerpt, metadata, score, outcome,
-         policy_version, subject_pseudonym, retention_until
-       ) VALUES (
+         policy_version, subject_pseudonym, retention_until, investigation_id
+       ) SELECT
          'user', $1, $1, $2, $3, 'high', 'new',
          'Signalement membre : sollicitation sexuelle rémunérée ou contre avantage',
          $4, $5::jsonb, 0, 'hold', 'member-report-2026-07-15', $6,
-         NOW() + INTERVAL '365 days'
-       )
+         NOW() + INTERVAL '365 days', investigation.id
+       FROM investigation
        RETURNING id`,
       [
         input.targetUserId,

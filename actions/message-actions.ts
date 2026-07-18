@@ -19,11 +19,82 @@ export type ConversationProtagonist = {
   user_id: string;
   name: string; // From user_profiles
   email: string; // From users
+  avatar?: string | null;
 };
 
 export type ModerationMessage = MessageFromDB & {
   protagonists: ConversationProtagonist[];
 };
+
+export type AdminConversation = {
+  id: string
+  updatedAt: Date
+  lastMessageAt: Date | null
+  lastMessage: string
+  messageCount: number
+  participants: Array<{ userId: string; name: string; email: string; avatar: string | null }>
+}
+
+export async function getAdminConversations({ page = 1, limit = 50, keywords = [] }: {
+  page?: number; limit?: number; keywords?: string[]
+} = {}): Promise<{ conversations: AdminConversation[]; total: number }> {
+  await requireAdmin()
+  const safeLimit = Math.min(Math.max(limit, 1), 100)
+  const safePage = Math.max(page, 1)
+  const patterns = keywords.map(keyword => `%${keyword.trim().toLowerCase()}%`).filter(pattern => pattern.length > 2)
+  const filter = patterns.length
+    ? `WHERE EXISTS (SELECT 1 FROM messages searched WHERE searched.conversation_id = c.id AND LOWER(searched.content) LIKE ANY($3::text[]))`
+    : ''
+  const params = patterns.length ? [safeLimit, (safePage - 1) * safeLimit, patterns] : [safeLimit, (safePage - 1) * safeLimit]
+  const rows = await executeQuery<any[]>(
+    `SELECT c.id, c.updated_at, COUNT(m.id)::int AS message_count, MAX(m.created_at) AS last_message_at,
+            (ARRAY_AGG(m.content ORDER BY m.created_at DESC) FILTER (WHERE m.id IS NOT NULL))[1] AS last_message,
+            COALESCE((SELECT JSONB_AGG(JSONB_BUILD_OBJECT(
+              'userId', cp.user_id, 'name', u.name, 'email', u.email, 'avatar', u.avatar
+            ) ORDER BY u.name) FROM conversation_participants cp JOIN users u ON u.id = cp.user_id
+              WHERE cp.conversation_id = c.id), '[]'::jsonb) AS participants
+     FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id
+     ${filter}
+     GROUP BY c.id ORDER BY MAX(m.created_at) DESC NULLS LAST LIMIT $1 OFFSET $2`, params
+  )
+  const [countRow] = await executeQuery<Array<{ count: string }>>(
+    `SELECT COUNT(*) FROM conversations c ${patterns.length ? `WHERE EXISTS (SELECT 1 FROM messages searched WHERE searched.conversation_id = c.id AND LOWER(searched.content) LIKE ANY($1::text[]))` : ''}`,
+    patterns.length ? [patterns] : []
+  )
+  return {
+    conversations: rows.map(row => ({
+      id: row.id, updatedAt: row.updated_at, lastMessageAt: row.last_message_at,
+      lastMessage: row.last_message || '', messageCount: Number(row.message_count || 0), participants: row.participants || []
+    })),
+    total: Number(countRow?.count || 0)
+  }
+}
+
+export async function getAdminConversationThread(conversationId: string) {
+  const admin = await requireAdmin()
+  const rows = await executeQuery<any[]>(
+    `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.created_at, m.updated_at,
+            u.name AS sender_name, u.avatar AS sender_avatar,
+            EXISTS (SELECT 1 FROM moderation_queue mq WHERE mq.source_id = m.id) AS flagged,
+            COALESCE((SELECT JSONB_AGG(JSONB_BUILD_OBJECT(
+              'id', ma.id, 'url', ma.url, 'mediaType', ma.media_type, 'fileName', ma.file_name,
+              'mimeType', ma.mime_type, 'sizeBytes', ma.size_bytes
+            ) ORDER BY ma.sort_order, ma.created_at) FROM message_attachments ma WHERE ma.message_id = m.id), '[]'::jsonb) AS attachments
+     FROM messages m JOIN users u ON u.id = m.sender_id
+     WHERE m.conversation_id = $1 ORDER BY m.created_at ASC`, [conversationId]
+  )
+  await executeQuery(
+    `INSERT INTO admin_audit_log (admin_id, action, target_type, target_id, reason)
+     VALUES ($1, 'conversation_thread_viewed', 'conversation', $2, 'Examen de modération')`,
+    [admin.id, conversationId]
+  )
+  return rows.map(row => ({
+    id: row.id, conversationId: row.conversation_id, senderId: row.sender_id,
+    senderName: row.sender_name || 'Membre', senderAvatar: row.sender_avatar || null,
+    content: row.content, createdAt: row.created_at, updatedAt: row.updated_at,
+    isRead: Boolean(row.is_read), flagged: Boolean(row.flagged), attachments: row.attachments || []
+  }))
+}
 
 /**
  * Fetches all messages for moderation with pagination.

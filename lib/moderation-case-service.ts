@@ -56,16 +56,23 @@ export async function createModerationCase(input: {
 }) {
   const retentionDays = input.evaluation.outcome === 'warn' ? 90 : 365
   const [moderationCase] = await sql.query<Array<{ id: string }>>(
-    `INSERT INTO moderation_queue (
-       source_type, source_id, user_id, conversation_id, severity, status,
-       reason, matched_keywords, excerpt, metadata, score, outcome,
-       policy_version, subject_pseudonym, retention_until
-     ) VALUES (
-       'message', $1, $2, $3, $4, 'new',
-       'Signal contextuel de sollicitation sexuelle rémunérée', $5::text[], $6,
-       $7::jsonb, $8, $9, $10, $11, NOW() + ($12::text || ' days')::interval
+    `WITH investigation AS (
+       INSERT INTO moderation_investigations (subject_user_id, category, priority)
+       VALUES ($2, 'paid_solicitation', 100)
+       ON CONFLICT (subject_user_id) DO UPDATE SET
+         category = 'paid_solicitation', priority = GREATEST(moderation_investigations.priority, 100), updated_at = NOW()
+       RETURNING id
      )
-     RETURNING id`,
+     INSERT INTO moderation_queue (
+        source_type, source_id, user_id, conversation_id, severity, status,
+        reason, matched_keywords, excerpt, metadata, score, outcome,
+        policy_version, subject_pseudonym, retention_until, investigation_id
+      ) SELECT
+        'message', $1, $2, $3, $4, 'new',
+        'Signal contextuel de sollicitation sexuelle rémunérée', $5::text[], $6,
+        $7::jsonb, $8, $9, $10, $11, NOW() + ($12::text || ' days')::interval, investigation.id
+      FROM investigation
+      RETURNING id`,
     [
       input.sourceId || null,
       input.senderId,

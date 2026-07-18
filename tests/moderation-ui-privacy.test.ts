@@ -15,12 +15,12 @@ describe('focused moderation UI', () => {
     const queue = read('app/moderation/page.tsx')
     expect(queue).toContain("allowedRoles={['admin', 'community_moderator']}")
     expect(queue).toContain('Dossiers ciblés uniquement')
-    expect(queue).toContain('getModerationCases')
+    expect(queue).toContain('getModerationInvestigations')
     expect(read('app/admin/users/[id]/edit/page.tsx')).toContain('Adhérent-modérateur')
   })
 
   it('provides human decisions and a member appeal surface', () => {
-    expect(read('app/moderation/[id]/page.tsx')).toContain('createModerationDecision')
+    expect(read('app/moderation/[id]/page.tsx')).toContain('applyInvestigationAction')
     expect(read('app/account/appeals/page.tsx')).toContain('submitModerationAppeal')
     expect(read('app/account/appeals/page.tsx')).toContain('Réexamen humain')
   })
