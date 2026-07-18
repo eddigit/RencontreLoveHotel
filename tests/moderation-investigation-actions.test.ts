@@ -1,20 +1,24 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { query, requireModerator, requireAdmin, requireCurrentUser, createAppNotification } = vi.hoisted(() => ({
+const { query, requireModerator, requireAdmin, requireCurrentUser, createAppNotification, appendComplianceAudit } = vi.hoisted(() => ({
   query: vi.fn(),
   requireModerator: vi.fn(),
   requireAdmin: vi.fn(),
   requireCurrentUser: vi.fn(),
-  createAppNotification: vi.fn()
+  createAppNotification: vi.fn(),
+  appendComplianceAudit: vi.fn()
 }))
 
 vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('@/lib/moderation-auth', () => ({ requireModerator }))
 vi.mock('@/lib/server-auth', () => ({ requireAdmin, requireCurrentUser }))
 vi.mock('@/actions/notification-actions', () => ({ createAppNotification }))
+vi.mock('@/config/compliance', () => ({ getComplianceFlags: () => ({ scopedConversationAccess: true }) }))
+vi.mock('@/lib/compliance-audit', () => ({ appendComplianceAudit }))
 
 import {
   getInvestigationConversations,
+  getInvestigationThread,
   getModerationInvestigation,
   getModerationInvestigations,
   sendOfficialModerationMessage
@@ -34,6 +38,7 @@ describe('moderation investigation actions', () => {
     requireAdmin.mockReset()
     requireCurrentUser.mockReset()
     createAppNotification.mockReset()
+    appendComplianceAudit.mockReset()
   })
 
   it('pseudonymizes the grouped queue for a community moderator', async () => {
@@ -60,6 +65,34 @@ describe('moderation investigation actions', () => {
     requireAdmin.mockRejectedValue(new Error('Accès administrateur requis'))
     await expect(getInvestigationConversations('investigation-1')).rejects.toThrow('administrateur')
     expect(query).not.toHaveBeenCalled()
+  })
+
+  it('requires a factual purpose and audits access before reading a full thread', async () => {
+    requireAdmin.mockResolvedValue({ id: 'admin-1', role: 'admin' })
+    await expect(getInvestigationThread('investigation-1', 'conversation-1', 'trop court'))
+      .rejects.toThrow('Motif')
+    expect(query).not.toHaveBeenCalled()
+
+    query
+      .mockResolvedValueOnce([{ subject_user_id: 'user-1', scope_basis: 'linked_alert' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+    appendComplianceAudit.mockResolvedValue({ id: 'audit-1', entryHash: 'hash' })
+
+    await getInvestigationThread(
+      'investigation-1',
+      'conversation-1',
+      'Analyse contextualisée de l’alerte de sollicitation rémunérée.'
+    )
+
+    expect(appendComplianceAudit).toHaveBeenCalledWith(expect.objectContaining({
+      actorUserId: 'admin-1',
+      action: 'moderation.conversation_thread.read',
+      entityId: 'conversation-1',
+      reason: expect.stringContaining('Analyse contextualisée')
+    }))
+    expect(query.mock.calls[1][0]).toContain('access_reason')
+    expect(query.mock.calls[2][0]).toContain('FROM messages')
   })
 
   it('sends an official message outside private conversations and notifies the member', async () => {

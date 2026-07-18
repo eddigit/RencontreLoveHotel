@@ -5,6 +5,8 @@ import { createAppNotification } from '@/actions/notification-actions'
 import { sql } from '@/lib/db'
 import { requireModerator } from '@/lib/moderation-auth'
 import { requireAdmin, requireCurrentUser } from '@/lib/server-auth'
+import { getComplianceFlags } from '@/config/compliance'
+import { appendComplianceAudit } from '@/lib/compliance-audit'
 
 type InvestigationRow = Record<string, any>
 
@@ -43,12 +45,16 @@ async function logAccess(input: {
   resourceType: string
   resourceId?: string | null
   purpose: string
+  accessReason?: string | null
+  scopeBasis?: string | null
+  authorizedBy?: string | null
 }) {
   await sql.query(
     `INSERT INTO moderation_case_access (
-       case_id, investigation_id, actor_id, actor_role, purpose, resource_type, resource_id
+       case_id, investigation_id, actor_id, actor_role, purpose, resource_type, resource_id,
+       access_reason, scope_basis, authorized_by
      )
-     SELECT mq.id, $1, $2, $3, $6, $4, $5::uuid
+     SELECT mq.id, $1, $2, $3, $6, $4, $5::uuid, $7, $8, $9::uuid
      FROM moderation_queue mq
      WHERE mq.investigation_id = $1
      ORDER BY mq.created_at ASC
@@ -59,7 +65,10 @@ async function logAccess(input: {
       input.actor.role,
       input.resourceType,
       input.resourceId || null,
-      input.purpose.slice(0, 120)
+      input.purpose.slice(0, 120),
+      input.accessReason?.slice(0, 1000) || null,
+      input.scopeBasis || null,
+      input.authorizedBy || null
     ]
   )
 }
@@ -128,9 +137,8 @@ export async function getInvestigationConversations(investigationId: string) {
     `SELECT c.id, c.updated_at,
             COUNT(m.id)::int AS message_count,
             MAX(m.created_at) AS last_message_at,
-            (ARRAY_AGG(m.content ORDER BY m.created_at DESC) FILTER (WHERE m.id IS NOT NULL))[1] AS last_message,
             COALESCE((SELECT JSONB_AGG(JSONB_BUILD_OBJECT(
-              'userId', cp2.user_id, 'name', u2.name, 'avatar', u2.avatar, 'email', u2.email
+              'userId', cp2.user_id, 'name', u2.name, 'avatar', u2.avatar
             ) ORDER BY u2.name) FROM conversation_participants cp2 JOIN users u2 ON u2.id = cp2.user_id
               WHERE cp2.conversation_id = c.id), '[]'::jsonb) AS participants,
             COUNT(DISTINCT mq.id)::int AS alert_count
@@ -148,22 +156,61 @@ export async function getInvestigationConversations(investigationId: string) {
     updatedAt: row.updated_at,
     messageCount: Number(row.message_count || 0),
     lastMessageAt: row.last_message_at,
-    lastMessage: row.last_message || '',
     participants: row.participants || [],
     alertCount: Number(row.alert_count || 0)
   }))
 }
 
-export async function getInvestigationThread(investigationId: string, conversationId: string) {
+export async function getInvestigationThread(
+  investigationId: string,
+  conversationId: string,
+  rawReason = ''
+) {
   const actor = await requireAdmin()
-  const [scope] = await sql.query<Array<{ subject_user_id: string }>>(
-    `SELECT mi.subject_user_id
+  const scopedAccessEnabled = getComplianceFlags().scopedConversationAccess
+  const reason = rawReason.trim().slice(0, 1000)
+  if (scopedAccessEnabled && reason.length < 12) {
+    throw new Error('Motif factuel obligatoire avant la lecture du fil')
+  }
+
+  const [scope] = await sql.query<Array<{ subject_user_id: string; scope_basis: string }>>(
+    `SELECT mi.subject_user_id,
+            CASE WHEN EXISTS (
+              SELECT 1 FROM moderation_queue mq
+              WHERE mq.investigation_id = mi.id AND mq.conversation_id = $2
+            ) THEN 'linked_alert' ELSE 'documented_admin_extension' END AS scope_basis
      FROM moderation_investigations mi
      JOIN conversation_participants cp ON cp.user_id = mi.subject_user_id AND cp.conversation_id = $2
      WHERE mi.id = $1 AND mi.enhanced_access_until >= CURRENT_TIMESTAMP`,
     [investigationId, conversationId]
   )
   if (!scope) throw new Error('Conversation hors du périmètre autorisé')
+
+  if (scopedAccessEnabled) {
+    await appendComplianceAudit({
+      actorUserId: actor.id,
+      actorRole: actor.role,
+      action: 'moderation.conversation_thread.read',
+      entityType: 'conversation',
+      entityId: conversationId,
+      reason,
+      metadata: {
+        investigationId,
+        scopeBasis: scope.scope_basis
+      }
+    })
+    await logAccess({
+      investigationId,
+      actor,
+      resourceType: 'conversation_thread',
+      resourceId: conversationId,
+      purpose: 'conversation_thread',
+      accessReason: reason,
+      scopeBasis: scope.scope_basis,
+      authorizedBy: actor.id
+    })
+  }
+
   const rows = await sql.query<InvestigationRow[]>(
     `SELECT m.id, m.conversation_id, m.sender_id, m.content, m.is_read, m.created_at, m.updated_at,
             u.name AS sender_name, u.avatar AS sender_avatar,
@@ -178,13 +225,15 @@ export async function getInvestigationThread(investigationId: string, conversati
      ORDER BY m.created_at ASC`,
     [investigationId, conversationId]
   )
-  await logAccess({
-    investigationId,
-    actor,
-    resourceType: 'conversation_thread',
-    resourceId: conversationId,
-    purpose: 'conversation_thread'
-  })
+  if (!scopedAccessEnabled) {
+    await logAccess({
+      investigationId,
+      actor,
+      resourceType: 'conversation_thread',
+      resourceId: conversationId,
+      purpose: 'conversation_thread'
+    })
+  }
   return rows.map(row => ({
     id: row.id, conversationId: row.conversation_id, senderId: row.sender_id,
     senderName: row.sender_name || 'Membre', senderAvatar: row.sender_avatar || null,

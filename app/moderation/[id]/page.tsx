@@ -38,6 +38,7 @@ export default function ModerationInvestigationPage () {
   const [officialMessages, setOfficialMessages] = useState<any[]>([])
   const [officialText, setOfficialText] = useState('')
   const [reason, setReason] = useState('Examen humain du dossier et des éléments contextualisés.')
+  const [conversationAccessReason, setConversationAccessReason] = useState('')
   const [status, setStatus] = useState('')
   const [tab, setTab] = useState<'overview' | 'profile' | 'conversations' | 'official' | 'evidence'>('overview')
 
@@ -56,8 +57,17 @@ export default function ModerationInvestigationPage () {
   useEffect(() => { load().catch(error => setStatus(error.message)) }, [load])
 
   async function openConversation(conversationId: string) {
-    setSelectedConversation(conversationId)
-    setThread(await getInvestigationThread(params.id, conversationId) as ThreadMessage[])
+    if (conversationAccessReason.trim().length < 12) {
+      setStatus('Motif obligatoire avant lecture : décrivez précisément le besoin lié au dossier.')
+      return
+    }
+    try {
+      setSelectedConversation(conversationId)
+      setThread(await getInvestigationThread(params.id, conversationId, conversationAccessReason) as ThreadMessage[])
+      setStatus('Accès au fil enregistré dans le journal de conformité.')
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Lecture du fil impossible')
+    }
   }
   async function act(action: Parameters<typeof applyInvestigationAction>[0]['action']) {
     if (!window.confirm(`Confirmer l’action « ${action} » sur ce profil ?`)) return
@@ -108,7 +118,20 @@ export default function ModerationInvestigationPage () {
 
           {detail && tab === 'profile' && <section className='mt-5 rounded-3xl border border-white/10 bg-white/[0.04] p-6'><h2 className='text-xl font-black'>Profil et identité</h2><div className='mt-4 grid gap-4 sm:grid-cols-2'><p><span className='text-white/45'>Nom</span><br />{detail.name}</p><p><span className='text-white/45'>Email</span><br />{detail.email}</p><p><span className='text-white/45'>Identifiant</span><br />{detail.subjectUserId}</p><p><span className='text-white/45'>Restriction actuelle</span><br />{detail.messagingRestrictedUntil ? new Date(detail.messagingRestrictedUntil).toLocaleString('fr-FR') : 'Aucune'}</p></div><pre className='mt-5 overflow-auto rounded-2xl bg-black/25 p-4 text-xs text-white/70'>{JSON.stringify(detail.profile || {}, null, 2)}</pre></section>}
 
-          {tab === 'conversations' && user?.role === 'admin' && <section className='mt-5 grid gap-5 lg:grid-cols-[340px_1fr]'><div className='space-y-2 rounded-3xl border border-white/10 bg-white/[0.04] p-4'><h2 className='mb-3 font-black'>Toutes les conversations ({conversations.length})</h2>{conversations.map(conversation => <button key={conversation.id} onClick={() => openConversation(conversation.id)} className={`w-full rounded-xl border p-3 text-left ${selectedConversation === conversation.id ? 'border-[#ff77b7] bg-[#ff3b8b]/15' : 'border-white/10 bg-black/15'}`}><div className='flex -space-x-2'>{conversation.participants.map((participant: any) => <ModerationAvatar key={participant.userId} name={participant.name} src={participant.avatar} className='h-8 w-8' />)}</div><p className='mt-2 line-clamp-2 text-sm'>{conversation.lastMessage}</p><p className='mt-1 text-xs text-white/45'>{conversation.messageCount} messages · {conversation.alertCount} alertes</p></button>)}</div><div><h2 className='mb-3 text-xl font-black'>Fil complet et chronologique</h2><ConversationThread messages={thread} subjectUserId={detail?.subjectUserId} /></div></section>}
+          {tab === 'conversations' && user?.role === 'admin' && <section className='mt-5 grid gap-5 lg:grid-cols-[340px_1fr]'>
+            <div className='space-y-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4'>
+              <h2 className='font-black'>Toutes les conversations ({conversations.length})</h2>
+              <label className='block text-xs font-bold text-white/70'>Motif obligatoire avant lecture
+                <textarea value={conversationAccessReason} onChange={event => setConversationAccessReason(event.target.value)} placeholder='Ex. Vérifier le contexte complet de l’alerte du…' className='mt-2 min-h-24 w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm font-normal' />
+              </label>
+              {conversations.map(conversation => <div key={conversation.id} className={`rounded-xl border p-3 ${selectedConversation === conversation.id ? 'border-[#ff77b7] bg-[#ff3b8b]/15' : 'border-white/10 bg-black/15'}`}>
+                <div className='flex -space-x-2'>{conversation.participants.map((participant: any) => <ModerationAvatar key={participant.userId} name={participant.name} src={participant.avatar} className='h-8 w-8' />)}</div>
+                <p className='mt-2 text-xs text-white/45'>{conversation.messageCount} messages · {conversation.alertCount} alertes</p>
+                <Button type='button' variant='outline' className='mt-3 w-full' disabled={conversationAccessReason.trim().length < 12} onClick={() => openConversation(conversation.id)}>Lire le fil audité</Button>
+              </div>)}
+            </div>
+            <div><h2 className='mb-3 text-xl font-black'>Fil complet et chronologique</h2><ConversationThread messages={thread} subjectUserId={detail?.subjectUserId} /></div>
+          </section>}
 
           {tab === 'official' && user?.role === 'admin' && <section className='mt-5 grid gap-5 lg:grid-cols-[1fr_420px]'><div><h2 className='mb-3 text-xl font-black'>Canal officiel</h2><ConversationThread messages={officialMessages.map(message => ({ id: message.id, senderId: message.sender_id, senderName: message.sender_name || 'Équipe de modération LHR', senderAvatar: message.sender_avatar, content: message.content, createdAt: message.created_at }))} subjectUserId={detail?.subjectUserId} /></div><div className='rounded-3xl border border-white/10 bg-white/[0.04] p-5'><h3 className='font-black'>Écrire au membre en direct</h3><p className='mt-2 text-xs text-white/55'>Ce canal officiel reste séparé de ses conversations privées et conserve l’accusé de lecture.</p><textarea value={officialText} onChange={event => setOfficialText(event.target.value)} placeholder='Message officiel factuel…' className='mt-4 min-h-40 w-full rounded-xl border border-white/10 bg-black/20 p-3' /><Button className='mt-3 w-full' disabled={officialText.trim().length < 8} onClick={sendOfficial}>Envoyer officiellement</Button></div></section>}
 

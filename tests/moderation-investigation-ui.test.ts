@@ -20,6 +20,8 @@ describe('moderation investigation cockpit UI', () => {
     expect(cockpit).toContain('Geler les preuves')
     expect(cockpit).toContain('Exporter le dossier')
     expect(cockpit).toContain('Bannir définitivement')
+    expect(cockpit).toContain('Motif obligatoire avant lecture')
+    expect(cockpit).toContain('Lire le fil audité')
   })
 
   it('uses avatars in global user and message administration', () => {
