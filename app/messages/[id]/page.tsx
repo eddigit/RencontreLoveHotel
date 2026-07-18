@@ -62,6 +62,14 @@ interface ConversationDetails {
   other_user_avatar: string | null
 }
 
+const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+
+function memberFacingError (error: unknown, fallback: string) {
+  return error instanceof Error && error.message.toLowerCase().includes('coordonnées')
+    ? CONTACT_SAFETY_EXPLANATION
+    : fallback
+}
+
 function formatBytes (bytes?: number | null) {
   if (!bytes) return ''
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
@@ -287,7 +295,7 @@ export default function ConversationPage ({
       setPendingAttachments(prev => [...prev, ...uploaded].slice(0, 4))
     } catch (error) {
       console.error('Failed to upload message attachment:', error)
-      setSendError('Le média n’a pas pu être ajouté. Réessayez avec un fichier plus léger.')
+      setSendError(memberFacingError(error, 'Le média n’a pas pu être ajouté. Réessayez avec un fichier plus léger.'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -423,7 +431,7 @@ export default function ConversationPage ({
       )
       setMessage(currentMessage)
       setPendingAttachments(attachmentsToSend)
-      setSendError('Le message n’a pas pu être envoyé. Réessayez dans un instant.')
+      setSendError(memberFacingError(error, 'Le message n’a pas pu être envoyé. Réessayez dans un instant.'))
     } finally {
       setSending(false)
     }

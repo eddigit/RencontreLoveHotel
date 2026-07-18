@@ -13,6 +13,7 @@ import {
   createModerationCase,
   evaluateMessageModeration
 } from '@/lib/moderation-case-service'
+import { enforceMemberContent } from '@/lib/content-safety-service'
 
 // Helper pour vérifier l'authentification
 async function requireAuth() {
@@ -303,6 +304,14 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   if (acceptedMatchRows.length === 0 && adminParticipantRows.length === 0) {
     log('warn', 'Message blocked without accepted match', { conversationId, senderId })
     throw new Error('La messagerie nécessite un match accepté avant échange.')
+  }
+
+  if (messageContent) {
+    await enforceMemberContent({
+      actorUserId: senderId,
+      surface: 'message',
+      content: messageContent
+    })
   }
 
   const moderation = await evaluateMessageModeration({

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { put } from '@vercel/blob'
 import { authOptions } from '@/lib/auth'
+import { enforceMemberContent } from '@/lib/content-safety-service'
 
 const MAX_SIZE_BY_KIND = {
   image: 12 * 1024 * 1024,
@@ -60,6 +61,22 @@ export async function POST (req: NextRequest) {
   }
 
   const originalName = safeFileName(file.name || `${mediaType}-message`)
+  try {
+    await enforceMemberContent({
+      actorUserId: String(user.id),
+      surface: 'attachment_filename',
+      content: file.name || originalName
+    })
+  } catch (error) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'OFF_PLATFORM_CONTACT_BLOCKED') {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Coordonnées externes interdites.', code: error.code },
+        { status: 400 }
+      )
+    }
+    throw error
+  }
+
   const blob = await put(
     `message-attachments/${user.id}/${Date.now()}-${originalName}`,
     file,
