@@ -3,13 +3,14 @@
 import type { Notification } from "@/components/notifications-dropdown"
 import type { OnboardingData } from "@/components/onboarding-form"
 import { saveOnboardingData } from "@/lib/onboarding-service"
-import { createUser, verifyUserCredentials } from "@/lib/user-service"
+import { createUser, getUserByEmail, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
 import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { isCurrentRegistrationConsent, type RegistrationConsent } from '@/lib/legal-policy'
 import {
-  isCurrentRegistrationConsent,
-  type RegistrationConsent
-} from '@/lib/legal-policy'
+  ADULT_CONSENT_VERSION,
+  validateAdultDateOfBirth
+} from '@/lib/adult-membership'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -113,18 +114,59 @@ export async function registerUser(
   email: string,
   password: string,
   name: string,
-  consent: RegistrationConsent
+  activityEmailConsent: boolean | RegistrationConsent = false,
+  dateOfBirth = '',
+  adultConsent = false,
+  termsAccepted = false
 ) {
-  if (!isCurrentRegistrationConsent(consent)) {
-    return {
-      success: false,
-      error: 'Vous devez confirmer votre majorité et accepter les règles obligatoires.'
-    }
-  }
-
   try {
-    const user = await createUser(email, password, name, 'user', consent)
-    return { success: !!user, user }
+    if (typeof activityEmailConsent === 'object') {
+      if (!isCurrentRegistrationConsent(activityEmailConsent)) {
+        return {
+          success: false,
+          error: 'Vous devez confirmer votre majorité et accepter les règles obligatoires.'
+        }
+      }
+      const user = await createUser(email.trim().toLowerCase(), password, name.trim(), 'user', activityEmailConsent)
+      return { success: !!user, user }
+    }
+    const normalizedEmail = email.trim().toLowerCase()
+    const normalizedName = name.trim()
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return { success: false, error: 'Adresse email invalide.' }
+    }
+    if (normalizedName.length < 2) {
+      return { success: false, error: 'Le nom doit contenir au moins 2 caractères.' }
+    }
+    if (password.length < 8) {
+      return { success: false, error: 'Le mot de passe doit contenir au moins 8 caractères.' }
+    }
+    if (adultConsent !== true) {
+      return { success: false, error: 'Vous devez certifier être majeur.' }
+    }
+    if (termsAccepted !== true) {
+      return { success: false, error: 'Vous devez accepter les conditions d’utilisation.' }
+    }
+    const adultValidation = validateAdultDateOfBirth(dateOfBirth)
+    if (!adultValidation.ok) {
+      return { success: false, error: adultValidation.error }
+    }
+    if (await getUserByEmail(normalizedEmail)) {
+      return { success: false, error: 'Un compte existe déjà avec cette adresse email.' }
+    }
+
+    const user = await createUser(
+      normalizedEmail,
+      password,
+      normalizedName,
+      'user',
+      activityEmailConsent === true,
+      adultValidation.dateOfBirth,
+      ADULT_CONSENT_VERSION
+    )
+    return user
+      ? { success: true, user }
+      : { success: false, error: "L'inscription n'a pas pu être finalisée." }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)
     return { success: false, error: "Erreur lors de l'inscription" }

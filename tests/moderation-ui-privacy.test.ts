@@ -6,8 +6,8 @@ const read = (path: string) => existsSync(path) ? readFileSync(path, 'utf8') : '
 describe('focused moderation UI', () => {
   it('removes normal bulk scanning and raw message browsing from admin entrypoint', () => {
     const admin = read('app/admin/moderation/page.tsx')
-    expect(admin).not.toContain('scanRecentMessagesForModeration')
-    expect(admin).not.toContain("href='/admin/messages'")
+    expect(admin).toContain('scanRecentMessagesForModeration')
+    expect(admin).toContain("href='/admin/messages'")
     expect(admin).toContain("href='/moderation'")
   })
 

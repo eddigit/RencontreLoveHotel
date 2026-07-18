@@ -40,4 +40,11 @@ describe('LHR critical product contracts', () => {
     expect(packageJson).toContain('verify:critical')
     expect(packageJson).toContain('verify:release')
   })
+
+  it('keeps the anti-prostitution Compliance widget in the desktop sidebar', () => {
+    const shell = source('components/site-shell.tsx')
+    expect(shell).toContain('/compliance-prostitution-interdite.png')
+    expect(shell).toContain("href='/community-safety'")
+    expect(shell).toContain('Prostitution interdite')
+  })
 })

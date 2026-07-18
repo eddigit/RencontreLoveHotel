@@ -10,6 +10,7 @@ declare module "next-auth" {
       avatar?: string | null;
       onboardingCompleted?: boolean | null;
       email_verified?: boolean | null;
+      adultVerified?: boolean | null;
     } & DefaultSession["user"]; // Keep existing properties
   }
 
@@ -17,6 +18,7 @@ declare module "next-auth" {
     role?: string | null;
     avatar?: string | null;
     onboarding_completed?: boolean | null; // Ensure this matches the property name from your authorize callback
+    adult_verified_at?: Date | null;
   }
 }
 
@@ -25,6 +27,9 @@ declare module "next-auth/jwt" {
     role?: string | null;
     avatar?: string | null;
     onboardingCompleted?: boolean | null;
+    blocked?: boolean;
+    adultVerified?: boolean;
+    userCheckedAt?: number;
     // 'sub' (subject, typically user ID) is already part of DefaultJWT
   }
 }

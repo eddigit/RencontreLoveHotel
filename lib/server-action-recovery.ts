@@ -8,8 +8,7 @@ export function isStaleServerActionError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error || '')
 
   return name === 'UnrecognizedActionError' ||
-    /(?:failed to find|could not find|unrecognized) server action/i.test(message) ||
-    /unexpected response was received from the server/i.test(message)
+    /(?:failed to find|could not find|unrecognized) server action/i.test(message)
 }
 
 export function recoverFromStaleServerAction(error: unknown) {
@@ -18,7 +17,7 @@ export function recoverFromStaleServerAction(error: unknown) {
   }
 
   const lastReload = Number(window.sessionStorage.getItem(RELOAD_KEY) || 0)
-  if (Date.now() - lastReload < RELOAD_COOLDOWN_MS) return false
+  if (Date.now() - lastReload < RELOAD_COOLDOWN_MS) return true
 
   window.sessionStorage.setItem(RELOAD_KEY, String(Date.now()))
   window.location.reload()

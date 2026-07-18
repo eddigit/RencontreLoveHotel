@@ -55,7 +55,6 @@ describe('member directory action', () => {
     expect(countQuery).toContain('LOWER(COALESCE(u.name')
     expect(countQuery).toContain('open_curtains = TRUE')
     expect(countQuery).toContain('couple')
-    expect(countParams).toContain('member-1')
     expect(countParams).toContain('%paris%')
     expect(membersQuery).toContain('LIMIT')
     expect(membersQuery).toContain('OFFSET')

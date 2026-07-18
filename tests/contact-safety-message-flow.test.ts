@@ -11,7 +11,10 @@ vi.mock('../lib/db', () => ({ sql: { query } }))
 vi.mock('next-auth/next', () => ({ getServerSession }))
 vi.mock('@/lib/content-safety-service', () => ({ enforceMemberContent }))
 vi.mock('@/actions/notification-actions', () => ({ createNotification: vi.fn(), notifyAdmins: vi.fn() }))
+vi.mock('@/lib/notification-service', () => ({ createNotificationRecord: vi.fn() }))
 vi.mock('@/lib/product-events', () => ({ trackProductEvents: vi.fn() }))
+vi.mock('@/lib/member-safety', () => ({ assertUsersCanInteract: vi.fn() }))
+vi.mock('@/lib/member-activity-email', () => ({ sendMemberActivityEmail: vi.fn() }))
 vi.mock('../utils/logger', () => ({ log: vi.fn() }))
 
 import { sendMessage } from '@/actions/conversation-actions'
@@ -31,8 +34,8 @@ describe('contact safety in member messaging', () => {
     query
       .mockResolvedValueOnce([{ messaging_restricted_until: null }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440003' }])
+      .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
       .mockResolvedValueOnce([{ ok: true }])
-      .mockResolvedValueOnce([])
     enforceMemberContent.mockRejectedValue(Object.assign(
       new Error('Pour votre sécurité, les coordonnées ne peuvent pas être partagées.'),
       { code: 'OFF_PLATFORM_CONTACT_BLOCKED' }

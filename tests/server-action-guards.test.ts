@@ -1,3 +1,4 @@
+import { readFileSync } from 'fs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getServerSessionMock = vi.hoisted(() => vi.fn())
@@ -74,6 +75,14 @@ describe('server action authorization guards', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
+  it('blocks profile reads when no member session exists', async () => {
+    getServerSessionMock.mockResolvedValue(null)
+    const { getUserProfile } = await import('@/actions/user-actions')
+
+    await expect(getUserProfile('user-2')).rejects.toThrow('Authentification requise')
+    expect(sqlMock).not.toHaveBeenCalled()
+  })
+
   it('blocks event creation for another member account', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
@@ -105,17 +114,16 @@ describe('server action authorization guards', () => {
     expect(sqlMock).not.toHaveBeenCalled()
   })
 
-  it('blocks event participant lists for non-admin users', async () => {
+  it('allows authenticated members to view accepted event participants', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
     })
 
     const { getEventParticipants } = await import('@/actions/event-actions')
 
-    await expect(getEventParticipants('event-1')).rejects.toThrow(
-      'administrateur'
-    )
-    expect(sqlMock).not.toHaveBeenCalled()
+    sqlMock.mockResolvedValueOnce([])
+    await expect(getEventParticipants('event-1')).resolves.toEqual([])
+    expect(sqlMock).toHaveBeenCalled()
   })
 
   it('returns no accepted matches for another account without querying the database', async () => {
@@ -127,6 +135,35 @@ describe('server action authorization guards', () => {
 
     await expect(getUserMatches('user-2')).resolves.toEqual([])
     expect(sqlMock).not.toHaveBeenCalled()
+  })
+
+  it('counts visible community members for authenticated dashboards', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+    sqlMock.query.mockResolvedValueOnce([
+      { total_members: '1064', new_members_last_24h: '8' }
+    ])
+
+    const { getCommunityMemberStats } = await import('@/actions/user-actions')
+
+    await expect(getCommunityMemberStats()).resolves.toEqual({
+      totalMembers: 1064,
+      newMembersLast24h: 8
+    })
+
+    expect(sqlMock.query).toHaveBeenCalledWith(
+      expect.stringContaining('COUNT(*) FILTER'),
+      []
+    )
+    const [query] = sqlMock.query.mock.calls[0]
+    expect(query).toContain('up.display_profile = TRUE')
+    expect(query).toContain('u.onboarding_completed = TRUE')
+    expect(query).toContain("COALESCE(u.status, 'active') <> 'banned'")
+    expect(query).toContain("INTERVAL '24 hours'")
+
+    const userActionsSource = readFileSync('actions/user-actions.ts', 'utf8')
+    expect(userActionsSource).toContain('u.created_at,')
   })
 
   it('returns no pending match requests for another account without querying the database', async () => {
@@ -141,5 +178,18 @@ describe('server action authorization guards', () => {
     await expect(getIncomingMatchRequests('user-2')).resolves.toEqual([])
     await expect(getOutgoingMatchRequests('user-2')).resolves.toEqual([])
     expect(sqlMock).not.toHaveBeenCalled()
+  })
+
+  it('blocks wall moderation actions for non-admin users', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+
+    const { restoreWallModerationItem } = await import('@/actions/admin-moderation-actions')
+
+    await expect(
+      restoreWallModerationItem({ itemId: 'queue-1' })
+    ).rejects.toThrow('administrateur')
+    expect(sqlMock.query).not.toHaveBeenCalled()
   })
 })

@@ -7,9 +7,24 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationRecord: vi.fn()
 }))
+
+vi.mock('@/lib/member-safety', () => ({
+  assertUsersCanInteract: vi.fn().mockResolvedValue(undefined)
+}))
+
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
+}))
+
+vi.mock('@/lib/content-safety-service', () => ({ enforceMemberContent: vi.fn() }))
+vi.mock('@/lib/moderation-case-service', () => ({
+  evaluateMessageModeration: vi.fn().mockResolvedValue({ outcome: 'allow', shouldCreateCase: false }),
+  createModerationCase: vi.fn()
+}))
+vi.mock('@/lib/product-events', () => ({ trackProductEvents: vi.fn() }))
 
 vi.mock('../utils/logger', () => ({
   log: vi.fn()
@@ -127,13 +142,15 @@ describe('Reproduction du problème plebreton', () => {
       { user_id: '550e8400-e29b-41d4-a716-446655440006' }
     ])
 
-    // Troisième requête: vérification du match accepté
+    // Troisième requête: accès explicite de la conversation
+    ;(sql.query as any).mockResolvedValueOnce([
+      { access_mode: 'match', has_history: false }
+    ])
+
+    // Quatrième requête: vérification du match accepté
     ;(sql.query as any).mockResolvedValueOnce([
       { ok: true }
     ])
-
-    // Quatrième requête: règles de modération contextuelle
-    ;(sql.query as any).mockResolvedValueOnce([])
 
     // Cinquième requête: insertion du message
     ;(sql.query as any).mockResolvedValueOnce([
@@ -152,8 +169,7 @@ describe('Reproduction du problème plebreton', () => {
     
     // Vérifications
     expect(result.id).toBe('550e8400-e29b-41d4-a716-446655440005')
-    // Participant, destinataire, match, message, conversation et deux événements d'activation.
-    expect(sql.query).toHaveBeenCalledTimes(8)
+    expect(sql.query).toHaveBeenCalledTimes(6)
     
     // Vérification de l'insertion du message
     expect(sql.query).toHaveBeenNthCalledWith(5,

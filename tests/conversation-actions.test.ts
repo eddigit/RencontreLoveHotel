@@ -14,9 +14,24 @@ vi.mock('@/lib/db', () => ({
 }))
 
 // mock notification actions alias import
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationRecord: vi.fn()
 }))
+
+vi.mock('@/lib/member-safety', () => ({
+  assertUsersCanInteract: vi.fn()
+}))
+
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
+}))
+
+vi.mock('@/lib/content-safety-service', () => ({ enforceMemberContent: vi.fn() }))
+vi.mock('@/lib/moderation-case-service', () => ({
+  evaluateMessageModeration: vi.fn().mockResolvedValue({ outcome: 'allow', shouldCreateCase: false }),
+  createModerationCase: vi.fn()
+}))
+vi.mock('@/lib/product-events', () => ({ trackProductEvents: vi.fn() }))
 
 // mock logger module
 vi.mock('../utils/logger', () => ({
@@ -32,16 +47,22 @@ import {
   getUserConversations,
   getConversationMessagesAfter,
   getConversationMessages,
+  findOrCreateConversation,
   markConversationMessagesAsRead,
-  sendMessage
+  sendMessage,
+  updateOwnMessage,
+  deleteOwnMessage
 } from '../actions/conversation-actions'
 import { sql } from '../lib/db'
 import { getServerSession } from 'next-auth/next'
+import { assertUsersCanInteract } from '@/lib/member-safety'
 
 describe('conversation-actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
     ;(getServerSession as any).mockReset()
+    ;(assertUsersCanInteract as any).mockReset()
+    ;(assertUsersCanInteract as any).mockResolvedValue(undefined)
   })
 
   it('denies access to getConversationMessages when user is not participant', async () => {
@@ -58,6 +79,42 @@ describe('conversation-actions', () => {
     
     ;(sql.query as any).mockResolvedValueOnce([]) // participant check
     await expect(sendMessage({ conversationId: '550e8400-e29b-41d4-a716-446655440001', senderId: '550e8400-e29b-41d4-a716-446655440099', content: 'hi' })).rejects.toThrow('Access denied')
+  })
+
+  it('denies sending a message when either member blocked the other', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+    ;(assertUsersCanInteract as any).mockRejectedValueOnce(
+      new Error('Cette interaction n’est pas disponible entre ces membres.')
+    )
+
+    await expect(sendMessage({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      senderId: '550e8400-e29b-41d4-a716-446655440099',
+      content: 'Message interdit'
+    })).rejects.toThrow('interaction')
+
+    expect(sql.query).toHaveBeenCalledTimes(2)
+  })
+
+  it('denies creating or reopening a conversation between blocked members', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(assertUsersCanInteract as any).mockRejectedValueOnce(
+      new Error('Cette interaction n’est pas disponible entre ces membres.')
+    )
+
+    await expect(findOrCreateConversation(
+      '550e8400-e29b-41d4-a716-446655440099',
+      '550e8400-e29b-41d4-a716-446655440098'
+    )).rejects.toThrow('interaction')
+
+    expect(sql.query).not.toHaveBeenCalled()
   })
 
   it('lists conversations opened by admins even without accepted match', async () => {
@@ -86,6 +143,8 @@ describe('conversation-actions', () => {
     expect(query).not.toContain('JOIN users current_user')
     expect(query).not.toContain('current_user.role')
     expect(query).toContain('viewer_user.role')
+    expect(query).toContain('AS unread_count')
+    expect(query).toContain('unread_messages.is_read')
   })
 
   it('denies sending message when participants are neither accepted match nor admin conversation', async () => {
@@ -93,6 +152,7 @@ describe('conversation-actions', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+      .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 
@@ -103,6 +163,34 @@ describe('conversation-actions', () => {
     })).rejects.toThrow('match accepté')
   })
 
+  it('allows a participant to reply to an imported conversation with history', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440098' }])
+      .mockResolvedValueOnce([{
+        access_mode: 'legacy_import',
+        has_accepted_match: false,
+        has_admin_participant: false,
+        has_history: true
+      }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    const message = await sendMessage({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      senderId: '550e8400-e29b-41d4-a716-446655440099',
+      content: 'Je reprends la conversation.'
+    })
+
+    expect(message.id).toBe('550e8400-e29b-41d4-a716-446655440111')
+  })
+
   it('allows replying inside an admin conversation without accepted match', async () => {
     ;(getServerSession as any).mockResolvedValue({
       user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
@@ -110,9 +198,9 @@ describe('conversation-actions', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440010' }])
+      .mockResolvedValueOnce([{ access_mode: 'admin', has_history: true }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ ok: true }])
-      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -136,7 +224,10 @@ describe('conversation-actions', () => {
     })
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
-      .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
+      .mockResolvedValueOnce([{
+        updated_message_count: '1',
+        updated_notification_count: '1'
+      }])
 
     const result = await markConversationMessagesAsRead(
       '550e8400-e29b-41d4-a716-446655440001',
@@ -144,8 +235,9 @@ describe('conversation-actions', () => {
     )
 
     expect(result.updatedCount).toBe(1)
+    expect(result.updatedNotificationCount).toBe(1)
     expect(sql.query).toHaveBeenLastCalledWith(
-      expect.stringContaining('UPDATE messages'),
+      expect.stringMatching(/UPDATE messages[\s\S]*UPDATE notifications/),
       [
         '550e8400-e29b-41d4-a716-446655440001',
         '550e8400-e29b-41d4-a716-446655440099'
@@ -169,11 +261,77 @@ describe('conversation-actions', () => {
 
     expect(messages).toHaveLength(1)
     expect(sql.query).toHaveBeenLastCalledWith(
-      expect.stringContaining('m.created_at > $2::timestamptz'),
+      expect.stringMatching(/m\.created_at > \$2::timestamptz[\s\S]*m\.updated_at > \$2::timestamptz/),
       [
         '550e8400-e29b-41d4-a716-446655440001',
         '2026-06-22T15:50:00.000Z'
       ]
     )
+  })
+
+  it('lets only the sender update their non-deleted message', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([{
+      id: '550e8400-e29b-41d4-a716-446655440222',
+      content: 'Texte corrigé',
+      edited_at: '2026-07-13T20:00:00.000Z'
+    }])
+
+    await expect(updateOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      content: 'Texte corrigé'
+    })).resolves.toMatchObject({ content: 'Texte corrigé' })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringMatching(/UPDATE messages[\s\S]*sender_id = \$4[\s\S]*deleted_at IS NULL/),
+      [
+        '550e8400-e29b-41d4-a716-446655440222',
+        '550e8400-e29b-41d4-a716-446655440001',
+        'Texte corrigé',
+        '550e8400-e29b-41d4-a716-446655440099'
+      ]
+    )
+  })
+
+  it('soft-deletes only the sender message and removes its attachments', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([{
+      id: '550e8400-e29b-41d4-a716-446655440222',
+      content: 'Message supprimé',
+      deleted_at: '2026-07-13T20:00:00.000Z',
+      attachments: []
+    }])
+
+    await expect(deleteOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001'
+    })).resolves.toMatchObject({ content: 'Message supprimé', attachments: [] })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringMatching(/UPDATE messages[\s\S]*sender_id = \$3[\s\S]*DELETE FROM message_attachments/),
+      [
+        '550e8400-e29b-41d4-a716-446655440222',
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440099'
+      ]
+    )
+  })
+
+  it('rejects edits when the message is not owned by the member', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([])
+
+    await expect(updateOwnMessage({
+      messageId: '550e8400-e29b-41d4-a716-446655440222',
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      content: 'Tentative'
+    })).rejects.toThrow('propre message')
   })
 })

@@ -21,11 +21,12 @@ describe('community home UI', () => {
     expect(page).toContain('en 24 h')
     expect(page).toContain('created_at?: string | Date | null')
     expect(page).toContain('const newProfiles = [...filteredProfiles]')
+    expect(page).toContain('.sort((left, right) =>')
     expect(page.indexOf("id='new-profiles'")).toBeLessThan(page.indexOf('<CommunityWall currentUserId={user.id}'))
     const eventsSectionIndex = page.indexOf("<h2 className='text-xl font-black'>Événements à venir</h2>")
     expect(page.indexOf('<CommunityWall currentUserId={user.id}')).toBeLessThan(eventsSectionIndex)
     expect(eventsSectionIndex).toBeLessThan(page.indexOf("id='online-now'"))
-    expect(page).not.toContain('En ligne dans la communauté')
+    expect(page.match(/En ligne dans la communauté/g) || []).toHaveLength(0)
   })
 
   it('prioritizes Love Hotel experiences and keeps premium as a teaser', () => {

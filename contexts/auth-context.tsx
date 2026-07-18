@@ -15,6 +15,7 @@ export type User = {
   avatar: string
   onboardingCompleted?: boolean
   email_verified?: boolean
+  adultVerified?: boolean
 }
 
 // Utilisateurs de test prédéfinis
@@ -72,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ) as UserRole,
           avatar: session.user.avatar || '',
           onboardingCompleted: Boolean(session.user.onboardingCompleted),
-          email_verified: session.user.email_verified ?? true
+          email_verified: session.user.email_verified ?? true,
+          adultVerified: session.user.adultVerified === true
         }
       : null
 

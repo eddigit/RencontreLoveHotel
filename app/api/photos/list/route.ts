@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/lib/auth'
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+    }
+
     const { searchParams } = new URL(req.url)
     const userId = searchParams.get('userId')
     

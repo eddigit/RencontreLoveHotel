@@ -36,17 +36,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' }
       },
       async authorize(credentials) {
-        const email = credentials?.email
-
+        const email = credentials?.email?.trim().toLowerCase()
         try {
           if (!email || !credentials?.password) {
-            if (email) {
-              await recordAuthEvent({
-                email,
-                provider: 'credentials',
-                success: false
-              })
-            }
+            if (email) await recordAuthEvent({ email, provider: 'credentials', success: false })
             return null
           }
           const user = await verifyUserCredentials(
@@ -55,11 +48,7 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!user) {
-            await recordAuthEvent({
-              email,
-              provider: 'credentials',
-              success: false
-            })
+            await recordAuthEvent({ email, provider: 'credentials', success: false })
             return null
           }
 
@@ -73,13 +62,7 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Erreur dans authorize:', error)
-          if (email) {
-            await recordAuthEvent({
-              email,
-              provider: 'credentials',
-              success: false
-            })
-          }
+          if (email) await recordAuthEvent({ email, provider: 'credentials', success: false })
           return null
         }
       }
@@ -94,27 +77,26 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       let auditUser = user
-
       if (account?.provider && account.provider !== 'credentials') {
         const dbUser = await getOrCreateOAuthUser({
           email: user.email!,
           name: user.name ?? undefined,
           avatar: user.image ?? undefined
         })
-        if (!dbUser) {
+        if (!dbUser || dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')) {
           await recordAuthEvent({
-            email: user.email,
+            email: user.email || undefined,
             provider: account.provider,
             success: false
           })
           return false
         }
+        user.id = dbUser.id
         auditUser = { ...user, ...dbUser }
       }
-
       await recordAuthEvent({
         userId: auditUser.id,
-        email: auditUser.email,
+        email: auditUser.email || undefined,
         role: 'role' in auditUser ? auditUser.role as string : null,
         provider: account?.provider || 'unknown',
         success: true
@@ -128,19 +110,27 @@ export const authOptions: NextAuthOptions = {
         session.user.avatar = token.avatar as string
         session.user.onboardingCompleted = token.onboardingCompleted as boolean
         session.user.email_verified = token.email_verified as boolean
+        session.user.adultVerified = token.adultVerified === true
       }
       return session
     },
     async jwt({ token, user, trigger }) {
       try {
-        if (user?.email) {
-          const dbUser = await getUserByEmail(user.email)
+        if (user?.email || user?.id) {
+          const dbUser = user.id
+            ? await getUserById(user.id)
+            : await getUserByEmail(user.email!)
           if (dbUser) {
             token.sub = dbUser.id
             token.role = dbUser.role
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.adultVerified = Boolean(dbUser.adult_verified_at)
+            token.blocked = Boolean(
+              dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
+            )
+            token.userCheckedAt = Date.now()
           } else {
             console.warn(
               "Impossible de récupérer l'utilisateur depuis la DB, utilisation des données de base"
@@ -149,10 +139,19 @@ export const authOptions: NextAuthOptions = {
             token.role = token.role || 'user'
             token.onboardingCompleted = token.onboardingCompleted ?? false
             token.email_verified = token.email_verified ?? false
+            token.adultVerified = token.adultVerified ?? false
           }
         }
 
-        if (trigger === 'update' && token.sub) {
+        const shouldRefreshUser = Boolean(
+          token.sub && (
+            trigger === 'update' ||
+            !token.userCheckedAt ||
+            Date.now() - Number(token.userCheckedAt) > 5 * 60 * 1000
+          )
+        )
+
+        if (!user && shouldRefreshUser && token.sub) {
           const dbUser = await getUserById(token.sub as string)
           if (dbUser) {
             token.name = dbUser.name
@@ -160,6 +159,13 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.adultVerified = Boolean(dbUser.adult_verified_at)
+            token.blocked = Boolean(
+              dbUser.is_banned || (dbUser.status && dbUser.status !== 'active')
+            )
+            token.userCheckedAt = Date.now()
+          } else {
+            token.blocked = true
           }
         }
       } catch (error) {
@@ -169,6 +175,7 @@ export const authOptions: NextAuthOptions = {
           token.role = token.role || 'user'
           token.onboardingCompleted = token.onboardingCompleted ?? false
           token.email_verified = token.email_verified ?? false
+          token.adultVerified = token.adultVerified ?? false
         }
       }
       return token

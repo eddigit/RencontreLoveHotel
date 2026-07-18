@@ -378,7 +378,9 @@ export default function MembersPage() {
                       {member.open_curtains && <span className='rounded-full bg-[#ff8cc8]/12 px-2 py-1 text-[#ffb8dc]'>Rideaux ouverts</span>}
                       {member.libertine && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Libertin</span>}
                     </div>
-                    <p className='mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/58'>{member.bio || 'Profil disponible pour une rencontre dans la communauté.'}</p>
+                    {member.bio ? (
+                      <p className='mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/58'>{member.bio}</p>
+                    ) : null}
                     <div className='mt-3 flex gap-2'>
                       <Button asChild size='sm' className='flex-1 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
                         <Link href={`/profile/${member.id}`}>Voir le profil</Link>

@@ -33,6 +33,18 @@ describe('community presence dashboard', () => {
     expect(migration).toContain('idx_users_last_seen_at')
   })
 
+  it('feeds the online module independently from matching filters', () => {
+    const page = readFileSync('app/discover/page.tsx', 'utf8')
+    const actions = readFileSync('actions/user-actions.ts', 'utf8')
+
+    expect(page).toContain('getOnlineCommunityMembers')
+    expect(page).toContain('setOnlineMembers')
+    expect(page).toContain("profile.is_current_user ? 'Vous' : profile.name")
+    expect(actions).toContain('export async function getOnlineCommunityMembers')
+    expect(actions).toContain('onlinePresenceCondition')
+    expect(actions).not.toContain("u.last_seen_at >= NOW() - INTERVAL '5 minutes'")
+  })
+
   it('makes dashboard stats navigable', () => {
     const page = readFileSync('app/discover/page.tsx', 'utf8')
 

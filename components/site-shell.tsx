@@ -173,6 +173,23 @@ export function SiteShell({ children }: { children: ReactNode }) {
         ) : null}
       </nav>
 
+      <Link
+        href='/community-safety'
+        onClick={() => setMobileOpen(false)}
+        aria-label='Prostitution interdite — consulter notre politique de sécurité'
+        className='group mt-4 hidden overflow-hidden rounded-xl border border-red-500/35 bg-black/60 shadow-lg shadow-red-950/20 transition hover:border-red-400/60 lg:block'
+      >
+        <span className='relative block aspect-square'>
+          <Image
+            src='/compliance-prostitution-interdite.png'
+            alt='Prostitution interdite — respect, consentement et rencontres authentiques uniquement'
+            fill
+            className='object-cover transition duration-300 group-hover:scale-[1.02]'
+            sizes='188px'
+          />
+        </span>
+      </Link>
+
       <div className='mt-auto space-y-3 border-t border-white/10 pt-4'>
         {user ? (
           <>

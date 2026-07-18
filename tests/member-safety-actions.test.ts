@@ -1,71 +1,114 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { query, requireCurrentUser } = vi.hoisted(() => ({
-  query: vi.fn(),
-  requireCurrentUser: vi.fn()
-}))
+vi.mock('@/lib/db', () => ({ sql: { query: vi.fn() } }))
+vi.mock('@/lib/server-auth', () => ({ requireCurrentUser: vi.fn() }))
+vi.mock('@/lib/admin-email-notifications', () => ({ notifyAdminByEmail: vi.fn() }))
 
-vi.mock('@/lib/db', () => ({ sql: { query } }))
-vi.mock('@/lib/server-auth', () => ({ requireCurrentUser }))
-vi.mock('@/actions/notification-actions', () => ({ createAppNotification: vi.fn() }))
+import {
+  blockMember,
+  getMemberSafetyState,
+  reportProfile,
+  unblockMember
+} from '@/actions/member-safety-actions'
+import { sql } from '@/lib/db'
+import { requireCurrentUser } from '@/lib/server-auth'
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 
-import { blockMember, reportMember } from '@/actions/member-safety-actions'
-
-const currentId = '550e8400-e29b-41d4-a716-446655440001'
-const targetId = '550e8400-e29b-41d4-a716-446655440002'
+const currentUser = {
+  id: '11111111-1111-4111-8111-111111111111',
+  role: 'user',
+  email: 'member@example.com'
+}
+const targetId = '22222222-2222-4222-8222-222222222222'
 
 describe('member safety actions', () => {
   beforeEach(() => {
-    query.mockReset()
-    requireCurrentUser.mockResolvedValue({ id: currentId, role: 'user' })
+    vi.mocked(sql.query).mockReset()
+    vi.mocked(requireCurrentUser).mockReset()
+    vi.mocked(requireCurrentUser).mockResolvedValue(currentUser)
+    vi.mocked(notifyAdminByEmail).mockReset()
+    vi.mocked(notifyAdminByEmail).mockResolvedValue(true)
   })
 
-  it('blocks a member and closes the relationship in one database operation', async () => {
-    query.mockResolvedValueOnce([{ blocked_id: targetId }])
+  it('requires the current session and prevents self blocking', async () => {
+    await expect(blockMember(currentUser.id)).rejects.toThrow('propre profil')
+    expect(sql.query).not.toHaveBeenCalled()
 
-    await expect(blockMember(targetId)).resolves.toEqual({ success: true })
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO user_blocks'), [currentId, targetId])
-    expect(query.mock.calls[0][0]).toContain('DELETE FROM user_matches')
+    vi.mocked(requireCurrentUser).mockRejectedValueOnce(new Error('Authentification requise'))
+    await expect(getMemberSafetyState(targetId)).rejects.toThrow('Authentification requise')
   })
 
-  it('rejects unsupported report reasons before writing data', async () => {
-    await expect(reportMember({ targetUserId: targetId, reason: 'anything' as any }))
-      .rejects.toThrow('Motif de signalement invalide')
-    expect(query).not.toHaveBeenCalled()
-  })
-
-  it('stores a bounded moderation report', async () => {
-    query.mockResolvedValueOnce([{ id: 'report-1' }]).mockResolvedValueOnce([])
-
-    await expect(reportMember({
-      targetUserId: targetId,
-      reason: 'inappropriate_content',
-      details: 'Contenu déplacé dans le profil.'
-    })).resolves.toEqual({ success: true, reportId: 'report-1' })
-
-    expect(query.mock.calls[0][0]).toContain('INSERT INTO user_reports')
-    expect(query.mock.calls[0][1]).toEqual([
-      currentId,
-      targetId,
-      null,
-      'inappropriate_content',
-      'Contenu déplacé dans le profil.'
-    ])
-  })
-
-  it('accepts a dedicated paid sexual solicitation report reason', async () => {
-    query
-      .mockResolvedValueOnce([{ id: 'report-2' }])
-      .mockResolvedValueOnce([{ id: 'case-2' }])
+  it('creates and removes a personal block without banning the target account', async () => {
+    vi.mocked(sql.query)
+      .mockResolvedValueOnce([{ id: targetId }])
+      .mockResolvedValueOnce([{ id: 'block-1' }])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
 
-    await expect(reportMember({
-      targetUserId: targetId,
-      reason: 'paid_sexual_solicitation'
-    })).resolves.toEqual({ success: true, reportId: 'report-2' })
+    await expect(blockMember(targetId)).resolves.toEqual({ success: true })
+    await expect(unblockMember(targetId)).resolves.toEqual({ success: true })
 
-    expect(query.mock.calls[0][1][3]).toBe('paid_sexual_solicitation')
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO moderation_queue')
-    expect(query.mock.calls[2][0]).toContain("role IN ('admin', 'community_moderator')")
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO user_blocks'),
+      [currentUser.id, targetId]
+    )
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('DELETE FROM user_matches'),
+      [currentUser.id, targetId]
+    )
+    expect(sql.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE users'),
+      expect.anything()
+    )
+  })
+
+  it('returns reciprocal safety state', async () => {
+    vi.mocked(sql.query).mockResolvedValueOnce([{
+      blocked_by_a: true,
+      blocked_by_b: false
+    }])
+
+    await expect(getMemberSafetyState(targetId)).resolves.toEqual({
+      blockedByMe: true,
+      blockedMe: false,
+      canInteract: false
+    })
+  })
+
+  it('queues a profile report and notifies admins without automatic sanction', async () => {
+    vi.mocked(sql.query)
+      .mockResolvedValueOnce([{ id: targetId, name: 'Profil cible' }])
+      .mockResolvedValueOnce([{ id: 'report-1' }])
+      .mockResolvedValueOnce([])
+
+    await expect(reportProfile({
+      memberId: targetId,
+      reason: 'harassment',
+      details: 'Messages insistants et irrespectueux.'
+    })).resolves.toEqual({ success: true, reportId: 'report-1' })
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO profile_reports'),
+      [currentUser.id, targetId, 'harassment', 'Messages insistants et irrespectueux.']
+    )
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO moderation_queue'),
+      expect.arrayContaining(['profile', targetId, targetId])
+    )
+    expect(notifyAdminByEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'profile_reported', actionPath: '/admin/moderation' })
+    )
+    expect(sql.query).not.toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE users'),
+      expect.anything()
+    )
+  })
+
+  it('requires a supported report reason', async () => {
+    await expect(reportProfile({
+      memberId: targetId,
+      reason: 'invalid' as any
+    })).rejects.toThrow('Motif de signalement invalide')
+    expect(sql.query).not.toHaveBeenCalled()
   })
 })

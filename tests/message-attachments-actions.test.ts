@@ -12,8 +12,16 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationRecord: vi.fn()
+}))
+
+vi.mock('@/lib/member-safety', () => ({
+  assertUsersCanInteract: vi.fn().mockResolvedValue(undefined)
+}))
+
+vi.mock('@/lib/member-activity-email', () => ({
+  sendMemberActivityEmail: vi.fn().mockResolvedValue({ sent: false, reason: 'test' })
 }))
 
 vi.mock('../utils/logger', () => ({
@@ -41,6 +49,7 @@ describe('sendMessage attachments', () => {
     ;(sql.query as any)
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([{ user_id: '550e8400-e29b-41d4-a716-446655440003' }])
+      .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
       .mockResolvedValueOnce([{ ok: true }])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([

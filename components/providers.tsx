@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { SessionProvider } from "next-auth/react"
 import { NoSSR } from "@/components/no-ssr"
 import { PresenceHeartbeat } from "@/components/presence-heartbeat"
+import { ActivityEmailConsentPrompt } from '@/components/activity-email-consent-prompt'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <SessionProvider>
           <AuthProvider>
             <PresenceHeartbeat />
+            <ActivityEmailConsentPrompt />
             <NotificationProvider>
               {children}
             </NotificationProvider>

@@ -2,9 +2,9 @@ name: LHR release guard
 
 on:
   push:
-    branches: [pzen_2]
+    branches: [main]
   pull_request:
-    branches: [pzen_2]
+    branches: [main]
 
 jobs:
   verify:

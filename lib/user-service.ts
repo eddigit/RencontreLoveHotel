@@ -1,6 +1,7 @@
 import { executeQuery } from "./db"
 import { hash, compare } from "bcryptjs"
 import { v4 as uuidv4 } from "uuid"
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
 import type { RegistrationConsent } from '@/lib/legal-policy'
 
 // Types
@@ -14,6 +15,8 @@ export interface User {
   email_verified?: boolean // Add this line
   status?: string | null
   is_banned?: boolean | null
+  date_of_birth?: string | Date | null
+  adult_verified_at?: Date | null
   created_at: Date
   updated_at: Date
 }
@@ -24,13 +27,21 @@ export async function createUser(
   password: string,
   name: string,
   role: "user" | "admin" = "user",
-  consent?: RegistrationConsent
+  activityEmailConsent: boolean | RegistrationConsent = false,
+  dateOfBirth = '',
+  adultConsentVersion = '',
 ): Promise<User | null> {
   try {
+    const legalConsent = typeof activityEmailConsent === 'object' ? activityEmailConsent : null
     const normalizedEmail = email.trim().toLowerCase()
+    const existing = await executeQuery<{ id: string }[]>(
+      'SELECT id FROM users WHERE lower(email) = $1 LIMIT 1',
+      [normalizedEmail]
+    )
+    if (existing.length > 0) return null
     const hashedPassword = await hash(password, 10)
     const userId = uuidv4()
-    const query = consent ? `
+    const query = legalConsent ? `
       WITH inserted_user AS (
         INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -50,11 +61,41 @@ export async function createUser(
       )
       SELECT * FROM inserted_user
     ` : `
-      INSERT INTO users (id, email, password_hash, name, role, email_verified, email_verification_token)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      WITH inserted_user AS (
+        INSERT INTO users (
+          id, email, password_hash, name, role, email_verified,
+          email_verification_token, date_of_birth, adult_consent_at,
+          adult_verified_at, terms_accepted_at, adult_consent_version,
+          adult_verification_method
+        )
+        VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8::date, CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $9, 'self_declared_birth_date'
+        )
+        RETURNING id, email, name, role, avatar, onboarding_completed,
+                  email_verified, date_of_birth, adult_verified_at,
+                  created_at, updated_at
+      ), inserted_preference AS (
+        INSERT INTO email_preferences (
+          user_id,
+          activity_email_consent,
+          activity_email_decided_at,
+          message_email_enabled,
+          match_email_enabled,
+          event_email_enabled,
+          activity_email_source,
+          source,
+          updated_at
+        )
+        SELECT id, $10, CURRENT_TIMESTAMP, $10, $10, $10, 'registration', 'registration', CURRENT_TIMESTAMP
+        FROM inserted_user
+        RETURNING user_id
+      )
+      SELECT inserted_user.*
+      FROM inserted_user
+      JOIN inserted_preference ON inserted_preference.user_id = inserted_user.id
     `
-    const params = [
+    const params = legalConsent ? [
       userId,
       normalizedEmail,
       hashedPassword,
@@ -62,14 +103,38 @@ export async function createUser(
       role,
       true,
       null,
-      ...(consent ? [
-        consent.versions.terms,
-        consent.versions.privacy,
-        consent.versions.antiSolicitation
-      ] : [])
+      legalConsent.versions.terms,
+      legalConsent.versions.privacy,
+      legalConsent.versions.antiSolicitation
+    ] : [
+      userId,
+      normalizedEmail,
+      hashedPassword,
+      name,
+      role,
+      true,
+      null,
+      dateOfBirth,
+      adultConsentVersion,
+      activityEmailConsent === true
     ]
     const result = (await executeQuery<User[]>(query, params)) ?? []
-    return result.length ? result[0] : null
+    const user = result.length ? result[0] : null
+    if (user) {
+      await notifyAdminByEmail({
+        kind: 'member_created',
+        subject: `Nouvel adhérent : ${user.name || user.email}`,
+        title: 'Un nouvel adhérent vient de s’inscrire',
+        details: [
+          { label: 'Nom', value: user.name },
+          { label: 'Email', value: user.email },
+          { label: 'Rôle', value: user.role },
+          { label: 'Identifiant', value: user.id }
+        ],
+        actionPath: `/admin/users/${user.id}/edit`
+      })
+    }
+    return user
   } catch (error) {
     console.error("Erreur lors de la création de l'utilisateur:", error)
     return null
@@ -101,27 +166,29 @@ export async function verifyUserCredentials(email: string, password: string): Pr
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
-      SELECT id, email, password_hash, name, role, avatar, onboarding_completed, email_verified, created_at, updated_at
+      SELECT id, email, password_hash, name, role, avatar, onboarding_completed,
+             email_verified, status, is_banned, date_of_birth,
+             adult_verified_at, created_at, updated_at
       FROM users
       WHERE lower(email) = $1
     `
 
-    const users = await executeQuery<Array<User & { password_hash: string }>>(query, [normalizedEmail])
+    const users = await executeQuery<Array<User & { password_hash: string | null }>>(query, [normalizedEmail])
 
     if (users.length === 0) {
       return null
     }
 
-    const user = users[0]
-    const passwordMatch = await compare(password, user.password_hash)
+    for (const user of users) {
+      if (user.is_banned || (user.status && user.status !== 'active')) continue
+      if (!user.password_hash) continue
+      const passwordMatch = await compare(password, user.password_hash)
+      if (!passwordMatch) continue
 
-    if (!passwordMatch) {
-      return null
+      const { password_hash, ...userWithoutPassword } = user
+      return userWithoutPassword
     }
-
-    // Ne pas renvoyer le hash du mot de passe
-    const { password_hash, ...userWithoutPassword } = user
-    return userWithoutPassword
+    return null
   } catch (error) {
     console.error("Erreur lors de la vérification des identifiants:", error)
     return null
@@ -132,7 +199,9 @@ export async function verifyUserCredentials(email: string, password: string): Pr
 export async function getUserById(id: string): Promise<User | null> {
   try {
     const query = `
-      SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at
+      SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
+             status, is_banned, date_of_birth, adult_verified_at,
+             created_at, updated_at
       FROM users
       WHERE id = $1
     `
@@ -151,9 +220,11 @@ export async function getUserByEmail(email: string): Promise<User | null> {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
       SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
-             status, is_banned, created_at, updated_at
+             status, is_banned, date_of_birth, adult_verified_at,
+             created_at, updated_at
       FROM users
       WHERE lower(email) = $1
+      ORDER BY created_at ASC, id ASC
     `
     const users = await executeQuery<User[]>(query, [normalizedEmail])
     return users[0] || null
@@ -180,17 +251,52 @@ export async function updateOnboardingStatus(userId: string, completed: boolean)
   }
 }
 
-// Récupérer un compte OAuth existant. Toute création exige les consentements versionnés.
+// Créer un utilisateur (ou le récupérer) à partir d'un email (pour OAuth)
 export async function getOrCreateOAuthUser({ email, name, avatar }: { email: string, name?: string, avatar?: string }) {
+  const normalizedEmail = email.trim().toLowerCase()
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
-    `SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at FROM users WHERE email = $1`,
-    [email]
+    `SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
+            status, is_banned, date_of_birth, adult_verified_at,
+            created_at, updated_at
+     FROM users
+     WHERE lower(email) = $1
+     ORDER BY created_at ASC, id ASC`,
+    [normalizedEmail]
   )
   if (existing.length > 0) {
     return existing[0]
   }
-  return null
+  // Créer un nouvel utilisateur avec un UUID, sans mot de passe
+  const userId = uuidv4()
+  const query = `
+    INSERT INTO users (id, email, name, role, avatar, onboarding_completed)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, email, name, role, avatar, onboarding_completed,
+              date_of_birth, adult_verified_at, created_at, updated_at
+  `
+  const params = [userId, normalizedEmail, name || "", "user", avatar || null, false]
+  const result = (await executeQuery<User[]>(query, params)) ?? []
+  // Créer un profil vide associé
+  await executeQuery(
+    `INSERT INTO user_profiles (id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [uuidv4(), userId]
+  )
+  const user = result.length ? result[0] : null
+  if (user) {
+    await notifyAdminByEmail({
+      kind: 'member_created',
+      subject: `Nouvel adhérent OAuth : ${user.name || user.email}`,
+      title: 'Un nouvel adhérent vient de s’inscrire avec OAuth',
+      details: [
+        { label: 'Nom', value: user.name },
+        { label: 'Email', value: user.email },
+        { label: 'Identifiant', value: user.id }
+      ],
+      actionPath: `/admin/users/${user.id}/edit`
+    })
+  }
+  return user
 }
 
 // Mettre à jour le token de réinitialisation du mot de passe d'un utilisateur

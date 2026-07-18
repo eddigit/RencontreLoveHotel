@@ -21,6 +21,7 @@ const feedbackKinds: Array<{
 export function CommunityFeedbackWidget() {
   const [kind, setKind] = useState<FeedbackKind>('bug')
   const [message, setMessage] = useState('')
+  const [requestEmailReply, setRequestEmailReply] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [status, setStatus] = useState<{
     type: 'success' | 'error'
@@ -35,7 +36,8 @@ export function CommunityFeedbackWidget() {
     const result = await submitCommunityFeedback({
       kind,
       message,
-      page: 'Accueil communauté'
+      page: 'Accueil communauté',
+      requestEmailReply
     })
 
     setIsSubmitting(false)
@@ -46,11 +48,12 @@ export function CommunityFeedbackWidget() {
 
     if (result.success) {
       setMessage('')
+      setRequestEmailReply(false)
     }
   }
 
   return (
-    <section className='rounded-2xl border border-[#94ffc9]/20 bg-[linear-gradient(135deg,rgba(148,255,201,0.10),rgba(255,59,139,0.10),rgba(255,255,255,0.04))] p-5'>
+    <section id='feedback' className='rounded-2xl border border-[#94ffc9]/20 bg-[linear-gradient(135deg,rgba(148,255,201,0.10),rgba(255,59,139,0.10),rgba(255,255,255,0.04))] p-5'>
       <div className='flex items-start gap-3'>
         <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#94ffc9]/15 text-[#94ffc9]'>
           <Send className='h-5 w-5' />
@@ -93,8 +96,18 @@ export function CommunityFeedbackWidget() {
           minLength={8}
           maxLength={2000}
           required
-          className='min-h-28 rounded-2xl border-white/10 bg-black/18 text-white placeholder:text-white/35 focus-visible:ring-[#ff62a8]'
+          className='min-h-28 rounded-2xl border-[#ff8cc8]/22 bg-[#170321]/95 text-white placeholder:text-[#d8c6e8]/48 shadow-inner shadow-black/20 focus-visible:ring-[#ff62a8]'
         />
+
+        <label className='flex cursor-pointer items-start gap-2 text-sm text-white/68'>
+          <input
+            type='checkbox'
+            checked={requestEmailReply}
+            onChange={event => setRequestEmailReply(event.target.checked)}
+            className='mt-0.5 h-4 w-4 accent-[#ff3b8b]'
+          />
+          <span>Recevoir la réponse par email en plus de ma messagerie</span>
+        </label>
 
         {status && (
           <div

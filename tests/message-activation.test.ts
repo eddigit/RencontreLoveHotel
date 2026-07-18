@@ -18,6 +18,6 @@ describe('LHR message activation and safety', () => {
 
   it('exposes block and report controls on member profiles', () => {
     const page = readFileSync('app/profile/[id]/page.tsx', 'utf8')
-    expect(page).toContain('MemberSafetyMenu')
+    expect(page).toContain('MemberSafetyControls')
   })
 })

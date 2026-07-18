@@ -1,24 +1,16 @@
 "use server"
 
 import { sql } from "@/lib/db"
-import { requireAdmin } from "@/lib/server-auth"
+import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import {
+  createAppNotificationRecord,
+  createNotificationRecord,
+  type AppNotificationInput,
+  type NotificationAudience,
+  type NotificationPriority
+} from '@/lib/notification-service'
 
-export type NotificationPriority = 'low' | 'normal' | 'high' | 'critical'
-export type NotificationAudience = 'user' | 'admin'
-
-export type AppNotificationInput = {
-  userId: string
-  type: string
-  title: string
-  description?: string
-  link?: string
-  image?: string | null
-  priority?: NotificationPriority
-  category?: string
-  audience?: NotificationAudience
-  metadata?: Record<string, unknown>
-  createdBy?: string | null
-}
+export type { AppNotificationInput, NotificationAudience, NotificationPriority }
 
 export type AdminNotificationInput = Omit<
   AppNotificationInput,
@@ -32,7 +24,12 @@ export type InternalBroadcastInput = {
   priority?: NotificationPriority
 }
 
+export type SelectedInternalMessageInput = InternalBroadcastInput & {
+  userIds: string[]
+}
+
 export async function getUserNotifications(userId: string) {
+  await requireSameUserOrAdmin(userId)
   const notifications = await sql`
     SELECT * FROM notifications
     WHERE user_id = ${userId}
@@ -43,52 +40,21 @@ export async function getUserNotifications(userId: string) {
 }
 
 export async function markNotificationAsRead(notificationId: string) {
+  const user = await requireCurrentUser()
   await sql`
     UPDATE notifications
     SET read = true,
         read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
     WHERE id = ${notificationId}
+      AND (user_id = ${user.id} OR ${user.role === 'admin'})
   `
 
   return { success: true }
 }
 
 export async function createAppNotification(input: AppNotificationInput) {
-  const [notification] = await sql.query(
-    `
-      INSERT INTO notifications (
-        user_id,
-        type,
-        title,
-        description,
-        link,
-        image,
-        priority,
-        category,
-        audience,
-        metadata,
-        created_by,
-        read
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, false)
-      RETURNING *
-    `,
-    [
-      input.userId,
-      input.type,
-      input.title,
-      input.description || '',
-      input.link || '',
-      input.image || null,
-      input.priority || 'normal',
-      input.category || input.type,
-      input.audience || 'user',
-      JSON.stringify(input.metadata || {}),
-      input.createdBy || null
-    ]
-  )
-
-  return { success: true, notification }
+  await requireAdmin()
+  return createAppNotificationRecord(input)
 }
 
 export async function createNotification({ userId, type, title, description, link }: {
@@ -98,14 +64,8 @@ export async function createNotification({ userId, type, title, description, lin
   description?: string;
   link?: string;
 }) {
-  return createAppNotification({
-    userId,
-    type,
-    title,
-    description,
-    link,
-    category: type
-  })
+  await requireAdmin()
+  return createNotificationRecord({ userId, type, title, description, link })
 }
 
 export async function notifyAdmins(input: AdminNotificationInput) {
@@ -124,7 +84,7 @@ export async function notifyAdmins(input: AdminNotificationInput) {
   )
 
   for (const admin of admins) {
-    await createAppNotification({
+    await createAppNotificationRecord({
       ...input,
       userId: admin.id,
       audience: 'admin'
@@ -134,7 +94,10 @@ export async function notifyAdmins(input: AdminNotificationInput) {
   return { success: true, notifiedCount: admins.length }
 }
 
-export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
+async function sendInternalMessage(
+  input: InternalBroadcastInput,
+  selectedUserIds?: string[]
+) {
   const admin = await requireAdmin()
   const title = input.title.trim().slice(0, 180)
   const description = input.description.trim().slice(0, 2000)
@@ -148,8 +111,26 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
     throw new Error('Message requis')
   }
 
+  const userIds = selectedUserIds
+    ? [...new Set(selectedUserIds.filter(Boolean))].slice(0, 100)
+    : null
+
+  if (selectedUserIds && !userIds?.length) {
+    throw new Error('Sélection de membres requise')
+  }
+
   const recipients = await sql.query<{ id: string }[]>(
+    userIds
+      ? `
+      SELECT u.id
+      FROM users u
+      WHERE COALESCE(u.status, 'active') = 'active'
+        AND COALESCE(u.is_banned, false) = false
+        AND u.id != $1
+        AND u.id = ANY($2::uuid[])
+      ORDER BY u.created_at ASC
     `
+      : `
       SELECT u.id
       FROM users u
       WHERE COALESCE(u.status, 'active') = 'active'
@@ -157,7 +138,7 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
         AND u.id != $1
       ORDER BY u.created_at ASC
     `,
-    [admin.id]
+    userIds ? [admin.id, userIds] : [admin.id]
   )
 
   let messageCount = 0
@@ -215,7 +196,7 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
       [conversationId]
     )
 
-    await createAppNotification({
+    await createAppNotificationRecord({
       userId: recipient.id,
       type: 'admin_broadcast',
       title,
@@ -241,4 +222,14 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
     recipientCount: recipients.length,
     createdConversationCount
   }
+}
+
+export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
+  return sendInternalMessage(input)
+}
+
+export async function sendInternalMessageToSelectedUsers(
+  input: SelectedInternalMessageInput
+) {
+  return sendInternalMessage(input, input.userIds)
 }

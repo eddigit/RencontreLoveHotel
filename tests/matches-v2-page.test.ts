@@ -20,4 +20,11 @@ describe('matches V2 page', () => {
     expect(page).toContain('Demandes envoyées')
     expect(page).toContain('Matchs actifs')
   })
+
+  it('recovers when a deployment invalidates the page server actions', () => {
+    const page = readFileSync(join(root, 'app/matches/page.tsx'), 'utf8')
+
+    expect(page).toContain("import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'")
+    expect(page).toContain('if (recoverFromStaleServerAction(err)) return')
+  })
 })

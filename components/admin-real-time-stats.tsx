@@ -25,12 +25,13 @@ interface StatCardProps {
   value: number | string
   change?: number
   changeLabel?: string
+  detail?: string
   icon: React.ReactNode
   color?: 'blue' | 'green' | 'purple' | 'orange' | 'red' | 'pink'
   trend?: 'up' | 'down' | 'neutral'
 }
 
-function StatCard({ title, value, change, changeLabel, icon, color = 'blue', trend = 'neutral' }: StatCardProps) {
+function StatCard({ title, value, change, changeLabel, detail, icon, color = 'blue', trend = 'neutral' }: StatCardProps) {
   const colorClasses = {
     blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
     green: 'bg-green-500/10 text-green-600 border-green-500/20',
@@ -72,6 +73,9 @@ function StatCard({ title, value, change, changeLabel, icon, color = 'blue', tre
             </span>
             <span>{changeLabel}</span>
           </div>
+        )}
+        {change === undefined && detail && (
+          <p className="text-xs text-muted-foreground">{detail}</p>
         )}
       </CardContent>
     </Card>
@@ -155,14 +159,14 @@ function RealTimeActivity() {
           <Badge variant="outline" className="ml-2">Live</Badge>
         </CardTitle>
         <CardDescription>
-          Dernière mise à jour: {new Date(metrics.timestamp).toLocaleTimeString('fr-FR')}
+          Dernière mise à jour: {metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString('fr-FR') : '...'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <div className="text-xl font-bold text-green-600">{metrics.connectionsLast5Min}</div>
-            <div className="text-xs text-muted-foreground">Connexions (5 min)</div>
+            <div className="text-xs text-muted-foreground">Membres actifs (5 min)</div>
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-blue-600">{metrics.messagesLast5Min}</div>
@@ -235,39 +239,36 @@ export function AdminRealTimeStats() {
       {/* KPIs principaux */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total Utilisateurs"
+          title="Total adhérents"
           value={stats.totalUsers}
-          change={stats.usersToday}
-          changeLabel="aujourd'hui"
+          detail={`${stats.usersToday.toLocaleString('fr-FR')} nouveau(x) sur 24 h`}
           icon={<Users className="h-4 w-4" />}
           color="blue"
           trend={stats.usersToday > 0 ? 'up' : 'neutral'}
         />
         
         <StatCard
-          title="Actifs aujourd’hui"
-          value={stats.activeUsersToday}
-          changeLabel="ayant envoyé un message"
-          icon={<UserCheck className="h-4 w-4" />}
+          title="En ligne maintenant"
+          value={stats.onlineUsersNow}
+          detail="Présence détectée sur 10 minutes"
+          icon={<Zap className="h-4 w-4" />}
           color="green"
-          trend="up"
+          trend={stats.onlineUsersNow > 0 ? 'up' : 'neutral'}
         />
-        
+
         <StatCard
-          title="Messages Aujourd'hui"
-          value={stats.messagesToday}
-          change={stats.messagesThisWeek - stats.messagesToday}
-          changeLabel="cette semaine"
-          icon={<MessageSquare className="h-4 w-4" />}
-          color="purple"
-          trend={stats.messagesToday > 0 ? 'up' : 'neutral'}
+          title="Actifs sur 24 h"
+          value={stats.activeUsersToday}
+          detail={`${stats.activeUsersThisWeek.toLocaleString('fr-FR')} actifs sur 7 jours`}
+          icon={<UserCheck className="h-4 w-4" />}
+          color="blue"
+          trend={stats.activeUsersToday > 0 ? 'up' : 'neutral'}
         />
         
         <StatCard
           title="Événements à Venir"
           value={stats.upcomingEvents}
-          change={stats.eventsToday}
-          changeLabel="créés aujourd'hui"
+          detail={`${stats.eventsToday.toLocaleString('fr-FR')} créé(s) sur 24 h`}
           icon={<Calendar className="h-4 w-4" />}
           color="orange"
           trend={stats.eventsToday > 0 ? 'up' : 'neutral'}
@@ -285,26 +286,60 @@ export function AdminRealTimeStats() {
         />
         
         <StatCard
-          title="Messages ce Mois"
-          value={stats.messagesThisMonth}
+          title="Messages sur 24 h"
+          value={stats.messagesToday}
+          detail={`${stats.messagesThisWeek.toLocaleString('fr-FR')} sur 7 jours`}
           icon={<MessageCircle className="h-4 w-4" />}
           color="green"
+          trend={stats.messagesToday > 0 ? 'up' : 'neutral'}
         />
-        
+
         <StatCard
-          title="Conversations Actives"
-          value={stats.activeConversationsToday}
-          changeLabel="aujourd'hui"
-          icon={<Activity className="h-4 w-4" />}
+          title="Total contacts / matchs"
+          value={stats.totalMatches}
+          icon={<Heart className="h-4 w-4" />}
           color="pink"
         />
-        
+
         <StatCard
-          title="Inscriptions Événements"
-          value={stats.eventSubscriptionsToday}
-          changeLabel="aujourd'hui"
-          icon={<CalendarDays className="h-4 w-4" />}
+          title="Demandes de contact (24 h)"
+          value={stats.matchRequestsLast24h}
+          detail={`${stats.acceptedMatchesLast24h.toLocaleString('fr-FR')} acceptée(s) sur 24 h`}
+          icon={<UserCheck className="h-4 w-4" />}
           color="purple"
+          trend={stats.matchRequestsLast24h > 0 ? 'up' : 'neutral'}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Conversations actives (24 h)"
+          value={stats.activeConversationsToday}
+          detail={`${stats.conversationsToday.toLocaleString('fr-FR')} nouvelle(s) sur 24 h`}
+          icon={<Activity className="h-4 w-4" />}
+          color="pink"
+          trend={stats.activeConversationsToday > 0 ? 'up' : 'neutral'}
+        />
+        <StatCard
+          title="Inscriptions événements (24 h)"
+          value={stats.eventSubscriptionsToday}
+          icon={<CalendarDays className="h-4 w-4" />}
+          color="orange"
+          trend={stats.eventSubscriptionsToday > 0 ? 'up' : 'neutral'}
+        />
+        <StatCard
+          title="Activité du mur (24 h)"
+          value={stats.wallActivityLast24h}
+          icon={<MessageSquare className="h-4 w-4" />}
+          color="green"
+          trend={stats.wallActivityLast24h > 0 ? 'up' : 'neutral'}
+        />
+        <StatCard
+          title="Demandes support (24 h)"
+          value={stats.supportRequestsLast24h}
+          icon={<Mail className="h-4 w-4" />}
+          color="red"
+          trend={stats.supportRequestsLast24h > 0 ? 'up' : 'neutral'}
         />
       </div>
 
@@ -319,13 +354,13 @@ export function AdminRealTimeStats() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <Clock className="mr-2 h-5 w-5 text-blue-500" />
-            Activité aujourd’hui
+            Activité sur 24 h
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">{stats.recentActivity.newUsersToday}</div>
+              <div className="text-2xl font-bold text-blue-600">{stats.recentActivity.newUsersLast24h}</div>
               <div className="text-sm text-blue-700">Nouveaux Utilisateurs</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
@@ -340,7 +375,18 @@ export function AdminRealTimeStats() {
               <div className="text-2xl font-bold text-orange-600">{stats.recentActivity.eventSubscriptionsLast24h}</div>
               <div className="text-sm text-orange-700">Inscriptions Événements</div>
             </div>
+            <div className="text-center p-4 bg-pink-50 rounded-lg">
+              <div className="text-2xl font-bold text-pink-600">{stats.recentActivity.matchRequestsLast24h}</div>
+              <div className="text-sm text-pink-700">Demandes de Contact</div>
+            </div>
+            <div className="text-center p-4 bg-emerald-50 rounded-lg">
+              <div className="text-2xl font-bold text-emerald-600">{stats.recentActivity.wallActivityLast24h}</div>
+              <div className="text-sm text-emerald-700">Activité du Mur</div>
+            </div>
           </div>
+          <p className="mt-4 text-right text-xs text-muted-foreground">
+            Instantané calculé le {new Date(stats.generatedAt).toLocaleString('fr-FR')}
+          </p>
         </CardContent>
       </Card>
     </div>

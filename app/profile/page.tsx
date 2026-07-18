@@ -11,11 +11,11 @@ import { authOptions } from '@/lib/auth'
 import { UserProfileEditor } from '@/components/UserProfileEditor'
 import { PreferencesEditor } from '@/components/PreferencesEditor'
 import { UserPhotosManager } from '@/components/UserPhotosManager'
+import { ProfileVideoManager } from '@/components/ProfileVideoManager'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
-import { calculateProfileCompletion } from '@/lib/profile-completion'
 import { enforceMemberContent } from '@/lib/content-safety-service'
 
 export const metadata: Metadata = {
@@ -73,6 +73,18 @@ async function updateUserProfile (userData: any) {
     redirect('/login')
   }
 
+  const legalIdentity = await sql`
+    SELECT date_of_birth,
+           EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INTEGER AS legal_age
+    FROM users
+    WHERE id = ${user.id} AND adult_verified_at IS NOT NULL
+  `
+  if (legalIdentity.length === 0) {
+    redirect('/age-verification?callbackUrl=/profile')
+  }
+  const verifiedBirthday = legalIdentity[0].date_of_birth
+  const verifiedAge = legalIdentity[0].legal_age
+
   await enforceMemberContent({
     actorUserId: String(user.id),
     surface: 'profile',
@@ -98,12 +110,12 @@ async function updateUserProfile (userData: any) {
       UPDATE user_profiles
       SET
         status = ${userData.status || null},
-        age = ${userData.age || null},
+        age = ${verifiedAge},
         location = ${userData.location || null},
         orientation = ${userData.orientation || null},
         bio = ${userData.bio || null},
         gender = ${userData.gender || null},
-        birthday = ${userData.birthday ? userData.birthday : null},
+        birthday = ${verifiedBirthday},
         interests = ${JSON.stringify(userData.interests || [])},
         display_profile = ${
           typeof userData.display_profile === 'boolean'
@@ -115,11 +127,11 @@ async function updateUserProfile (userData: any) {
   } else {
     await sql`
       INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, status, featured, display_profile)
-      VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
+      VALUES (gen_random_uuid(), ${user.id}, ${verifiedAge}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
       userData.gender || null
-    }, ${userData.birthday ? userData.birthday : null}, ${JSON.stringify(
+    }, ${verifiedBirthday}, ${JSON.stringify(
       userData.interests || []
     )}, ${userData.status || 'single_male'}, false, ${
       typeof userData.display_profile === 'boolean'
@@ -138,15 +150,6 @@ async function updateUserPreferences (preferencesData: any) {
   if (!user) {
     redirect('/login')
   }
-
-  await enforceMemberContent({
-    actorUserId: String(user.id),
-    surface: 'profile',
-    content: [
-      preferencesData.preferences?.suggestions,
-      preferencesData.meetingTypes?.specific_preferences
-    ].filter(Boolean).join('\n')
-  })
 
   // Update or insert user_preferences
   const existingPreferences = await sql`
@@ -279,7 +282,8 @@ export default async function ProfilePage () {
 
   // Fetch the latest user data directly from the database
   const dbUserResult = await sql`
-    SELECT id, name, email, avatar, role
+    SELECT id, name, email, avatar, role, date_of_birth, adult_verified_at,
+           EXTRACT(YEAR FROM AGE(CURRENT_DATE, date_of_birth))::INTEGER AS legal_age
     FROM users
     WHERE id = ${sessionUser.id}
   `
@@ -302,19 +306,19 @@ export default async function ProfilePage () {
   const profile = profiles.length > 0 ? profiles[0] : {}
 
   let formattedBirthday = ''
-  if (profile.birthday) {
+  if (dbUser.date_of_birth) {
     try {
       // Assuming profile.birthday might be a Date object or an ISO string like YYYY-MM-DDTHH:mm:ss.sssZ
-      const date = new Date(profile.birthday)
+      const date = new Date(dbUser.date_of_birth)
       if (!isNaN(date.getTime())) {
         // Check if date is valid
         formattedBirthday = date.toISOString().split('T')[0]
       } else if (
-        typeof profile.birthday === 'string' &&
-        profile.birthday.match(/^\d{4}-\d{2}-\d{2}$/)
+        typeof dbUser.date_of_birth === 'string' &&
+        dbUser.date_of_birth.match(/^\d{4}-\d{2}-\d{2}$/)
       ) {
         // If it's already a YYYY-MM-DD string from the DB (less common for DATE type, but possible)
-        formattedBirthday = profile.birthday
+        formattedBirthday = dbUser.date_of_birth
       }
     } catch (error) {
       console.error('Error formatting birthday for display:', error)
@@ -359,7 +363,7 @@ export default async function ProfilePage () {
     role: dbUser.role, // <-- Add role to userData
     bio: profile.bio,
     status: profile.status,
-    age: profile.age,
+    age: dbUser.legal_age,
     location: profile.location,
     orientation: profile.orientation,
     gender: profile.gender,
@@ -408,21 +412,23 @@ export default async function ProfilePage () {
     is_primary: p.is_primary
   }))
 
-  const profileCompletion = calculateProfileCompletion({
-    name: userData.name,
-    avatar: userData.avatar,
-    age: userData.age,
-    location: userData.location,
-    status: userData.status,
-    orientation: userData.orientation,
-    gender: userData.gender,
-    bio: userData.bio,
-    interests: userData.interests,
-    photoCount: userPhotos.length,
-    hasDatingPreference: Boolean(preferences.interested_in_dating || preferences.interested_in_events),
-    hasMeetingIntent: Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains)
-  })
-  const profileScore = profileCompletion.score
+  const completionItems = [
+    Boolean(userData.avatar),
+    Boolean(userData.name),
+    Boolean(userData.status),
+    Boolean(userData.age),
+    Boolean(userData.orientation),
+    Boolean(userData.gender),
+    Boolean(userData.bio),
+    userData.interests.length > 0,
+    Boolean(preferences.interested_in_dating || preferences.interested_in_events),
+    Boolean(meetingTypes.romantic || meetingTypes.playful || meetingTypes.libertine || meetingTypes.open_curtains),
+    userPhotos.length > 0,
+    Boolean(profile.intro_video_url)
+  ]
+  const profileScore = Math.round(
+    (completionItems.filter(Boolean).length / completionItems.length) * 100
+  )
 
   return (
     <MainLayout user={dbUser}>
@@ -463,11 +469,6 @@ export default async function ProfilePage () {
                     style={{ width: `${profileScore}%` }}
                   />
                 </div>
-                {profileCompletion.nextActions.length > 0 && (
-                  <p className='mt-3 text-xs leading-5 text-white/55'>
-                    Prochaine étape : {profileCompletion.nextActions[0]}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -493,7 +494,7 @@ export default async function ProfilePage () {
                   Matching
                 </TabsTrigger>
                 <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
-                  Photos
+                  Médias
                 </TabsTrigger>
               </TabsList>
           <TabsContent value='profile'>
@@ -525,6 +526,7 @@ export default async function ProfilePage () {
               </h3>
               {/* UserPhotosManager handles upload/delete UI */}
               <UserPhotosManager photos={userPhotos} maxPhotos={10} />
+              <ProfileVideoManager initialUrl={profile.intro_video_url} />
             </div>
           </TabsContent>
         </Tabs>
@@ -568,6 +570,12 @@ export default async function ProfilePage () {
             </div>
 
             <div className='text-center'>
+              <Link
+                href='/email-preferences'
+                className='mb-3 block text-sm text-[#94ffc9] underline hover:text-white'
+              >
+                Gérer mes préférences email
+              </Link>
               <a href='/unsubscribe' className='text-sm text-red-200 underline hover:text-red-100'>
                 Se désinscrire / Supprimer mon compte
               </a>

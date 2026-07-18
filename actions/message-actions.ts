@@ -2,6 +2,7 @@
 
 import { executeQuery } from '@/lib/db'; // Correctly import executeQuery
 import { requireAdmin } from '@/lib/server-auth';
+import { notifyAdminByEmail } from '@/lib/admin-email-notifications';
 
 // --- Database types (adjust based on your actual schema and where you define types) ---
 export type MessageFromDB = {
@@ -13,6 +14,7 @@ export type MessageFromDB = {
   updated_at: Date;
   sender_name: string; // From JOIN with user_profiles
   sender_email: string; // From JOIN with users
+  sender_avatar?: string | null;
 };
 
 export type ConversationProtagonist = {
@@ -116,10 +118,18 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
         m.created_at,
         m.updated_at,
         u.name AS sender_name,
-        u.email AS sender_email
+        u.email AS sender_email,
+        COALESCE(primary_photo.url, NULLIF(BTRIM(u.avatar), '')) AS sender_avatar
       FROM messages m
       JOIN users u ON m.sender_id = u.id
       LEFT JOIN user_profiles up ON u.id = up.user_id
+      LEFT JOIN LATERAL (
+        SELECT p.url
+        FROM photos p
+        WHERE p.user_id = u.id
+        ORDER BY p.is_primary DESC, p.created_at DESC
+        LIMIT 1
+      ) primary_photo ON TRUE
       ORDER BY m.created_at DESC
       LIMIT $1 OFFSET $2;
     `;
@@ -138,10 +148,18 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
         SELECT
           cp.user_id,
           u_p.name,
-          u_p.email
+          u_p.email,
+          COALESCE(primary_photo.url, NULLIF(BTRIM(u_p.avatar), '')) AS avatar
         FROM conversation_participants cp
         JOIN users u_p ON cp.user_id = u_p.id
         LEFT JOIN user_profiles up_p ON u_p.id = up_p.user_id
+        LEFT JOIN LATERAL (
+          SELECT p.url
+          FROM photos p
+          WHERE p.user_id = u_p.id
+          ORDER BY p.is_primary DESC, p.created_at DESC
+          LIMIT 1
+        ) primary_photo ON TRUE
         WHERE cp.conversation_id = $1;
       `;
       // Adjust type and access to results for protagonistsResult
@@ -164,7 +182,7 @@ export async function getAllMessages({ page = 1, limit = 50 }: { page?: number; 
  * (Soft delete: updates content and timestamp)
  */
 export async function deleteMessage(messageId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const moderatedContent = "Le contenu de ce message a été supprimé par le modérateur";
@@ -175,6 +193,16 @@ export async function deleteMessage(messageId: string): Promise<void> {
     `;
     // Use executeQuery
     await executeQuery(query, [moderatedContent, messageId]);
+    await notifyAdminByEmail({
+      kind: 'message_moderated',
+      subject: `Message modéré : ${messageId}`,
+      title: 'Un message vient d’être supprimé par la modération',
+      details: [
+        { label: 'Message', value: messageId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: '/admin/messages'
+    });
   } catch (error) {
     console.error('Error deleting message ' + messageId + ':', error);
     throw new Error("Could not delete message.");
@@ -185,12 +213,22 @@ export async function deleteMessage(messageId: string): Promise<void> {
  * Bans a user.
  */
 export async function banUser(userId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const query = 'UPDATE users SET is_banned = TRUE, status = \'banned\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
     await executeQuery(query, [userId]);
+    await notifyAdminByEmail({
+      kind: 'member_banned',
+      subject: `Adhérent banni : ${userId}`,
+      title: 'Un adhérent vient d’être banni',
+      details: [
+        { label: 'Adhérent', value: userId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: `/admin/users/${userId}/edit`
+    });
     console.log('User ' + userId + ' has been banned.');
   } catch (error) {
     console.error('Error banning user ' + userId + ':', error);
@@ -202,12 +240,22 @@ export async function banUser(userId: string): Promise<void> {
  * Unbans a user.
  */
 export async function unbanUser(userId: string): Promise<void> {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
   try {
     const query = 'UPDATE users SET is_banned = FALSE, status = \'active\', updated_at = CURRENT_TIMESTAMP WHERE id = $1';
     // Use executeQuery
     await executeQuery(query, [userId]);
+    await notifyAdminByEmail({
+      kind: 'member_unbanned',
+      subject: `Adhérent réactivé : ${userId}`,
+      title: 'Un adhérent vient d’être réactivé',
+      details: [
+        { label: 'Adhérent', value: userId },
+        { label: 'Action par', value: admin.email || admin.id }
+      ],
+      actionPath: `/admin/users/${userId}/edit`
+    });
     console.log('User ' + userId + ' has been unbanned.');
   } catch (error) {
     console.error('Error unbanning user ' + userId + ':', error);
@@ -240,10 +288,18 @@ export async function searchMessagesByKeywords({ keywords, page = 1, limit = 50 
       m.created_at,
       m.updated_at,
       u.name AS sender_name,
-      u.email AS sender_email
+      u.email AS sender_email,
+      COALESCE(primary_photo.url, NULLIF(BTRIM(u.avatar), '')) AS sender_avatar
     FROM messages m
     JOIN users u ON m.sender_id = u.id
     LEFT JOIN user_profiles up ON u.id = up.user_id
+    LEFT JOIN LATERAL (
+      SELECT p.url
+      FROM photos p
+      WHERE p.user_id = u.id
+      ORDER BY p.is_primary DESC, p.created_at DESC
+      LIMIT 1
+    ) primary_photo ON TRUE
     ${where}
     ORDER BY m.created_at DESC
     LIMIT $1 OFFSET $2;
@@ -262,10 +318,18 @@ export async function searchMessagesByKeywords({ keywords, page = 1, limit = 50 
       SELECT
         cp.user_id,
         u_p.name,
-        u_p.email
+        u_p.email,
+        COALESCE(primary_photo.url, NULLIF(BTRIM(u_p.avatar), '')) AS avatar
       FROM conversation_participants cp
       JOIN users u_p ON cp.user_id = u_p.id
       LEFT JOIN user_profiles up_p ON u_p.id = up_p.user_id
+      LEFT JOIN LATERAL (
+        SELECT p.url
+        FROM photos p
+        WHERE p.user_id = u_p.id
+        ORDER BY p.is_primary DESC, p.created_at DESC
+        LIMIT 1
+      ) primary_photo ON TRUE
       WHERE cp.conversation_id = $1;
     `;
     const protagonists = await executeQuery<ConversationProtagonist[]>(protagonistsQuery, [msg.conversation_id]);

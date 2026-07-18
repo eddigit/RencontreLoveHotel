@@ -1,97 +1,139 @@
-// Page for creating a new Love Hotel experience.
 'use client'
 
-import { useState } from 'react'
+import Image from 'next/image'
+import { useEffect, useState, type ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { CalendarHeart, MapPin, Sparkles, UsersRound } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CalendarDays, Check, ImageIcon, MapPin, Send, UsersRound } from 'lucide-react'
 import { createEvent } from '@/actions/event-actions'
 import MainLayout from '@/components/layout/main-layout'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { useAuth } from '@/contexts/auth-context'
-import { EventPhotoField } from '@/components/event-photo-field'
 
 type Venue = 'pigalle' | 'chatelet'
 type ExperienceType = 'jacuzzi' | 'open_curtains'
 
-const experienceCapacityLimit: Record<ExperienceType, number> = {
+const capacityLimits: Record<ExperienceType, number> = {
   jacuzzi: 4,
   open_curtains: 3
 }
 
+const defaultImages: Record<ExperienceType, string> = {
+  jacuzzi: '/apero-jacuzzi-rencontre.jpg',
+  open_curtains: '/rideaux-ouverts-rencontre.jpg'
+}
+
+const formats = [
+  {
+    value: 'jacuzzi' as const,
+    label: 'Apéro jacuzzi',
+    detail: '2 à 4 couples',
+    image: defaultImages.jacuzzi
+  },
+  {
+    value: 'open_curtains' as const,
+    label: 'Rideaux ouverts',
+    detail: '2 ou 3 chambres',
+    image: defaultImages.open_curtains
+  }
+]
+
 export default function CreateEventPage () {
   const router = useRouter()
-  const { user } = useAuth()
-
+  const { user, isLoading } = useAuth()
   const [form, setForm] = useState({
     title: '',
     venue: 'pigalle' as Venue,
     location: 'Love Hotel Pigalle',
     date: '',
-    image: '',
-    category: 'jacuzzi',
     experience_type: 'jacuzzi' as ExperienceType,
     description: '',
     max_participants: 4,
-    price: 0,
-    prix_personne_seule: 0,
-    prix_couple: 0,
-    payment_mode: 'sur_place' as 'sur_place' | 'online',
-    conditions: ''
+    booking_confirmed: false,
+    booking_reference: ''
   })
-
-  const [loading, setLoading] = useState(false)
+  const [coverFile, setCoverFile] = useState<File | null>(null)
+  const [coverPreview, setCoverPreview] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const handleChange = (name: string, value: string | number) => {
-    const nextForm = { ...form, [name]: value }
-    if (name === 'venue') {
-      nextForm.location = value === 'chatelet' ? 'Love Hotel Châtelet' : 'Love Hotel Pigalle'
+  useEffect(() => {
+    if (!isLoading && !user) router.replace('/login')
+  }, [isLoading, router, user])
+
+  useEffect(() => {
+    return () => {
+      if (coverPreview) URL.revokeObjectURL(coverPreview)
     }
-    if (name === 'experience_type') {
-      const nextType = value as ExperienceType
-      nextForm.category = nextType
-      nextForm.max_participants = experienceCapacityLimit[nextType]
-    }
-    if (name === 'max_participants') {
-      const maxCapacity = experienceCapacityLimit[form.experience_type]
-      nextForm.max_participants = Math.min(
-        Math.max(Number(value) || 2, 2),
-        maxCapacity
-      )
-    }
-    setForm(nextForm)
+  }, [coverPreview])
+
+  const chooseFormat = (experienceType: ExperienceType) => {
+    setForm(current => ({
+      ...current,
+      experience_type: experienceType,
+      max_participants: capacityLimits[experienceType],
+      booking_confirmed: experienceType === 'open_curtains' ? current.booking_confirmed : false,
+      booking_reference: experienceType === 'open_curtains' ? current.booking_reference : ''
+    }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    setCoverFile(file)
+    setCoverPreview(file ? URL.createObjectURL(file) : '')
+  }
 
-    if (!user?.id) {
-      setError('Vous devez être connecté pour créer une expérience.')
-      setLoading(false)
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!user?.id || submitting) return
+    if (!form.title.trim() || !form.date) {
+      setError('Ajoutez un titre, une date et une heure.')
+      return
+    }
+    if (form.experience_type === 'open_curtains' && form.booking_confirmed && !form.booking_reference.trim()) {
+      setError('Indiquez le numéro de réservation de la chambre.')
       return
     }
 
+    setSubmitting(true)
+    setError('')
     try {
+      let image = defaultImages[form.experience_type]
+      if (coverFile) {
+        const data = new FormData()
+        data.set('photo', coverFile)
+        const response = await fetch('/api/events/upload-cover', { method: 'POST', body: data })
+        const result = await response.json()
+        if (!response.ok || !result.url) throw new Error(result.error || "L'image n'a pas pu être envoyée.")
+        image = result.url
+      }
+
       await createEvent({
         ...form,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        booking_reference: form.booking_reference.trim(),
+        image,
+        category: form.experience_type,
         creator_id: user.id,
-        publication_status: 'published',
+        publication_status: 'pending_review',
         created_by_role: user.role === 'admin' ? 'admin' : 'member'
       })
-      router.push('/events')
+      router.push('/events?view=owned&created=1')
     } catch (err) {
-      setError("Erreur lors de la création de l'expérience.")
+      setError(err instanceof Error ? err.message : "L'événement n'a pas pu être proposé.")
     } finally {
-      setLoading(false)
+      setSubmitting(false)
     }
   }
+
+  if (isLoading || !user) return null
+
+  const maxCapacity = capacityLimits[form.experience_type]
 
   return (
     <MainLayout user={user}>
@@ -99,212 +141,112 @@ export default function CreateEventPage () {
         user={user}
         eyebrow='Communauté'
         title='Créer une expérience'
-        subtitle='Proposez uniquement les formats actifs : apéro jacuzzi de 2 à 4 couples ou rideaux ouverts dans 2 ou 3 chambres à Pigalle ou Châtelet.'
+        subtitle='Choisissez le format, la date et lancez votre invitation.'
       >
-        <form onSubmit={handleSubmit} className='grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]'>
-          <section className='space-y-5 rounded-2xl border border-white/10 bg-white/[0.045] p-5 md:p-6'>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <div className='space-y-2 md:col-span-2'>
-                <Label htmlFor='title' className='text-white/80'>Titre *</Label>
-                <Input
-                  id='title'
-                  value={form.title}
-                  onChange={e => handleChange('title', e.target.value)}
-                  placeholder='Apéro jacuzzi 3 couples ou rideaux ouverts 2 chambres'
-                  className='border-white/10 bg-black/20 text-white placeholder:text-white/35'
-                  required
-                />
-              </div>
+        <form onSubmit={handleSubmit} className='mx-auto max-w-5xl space-y-5'>
+          <section className='grid gap-3 sm:grid-cols-2' aria-label="Type d'événement">
+            {formats.map(format => {
+              const selected = form.experience_type === format.value
+              return (
+                <button
+                  key={format.value}
+                  type='button'
+                  onClick={() => chooseFormat(format.value)}
+                  aria-pressed={selected}
+                  className={`grid grid-cols-[112px_1fr] overflow-hidden rounded-lg border text-left transition sm:grid-cols-[150px_1fr] ${selected ? 'border-[#ff8cc8] bg-[#ff4fa3]/10' : 'border-white/10 bg-white/[0.04] hover:border-white/30'}`}
+                >
+                  <div className='relative min-h-24'>
+                    <Image src={format.image} alt='' fill sizes='150px' className='object-cover' />
+                  </div>
+                  <span className='flex min-w-0 items-center justify-between gap-2 p-4'>
+                    <span>
+                      <strong className='block text-base'>{format.label}</strong>
+                      <span className='mt-1 block text-sm text-white/60'>{format.detail}</span>
+                    </span>
+                    {selected && <Check className='h-5 w-5 shrink-0 text-[#94ffc9]' />}
+                  </span>
+                </button>
+              )
+            })}
+          </section>
 
-              <div className='space-y-2'>
-                <Label className='text-white/80'>Établissement *</Label>
-                <Select value={form.venue} onValueChange={value => handleChange('venue', value)}>
-                  <SelectTrigger className='border-white/10 bg-black/20 text-white'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='pigalle'>Pigalle</SelectItem>
-                    <SelectItem value='chatelet'>Châtelet</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='space-y-2'>
-                <Label className='text-white/80'>Type d'expérience *</Label>
-                <Select value={form.experience_type} onValueChange={value => handleChange('experience_type', value)}>
-                  <SelectTrigger className='border-white/10 bg-black/20 text-white'>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='jacuzzi'>Apéro jacuzzi - 2 à 4 couples</SelectItem>
-                    <SelectItem value='open_curtains'>Rideaux ouverts - 2 ou 3 chambres</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='date' className='text-white/80'>Date et heure *</Label>
-                <Input
-                  id='date'
-                  type='datetime-local'
-                  value={form.date}
-                  onChange={e => handleChange('date', e.target.value)}
-                  className='border-white/10 bg-black/20 text-white'
-                  required
-                />
-              </div>
-
-              <div className='space-y-2'>
-                <Label htmlFor='max_participants' className='text-white/80'>
-                  Capacité {form.experience_type === 'jacuzzi' ? '(2 à 4 couples)' : '(2 ou 3 chambres)'}
-                </Label>
-                <Input
-                  id='max_participants'
-                  type='number'
-                  min='2'
-                  max={experienceCapacityLimit[form.experience_type]}
-                  value={form.max_participants}
-                  onChange={e => handleChange('max_participants', parseInt(e.target.value, 10) || 2)}
-                  className='border-white/10 bg-black/20 text-white'
-                />
-              </div>
-            </div>
-
-            <div className='space-y-2'>
-              <Label htmlFor='description' className='text-white/80'>Description</Label>
-              <Textarea
-                id='description'
-                value={form.description}
-                onChange={e => handleChange('description', e.target.value)}
-                placeholder="Ambiance, profils attendus, déroulé, limites, consentement, horaires, nombre de couples ou de chambres..."
-                rows={5}
-                className='border-white/10 bg-black/20 text-white placeholder:text-white/35'
-              />
-            </div>
-
+          <section className='rounded-lg border border-white/10 bg-white/[0.04] p-4 md:p-6'>
             <div className='grid gap-4 md:grid-cols-3'>
               <div className='space-y-2'>
-                <Label htmlFor='prix_personne_seule' className='text-white/80'>Prix personne seule (€)</Label>
-                <Input
-                  id='prix_personne_seule'
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={form.prix_personne_seule}
-                  onChange={e => handleChange('prix_personne_seule', parseFloat(e.target.value) || 0)}
-                  className='border-white/10 bg-black/20 text-white'
-                />
+                <Label className='flex items-center gap-2'><MapPin className='h-4 w-4 text-[#ff8cc8]' /> Love Hotel</Label>
+                <Select
+                  value={form.venue}
+                  onValueChange={(venue: Venue) => setForm(current => ({
+                    ...current,
+                    venue,
+                    location: venue === 'chatelet' ? 'Love Hotel Châtelet' : 'Love Hotel Pigalle'
+                  }))}
+                >
+                  <SelectTrigger className='border-white/10 bg-black/20 text-white'><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value='pigalle'>Pigalle</SelectItem><SelectItem value='chatelet'>Châtelet</SelectItem></SelectContent>
+                </Select>
               </div>
-
               <div className='space-y-2'>
-                <Label htmlFor='prix_couple' className='text-white/80'>Prix couple (€)</Label>
-                <Input
-                  id='prix_couple'
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={form.prix_couple}
-                  onChange={e => handleChange('prix_couple', parseFloat(e.target.value) || 0)}
-                  className='border-white/10 bg-black/20 text-white'
-                />
+                <Label htmlFor='event-date' className='flex items-center gap-2'><CalendarDays className='h-4 w-4 text-[#ff8cc8]' /> Date et heure</Label>
+                <Input id='event-date' type='datetime-local' value={form.date} onChange={event => setForm(current => ({ ...current, date: event.target.value }))} required className='border-white/10 bg-black/20 text-white' />
               </div>
-
               <div className='space-y-2'>
-                <Label htmlFor='price' className='text-white/80'>Prix global (€)</Label>
-                <Input
-                  id='price'
-                  type='number'
-                  min='0'
-                  step='0.01'
-                  value={form.price}
-                  onChange={e => handleChange('price', parseFloat(e.target.value) || 0)}
-                  className='border-white/10 bg-black/20 text-white'
-                />
+                <Label className='flex items-center gap-2'><UsersRound className='h-4 w-4 text-[#ff8cc8]' /> Capacité</Label>
+                <Select value={String(form.max_participants)} onValueChange={value => setForm(current => ({ ...current, max_participants: Number(value) }))}>
+                  <SelectTrigger className='border-white/10 bg-black/20 text-white'><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: maxCapacity - 1 }, (_, index) => index + 2).map(value => (
+                      <SelectItem key={value} value={String(value)}>{value} {form.experience_type === 'jacuzzi' ? 'couples' : 'chambres'}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className='space-y-2'>
-              <Label htmlFor='conditions' className='text-white/80'>Règles et conditions</Label>
-              <Textarea
-                id='conditions'
-                value={form.conditions}
-                onChange={e => handleChange('conditions', e.target.value)}
-                placeholder='Respect, consentement, tenue, arrivée, paiement sur place, limites du groupe...'
-                rows={4}
-                className='border-white/10 bg-black/20 text-white placeholder:text-white/35'
-              />
-            </div>
-
-            <EventPhotoField
-              value={form.image}
-              onChange={value => handleChange('image', value)}
-              category={form.category}
-              experienceType={form.experience_type}
-            />
-
-            {error && (
-              <div className='rounded-xl border border-red-400/20 bg-red-500/12 p-3 text-sm text-red-100'>
-                {error}
+            {form.experience_type === 'open_curtains' && (
+              <div className='mt-5 rounded-lg border border-[#94ffc9]/20 bg-[#94ffc9]/5 p-4'>
+                <p className='font-semibold'>La chambre est-elle déjà réservée ?</p>
+                <div className='mt-3 flex gap-2'>
+                  <Button type='button' size='sm' variant={form.booking_confirmed ? 'default' : 'outline'} onClick={() => setForm(current => ({ ...current, booking_confirmed: true }))}>Oui</Button>
+                  <Button type='button' size='sm' variant={!form.booking_confirmed ? 'default' : 'outline'} onClick={() => setForm(current => ({ ...current, booking_confirmed: false, booking_reference: '' }))}>Pas encore</Button>
+                </div>
+                {form.booking_confirmed ? (
+                  <div className='mt-3 max-w-sm space-y-2'>
+                    <Label htmlFor='booking-reference'>Numéro de réservation</Label>
+                    <Input id='booking-reference' value={form.booking_reference} onChange={event => setForm(current => ({ ...current, booking_reference: event.target.value }))} required className='border-white/10 bg-black/20 text-white' />
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm text-white/60'>L’événement peut être proposé. Il sera affiché « Chambre à confirmer ».</p>
+                )}
               </div>
             )}
 
-            <div className='flex flex-col gap-3 pt-2 sm:flex-row'>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={() => router.push('/events')}
-                className='border-white/15 bg-white/5 text-white hover:bg-white/10'
-              >
-                Annuler
-              </Button>
-              <Button
-                type='submit'
-                disabled={loading}
-                className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'
-              >
-                {loading ? "Création..." : "Publier l'expérience"}
+            <div className='mt-5 grid gap-4 md:grid-cols-2'>
+              <div className='space-y-2'>
+                <Label htmlFor='event-title'>Titre</Label>
+                <Input id='event-title' value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder={form.experience_type === 'jacuzzi' ? 'Apéro jacuzzi jeudi soir' : 'Rideaux ouverts vendredi soir'} maxLength={100} required className='border-white/10 bg-black/20 text-white placeholder:text-white/35' />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='event-cover' className='flex items-center gap-2'><ImageIcon className='h-4 w-4 text-[#ff8cc8]' /> Photo facultative</Label>
+                <Input id='event-cover' type='file' accept='image/jpeg,image/png,image/webp' onChange={handleCoverChange} className='border-white/10 bg-black/20 text-white file:mr-3 file:border-0 file:bg-[#ff3b8b] file:px-3 file:py-2 file:text-white' />
+              </div>
+            </div>
+            <div className='mt-4 space-y-2'>
+              <Label htmlFor='event-description'>Votre invitation</Label>
+              <Textarea id='event-description' value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} placeholder='Décrivez simplement l’ambiance et les personnes que vous souhaitez rencontrer.' maxLength={600} rows={4} className='border-white/10 bg-black/20 text-white placeholder:text-white/35' />
+            </div>
+
+            {coverPreview && <Image src={coverPreview} alt='Aperçu de la couverture' width={320} height={180} unoptimized className='mt-4 aspect-video w-52 rounded-lg object-cover' />}
+            <p className='mt-4 text-sm text-white/55'>Votre proposition est relue par l’équipe avant publication.</p>
+            {error && <p role='alert' className='mt-4 rounded-lg border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>{error}</p>}
+
+            <div className='mt-5 flex items-center justify-between gap-3 border-t border-white/10 pt-5'>
+              <Button type='button' variant='outline' onClick={() => router.push('/events')} className='border-white/15 bg-white/5 text-white'>Annuler</Button>
+              <Button type='submit' disabled={submitting} className='bg-[#ff4fa3] text-white'>
+                <Send className='mr-2 h-4 w-4' /> {submitting ? 'Envoi...' : 'Proposer l’événement'}
               </Button>
             </div>
           </section>
-
-          <aside className='space-y-4'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='flex items-center gap-3'>
-                <Sparkles className='h-5 w-5 text-[#ff8cc8]' />
-                <h2 className='font-black'>Publication</h2>
-              </div>
-              <p className='mt-3 text-sm text-white/62'>
-                Votre proposition est enregistrée avec les règles de publication actuellement actives.
-              </p>
-            </div>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='flex items-center gap-3'>
-                <MapPin className='h-5 w-5 text-[#94ffc9]' />
-                <h2 className='font-black'>Lieu</h2>
-              </div>
-              <p className='mt-3 text-sm text-white/62'>
-                Pigalle et Châtelet deviennent des points de rencontre concrets, reliés aux chambres rideaux ouverts et aux jacuzzis.
-              </p>
-            </div>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='flex items-center gap-3'>
-                <UsersRound className='h-5 w-5 text-[#ffd166]' />
-                <h2 className='font-black'>Capacité</h2>
-              </div>
-              <p className='mt-3 text-sm text-white/62'>
-                Apéro jacuzzi : 2, 3 ou 4 couples maximum. Rideaux ouverts : 2 ou 3 chambres maximum.
-              </p>
-            </div>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='flex items-center gap-3'>
-                <CalendarHeart className='h-5 w-5 text-[#ff8cc8]' />
-                <h2 className='font-black'>Expérience</h2>
-              </div>
-              <p className='mt-3 text-sm text-white/62'>
-                L'objectif est de transformer une affinité en expérience réelle dans un cadre clair, limité et consenti.
-              </p>
-            </div>
-          </aside>
         </form>
       </LhrV2Shell>
     </MainLayout>
