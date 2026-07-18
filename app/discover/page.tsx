@@ -318,6 +318,22 @@ export default function DiscoverPage () {
               <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
             </Link>
 
+            <Link
+              href='/community-safety'
+              aria-label='Prostitution interdite — consulter notre charte de sécurité'
+              className='group block overflow-hidden rounded-2xl border border-red-500/30 bg-black/55 shadow-lg shadow-red-950/20 transition hover:border-red-400/55'
+            >
+              <span className='relative block aspect-square'>
+                <Image
+                  src='/compliance-communaute.png'
+                  alt='Prostitution interdite — rencontres authentiques uniquement'
+                  fill
+                  className='object-cover transition duration-300 group-hover:scale-[1.02]'
+                  sizes='260px'
+                />
+              </span>
+            </Link>
+
             <CommunityFeedbackWidget />
           </aside>
 

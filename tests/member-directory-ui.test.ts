@@ -21,4 +21,10 @@ describe('member directory UI', () => {
     expect(pageSource).toContain('totalPages')
     expect(pageSource).toContain('@/lib/default-member-image')
   })
+
+  it('shows five compact member cards per desktop row', () => {
+    expect(pageSource).toContain('lg:grid-cols-5')
+    expect(pageSource).toContain('aspect-square')
+    expect(pageSource).toContain('>Profil</Link>')
+  })
 })

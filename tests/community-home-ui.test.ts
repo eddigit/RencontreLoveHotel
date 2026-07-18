@@ -43,4 +43,15 @@ describe('community home UI', () => {
     expect(page).toContain('Être prévenu')
     expect(page).not.toContain('€')
   })
+
+  it('places the anti-prostitution reminder between member search and feedback', () => {
+    const page = readFileSync('app/discover/page.tsx', 'utf8')
+    const memberSearchIndex = page.indexOf("href='/members'")
+    const complianceImageIndex = page.indexOf("src='/compliance-communaute.png'")
+    const feedbackIndex = page.indexOf('<CommunityFeedbackWidget />')
+
+    expect(page).toContain("href='/community-safety'")
+    expect(complianceImageIndex).toBeGreaterThan(memberSearchIndex)
+    expect(complianceImageIndex).toBeLessThan(feedbackIndex)
+  })
 })
