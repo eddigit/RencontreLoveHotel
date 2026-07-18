@@ -66,10 +66,10 @@ Damien/VPS2 peut aider a rappeler le contexte serveur et la migration PostgreSQL
 - Verification avant livraison : `npm run verify:release`
 - Audit high : `npm audit --audit-level=high`
 
-## Branche et prevention des regressions
+## Branche canonique et prevention des regressions
 
-- Travailler exclusivement sur la branche `main` pour LHR. Ne pas creer ni utiliser de branche de travail sans ordre explicite de Gilles.
-- Avant toute modification, verifier que la branche active est `main` et synchroniser uniquement en avance rapide (`git pull --ff-only`) si l'arbre de travail le permet.
+- La branche unique de reference pour LHR est `pzen_2`, issue historique de la version mise en ligne. Ne pas travailler sur `main` ni creer/utiliser une autre branche sans ordre explicite de Gilles.
+- Avant toute modification, verifier que la branche active est `pzen_2` et synchroniser uniquement en avance rapide (`git pull --ff-only`) si l'arbre de travail le permet.
 - Avant tout push ou deploiement, executer `npm run verify:release`. Aucun deploiement ne doit contourner ce controle.
 
 Note dependances :
