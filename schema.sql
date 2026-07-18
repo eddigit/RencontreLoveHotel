@@ -563,3 +563,21 @@ ALTER TABLE moderation_case_access
   ADD COLUMN IF NOT EXISTS access_reason TEXT,
   ADD COLUMN IF NOT EXISTS scope_basis TEXT,
   ADD COLUMN IF NOT EXISTS authorized_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'moderation_investigations'::regclass
+      AND conname = 'moderation_investigations_category_check'
+      AND pg_get_constraintdef(oid) NOT LIKE '%external_contact%'
+  ) THEN
+    ALTER TABLE moderation_investigations
+      DROP CONSTRAINT moderation_investigations_category_check;
+    ALTER TABLE moderation_investigations
+      ADD CONSTRAINT moderation_investigations_category_check
+      CHECK (category IN ('paid_solicitation', 'external_contact', 'safety', 'harassment', 'fraud', 'other'));
+  END IF;
+END
+$$;

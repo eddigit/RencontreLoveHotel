@@ -27,6 +27,7 @@ describe('compliance foundation migration', () => {
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS access_reason TEXT')
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS scope_basis TEXT')
     expect(sql).toContain('ADD COLUMN IF NOT EXISTS authorized_by UUID')
+    expect(sql).toContain("'external_contact'")
     expect(sql).toContain('idx_compliance_safety_actor_created')
     expect(sql).toContain('idx_compliance_audit_entity')
   })
