@@ -4,6 +4,7 @@ import { sql } from '@/lib/db'
 import { validateImageFile } from '@/lib/image-upload-validation'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { put } from '@vercel/blob'
+import { enforceMemberContent } from '@/lib/content-safety-service'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
 type WallStatus = 'active' | 'hidden' | 'removed'
@@ -337,6 +338,14 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
     allowEmpty: Boolean(image)
   })
 
+  if (body) {
+    await enforceMemberContent({
+      actorUserId: user.id,
+      surface: 'wall_post',
+      content: body
+    })
+  }
+
   const [{ count }] = await sql.query<Array<{ count: string | number }>>(
     `
       SELECT COUNT(*) AS count
@@ -425,6 +434,12 @@ export async function addWallComment(input: {
 }) {
   const user = await requireCurrentUser()
   const body = normalizeBody(input.body, 300, 'Commentaire')
+
+  await enforceMemberContent({
+    actorUserId: user.id,
+    surface: 'wall_comment',
+    content: body
+  })
 
   const [{ count }] = await sql.query<Array<{ count: string | number }>>(
     `

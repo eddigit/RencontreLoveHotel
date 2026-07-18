@@ -3,6 +3,7 @@
 import { sql } from "@/lib/db"
 import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
+import { enforceMemberContent } from '@/lib/content-safety-service'
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
@@ -239,7 +240,7 @@ export async function createEvent({
   publication_status?: 'published' | 'pending_review' | 'rejected';
   created_by_role?: 'hotel' | 'admin' | 'member';
 }) {
-  await requireSameUserOrAdmin(creator_id)
+  const currentUser = await requireSameUserOrAdmin(creator_id)
 
   const betaPublicationRule = "publication_status = 'published'"
   const publicationStatus = betaPublicationRule.includes('published') ? 'published' : publication_status
@@ -250,6 +251,16 @@ export async function createEvent({
     normalizedExperienceType,
     max_participants
   )
+
+  if (currentUser.role !== 'admin') {
+    await enforceMemberContent({
+      actorUserId: creator_id,
+      surface: 'member_event',
+      content: [title, location, description, conditions]
+        .filter(Boolean)
+        .join('\n')
+    })
+  }
 
   const [event] = await sql`
     INSERT INTO events (
@@ -341,6 +352,16 @@ export async function updateEvent(eventId: string, {
 
   if (currentUser.role !== 'admin' && existingEvent.creator_id !== currentUser.id) {
     throw new Error('Action limitée à votre propre compte')
+  }
+
+  if (currentUser.role !== 'admin') {
+    await enforceMemberContent({
+      actorUserId: currentUser.id,
+      surface: 'member_event',
+      content: [title, location, description, conditions]
+        .filter(Boolean)
+        .join('\n')
+    })
   }
 
   const [event] = await sql`

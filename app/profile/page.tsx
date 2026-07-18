@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
 import { calculateProfileCompletion } from '@/lib/profile-completion'
+import { enforceMemberContent } from '@/lib/content-safety-service'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -71,6 +72,14 @@ async function updateUserProfile (userData: any) {
   if (!user) {
     redirect('/login')
   }
+
+  await enforceMemberContent({
+    actorUserId: String(user.id),
+    surface: 'profile',
+    content: [userData.name, userData.location, userData.bio]
+      .filter(Boolean)
+      .join('\n')
+  })
 
   // Update user table
   await sql`
@@ -129,6 +138,15 @@ async function updateUserPreferences (preferencesData: any) {
   if (!user) {
     redirect('/login')
   }
+
+  await enforceMemberContent({
+    actorUserId: String(user.id),
+    surface: 'profile',
+    content: [
+      preferencesData.preferences?.suggestions,
+      preferencesData.meetingTypes?.specific_preferences
+    ].filter(Boolean).join('\n')
+  })
 
   // Update or insert user_preferences
   const existingPreferences = await sql`
