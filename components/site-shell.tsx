@@ -181,7 +181,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       >
         <span className='relative block aspect-square'>
           <Image
-            src='/compliance-prostitution-interdite.png'
+            src='/compliance-communaute.png'
             alt='Prostitution interdite — respect, consentement et rencontres authentiques uniquement'
             fill
             className='object-cover transition duration-300 group-hover:scale-[1.02]'
