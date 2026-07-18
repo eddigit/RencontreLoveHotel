@@ -17,6 +17,8 @@ export type RelationshipRow = {
   other_user_avatar?: string | null
   other_user_age?: number | null
   other_user_location?: string | null
+  other_user_profile_status?: string | null
+  other_user_gender?: string | null
   match_score?: number | null
   expires_at?: string | null
   context?: Record<string, unknown> | null
@@ -131,6 +133,8 @@ export async function getMemberRelationshipOverview(
         COALESCE(other_user.avatar, primary_photo.url) AS other_user_avatar,
         other_profile.age AS other_user_age,
         other_profile.location AS other_user_location,
+        other_profile.status AS other_user_profile_status,
+        other_profile.gender AS other_user_gender,
         um.match_score,
         um.expires_at,
         um.context

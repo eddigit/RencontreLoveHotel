@@ -33,6 +33,7 @@ import {
 } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
 import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 type DiscoverProfile = {
   id: string
@@ -47,6 +48,12 @@ type DiscoverProfile = {
   online?: boolean
   is_current_user?: boolean
   created_at?: string | Date | null
+  status?: string | null
+  gender?: string | null
+  preferences?: {
+    status?: string | null
+    gender?: string | null
+  } | null
 }
 
 type MatchRow = {
@@ -81,7 +88,7 @@ const openCurtainsImageUrl = '/rideaux-ouverts-rencontre.jpg'
 const conciergerieImageUrl = '/conciergerie-service.jpg'
 
 function profileImage (profile?: DiscoverProfile) {
-  return profile?.image || '/elegant-woman-purple-glow.png'
+  return defaultMemberImage(profile || {})
 }
 
 function mediaImage (src: string, alt: string, className = 'h-full w-full object-cover') {

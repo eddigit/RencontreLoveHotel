@@ -10,6 +10,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
+import { defaultMemberImage } from '@/lib/default-member-image'
 import {
   getCommunityMemberStats,
   searchCommunityMembers,
@@ -51,7 +52,7 @@ function formatCount(value: number) {
 }
 
 function imageFor(member: CommunityMember) {
-  return member.avatar || '/elegant-woman-purple-glow.png'
+  return defaultMemberImage(member)
 }
 
 function profileTypeLabel(member: CommunityMember) {

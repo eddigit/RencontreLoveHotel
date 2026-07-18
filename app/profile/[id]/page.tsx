@@ -12,6 +12,7 @@ import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { authOptions } from '@/lib/auth'
+import { defaultMemberImage } from '@/lib/default-member-image'
 import {
   acceptMatchRequest,
   declineMatchRequest,
@@ -49,7 +50,7 @@ export default async function ProfilePage ({
   const profile = userProfileData.user
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
-  const avatar = profile.avatar || '/elegant-woman-purple-glow.png'
+  const avatar = defaultMemberImage(profile)
   const interests = Array.isArray(profile.interests) ? profile.interests : []
 
   let matchStatus: any = null

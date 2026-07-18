@@ -166,6 +166,8 @@ export async function getOnlineCommunityMembers(limit = 12) {
         u.avatar AS image,
         up.age,
         up.location,
+        up.status,
+        up.gender,
         TRUE AS online,
         u.id = $1 AS is_current_user
       FROM users u

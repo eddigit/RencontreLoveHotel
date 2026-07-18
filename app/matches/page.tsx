@@ -17,6 +17,7 @@ import {
   removeMatch
 } from '@/actions/user-actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 type MatchProfile = {
   id: string
@@ -33,7 +34,11 @@ function toProfile (relationship: any): MatchProfile {
     name: relationship.other_user_name || 'Membre',
     age: relationship.other_user_age,
     location: relationship.other_user_location || 'Paris',
-    image: relationship.other_user_avatar || '/elegant-woman-purple-glow.png',
+    image: defaultMemberImage({
+      avatar: relationship.other_user_avatar,
+      status: relationship.other_user_profile_status,
+      gender: relationship.other_user_gender
+    }),
     matchScore: relationship.match_score
   }
 }
