@@ -23,6 +23,7 @@ import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
 import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
 import { AdminLoginStatus } from '@/components/admin-login-status'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
+import { ComplianceReadiness } from '@/components/admin/compliance-readiness'
 
 export default function AdminPage () {
   const { user } = useAuth()
@@ -46,6 +47,8 @@ export default function AdminPage () {
         <div className='container py-10'>
           <AdminHeader user={user} />
           <AdminTabs />
+
+          <ComplianceReadiness />
 
           <AdminMessagingRecovery />
 
