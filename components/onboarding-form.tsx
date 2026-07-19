@@ -175,7 +175,19 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
               </Select>
             </div>
             <div className='grid grid-cols-2 gap-3'>
-              <div className='space-y-2'><Label htmlFor='age'>Âge</Label><Select value={formData.age?.toString() || ''} onValueChange={value => updateFormData('age', Number(value))}><SelectTrigger id='age' className='border-purple-800/50 bg-purple-900/20'><SelectValue placeholder='Âge' /></SelectTrigger><SelectContent>{Array.from({ length: 82 }, (_, index) => index + 18).map(age => <SelectItem key={age} value={String(age)}>{age} ans</SelectItem>)}</SelectContent></Select></div>
+              <div className='space-y-2'>
+                <Label htmlFor='age'>Âge</Label>
+                <select
+                  id='age'
+                  aria-label='Âge'
+                  value={formData.age?.toString() || ''}
+                  onChange={event => updateFormData('age', Number(event.target.value))}
+                  className='h-10 w-full rounded-md border border-purple-800/50 bg-[#24103d] px-3 text-sm text-white'
+                >
+                  <option value=''>Âge</option>
+                  {Array.from({ length: 82 }, (_, index) => index + 18).map(age => <option key={age} value={String(age)}>{age} ans</option>)}
+                </select>
+              </div>
               <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onChange={event => updateFormData('birthday', event.target.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
             </div>
             <p className='text-xs leading-5 text-purple-100/65'>Réservé aux personnes majeures. L’âge et la date permettent de contrôler la cohérence du profil.</p>
