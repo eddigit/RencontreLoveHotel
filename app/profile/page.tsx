@@ -184,7 +184,12 @@ async function updateUserPreferences (preferencesData: any) {
   }
 }
 
-export default async function ProfilePage () {
+export default async function ProfilePage ({
+  searchParams
+}: {
+  searchParams?: Promise<{ tab?: string }>
+}) {
+  const requestedTab = (await searchParams)?.tab
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user // Renamed to avoid conflict
   if (!sessionUser) {
@@ -398,7 +403,7 @@ export default async function ProfilePage () {
           </aside>
 
           <section>
-            <Tabs defaultValue='profile' className='w-full'>
+            <Tabs defaultValue={requestedTab === 'photos' ? 'photos' : 'profile'} className='w-full'>
               <TabsList className='mb-5 grid h-auto grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
                 <TabsTrigger value='profile' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Identité
@@ -406,7 +411,7 @@ export default async function ProfilePage () {
                 <TabsTrigger value='preferences' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Matching
                 </TabsTrigger>
-                <TabsTrigger id='profile-photos-tab' value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Photos
                 </TabsTrigger>
               </TabsList>

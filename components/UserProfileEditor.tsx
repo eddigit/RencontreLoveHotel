@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Camera, Images, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -208,14 +209,11 @@ export function UserProfileEditor ({
             <Camera className='h-3.5 w-3.5' />
             Une photo claire augmente fortement les demandes.
           </p>
-          <Button
-            type='button'
-            variant='outline'
-            className='w-full border-white/12 bg-white/[0.04]'
-            onClick={() => document.getElementById('profile-photos-tab')?.click()}
-          >
-            <Images className='mr-2 h-4 w-4' />
-            Ajouter d&apos;autres photos
+          <Button asChild variant='outline' className='w-full border-white/12 bg-white/[0.04]'>
+            <Link href='/profile?tab=photos'>
+              <Images className='mr-2 h-4 w-4' />
+              Ajouter d&apos;autres photos
+            </Link>
           </Button>
           </div>
           <div className='grid gap-4 sm:grid-cols-2'>
