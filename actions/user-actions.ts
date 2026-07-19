@@ -289,6 +289,16 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         umt.open_to_other_couples,
         umt.open_curtains,
         umt.libertine,
+        CASE
+          WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
+            AND LOWER(u.avatar) NOT LIKE '%/default-member-%'
+            AND LOWER(u.avatar) NOT LIKE '%/mystical-forest-spirit%'
+            AND LOWER(u.avatar) NOT LIKE '%/purple-haze-chat%'
+            AND LOWER(u.avatar) NOT LIKE '%/serene-woman%'
+            AND LOWER(u.avatar) NOT LIKE '%/contemplative-portrait%'
+          THEN 1
+          ELSE 0
+        END AS has_personal_photo,
         (${onlinePresenceCondition('u.updated_at')}) AS online
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id
@@ -301,7 +311,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         WHERE user_id = u.id
       ) umt ON TRUE
       ${whereCondition}
-      ORDER BY u.created_at DESC
+      ORDER BY has_personal_photo DESC, u.created_at DESC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
     `,
