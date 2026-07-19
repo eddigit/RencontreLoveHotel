@@ -20,28 +20,42 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   const [photos, setPhotos] = useState<UserPhoto[]>(initialPhotos)
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      const formData = new FormData()
-      formData.append('photo', file)
-      const res = await fetch('/api/photos/upload', {
-        method: 'POST',
-        body: formData
-      })
-      const data = await res.json()
-      if (data.success && data.url) {
+      setUploading(true)
+      setError(null)
+      setMessage(null)
+      try {
+        const formData = new FormData()
+        formData.append('photo', file)
+        formData.append('purpose', 'gallery')
+        const res = await fetch('/api/photos/upload', {
+          method: 'POST',
+          body: formData
+        })
+        const data = await res.json()
+        if (!res.ok || !data.success || !data.url) {
+          throw new Error(data.error || "Erreur lors de l'envoi")
+        }
         setPhotos(p => [
           ...p,
-          { id: Math.random().toString(), url: data.url, is_primary: false }
+          { id: data.id || data.url, url: data.url, is_primary: false }
         ])
         setMessage('Photo sauvegardée')
-        setTimeout(() => setMessage(null), 2000)
-      } else {
-        alert(data.error || "Erreur lors de l'upload")
+      } catch (uploadError) {
+        setError(
+          uploadError instanceof Error
+            ? uploadError.message
+            : "La photo n'a pas pu être envoyée."
+        )
+      } finally {
+        setUploading(false)
+        e.target.value = ''
       }
-      e.target.value = ''
     }
   }
 
@@ -64,7 +78,13 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   return (
     <div>
       {message && (
-        <div className='mb-2 text-green-600 font-medium'>{message}</div>
+        <div role='status' className='mb-3 rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 font-medium text-emerald-100'>{message}</div>
+      )}
+      {error && (
+        <div role='alert' className='mb-3 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-red-100'>{error}</div>
+      )}
+      {uploading && (
+        <div className='mb-3 text-sm font-medium text-[#94ffc9]'>Envoi de la photo...</div>
       )}
       <div className='flex flex-wrap gap-4 mb-4'>
         {photos.map(photo => (
@@ -99,16 +119,16 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
             className='w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center rounded hover:border-blue-400 transition-colors'
             onClick={() => fileInputRef.current?.click()}
             title='Ajouter une photo'
-            disabled={isPending}
+            disabled={isPending || uploading}
           >
             <span className='text-3xl text-gray-400'>+</span>
             <input
               type='file'
-              accept='image/*'
+              accept='image/jpeg,image/png,image/webp'
               ref={fileInputRef}
               className='hidden'
               onChange={handleFileChange}
-              disabled={isPending}
+              disabled={isPending || uploading}
             />
           </button>
         )}

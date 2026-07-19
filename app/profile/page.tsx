@@ -4,8 +4,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import MainLayout from '@/components/layout/main-layout'
 import { sql } from '@/lib/db'
-import { put } from '@vercel/blob'
-import { revalidatePath } from 'next/cache'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { UserProfileEditor } from '@/components/UserProfileEditor'
@@ -21,47 +19,6 @@ import { enforceMemberContent } from '@/lib/content-safety-service'
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
   description: 'Gérez votre profil Love Hotel Rencontre'
-}
-
-// Add this server action for handling profile image uploads
-async function uploadProfileImage (formData: FormData) {
-  'use server'
-
-  const session = await getServerSession(authOptions)
-  const user = session?.user
-  if (!user) {
-    redirect('/login')
-  }
-
-  const file = formData.get('profileImage') as File
-
-  if (!file || file.size === 0) {
-    return { error: 'Aucun fichier sélectionné' }
-  }
-
-  try {
-    // Upload to Vercel Blob
-    const blob = await put(
-      `user-photos/${user.id}-${Date.now()}.${file.name.split('.').pop()}`,
-      file,
-      {
-        access: 'public'
-      }
-    )
-
-    // Update the photo column in the users table
-    await sql`
-      UPDATE users
-      SET avatar = ${blob.url}
-      WHERE id = ${user.id}
-    `
-
-    revalidatePath('/profile')
-    return { success: true, url: blob.url }
-  } catch (error) {
-    console.error('Error uploading image:', error)
-    return { error: "Échec du téléchargement de l'image" }
-  }
 }
 
 async function updateUserProfile (userData: any) {
@@ -225,49 +182,6 @@ async function updateUserPreferences (preferencesData: any) {
       )
     `
   }
-}
-
-// Add server actions for user photos
-async function uploadUserPhoto (formData: FormData) {
-  'use server'
-  const session = await getServerSession(authOptions)
-  const user = session?.user
-  if (!user) redirect('/login')
-  const file = formData.get('photo') as File
-  if (!file || file.size === 0) return { error: 'Aucun fichier sélectionné' }
-  try {
-    const blob = await put(
-      `user-photos/${user.id}-${Date.now()}.${file.name.split('.').pop()}`,
-      file,
-      { access: 'public' }
-    )
-    // Count current photos
-    const countRes =
-      await sql`SELECT COUNT(*) FROM photos WHERE user_id = ${user.id}`
-    if (parseInt(countRes[0].count) >= 10)
-      return { error: 'Maximum 10 photos autorisées' }
-    // Insert photo
-    await sql`
-      INSERT INTO photos (user_id, url, is_primary)
-      VALUES (${user.id}, ${blob.url}, false)
-    `
-    revalidatePath('/profile')
-    return { success: true, url: blob.url }
-  } catch (error) {
-    console.error('Error uploading photo:', error)
-    return { error: 'Échec du téléchargement de la photo' }
-  }
-}
-
-async function deleteUserPhoto (photoId: string) {
-  'use server'
-  const session = await getServerSession(authOptions)
-  const user = session?.user
-  if (!user) redirect('/login')
-  // Only allow deleting user's own photo
-  await sql`DELETE FROM photos WHERE id = ${photoId} AND user_id = ${user.id}`
-  revalidatePath('/profile')
-  return { success: true }
 }
 
 export default async function ProfilePage () {
@@ -492,7 +406,7 @@ export default async function ProfilePage () {
                 <TabsTrigger value='preferences' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Matching
                 </TabsTrigger>
-                <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                <TabsTrigger id='profile-photos-tab' value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Photos
                 </TabsTrigger>
               </TabsList>
@@ -501,7 +415,6 @@ export default async function ProfilePage () {
               <UserProfileEditor
                 user={userData}
                 onSave={updateUserProfile}
-                onUploadImage={uploadProfileImage}
               />
             </div>
           </TabsContent>

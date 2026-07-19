@@ -51,9 +51,10 @@ function jsonPost(url: string, body: unknown) {
   }) as any
 }
 
-function photoPost(file: File) {
+function photoPost(file: File, purpose?: 'avatar' | 'gallery') {
   const formData = new FormData()
   formData.set('photo', file)
+  if (purpose) formData.set('purpose', purpose)
   return new Request('https://example.test/api/photos/upload', {
     method: 'POST',
     body: formData
@@ -428,7 +429,7 @@ describe('sensitive API routes', () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
     })
-    sqlMock.mockResolvedValueOnce([{ count: '0' }]).mockResolvedValueOnce([])
+    sqlMock.mockResolvedValueOnce([{ count: '0' }]).mockResolvedValueOnce([{ id: 'photo-1' }])
     blobPutMock.mockResolvedValue({ url: 'https://blob.example/photo.png' })
 
     const { POST } = await import('@/app/api/photos/upload/route')
@@ -443,9 +444,41 @@ describe('sensitive API routes', () => {
     )
 
     expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      id: 'photo-1',
+      url: 'https://blob.example/photo.png'
+    })
     expect(blobPutMock.mock.calls[0][0]).toMatch(
       /^user-photos\/user-1-\d+\.png$/
     )
+  })
+
+  it('updates the connected user avatar without creating a gallery row', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: { id: 'user-1', role: 'user' }
+    })
+    sqlMock.mockResolvedValueOnce([{ id: 'user-1' }])
+    blobPutMock.mockResolvedValue({ url: 'https://blob.example/avatar.png' })
+
+    const { POST } = await import('@/app/api/photos/upload/route')
+    const response = await POST(
+      photoPost(
+        new File(
+          [new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+          'avatar.png',
+          { type: 'image/png' }
+        ),
+        'avatar'
+      )
+    )
+    const data = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(data).toEqual({ success: true, url: 'https://blob.example/avatar.png' })
+    expect(sqlMock).toHaveBeenCalledTimes(1)
+    expect(String(sqlMock.mock.calls[0][0])).toContain('UPDATE users')
+    expect(String(sqlMock.mock.calls[0][0])).not.toContain('INSERT INTO photos')
   })
 
   it('stores valid event photo uploads under the event photo prefix', async () => {

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Camera, Plus, Save, X } from 'lucide-react'
+import { Camera, Images, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,15 +14,14 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import Image from 'next/image'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 export function UserProfileEditor ({
   user,
-  onSave,
-  onUploadImage
+  onSave
 }: {
   user: any
   onSave: (data: any) => void
-  onUploadImage: (formData: FormData) => Promise<any>
 }) {
   const router = useRouter()
   const [form, setForm] = useState(() => {
@@ -55,6 +54,8 @@ export function UserProfileEditor ({
   const [saving, setSaving] = useState(false)
   const [newInterest, setNewInterest] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   function handleChange (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -82,14 +83,59 @@ export function UserProfileEditor ({
 
   async function handleImageChange (e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (file) {
-      setUploading(true)
+    if (!file) return
+
+    setUploading(true)
+    setUploadMessage(null)
+    setUploadError(null)
+    try {
       const formData = new FormData()
-      formData.append('profileImage', file)
-      const result = await onUploadImage(formData)
-      if (result?.url) {
-        setForm(f => ({ ...f, avatar: result.url }))
+      formData.append('photo', file)
+      formData.append('purpose', 'avatar')
+      const response = await fetch('/api/photos/upload', {
+        method: 'POST',
+        body: formData
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.url) {
+        throw new Error(result?.error || "La photo n'a pas pu être envoyée.")
       }
+
+      setForm(current => ({ ...current, avatar: result.url }))
+      setUploadMessage('Photo enregistrée')
+      router.refresh()
+    } catch (error) {
+      setUploadError(
+        error instanceof Error
+          ? error.message
+          : "La photo n'a pas pu être envoyée."
+      )
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  async function handleRemoveImage () {
+    setUploading(true)
+    setUploadMessage(null)
+    setUploadError(null)
+    try {
+      const response = await fetch('/api/photos/upload', { method: 'DELETE' })
+      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(result?.error || "L'avatar n'a pas pu être supprimé.")
+      }
+      setForm(current => ({ ...current, avatar: '' }))
+      setUploadMessage('Photo supprimée. Avatar proposé rétabli.')
+      router.refresh()
+    } catch (error) {
+      setUploadError(
+        error instanceof Error
+          ? error.message
+          : "L'avatar n'a pas pu être supprimé."
+      )
+    } finally {
       setUploading(false)
     }
   }
@@ -116,7 +162,8 @@ export function UserProfileEditor ({
             <div className='relative mx-auto w-fit'>
             <button
               type='button'
-              onClick={() => setForm({ ...form, avatar: '' })}
+              onClick={handleRemoveImage}
+              disabled={uploading}
               className='absolute bottom-3 right-3 z-10 rounded-full bg-red-500 p-2 text-white'
               style={{ display: form.avatar.length > 0 ? 'block' : 'none' }}
               aria-label='Retirer la photo'
@@ -125,7 +172,11 @@ export function UserProfileEditor ({
             </button>
             <div className='h-48 w-48 overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-lg shadow-purple-900/30'>
               <Image
-                src={form.avatar || '/logo-web-love-hotel.png'}
+                src={defaultMemberImage({
+                  avatar: form.avatar,
+                  status: form.status,
+                  gender: form.gender
+                })}
                 alt={form.name}
                 width={200}
                 height={200}
@@ -135,15 +186,37 @@ export function UserProfileEditor ({
           </div>
           <Input
             type='file'
-            accept='image/*'
+            accept='image/jpeg,image/png,image/webp'
             onChange={handleImageChange}
             disabled={uploading}
             className='border-white/10 bg-white/[0.06] text-white file:text-white'
           />
+          {uploading && (
+            <p className='text-sm font-medium text-[#94ffc9]'>Envoi de la photo...</p>
+          )}
+          {uploadMessage && (
+            <p role='status' className='text-sm font-medium text-[#94ffc9]'>
+              {uploadMessage}
+            </p>
+          )}
+          {uploadError && (
+            <p role='alert' className='rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-100'>
+              {uploadError}
+            </p>
+          )}
           <p className='flex items-center gap-2 text-xs text-white/48'>
             <Camera className='h-3.5 w-3.5' />
             Une photo claire augmente fortement les demandes.
           </p>
+          <Button
+            type='button'
+            variant='outline'
+            className='w-full border-white/12 bg-white/[0.04]'
+            onClick={() => document.getElementById('profile-photos-tab')?.click()}
+          >
+            <Images className='mr-2 h-4 w-4' />
+            Ajouter d&apos;autres photos
+          </Button>
           </div>
           <div className='grid gap-4 sm:grid-cols-2'>
           {/* Admin-only: Switch to control display_profile */}
