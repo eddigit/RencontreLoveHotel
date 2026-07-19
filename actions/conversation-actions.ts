@@ -15,6 +15,12 @@ import {
 } from '@/lib/moderation-case-service'
 import { enforceMemberContent } from '@/lib/content-safety-service'
 
+const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+
+function isContactSafetyError(error: unknown): error is Error & { code: string } {
+  return error instanceof Error && 'code' in error && error.code === 'OFF_PLATFORM_CONTACT_BLOCKED'
+}
+
 // Helper pour vérifier l'authentification
 async function requireAuth() {
   const session = await getServerSession(authOptions)
@@ -307,11 +313,22 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   }
 
   if (messageContent) {
-    await enforceMemberContent({
-      actorUserId: senderId,
-      surface: 'message',
-      content: messageContent
-    })
+    try {
+      await enforceMemberContent({
+        actorUserId: senderId,
+        surface: 'message',
+        content: messageContent
+      })
+    } catch (error) {
+      if (isContactSafetyError(error)) {
+        return {
+          delivery_status: 'blocked' as const,
+          moderation_outcome: 'block' as const,
+          reason: CONTACT_SAFETY_EXPLANATION
+        }
+      }
+      throw error
+    }
   }
 
   const moderation = await evaluateMessageModeration({

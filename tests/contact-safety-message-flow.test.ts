@@ -39,7 +39,11 @@ describe('contact safety in member messaging', () => {
     ))
 
     await expect(sendMessage({ conversationId, senderId, content: '06 12 34 56 78' }))
-      .rejects.toMatchObject({ code: 'OFF_PLATFORM_CONTACT_BLOCKED' })
+      .resolves.toMatchObject({
+        delivery_status: 'blocked',
+        moderation_outcome: 'block',
+        reason: 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+      })
 
     expect(enforceMemberContent).toHaveBeenCalledWith({
       actorUserId: senderId,

@@ -16,5 +16,7 @@ describe('message composer media UI', () => {
     expect(page).toContain('<video')
     expect(page).toContain('Apero jacuzzi')
     expect(page).toContain('Love Room')
+    expect(page).toContain("newMessage.delivery_status === 'blocked'")
+    expect(page).toContain('newMessage.reason || CONTACT_SAFETY_EXPLANATION')
   })
 })

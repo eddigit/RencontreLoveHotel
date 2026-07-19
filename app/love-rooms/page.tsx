@@ -1,11 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import MainLayout from '@/components/layout/main-layout'
-import { useAuth } from '@/contexts/auth-context'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 // Ajouter l'import du widget de réservation en haut du fichier
@@ -14,22 +12,9 @@ import ConciergerieForm from '@/components/ConciergerieForm'
 
 export default function LoveRoomsPage () {
   const [activeTab, setActiveTab] = useState('offers')
-  const { user: authUser } = useAuth()
-  const router = useRouter()
-
-  // Redirect if not logged in (move to useEffect)
-  useEffect(() => {
-    if (!authUser?.id) {
-      router.replace('/login')
-    }
-  }, [authUser, router])
-
-  if (!authUser?.id) {
-    return null
-  }
 
   return (
-    <MainLayout user={authUser}>
+    <MainLayout>
       <div className='min-h-screen flex flex-col pb-16 md:pb-0'>
         <div className='container py-4 md:py-6 flex-1'>
           <div className='mb-4 md:mb-8'>

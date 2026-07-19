@@ -41,6 +41,8 @@ describe('Love Hotel experiences UI', () => {
     expect(loveRoomsPage).not.toContain('Drink & Love Room')
     expect(loveRoomsPage).not.toContain('Eat & Love Room')
     expect(loveRoomsPage).not.toContain('lovehotelaparis.fr/wp-content/uploads/2025/01/petit-dejeuner')
+    expect(loveRoomsPage).not.toContain("router.replace('/login')")
+    expect(loveRoomsPage).not.toContain('if (!authUser?.id)')
   })
 
   it('limits admin and member event categories to active hotel formats', () => {

@@ -407,6 +407,15 @@ export default function ConversationPage ({
         content: currentMessage,
         attachments: attachmentsToSend
       })
+      if (newMessage.delivery_status === 'blocked') {
+        setMessages(prevMessages =>
+          prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+        )
+        setMessage(currentMessage)
+        setPendingAttachments(attachmentsToSend)
+        setSendError(newMessage.reason || CONTACT_SAFETY_EXPLANATION)
+        return
+      }
       if (newMessage.delivery_status === 'held') {
         setMessages(prevMessages =>
           prevMessages.filter(msg => msg.id !== optimisticMessage.id)
