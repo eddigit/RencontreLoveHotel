@@ -403,7 +403,11 @@ export default async function ProfilePage ({
           </aside>
 
           <section>
-            <Tabs defaultValue={requestedTab === 'photos' ? 'photos' : 'profile'} className='w-full'>
+            <Tabs
+              key={requestedTab === 'photos' ? 'photos' : 'profile'}
+              defaultValue={requestedTab === 'photos' ? 'photos' : 'profile'}
+              className='w-full'
+            >
               <TabsList className='mb-5 grid h-auto grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
                 <TabsTrigger value='profile' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                   Identité

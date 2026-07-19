@@ -26,6 +26,7 @@ describe('my profile matching UI', () => {
     expect(editor).toContain("href='/profile?tab=photos'")
     expect(editor).not.toContain("getElementById('profile-photos-tab')")
     expect(page).toContain("requestedTab === 'photos' ? 'photos' : 'profile'")
+    expect(page).toContain("key={requestedTab === 'photos' ? 'photos' : 'profile'}")
     expect(page).not.toContain('onUploadImage={uploadProfileImage}')
     expect(photos).toContain("const [uploading, setUploading]")
     expect(photos).toContain("role='alert'")
