@@ -12,7 +12,7 @@ import { toast } from '@/components/ui/use-toast'
 import MainLayout from '@/components/layout/main-layout'
 
 export default function OnboardingPage () {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, completeOnboarding } = useAuth()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -32,11 +32,10 @@ export default function OnboardingPage () {
     try {
       setIsSubmitting(true)
 
-      // Simuler un délai de traitement
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      // Enregistrer les préférences de l'utilisateur (mock pour le moment)
-      await saveUserPreferences(user?.id || '', data)
+      if (!user?.id) throw new Error('Session utilisateur indisponible.')
+      const result = await saveUserPreferences(user.id, data)
+      if (!result.success) throw new Error(result.error || "Impossible d'enregistrer les préférences.")
+      await completeOnboarding()
 
       toast({
         title: 'Profil complété avec succès !',
@@ -44,8 +43,7 @@ export default function OnboardingPage () {
         variant: 'default'
       })
 
-      // Rediriger vers la page de découverte
-      router.push('/discover')
+      router.refresh()
     } catch (error) {
       console.error("Erreur lors de l'enregistrement des préférences:", error)
       toast({

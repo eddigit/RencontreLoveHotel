@@ -128,6 +128,8 @@ export const authOptions: NextAuthOptions = {
         session.user.avatar = token.avatar as string
         session.user.onboardingCompleted = token.onboardingCompleted as boolean
         session.user.email_verified = token.email_verified as boolean
+        session.user.profile_status = token.profile_status as string
+        session.user.gender = token.gender as string
       }
       return session
     },
@@ -141,6 +143,8 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.profile_status = dbUser.profile_status
+            token.gender = dbUser.gender
           } else {
             console.warn(
               "Impossible de récupérer l'utilisateur depuis la DB, utilisation des données de base"
@@ -160,6 +164,8 @@ export const authOptions: NextAuthOptions = {
             token.avatar = dbUser.avatar
             token.onboardingCompleted = dbUser.onboarding_completed
             token.email_verified = dbUser.email_verified
+            token.profile_status = dbUser.profile_status
+            token.gender = dbUser.gender
           }
         }
       } catch (error) {

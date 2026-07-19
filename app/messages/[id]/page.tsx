@@ -471,7 +471,7 @@ export default function ConversationPage ({
               <div className='flex min-w-0 items-center gap-3'>
                 <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
                   <Image
-                    src={conversationDetails?.other_user_avatar || '/purple-haze-chat.png'}
+                    src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
                     alt={conversationDetails?.other_user_name || 'Profil'}
                     fill
                     className='object-cover'

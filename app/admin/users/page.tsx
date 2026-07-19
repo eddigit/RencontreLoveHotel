@@ -17,6 +17,7 @@ import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { ModerationAvatar } from '@/components/moderation/moderation-avatar'
+import { defaultMemberImage } from '@/lib/default-member-image'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // Pour le graphique
 
 // Define a more specific type for user data, including ban status
@@ -28,6 +29,8 @@ interface AdminUser {
   avatar?: string
   location?: string
   age?: number
+  gender?: string | null
+  profile_status?: string | null
   is_banned?: boolean
   status?: string
   // Add any other properties that come from getAllUsers
@@ -216,7 +219,7 @@ export default function AdminUsersPage () {
                 >
                   <CardHeader>
                     <CardTitle className='flex items-center gap-3'>
-                      <ModerationAvatar name={u.name} src={u.avatar} />
+                      <ModerationAvatar name={u.name} src={defaultMemberImage(u)} />
                       <span>{u.name}{' '}
                       <span className='text-xs text-muted-foreground'>
                         ({u.role})

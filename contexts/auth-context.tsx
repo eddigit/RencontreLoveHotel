@@ -15,6 +15,8 @@ export type User = {
   avatar: string
   onboardingCompleted?: boolean
   email_verified?: boolean
+  profile_status?: string | null
+  gender?: string | null
 }
 
 // Utilisateurs de test prédéfinis
@@ -24,7 +26,7 @@ export const TEST_USERS = {
     email: "user@test.com",
     name: "Alex Durand",
     role: "user" as UserRole,
-    avatar: "/mystical-forest-spirit.png",
+    avatar: "/default-member-man.jpg",
     onboardingCompleted: false,
   },
   admin: {
@@ -32,7 +34,7 @@ export const TEST_USERS = {
     email: "admin@test.com",
     name: "Admin Système",
     role: "admin" as UserRole,
-    avatar: "/contemplative-portrait.png",
+    avatar: "/default-member-man.jpg",
     onboardingCompleted: true,
   },
   demo: {
@@ -40,7 +42,7 @@ export const TEST_USERS = {
     email: "demo@test.com",
     name: "Sophie Martin",
     role: "user" as UserRole,
-    avatar: "/serene-woman.png",
+    avatar: "/default-member-woman.jpg",
     onboardingCompleted: true,
   },
 }
@@ -72,7 +74,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ) as UserRole,
           avatar: session.user.avatar || '',
           onboardingCompleted: Boolean(session.user.onboardingCompleted),
-          email_verified: session.user.email_verified ?? true
+          email_verified: session.user.email_verified ?? true,
+          profile_status: session.user.profile_status,
+          gender: session.user.gender
         }
       : null
 

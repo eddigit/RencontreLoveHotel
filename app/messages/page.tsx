@@ -168,7 +168,7 @@ export default function MessagesPage () {
                 >
                   <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10'>
                     <Image
-                      src={conversation.other_user_avatar || '/purple-haze-chat.png'}
+                      src={conversation.other_user_avatar || '/default-member-couple.jpg'}
                       alt={conversation.other_user_name || 'Profil'}
                       fill
                       className='object-cover'
@@ -200,7 +200,7 @@ export default function MessagesPage () {
                   <div className='flex items-center gap-3'>
                     <div className='relative h-12 w-12 overflow-hidden rounded-full bg-white/10'>
                       <Image
-                        src={activeConversation.other_user_avatar || '/purple-haze-chat.png'}
+                        src={activeConversation.other_user_avatar || '/default-member-couple.jpg'}
                         alt={activeConversation.other_user_name}
                         fill
                         className='object-cover'

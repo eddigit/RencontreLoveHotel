@@ -87,7 +87,7 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
     const safeQuery = async (query: string, fallback = 0) => {
       try {
         const result = await sql.query(query)
-        return result[0]?.count || fallback
+        return asNumber(result[0]?.count ?? fallback)
       } catch (error) {
         console.warn('Requête échouée:', query, error)
         return fallback
@@ -164,7 +164,7 @@ export async function getAdminDashboardStats(): Promise<AdminStatsData> {
 
     // Agrégation des données de genre avec fallback
     const genderStats = (genderResults || []).reduce((acc: any, row: any) => {
-      acc[row.gender || 'other'] = row.count || 0
+      acc[row.gender || 'other'] = asNumber(row.count)
       return acc
     }, { male: 0, female: 0, couple: 0, other: 0 })
 

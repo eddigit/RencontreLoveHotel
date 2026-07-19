@@ -18,4 +18,9 @@ describe('member page action recovery', () => {
     expect(notifications).toContain('recoverFromStaleServerAction')
     expect(notifications).toContain('pollingStopped')
   })
+
+  it('shows five member cards per row on desktop', () => {
+    const members = readFileSync('app/members/page.tsx', 'utf8')
+    expect(members).toContain('lg:grid-cols-5')
+  })
 })

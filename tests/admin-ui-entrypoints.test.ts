@@ -52,4 +52,13 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).toContain('Actifs aujourd’hui')
     expect(source).not.toContain('Activité Récente (24h)')
   })
+
+  it('uses the native member image by profile type in the global user administration', () => {
+    const page = readFileSync('app/admin/users/page.tsx', 'utf8')
+    const actions = readFileSync('actions/user-actions.ts', 'utf8')
+
+    expect(page).toContain("import { defaultMemberImage } from '@/lib/default-member-image'")
+    expect(page).toContain('src={defaultMemberImage(u)}')
+    expect(actions).toContain('up.gender, up.status AS profile_status')
+  })
 })

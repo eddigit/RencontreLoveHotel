@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { calculateMatchScore } from '../utils/matching-algorithm'
+import { calculateMatchScore, hasPersonalPhoto, isMutuallyTargeted, sortProfilesByCompatibility } from '../utils/matching-algorithm'
 
 const baseProfile = {
   id: 'user-a',
@@ -119,5 +119,54 @@ describe('matching algorithm', () => {
     } as any
 
     expect(calculateMatchScore(couple, openSingle)).toBeGreaterThanOrEqual(75)
+  })
+
+  it('requires mutual profile targeting only when both profiles made explicit choices', () => {
+    const woman = {
+      ...baseProfile,
+      id: 'woman',
+      preferences: { ...baseProfile.preferences, status: 'single_female', gender: 'female', seeking_profile_types: ['male'] }
+    } as any
+    const targetedMan = {
+      ...baseProfile,
+      preferences: { ...baseProfile.preferences, seeking_profile_types: ['female'] }
+    } as any
+    const incompatibleMan = {
+      ...baseProfile,
+      preferences: { ...baseProfile.preferences, seeking_profile_types: ['couple'] }
+    } as any
+
+    expect(isMutuallyTargeted(targetedMan, woman)).toBe(true)
+    expect(calculateMatchScore(targetedMan, woman)).toBeGreaterThanOrEqual(30)
+    expect(isMutuallyTargeted(incompatibleMan, woman)).toBe(false)
+    expect(calculateMatchScore(incompatibleMan, woman)).toBe(0)
+    expect(isMutuallyTargeted(baseProfile, woman)).toBe(true)
+  })
+
+  it('rewards shared intentions and complementary BDSM roles', () => {
+    const dominant = {
+      ...baseProfile,
+      preferences: { ...baseProfile.preferences, relationship_intents: ['regular'], bdsm_roles: ['dominant'] }
+    } as any
+    const submissive = {
+      ...baseProfile,
+      id: 'submissive',
+      preferences: { ...baseProfile.preferences, relationship_intents: ['regular'], bdsm_roles: ['submissive'] }
+    } as any
+    const noBdsm = {
+      ...submissive,
+      preferences: { ...submissive.preferences, bdsm_roles: ['none'] }
+    } as any
+
+    expect(calculateMatchScore(dominant, submissive)).toBeGreaterThan(calculateMatchScore(dominant, noBdsm))
+  })
+
+  it('does not mistake native avatars for personal photos and ranks real photos first', () => {
+    const native = { ...baseProfile, id: 'native', image: '/default-member-man.jpg' } as any
+    const personal = { ...baseProfile, id: 'personal', image: 'https://blob.example/member.jpg' } as any
+
+    expect(hasPersonalPhoto(native)).toBe(false)
+    expect(hasPersonalPhoto(personal)).toBe(true)
+    expect(sortProfilesByCompatibility(baseProfile, [native, personal])[0].id).toBe('personal')
   })
 })

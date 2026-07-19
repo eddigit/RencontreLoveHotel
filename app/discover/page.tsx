@@ -710,7 +710,7 @@ export default function DiscoverPage () {
                   return (
                     <Link key={match.id} href={`/profile/${otherId}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
                       <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                        {mediaImage(avatar || '/purple-haze-chat.png', name || 'Match')}
+                        {mediaImage(avatar || '/default-member-couple.jpg', name || 'Match')}
                       </div>
                       <div className='min-w-0 flex-1'>
                         <div className='truncate font-bold'>{name}</div>

@@ -39,11 +39,11 @@ describe('Admin Stats Actions', () => {
     it('should return complete admin statistics', async () => {
       // Mock des réponses SQL pour toutes les requêtes
       const mockQueries = [
-        [{ count: 1500 }], // totalUsers
+        [{ count: '1500' }], // PostgreSQL COUNT values are returned as strings
         [{ count: 12 }],   // usersToday
         [{ count: 45 }],   // usersWeek
         [{ count: 150 }],  // usersMonth
-        [{ gender: 'male', count: 800 }, { gender: 'female', count: 600 }, { gender: 'couple', count: 100 }], // gender distribution
+        [{ gender: 'male', count: '800' }, { gender: 'female', count: '600' }, { gender: 'couple', count: '100' }], // gender distribution
         [{ count: 85 }],   // activeUsersToday
         [{ count: 25000 }], // totalMessages
         [{ count: 245 }],  // messagesToday

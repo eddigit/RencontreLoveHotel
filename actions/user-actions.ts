@@ -1,7 +1,7 @@
 "use server"
 
 import { sql } from "@/lib/db"
-import { calculateMatchScore } from "@/utils/matching-algorithm"
+import { calculateMatchScore, isMutuallyTargeted } from "@/utils/matching-algorithm"
 import { createNotification } from "@/actions/notification-actions"
 import { FilterOptions } from "@/components/advanced-filters";
 import type { UserProfile } from "@/utils/matching-algorithm"
@@ -75,6 +75,9 @@ function buildMatchingProfile(profile: any): UserProfile | null {
       status: profile.user.status,
       orientation: profile.user.orientation,
       gender: profile.user.gender,
+      seeking_profile_types: profile.user.seeking_profile_types,
+      relationship_intents: profile.user.relationship_intents,
+      bdsm_roles: profile.user.bdsm_roles,
       age: profile.user.age,
       interested_in_restaurant: profile.preferences?.interested_in_restaurant,
       interested_in_events: profile.preferences?.interested_in_events,
@@ -526,6 +529,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       up.orientation,
       up.status,
       up.gender,
+      up.seeking_profile_types,
+      up.relationship_intents,
+      up.bdsm_roles,
       up.birthday,
       up.bio,
       up.interests,
@@ -569,6 +575,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         age: profile.age,
         orientation: profile.orientation,
         gender: profile.gender,
+        seeking_profile_types: profile.seeking_profile_types,
+        relationship_intents: profile.relationship_intents,
+        bdsm_roles: profile.bdsm_roles,
         interested_in_restaurant: profile.interested_in_restaurant,
         interested_in_events: profile.interested_in_events,
         interested_in_dating: profile.interested_in_dating,
@@ -603,6 +612,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         interests: profile.interests ? JSON.parse(profile.interests) : [],
         preferences,
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
+        matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
         impressions14d: Number(profile.impressions_14d || 0),
         profileQuality: Math.round((
           (profile.image ? 35 : 0) +
@@ -615,6 +625,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         createdAt: profile.created_at
       };
     })
+    .filter((profile: any) => profile.matchingEligible)
   const rankedProfiles = rankDiscoveryCandidates<any>(mappedProfiles, {
     viewerId: currentUserId,
     batch: Math.max(0, Math.floor(Number(batch) || 0))
@@ -948,7 +959,8 @@ export async function getAllUsers() {
   await requireAdmin()
 
   const users = await sql`
-    SELECT u.id, u.name, u.email, u.role, u.avatar, up.location, up.age, u.is_banned, u.status
+    SELECT u.id, u.name, u.email, u.role, u.avatar, up.location, up.age,
+           up.gender, up.status AS profile_status, u.is_banned, u.status
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
     ORDER BY u.created_at DESC

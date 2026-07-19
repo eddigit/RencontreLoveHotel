@@ -26,6 +26,7 @@ import { NotificationsButton } from '@/components/notifications-button'
 import { VisitorLandingHeader } from '@/components/visitor-landing-header'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 type NavigationItem = {
   href: string
@@ -183,7 +184,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             >
               <span className='relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-black/40'>
                 <Image
-                  src={user.avatar || '/mystical-forest-spirit.png'}
+                  src={defaultMemberImage({ avatar: user.avatar, profile_status: user.profile_status, gender: user.gender })}
                   alt='Photo de profil'
                   fill
                   className='object-cover'

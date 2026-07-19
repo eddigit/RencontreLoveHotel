@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 interface HeaderProps {
   session?: any
@@ -145,7 +146,7 @@ export function Header ({ session, user }: HeaderProps) {
                         className='rounded-full border-purple-800/30 bg-[#2d1155]/50 p-0' // p-0 to make image fit better
                       >
                         <Image
-                          src={user?.avatar || '/mystical-forest-spirit.png'}
+                          src={defaultMemberImage({ avatar: user?.avatar, profile_status: user?.profile_status, gender: user?.gender })}
                           alt='Avatar'
                           width={36}
                           height={36}
@@ -249,7 +250,7 @@ export function Header ({ session, user }: HeaderProps) {
             >
               <div className='flex items-center gap-3 p-3 rounded-lg hover:bg-[#2d1155]/50'>
                 <Image
-                  src={user?.avatar || '/mystical-forest-spirit.png'}
+                  src={defaultMemberImage({ avatar: user?.avatar, profile_status: user?.profile_status, gender: user?.gender })}
                   alt='Avatar'
                   width={40}
                   height={40}

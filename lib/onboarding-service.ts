@@ -13,12 +13,22 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
     // 1. Mettre à jour le profil utilisateur
     await executeQuery(
       `
-      INSERT INTO user_profiles (id, user_id, status, age, orientation, gender, birthday)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO user_profiles (
+        id, user_id, status, age, orientation, gender, birthday,
+        couple_composition, seeking_profile_types, relationship_intents, bdsm_roles
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::text[], $10::text[], $11::text[])
       ON CONFLICT (user_id) DO UPDATE
-      SET status = $3, age = $4, orientation = $5, gender = $6, birthday = $7, updated_at = CURRENT_TIMESTAMP
+      SET status = $3, age = $4, orientation = $5, gender = $6, birthday = $7,
+          couple_composition = $8, seeking_profile_types = $9::text[],
+          relationship_intents = $10::text[], bdsm_roles = $11::text[],
+          updated_at = CURRENT_TIMESTAMP
     `,
-      [uuidv4(), userId, data.status, data.age, data.orientation, data.gender, data.birthday ? data.birthday : null], // Ensure birthday is null if empty
+      [
+        uuidv4(), userId, data.status, data.age, data.orientation, data.gender,
+        data.birthday || null, data.coupleComposition || null,
+        data.seekingProfileTypes || [], data.relationshipIntents || [], data.bdsmRoles || []
+      ],
     )
 
     // 2. Mettre à jour les préférences utilisateur
@@ -110,7 +120,8 @@ export async function getOnboardingData(userId: string): Promise<OnboardingData 
     // Récupérer toutes les données d'onboarding en une seule requête avec des jointures
     const query = `
       SELECT
-        p.status, p.age, p.orientation, p.gender, p.birthday,
+        p.status, p.age, p.orientation, p.gender, p.birthday, p.couple_composition,
+        p.seeking_profile_types, p.relationship_intents, p.bdsm_roles, u.avatar,
         pref.interested_in_restaurant, pref.interested_in_events,
         pref.interested_in_dating, pref.prefer_curtain_open,
         pref.interested_in_lolib, pref.suggestions,
@@ -139,6 +150,11 @@ export async function getOnboardingData(userId: string): Promise<OnboardingData 
       orientation: data.orientation,
       gender: data.gender, // Added gender
       birthday: data.birthday ? new Date(data.birthday).toISOString().split('T')[0] : "", // Added birthday, formatted for input
+      coupleComposition: data.couple_composition || "",
+      avatarUrl: data.avatar || "",
+      seekingProfileTypes: data.seeking_profile_types || [],
+      relationshipIntents: data.relationship_intents || [],
+      bdsmRoles: data.bdsm_roles || [],
 
       interestedInRestaurant: data.interested_in_restaurant || false,
       interestedInEvents: data.interested_in_events || false,

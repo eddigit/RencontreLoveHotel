@@ -1,39 +1,35 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { ArrowLeft, ArrowRight, Check } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useState } from 'react'
+import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { OnboardingAvatarStep } from '@/components/onboarding-avatar-step'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
-import { saveUserPreferences } from "@/app/actions"
-import { useAuth } from "@/contexts/auth-context"
-
-// Types pour les données du formulaire
 export interface OnboardingData {
-  // Étape 1: Informations personnelles
-  status: "couple" | "single_male" | "single_female" | ""
+  status: 'couple' | 'single_male' | 'single_female' | ''
   age: number | null
-  orientation: "hetero" | "homo" | "bi" | ""
-  gender: "male" | "female" | "other" | "" // Added gender
-  birthday: string // Changed from birthdate to birthday
-
-  // Étape 2: Préférences et motivations
+  orientation: 'hetero' | 'homo' | 'bi' | ''
+  gender: 'male' | 'female' | 'couple' | ''
+  birthday: string
+  coupleComposition: 'mixed' | 'male_male' | 'female_female' | 'other' | ''
+  avatarUrl: string
+  seekingProfileTypes: Array<'male' | 'female' | 'couple'>
+  relationshipIntents: Array<'serious' | 'regular' | 'casual' | 'libertine' | 'friendship'>
+  bdsmRoles: Array<'discovery' | 'dominant' | 'submissive' | 'switch' | 'none'>
   interestedInRestaurant: boolean
   interestedInEvents: boolean
   interestedInDating: boolean
   preferCurtainOpen: boolean
   interestedInLolib: boolean
   suggestions: string
-
-  // Étape 3: Personnalisation du profil
   meetingTypes: {
     friendly: boolean
     romantic: boolean
@@ -43,554 +39,182 @@ export interface OnboardingData {
   }
   openToOtherCouples: boolean
   specificPreferences: string
-
-  // Étape 4: Options supplémentaires
   joinExclusiveEvents: boolean
   premiumAccess: boolean
 }
 
-// Valeurs initiales
 const initialData: OnboardingData = {
-  status: "",
-  age: null,
-  orientation: "",
-  gender: "", // Added gender
-  birthday: "", // Changed from birthdate to birthday
-
-  interestedInRestaurant: false,
-  interestedInEvents: false,
-  interestedInDating: false,
-  preferCurtainOpen: false,
-  interestedInLolib: false,
-  suggestions: "",
-
-  meetingTypes: {
-    friendly: false,
-    romantic: false,
-    playful: false,
-    openCurtains: false,
-    libertine: false,
-  },
-  openToOtherCouples: false,
-  specificPreferences: "",
-
-  joinExclusiveEvents: false,
-  premiumAccess: false,
+  status: '', age: null, orientation: '', gender: '', birthday: '', coupleComposition: '', avatarUrl: '',
+  seekingProfileTypes: [], relationshipIntents: [], bdsmRoles: [],
+  interestedInRestaurant: false, interestedInEvents: false, interestedInDating: false,
+  preferCurtainOpen: false, interestedInLolib: false, suggestions: '',
+  meetingTypes: { friendly: false, romantic: false, playful: false, openCurtains: false, libertine: false },
+  openToOtherCouples: false, specificPreferences: '', joinExclusiveEvents: false, premiumAccess: false
 }
 
-// Modifier la fonction OnboardingForm pour utiliser la base de données
-export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingData) => void }) {
+const profileTypes = [
+  ['male', 'Hommes'], ['female', 'Femmes'], ['couple', 'Couples']
+] as const
+const relationshipIntents = [
+  ['serious', 'Relation sérieuse'], ['regular', 'Relation régulière'], ['casual', 'Rencontre occasionnelle'],
+  ['libertine', 'Relation libertine'], ['friendship', 'Relation amicale']
+] as const
+const bdsmRoles = [
+  ['discovery', 'Découverte'], ['dominant', 'Dominant·e'], ['submissive', 'Soumis·e'],
+  ['switch', 'Switch'], ['none', 'Sans BDSM']
+] as const
+const meetingTypes = [
+  ['friendly', 'Rencontres amicales'], ['romantic', 'Rencontres romantiques'],
+  ['playful', 'Rencontres ludiques'], ['openCurtains', 'Rideaux ouverts'], ['libertine', 'Afters libertins']
+] as const
+
+function Choice({ id, checked, label, onChange }: { id: string; checked: boolean; label: string; onChange: (checked: boolean) => void }) {
+  return (
+    <div className='flex items-center gap-3 rounded-xl border border-purple-800/50 bg-purple-900/20 p-3'>
+      <Checkbox id={id} checked={checked} onCheckedChange={value => onChange(value === true)} className='border-purple-500 data-[state=checked]:border-[#ff3b8b] data-[state=checked]:bg-[#ff3b8b]' />
+      <Label htmlFor={id} className='flex-1 cursor-pointer'>{label}</Label>
+    </div>
+  )
+}
+
+export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingData) => void | Promise<void> }) {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState<OnboardingData>(initialData)
-  const router = useRouter()
-  const { user, completeOnboarding } = useAuth()
+  const [submitting, setSubmitting] = useState(false)
+  const totalSteps = 5
 
-  const totalSteps = 4
-  const progress = (step / totalSteps) * 100
-
-  const updateFormData = (field: string, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+  const updateFormData = <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => {
+    setFormData(previous => ({ ...previous, [field]: value }))
   }
 
-  const updateNestedFormData = (parent: string, field: string, value: any) => {
-    setFormData((prev) => {
-      const currentValue = prev[parent as keyof OnboardingData]
-      const currentObject =
-        typeof currentValue === 'object' && currentValue !== null
-          ? currentValue
-          : {}
+  const updateStatus = (status: OnboardingData['status']) => {
+    const gender = status === 'couple' ? 'couple' : status === 'single_male' ? 'male' : status === 'single_female' ? 'female' : ''
+    setFormData(previous => ({ ...previous, status, gender, coupleComposition: status === 'couple' ? previous.coupleComposition : '' }))
+  }
 
-      return {
-        ...prev,
-        [parent]: {
-          ...currentObject,
-          [field]: value,
-        },
+  const toggleArrayValue = (field: 'seekingProfileTypes' | 'relationshipIntents' | 'bdsmRoles', value: string) => {
+    setFormData(previous => {
+      const current = previous[field] as string[]
+      if (field === 'bdsmRoles' && value === 'none') {
+        return { ...previous, bdsmRoles: current.includes('none') ? [] : ['none'] }
       }
+      const eligible = field === 'bdsmRoles' ? current.filter(item => item !== 'none') : current
+      const next = eligible.includes(value) ? eligible.filter(item => item !== value) : [...eligible, value]
+      return { ...previous, [field]: next }
     })
   }
 
-  // Modifier la fonction nextStep pour sauvegarder les données dans la base de données à la dernière étape
-  const nextStep = async () => {
-    if (step < totalSteps) {
-      setStep(step + 1)
-      window.scrollTo(0, 0)
-    } else {
-      // À la dernière étape, sauvegarder les données dans la base de données
-      if (user) {
-        // Vérifier que l'ID utilisateur est un UUID avant de sauvegarder
-        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(user.id)
-        if (!isValidUUID) {
-          alert("Votre compte n'est pas encore prêt pour l'onboarding. Merci de vous reconnecter ou de contacter le support.")
-          return
-        }
-        try {
-          const result = await saveUserPreferences(user.id, formData)
-          if (result.success) {
-            // Mettre à jour le statut d'onboarding dans le contexte d'authentification
-            await completeOnboarding()
-            // Appeler la fonction onComplete
-            onComplete(formData)
-          } else {
-            console.error("Erreur lors de la sauvegarde des préférences")
-            alert("Erreur lors de la sauvegarde des préférences. Merci de réessayer ou de contacter le support.")
-          }
-        } catch (error) {
-          console.error("Erreur lors de la sauvegarde des préférences:", error)
-          alert("Erreur lors de la sauvegarde des préférences. Merci de réessayer ou de contacter le support.")
-        }
-      } else {
-        // Si l'utilisateur n'est pas connecté, simplement appeler onComplete
-        onComplete(formData)
-      }
-    }
-  }
-
-  const prevStep = () => {
-    if (step > 1) {
-      setStep(step - 1)
-      window.scrollTo(0, 0)
-    }
+  const setMeetingType = (field: keyof OnboardingData['meetingTypes'], value: boolean) => {
+    setFormData(previous => ({ ...previous, meetingTypes: { ...previous.meetingTypes, [field]: value } }))
   }
 
   const isStepValid = () => {
-    switch (step) {
-      case 1:
-        return (
-          formData.status !== "" &&
-          formData.age !== null &&
-          formData.orientation !== "" &&
-          formData.gender !== "" &&
-          formData.birthday !== ""
-        )
-      case 2:
-        return true // Toutes les options sont facultatives dans cette étape
-      case 3:
-        return Object.values(formData.meetingTypes).some((value) => value === true) // Au moins un type de rencontre doit être sélectionné
-      case 4:
-        return true // Toutes les options sont facultatives dans cette étape
-      default:
-        return false
+    if (step === 1) {
+      return Boolean(formData.status && formData.age && formData.orientation && formData.birthday && (formData.status !== 'couple' || formData.coupleComposition))
+    }
+    if (step === 2) return true
+    if (step === 3) return true
+    if (step === 4) return Object.values(formData.meetingTypes).some(Boolean)
+    return true
+  }
+
+  const nextStep = async () => {
+    if (submitting || !isStepValid()) return
+    if (step < totalSteps) {
+      setStep(current => current + 1)
+      window.scrollTo(0, 0)
+      return
+    }
+    setSubmitting(true)
+    try {
+      await onComplete(formData)
+    } finally {
+      setSubmitting(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-lg mx-auto border-0 shadow-lg shadow-purple-900/20 bg-gradient-to-b from-[#2d1155]/90 to-[#1a0d2e]/90 text-white">
-      <CardHeader className="space-y-1 pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-xl font-bold">Personnalisation de votre profil</CardTitle>
-          <div className="text-sm font-medium">
-            Étape {step}/{totalSteps}
-          </div>
+    <Card className='mx-auto w-full max-w-lg border-0 bg-gradient-to-b from-[#2d1155]/90 to-[#1a0d2e]/90 text-white shadow-lg shadow-purple-900/20'>
+      <CardHeader className='space-y-2 pb-4'>
+        <div className='flex items-center justify-between gap-3'>
+          <CardTitle className='text-xl font-bold'>Personnalisation de votre profil</CardTitle>
+          <span className='shrink-0 text-sm'>Étape {step}/{totalSteps}</span>
         </div>
-        <CardDescription className="text-purple-200/80">
-          Aidez-nous à mieux vous connaître pour des rencontres plus adaptées
-        </CardDescription>
-        <Progress
-          value={progress}
-          className="h-1 bg-purple-900/30"
-          indicatorClassName="bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8]"
-        />
+        <CardDescription className='text-purple-200/80'>Ces informations structurent la découverte et la compatibilité.</CardDescription>
+        <Progress value={(step / totalSteps) * 100} className='h-1 bg-purple-900/30' indicatorClassName='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8]' />
       </CardHeader>
 
-      <CardContent className="space-y-4 pt-2">
+      <CardContent className='space-y-5 pt-2'>
         {step === 1 && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="status" className="text-purple-100">
-                Votre statut
-              </Label>
-              <RadioGroup
-                value={formData.status}
-                onValueChange={(value) => updateFormData("status", value)}
-                className="grid grid-cols-1 gap-2"
-              >
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="couple" id="status-couple" className="border-purple-500" />
-                  <Label htmlFor="status-couple" className="flex-1 cursor-pointer">
-                    Couple
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="single_male" id="status-single-male" className="border-purple-500" />
-                  <Label htmlFor="status-single-male" className="flex-1 cursor-pointer">
-                    Homme seul
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="single_female" id="status-single-female" className="border-purple-500" />
-                  <Label htmlFor="status-single-female" className="flex-1 cursor-pointer">
-                    Femme seule
-                  </Label>
-                </div>
+          <div className='space-y-5'>
+            <div className='space-y-2'>
+              <Label>Votre profil</Label>
+              <RadioGroup value={formData.status} onValueChange={value => updateStatus(value as OnboardingData['status'])} className='grid gap-2'>
+                {[['single_male', 'Homme'], ['single_female', 'Femme'], ['couple', 'Couple']].map(([value, label]) => (
+                  <div key={value} className='flex items-center gap-3 rounded-xl border border-purple-800/50 bg-purple-900/20 p-3'>
+                    <RadioGroupItem value={value} id={`status-${value}`} className='border-purple-500' />
+                    <Label htmlFor={`status-${value}`} className='flex-1 cursor-pointer'>{label}</Label>
+                  </div>
+                ))}
               </RadioGroup>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="age" className="text-purple-100">
-                Votre âge
-              </Label>
-              <Select
-                value={formData.age?.toString() || ""}
-                onValueChange={(value) => updateFormData("age", Number.parseInt(value))}
-              >
-                <SelectTrigger id="age" className="bg-purple-900/20 border-purple-800/50 focus:ring-[#ff3b8b]">
-                  <SelectValue placeholder="Sélectionnez votre âge" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2d1155] border-purple-800/50">
-                  {Array.from({ length: 62 }, (_, i) => i + 18).map((age) => (
-                    <SelectItem key={age} value={age.toString()} className="focus:bg-[#ff3b8b]/20">
-                      {age} ans
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+            {formData.status === 'couple' && (
+              <div className='space-y-2'>
+                <Label>Composition du couple</Label>
+                <Select value={formData.coupleComposition} onValueChange={value => updateFormData('coupleComposition', value as OnboardingData['coupleComposition'])}>
+                  <SelectTrigger className='border-purple-800/50 bg-purple-900/20'><SelectValue placeholder='Sélectionnez' /></SelectTrigger>
+                  <SelectContent><SelectItem value='mixed'>Femme / Homme</SelectItem><SelectItem value='male_male'>Homme / Homme</SelectItem><SelectItem value='female_female'>Femme / Femme</SelectItem><SelectItem value='other'>Autre composition</SelectItem></SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className='space-y-2'>
+              <Label>Orientation</Label>
+              <Select value={formData.orientation} onValueChange={value => updateFormData('orientation', value as OnboardingData['orientation'])}>
+                <SelectTrigger className='border-purple-800/50 bg-purple-900/20'><SelectValue placeholder='Sélectionnez' /></SelectTrigger>
+                <SelectContent><SelectItem value='hetero'>Hétéro</SelectItem><SelectItem value='bi'>Bi</SelectItem><SelectItem value='homo'>{formData.gender === 'female' ? 'Lesbienne' : formData.gender === 'male' ? 'Gay' : 'Gay ou lesbienne'}</SelectItem></SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="orientation" className="text-purple-100">
-                Votre orientation
-              </Label>
-              <RadioGroup
-                value={formData.orientation}
-                onValueChange={(value) => updateFormData("orientation", value)}
-                className="grid grid-cols-1 gap-2"
-              >
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="hetero" id="orientation-hetero" className="border-purple-500" />
-                  <Label htmlFor="orientation-hetero" className="flex-1 cursor-pointer">
-                    Hétérosexuel(le)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="homo" id="orientation-homo" className="border-purple-500" />
-                  <Label htmlFor="orientation-homo" className="flex-1 cursor-pointer">
-                    Homosexuel(le)
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 hover:bg-purple-900/30 transition-colors">
-                  <RadioGroupItem value="bi" id="orientation-bi" className="border-purple-500" />
-                  <Label htmlFor="orientation-bi" className="flex-1 cursor-pointer">
-                    Bisexuel(le)
-                  </Label>
-                </div>
-              </RadioGroup>
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='space-y-2'><Label htmlFor='age'>Âge</Label><Select value={formData.age?.toString() || ''} onValueChange={value => updateFormData('age', Number(value))}><SelectTrigger id='age' className='border-purple-800/50 bg-purple-900/20'><SelectValue placeholder='Âge' /></SelectTrigger><SelectContent>{Array.from({ length: 82 }, (_, index) => index + 18).map(age => <SelectItem key={age} value={String(age)}>{age} ans</SelectItem>)}</SelectContent></Select></div>
+              <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onChange={event => updateFormData('birthday', event.target.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="gender" className="text-purple-100">
-                Genre
-              </Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => updateFormData("gender", value)}
-              >
-                <SelectTrigger id="gender" className="bg-purple-900/20 border-purple-800/50 focus:ring-[#ff3b8b]">
-                  <SelectValue placeholder="Sélectionnez votre genre" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#2d1155] border-purple-800/50">
-                  <SelectItem value="male" className="focus:bg-[#ff3b8b]/20">
-                    Homme
-                  </SelectItem>
-                  <SelectItem value="female" className="focus:bg-[#ff3b8b]/20">
-                    Femme
-                  </SelectItem>
-                  <SelectItem value="other" className="focus:bg-[#ff3b8b]/20">
-                    Autre
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="birthday" className="text-purple-100">
-                Date de naissance
-              </Label>
-              <Input
-                id="birthday"
-                type="date"
-                value={formData.birthday}
-                onChange={(e) => updateFormData("birthday", e.target.value)}
-                className="bg-purple-900/20 border-purple-800/50 focus:ring-[#ff3b8b] focus:border-[#ff3b8b] text-white"
-              />
-            </div>
+            <p className='text-xs leading-5 text-purple-100/65'>Réservé aux personnes majeures. L’âge et la date permettent de contrôler la cohérence du profil.</p>
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <Label className="text-purple-100 block mb-2">Vos centres d'intérêt au Love Hôtel</Label>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="events"
-                  checked={formData.interestedInEvents}
-                  onCheckedChange={(checked) => updateFormData("interestedInEvents", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="events" className="font-medium cursor-pointer">
-                    Événements du Love Hôtel
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Speed dating, soirées thématiques, etc.</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="dating"
-                  checked={formData.interestedInDating}
-                  onCheckedChange={(checked) => updateFormData("interestedInDating", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="dating" className="font-medium cursor-pointer">
-                    Site de rencontres
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Rencontrer de nouvelles personnes via notre plateforme</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="curtain"
-                  checked={formData.preferCurtainOpen}
-                  onCheckedChange={(checked) => updateFormData("preferCurtainOpen", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="curtain" className="font-medium cursor-pointer">
-                    Option rideau ouvert
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Préférence pour les chambres avec rideau ouvert</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="lolib"
-                  checked={formData.interestedInLolib}
-                  onCheckedChange={(checked) => updateFormData("interestedInLolib", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="lolib" className="font-medium cursor-pointer">
-                    Monnaie Lolib
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Gagner ou acheter notre monnaie virtuelle</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <Label htmlFor="suggestions" className="text-purple-100">
-                Vos suggestions
-              </Label>
-              <Textarea
-                id="suggestions"
-                placeholder="Partagez vos idées d'événements ou de fonctionnalités..."
-                value={formData.suggestions}
-                onChange={(e) => updateFormData("suggestions", e.target.value)}
-                className="min-h-[100px] bg-purple-900/20 border-purple-800/50 focus:border-[#ff3b8b] focus:ring-[#ff3b8b]"
-              />
-            </div>
-          </div>
-        )}
+        {step === 2 && <OnboardingAvatarStep status={formData.status} gender={formData.gender} avatarUrl={formData.avatarUrl} onAvatarSaved={url => updateFormData('avatarUrl', url)} onContinue={() => void nextStep()} />}
 
         {step === 3 && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <Label className="text-purple-100 block mb-2">Types de rencontres recherchées</Label>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="friendly"
-                  checked={formData.meetingTypes.friendly}
-                  onCheckedChange={(checked) => updateNestedFormData("meetingTypes", "friendly", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="friendly" className="font-medium cursor-pointer">
-                    Rencontres amicales
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Élargir votre cercle social</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="romantic"
-                  checked={formData.meetingTypes.romantic}
-                  onCheckedChange={(checked) => updateNestedFormData("meetingTypes", "romantic", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="romantic" className="font-medium cursor-pointer">
-                    Rencontres romantiques
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Trouver l'amour ou une relation sérieuse</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="playful"
-                  checked={formData.meetingTypes.playful}
-                  onCheckedChange={(checked) => updateNestedFormData("meetingTypes", "playful", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="playful" className="font-medium cursor-pointer">
-                    Rencontres ludiques
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Moments de plaisir sans engagement</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="openCurtains"
-                  checked={formData.meetingTypes.openCurtains}
-                  onCheckedChange={(checked) => updateNestedFormData("meetingTypes", "openCurtains", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="openCurtains" className="font-medium cursor-pointer">
-                    Rideaux ouverts
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Expériences avec rideaux ouverts</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="libertine"
-                  checked={formData.meetingTypes.libertine}
-                  onCheckedChange={(checked) => updateNestedFormData("meetingTypes", "libertine", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="libertine" className="font-medium cursor-pointer">
-                    Afters libertins
-                  </Label>
-                  <p className="text-sm text-purple-200/70">Rencontres libertines après événements</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20 mt-4">
-              <Checkbox
-                id="openToOtherCouples"
-                checked={formData.openToOtherCouples}
-                onCheckedChange={(checked) => updateFormData("openToOtherCouples", checked === true)}
-                className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-              />
-              <div className="space-y-1">
-                <Label htmlFor="openToOtherCouples" className="font-medium cursor-pointer">
-                  Ouvert(e) aux autres couples
-                </Label>
-                <p className="text-sm text-purple-200/70">Intéressé(e) par des rencontres avec d'autres couples</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <Label htmlFor="specificPreferences" className="text-purple-100">
-                Préférences spécifiques
-              </Label>
-              <Textarea
-                id="specificPreferences"
-                placeholder="Décrivez vos critères ou préférences particulières..."
-                value={formData.specificPreferences}
-                onChange={(e) => updateFormData("specificPreferences", e.target.value)}
-                className="min-h-[100px] bg-purple-900/20 border-purple-800/50 focus:border-[#ff3b8b] focus:ring-[#ff3b8b]"
-              />
-            </div>
+          <div className='space-y-6'>
+            <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{profileTypes.map(([value, label]) => <Choice key={value} id={`seeking-${value}`} label={label} checked={formData.seekingProfileTypes.includes(value)} onChange={() => toggleArrayValue('seekingProfileTypes', value)} />)}</div>
+            <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2>{relationshipIntents.map(([value, label]) => <Choice key={value} id={`intent-${value}`} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleArrayValue('relationshipIntents', value)} />)}</div>
+            <div className='space-y-3'><div><h2 className='font-bold'>Affinités BDSM</h2><p className='text-sm text-purple-100/65'>Facultatif. « Sans BDSM » exclut les autres choix.</p></div>{bdsmRoles.map(([value, label]) => <Choice key={value} id={`bdsm-${value}`} label={label} checked={formData.bdsmRoles.includes(value)} onChange={() => value === 'none' ? toggleArrayValue('bdsmRoles', 'none') : toggleArrayValue('bdsmRoles', value)} />)}</div>
           </div>
         )}
 
         {step === 4 && (
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <Label className="text-purple-100 block mb-2">Options supplémentaires</Label>
+          <div className='space-y-5'>
+            <div><h2 className='font-bold'>Vos univers de rencontre</h2><p className='text-sm text-purple-100/65'>Choisissez au moins un univers.</p></div>
+            <div className='space-y-3'>{meetingTypes.map(([value, label]) => <Choice key={value} id={`meeting-${value}`} label={label} checked={formData.meetingTypes[value]} onChange={checked => setMeetingType(value, checked)} />)}</div>
+            <div className='grid gap-3'><Choice id='restaurant' label='Sorties au restaurant' checked={formData.interestedInRestaurant} onChange={value => updateFormData('interestedInRestaurant', value)} /><Choice id='events' label='Événements du Love Hôtel' checked={formData.interestedInEvents} onChange={value => updateFormData('interestedInEvents', value)} /><Choice id='dating' label='Rencontres via la plateforme' checked={formData.interestedInDating} onChange={value => updateFormData('interestedInDating', value)} /><Choice id='curtain' label='Préférence rideau ouvert' checked={formData.preferCurtainOpen} onChange={value => updateFormData('preferCurtainOpen', value)} /><Choice id='lolib' label='Intérêt pour la monnaie Lolib' checked={formData.interestedInLolib} onChange={value => updateFormData('interestedInLolib', value)} /><Choice id='other-couples' label='Ouvert·e aux couples' checked={formData.openToOtherCouples} onChange={value => updateFormData('openToOtherCouples', value)} /></div>
+          </div>
+        )}
 
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="exclusiveEvents"
-                  checked={formData.joinExclusiveEvents}
-                  onCheckedChange={(checked) => updateFormData("joinExclusiveEvents", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="exclusiveEvents" className="font-medium cursor-pointer">
-                    Événements exclusifs
-                  </Label>
-                  <p className="text-sm text-purple-200/70">
-                    Participer aux événements réservés aux membres sélectionnés
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-2 rounded-md border border-purple-800/50 p-3 bg-purple-900/20">
-                <Checkbox
-                  id="premiumAccess"
-                  checked={formData.premiumAccess}
-                  onCheckedChange={(checked) => updateFormData("premiumAccess", checked === true)}
-                  className="mt-1 border-purple-500 data-[state=checked]:bg-[#ff3b8b] data-[state=checked]:border-[#ff3b8b]"
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="premiumAccess" className="font-medium cursor-pointer">
-                    Accès Premium
-                  </Label>
-                  <p className="text-sm text-purple-200/70">
-                    Débloquer toutes les fonctionnalités avancées de l'application
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-md border border-[#ff3b8b]/30 p-4 bg-[#ff3b8b]/10 mt-4">
-              <h3 className="font-medium text-[#ff8cc8] mb-2">Félicitations !</h3>
-              <p className="text-sm text-purple-100/90">
-                Votre profil est presque complet. En validant cette dernière étape, vous pourrez accéder à toutes les
-                fonctionnalités de matching et commencer à faire des rencontres adaptées à vos préférences.
-              </p>
-            </div>
+        {step === 5 && (
+          <div className='space-y-5'>
+            <div><h2 className='text-lg font-bold'>Derniers réglages</h2><p className='text-sm text-purple-100/65'>Vous pourrez modifier ces choix depuis votre profil.</p></div>
+            <Choice id='exclusive-events' label='Participer aux événements exclusifs' checked={formData.joinExclusiveEvents} onChange={value => updateFormData('joinExclusiveEvents', value)} />
+            <Choice id='premium-access' label='Être informé·e de l’accès Premium' checked={formData.premiumAccess} onChange={value => updateFormData('premiumAccess', value)} />
+            <div className='space-y-2'><Label htmlFor='preferences'>Préférences spécifiques</Label><Textarea id='preferences' value={formData.specificPreferences} onChange={event => updateFormData('specificPreferences', event.target.value)} placeholder='Vos critères ou préférences particulières…' className='min-h-24 border-purple-800/50 bg-purple-900/20' /></div>
+            <div className='space-y-2'><Label htmlFor='suggestions'>Suggestions pour la communauté</Label><Textarea id='suggestions' value={formData.suggestions} onChange={event => updateFormData('suggestions', event.target.value)} placeholder='Vos idées d’événements ou de fonctionnalités…' className='min-h-20 border-purple-800/50 bg-purple-900/20' /></div>
+            <div className='rounded-xl border border-[#ff3b8b]/30 bg-[#ff3b8b]/10 p-4 text-sm text-purple-100'>Votre photo personnelle reste prioritaire dans la découverte. Sans photo, l’avatar natif correspondant à votre profil sera utilisé.</div>
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="flex justify-between pt-2">
-        <Button
-          variant="outline"
-          onClick={prevStep}
-          disabled={step === 1}
-          className="border-purple-800/50 bg-purple-900/20 hover:bg-purple-900/40 text-white"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Précédent
-        </Button>
-
-        <Button
-          onClick={nextStep}
-          disabled={!isStepValid()}
-          className="bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] hover:from-[#ff3b8b]/90 hover:to-[#ff8cc8]/90 text-white border-0"
-        >
-          {step === totalSteps ? (
-            <>
-              Terminer
-              <Check className="ml-2 h-4 w-4" />
-            </>
-          ) : (
-            <>
-              Suivant
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </>
-          )}
-        </Button>
+      <CardFooter className='flex justify-between gap-3 pt-3'>
+        <Button type='button' variant='outline' onClick={() => { setStep(current => Math.max(1, current - 1)); window.scrollTo(0, 0) }} disabled={step === 1 || submitting} className='border-purple-800/50 bg-purple-900/20 text-white hover:bg-purple-900/40'><ArrowLeft className='mr-2 h-4 w-4' />Précédent</Button>
+        <Button type='button' onClick={() => void nextStep()} disabled={!isStepValid() || submitting} className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>{step === totalSteps ? <>{submitting ? 'Enregistrement…' : 'Terminer'}<Check className='ml-2 h-4 w-4' /></> : <>Suivant<ArrowRight className='ml-2 h-4 w-4' /></>}</Button>
       </CardFooter>
     </Card>
   )

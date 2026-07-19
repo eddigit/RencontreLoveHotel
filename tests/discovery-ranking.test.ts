@@ -25,4 +25,13 @@ describe('fair discovery ranking', () => {
     expect(rankDiscoveryCandidates(candidates, context).map(item => item.explorationScore))
       .not.toEqual(rankDiscoveryCandidates(candidates, { ...context, batch: 3 }).map(item => item.explorationScore))
   })
+
+  it('keeps members with a personal photo ahead of native-avatar profiles', () => {
+    const ranked = rankDiscoveryCandidates([
+      { id: 'native', image: '/default-member-woman.jpg', matchScore: 100, impressions14d: 0, profileQuality: 100 },
+      { id: 'photo', image: 'https://blob.example/member.jpg', matchScore: 60, impressions14d: 20, profileQuality: 60 }
+    ], { viewerId: 'viewer', batch: 0 })
+
+    expect(ranked[0].id).toBe('photo')
+  })
 })

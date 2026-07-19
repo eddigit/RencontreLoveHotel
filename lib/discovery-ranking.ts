@@ -5,6 +5,9 @@ export type DiscoveryCandidate = {
   profileQuality?: number | null
   lastSeenAt?: string | Date | null
   createdAt?: string | Date | null
+  image?: string | null
+  avatar?: string | null
+  featured?: boolean
   [key: string]: unknown
 }
 
@@ -38,6 +41,11 @@ function freshnessScore(value: string | Date | null | undefined, now: Date) {
   return 20
 }
 
+function hasPersonalPhoto(candidate: DiscoveryCandidate) {
+  const image = String(candidate.avatar || candidate.image || '').trim().toLowerCase()
+  return Boolean(image) && !image.includes('/default-member-')
+}
+
 export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
   candidates: T[],
   context: { viewerId: string; batch: number; now?: Date }
@@ -62,5 +70,11 @@ export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
 
       return { ...candidate, discoveryScore, explorationScore }
     })
-    .sort((left, right) => right.discoveryScore - left.discoveryScore || left.id.localeCompare(right.id))
+    .sort((left, right) => {
+      const photoDifference = Number(hasPersonalPhoto(right)) - Number(hasPersonalPhoto(left))
+      if (photoDifference) return photoDifference
+      const featuredDifference = Number(Boolean(right.featured)) - Number(Boolean(left.featured))
+      if (featuredDifference) return featuredDifference
+      return right.discoveryScore - left.discoveryScore || left.id.localeCompare(right.id)
+    })
 }

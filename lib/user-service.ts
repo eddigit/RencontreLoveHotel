@@ -13,6 +13,8 @@ export interface User {
   onboarding_completed: boolean
   email_verified?: boolean // Add this line
   status?: string | null
+  profile_status?: string | null
+  gender?: string | null
   is_banned?: boolean | null
   created_at: Date
   updated_at: Date
@@ -132,9 +134,12 @@ export async function verifyUserCredentials(email: string, password: string): Pr
 export async function getUserById(id: string): Promise<User | null> {
   try {
     const query = `
-      SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at
-      FROM users
-      WHERE id = $1
+      SELECT u.id, u.email, u.name, u.role, u.avatar, u.onboarding_completed,
+             u.email_verified, u.status, u.is_banned, up.status AS profile_status,
+             up.gender, u.created_at, u.updated_at
+      FROM users u
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+      WHERE u.id = $1
     `
 
     const users = await executeQuery<User[]>(query, [id])
@@ -150,10 +155,12 @@ export async function getUserByEmail(email: string): Promise<User | null> {
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
-      SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
-             status, is_banned, created_at, updated_at
-      FROM users
-      WHERE lower(email) = $1
+      SELECT u.id, u.email, u.name, u.role, u.avatar, u.onboarding_completed,
+             u.email_verified, u.status, u.is_banned, up.status AS profile_status,
+             up.gender, u.created_at, u.updated_at
+      FROM users u
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+      WHERE lower(u.email) = $1
     `
     const users = await executeQuery<User[]>(query, [normalizedEmail])
     return users[0] || null
