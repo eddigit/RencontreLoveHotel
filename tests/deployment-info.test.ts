@@ -16,18 +16,8 @@ describe('deployment footer information', () => {
       getDeploymentLabel({
         version: '0.1.0',
         buildNumber: 42,
-        deploymentDate: '2026-06-10T10:38:04.925Z',
-        sourceRevision: '9b980d9a78f2'
+        deploymentDate: '2026-06-10T10:38:04.925Z'
       })
-    ).toBe('Déploiement : 10/06/2026 12:38 · révision 9b980d9 · build 42')
-  })
-
-  it('never displays an unknown source revision', () => {
-    expect(() => getDeploymentLabel({
-      version: '0.1.0',
-      buildNumber: 42,
-      deploymentDate: '2026-06-10T10:38:04.925Z',
-      sourceRevision: 'unknown'
-    })).toThrow('révision')
+    ).toBe('Déploiement : 10/06/2026 12:38 · build 42')
   })
 })

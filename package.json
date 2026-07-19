@@ -6,7 +6,7 @@
   "scripts": {
     "test": "vitest",
     "test:watch": "vitest --watch",
-    "verify:critical": "vitest --run tests/critical-product-contracts.test.ts tests/member-directory-action.test.ts tests/default-member-image.test.ts tests/member-directory-regression.test.ts tests/profile-bio-integrity.test.ts tests/contact-safety-message-flow.test.ts tests/anti-solicitation-message-flow.test.ts",
+    "verify:critical": "vitest --run tests/login-oauth-visibility.test.ts tests/official-logo.test.ts tests/member-page-action-recovery.test.ts tests/community-home-ui.test.ts tests/admin-stats-period-integrity.test.ts tests/anti-solicitation-message-flow.test.ts tests/contact-safety-message-flow.test.ts",
     "verify:release": "npm run verify:critical && npm test -- --run && npm run lint && npm run build",
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +16,6 @@
     "create-test-events": "ts-node scripts/create-test-events.ts",
     "cleanup:moderation": "ts-node scripts/cleanup-moderation-cases.ts",
     "version": "node scripts/update-version.js",
-    "audit:duplicate-users": "node scripts/audit-duplicate-users.mjs",
     "prepare": "husky install"
   },
   "dependencies": {

@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { calculateMatchScore } from "@/utils/matching-algorithm"
-import { createNotificationRecord as createNotification } from '@/lib/notification-service'
+import { createNotification } from "@/actions/notification-actions"
 import { FilterOptions } from "@/components/advanced-filters";
 import type { UserProfile } from "@/utils/matching-algorithm"
 import {
@@ -12,11 +12,10 @@ import {
   onlinePresenceCondition
 } from "@/lib/presence"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
-import { assertUsersCanInteract } from '@/lib/member-safety'
-import { notifyAdminByEmail } from '@/lib/admin-email-notifications'
-import { sendMemberActivityEmail } from '@/lib/member-activity-email'
-import { recordProductActivity } from '@/lib/product-activity'
-import { trackProductEvent } from '@/lib/product-events'
+import { log } from "@/utils/logger"
+import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
+import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
+import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -24,7 +23,6 @@ type CommunityMemberStats = {
 }
 
 export async function getUserProfile(userId: string) {
-  await requireCurrentUser()
   const user = await sql`
     SELECT u.id as user_id, u.*, up.id as profile_id, up.*
     FROM users u
@@ -123,7 +121,6 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
   const [stats] = await sql.query<Array<{
     total_members: string | number
     new_members_last_24h: string | number
-    visible_profiles: string | number
   }>>(
     `
       SELECT
@@ -139,13 +136,7 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
             AND u.onboarding_completed = TRUE
             AND up.display_profile = TRUE
             AND u.created_at >= NOW() - INTERVAL '24 hours'
-        ) AS new_members_last_24h,
-        COUNT(*) FILTER (
-          WHERE COALESCE(u.is_banned, false) = false
-            AND COALESCE(u.status, 'active') <> 'banned'
-            AND u.onboarding_completed = TRUE
-            AND up.display_profile = TRUE
-        ) AS visible_profiles
+        ) AS new_members_last_24h
       FROM users u
       LEFT JOIN user_profiles up ON up.user_id = u.id
     `,
@@ -163,7 +154,9 @@ export async function getOnlineCommunityMembers(limit = 12) {
   await markUserSeen(currentUser.id)
 
   const safeLimit = Math.min(24, Math.max(1, Math.floor(Number(limit) || 12)))
-  const onlineCondition = onlinePresenceCondition('u.last_seen_at')
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at'
+  const onlineCondition = onlinePresenceCondition(presenceColumn)
 
   return await sql.query<any[]>(
     `
@@ -173,6 +166,8 @@ export async function getOnlineCommunityMembers(limit = 12) {
         u.avatar AS image,
         up.age,
         up.location,
+        up.status,
+        up.gender,
         TRUE AS online,
         u.id = $1 AS is_current_user
       FROM users u
@@ -181,18 +176,17 @@ export async function getOnlineCommunityMembers(limit = 12) {
         AND u.onboarding_completed = TRUE
         AND COALESCE(u.is_banned, false) = false
         AND COALESCE(u.status, 'active') <> 'banned'
-        AND NOT EXISTS (
-          SELECT 1
-          FROM user_blocks ub
-          WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
-             OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
-        )
         AND ${onlineCondition}
-      ORDER BY (u.id = $1) DESC, u.last_seen_at DESC
+      ORDER BY (u.id = $1) DESC, ${presenceColumn} DESC
       LIMIT $2
     `,
     [currentUser.id, safeLimit]
   )
+}
+
+export async function getMemberRelationships(userId: string) {
+  await requireSameUserOrAdmin(userId)
+  return getMemberRelationshipOverview(userId)
 }
 
 export type CommunityMemberDirectoryFilters = {
@@ -207,7 +201,6 @@ export type CommunityMemberDirectoryFilters = {
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
   const currentUser = await requireCurrentUser()
-  const onlineCondition = onlinePresenceCondition('u.last_seen_at')
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
@@ -216,16 +209,11 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     : 24
   const params: unknown[] = [currentUser.id]
   const whereClauses = [
+    'u.id <> $1',
     'up.display_profile = TRUE',
     'u.onboarding_completed = TRUE',
     'COALESCE(u.is_banned, false) = false',
-    "COALESCE(u.status, 'active') <> 'banned'",
-    `NOT EXISTS (
-      SELECT 1
-      FROM user_blocks ub
-      WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
-         OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
-    )`
+    "COALESCE(u.status, 'active') <> 'banned'"
   ]
 
   const addParam = (value: unknown) => {
@@ -263,7 +251,9 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   }
 
   if (input.onlineOnly) {
-    whereClauses.push(onlineCondition)
+    const hasPresenceColumn = await ensurePresenceSchema()
+    const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at'
+    whereClauses.push(`${presenceColumn} >= NOW() - INTERVAL '5 minutes'`)
   }
 
   const whereCondition = `WHERE ${whereClauses.join('\n      AND ')}`
@@ -287,7 +277,6 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         u.name,
         u.avatar,
         u.created_at,
-        u.last_seen_at,
         up.age,
         up.location,
         up.status AS profile_status,
@@ -297,7 +286,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         umt.open_to_other_couples,
         umt.open_curtains,
         umt.libertine,
-        ${onlineCondition} AS online
+        (${onlinePresenceCondition('u.updated_at')}) AS online
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id
       LEFT JOIN LATERAL (
@@ -309,33 +298,12 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         WHERE user_id = u.id
       ) umt ON TRUE
       ${whereCondition}
-      ORDER BY
-        (NULLIF(BTRIM(u.avatar), '') IS NOT NULL) DESC,
-        ${onlineCondition} DESC,
-        u.created_at DESC
+      ORDER BY u.created_at DESC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
     `,
     params
   )
-
-  const filterCount = [
-    Boolean(search),
-    Boolean(input.profileType && input.profileType !== 'all'),
-    Boolean(input.orientation && input.orientation !== 'all'),
-    Boolean(input.meetingCriterion && input.meetingCriterion !== 'all'),
-    Boolean(input.onlineOnly)
-  ].filter(Boolean).length
-  await recordProductActivity({
-    actorUserId: currentUser.id,
-    eventType: 'member_search',
-    targetType: 'directory',
-    metadata: {
-      resultCount: totalCount,
-      filterCount,
-      source: 'members'
-    }
-  })
 
   return {
     members: members || [],
@@ -346,12 +314,12 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   }
 }
 
-export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions) {
-  console.log(`[getDiscoverProfiles] Called for user: ${currentUserId}, page: ${page}, filters:`, JSON.stringify(filters, null, 2));
+export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions, batch = 0) {
+  log('info', 'Discover profiles requested', { operation: 'getDiscoverProfiles', page, pageSize });
 
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUserId);
   if (!isValidUUID) {
-    console.error(`[getDiscoverProfiles] Invalid currentUserId: ${currentUserId}`);
+    log('warn', 'Discover profiles rejected: invalid identifier', { operation: 'getDiscoverProfiles' });
     return {
       profiles: [],
       totalCount: 0,
@@ -361,15 +329,11 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     };
   }
 
-  await requireSameUserOrAdmin(currentUserId)
-
   let currentUserProfileGender: string | undefined;
   let currentUserProfileOrientation: string | undefined;
   const hasPresenceColumn = await ensurePresenceSchema();
   const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at';
   const onlineCondition = onlinePresenceCondition(presenceColumn);
-  // console.log(`[getDiscoverProfiles] Initializing currentUserProfileGender and currentUserProfileOrientation.`);
-
   try {
     const currentUserProfileResult = await sql`
       SELECT gender, orientation
@@ -377,45 +341,38 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       WHERE user_id = ${currentUserId}
       LIMIT 1;
     `;
-    // console.log(`[getDiscoverProfiles] Raw currentUserProfileResult from DB:`, currentUserProfileResult);
     if (currentUserProfileResult && currentUserProfileResult.length > 0) {
       currentUserProfileGender = currentUserProfileResult[0].gender?.toLowerCase(); // Ensure lowercase
       currentUserProfileOrientation = currentUserProfileResult[0].orientation?.toLowerCase(); // Ensure lowercase
-      console.log(`[getDiscoverProfiles] Current user (${currentUserId}) profile fetched: Gender=${currentUserProfileGender}, Orientation=${currentUserProfileOrientation}`);
     } else {
-      console.warn(`[getDiscoverProfiles] User ${currentUserId} has no profile set in user_profiles or gender/orientation is missing.`);
+      log('info', 'Discover profile preferences are incomplete', { operation: 'getDiscoverProfiles' });
     }
   } catch (error) {
-    console.error("[getDiscoverProfiles] Error fetching current user profile:", error);
+    log('error', 'Unable to load discovery preferences', { operation: 'getDiscoverProfiles', errorName: error instanceof Error ? error.name : 'UnknownError' });
   }
 
   const offset = (page - 1) * pageSize;
-  // console.log(`[getDiscoverProfiles] Calculated offset: ${offset}`);
-
   let baseParams: any[] = [currentUserId];
   let whereClauses = [`u.id != $1`];
-  // console.log(`[getDiscoverProfiles] Initial baseParams:`, JSON.stringify(baseParams));
-  // console.log(`[getDiscoverProfiles] Initial whereClauses:`, JSON.stringify(whereClauses));
 
 
   // Only show profiles with display_profile = TRUE
   whereClauses.push("up.display_profile = TRUE");
-  whereClauses.push("u.onboarding_completed = TRUE");
-  whereClauses.push("COALESCE(u.is_banned, false) = false");
-  whereClauses.push("COALESCE(u.status, 'active') <> 'banned'");
   whereClauses.push(`NOT EXISTS (SELECT 1 FROM user_blocks ub
     WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
-       OR (ub.blocker_id = u.id AND ub.blocked_id = $1)
-  )`);
+       OR (ub.blocker_id = u.id AND ub.blocked_id = $1))`)
   whereClauses.push(`NOT EXISTS (
     SELECT 1 FROM user_matches um_existing
     WHERE ((um_existing.user_id_1 = $1 AND um_existing.user_id_2 = u.id)
-       OR (um_existing.user_id_2 = $1 AND um_existing.user_id_1 = u.id))
-      AND um_existing.status IN ('accepted', 'pending')
-  )`);
+        OR (um_existing.user_id_1 = u.id AND um_existing.user_id_2 = $1))
+      AND (
+        um_existing.status IN ('accepted', 'pending')
+        OR (um_existing.status = 'rejected' AND um_existing.updated_at >= NOW() - INTERVAL '30 days')
+      )
+      AND (um_existing.status <> 'pending' OR um_existing.expires_at IS NULL OR um_existing.expires_at > NOW())
+  )`)
 
   if (currentUserProfileGender && currentUserProfileOrientation) {
-    // console.log(`[getDiscoverProfiles] Applying primary gender/orientation compatibility logic for current user: ${currentUserProfileGender}/${currentUserProfileOrientation}.`);
     const genderOrientationMatchingClauses: string[] = [];
 
     const cUserPGender = currentUserProfileGender; // Already lowercased
@@ -432,7 +389,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     // Determine current user's effective searching role (male/female)
     const isCurrentUserEffectivelyMale = (cUserPGender === 'male' || cUserPGender === 'single_male' || cUserPGender === 'married_male' || cUserPGender === 'couple_mm');
     const isCurrentUserEffectivelyFemale = (cUserPGender === 'female' || cUserPGender === 'single_female' || cUserPGender === 'married_female' || cUserPGender === 'couple_ff');
-    console.log(`[getDiscoverProfiles] Current user effective roles: isMale=${isCurrentUserEffectivelyMale}, isFemale=${isCurrentUserEffectivelyFemale}`);
 
     if (cUserOrientation === 'hetero' || cUserOrientation === 'straight') {
       if (isCurrentUserEffectivelyMale) {
@@ -446,7 +402,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         // Placeholder: assume they are open to male or female entities who are hetero/bi.
         genderOrientationMatchingClauses.push(`(${targetMaleEntitiesSQL} OR ${targetFemaleEntitiesSQL})`);
         genderOrientationMatchingClauses.push(targetOrientationHeteroBiCompatibleSQL);
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' hetero is a broad placeholder.`);
       }
     } else if (cUserOrientation === 'gay' || cUserOrientation === 'homo') {
       if (isCurrentUserEffectivelyMale) {
@@ -457,7 +412,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         genderOrientationMatchingClauses.push(targetOrientationGayBiCompatibleSQL);
       } else if (cUserPGender === 'couple_mf') {
         // Gay/Homo couple_mf: Contradictory for the unit's orientation.
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' gay/homo is undefined as it's contradictory.`);
       }
     } else if (cUserOrientation === 'bisexual' || cUserOrientation === 'bi') {
       if (isCurrentUserEffectivelyMale) { // Bi Male
@@ -470,15 +424,13 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         // Placeholder: Open to (Male Gay/Bi) OR (Female Hetero/Bi) OR (Female Gay/Bi)
         // This covers seeking males for the male part, females for the male part, females for the female part, males for the female part, with compatible orientations.
         genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}))`);
-        console.warn(`[getDiscoverProfiles] Logic for current user 'couple_mf' bisexual is a broad placeholder.`);
       }
     }
-    // console.log(`[getDiscoverProfiles] Generated genderOrientationMatchingClauses:`, JSON.stringify(genderOrientationMatchingClauses));
     if (genderOrientationMatchingClauses.length > 0) {
       whereClauses.push(`(${genderOrientationMatchingClauses.join(' AND ')})`);
     }
   } else {
-    console.log("[getDiscoverProfiles] Skipping primary gender/orientation compatibility clauses as current user data is insufficient.");
+    log('info', 'Discovery compatibility filter skipped', { operation: 'getDiscoverProfiles' });
   }
 
   if (filters) {
@@ -489,7 +441,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Age Range Filter
     if (filters.ageRange) {
-      // console.log(`[getDiscoverProfiles] Applying ageRange filter: ${filters.ageRange[0]} - ${filters.ageRange[1]}`);
       baseParams.push(filters.ageRange[0]);
       const ageMinPlaceholder = `$${baseParams.length}`;
       baseParams.push(filters.ageRange[1]);
@@ -503,7 +454,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Status Filter
     if (filters.status && filters.status !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying status filter: ${filters.status}`);
       const filterStatus = filters.status.toLowerCase(); // Ensure filter value is lowercase
       if (filterStatus === "single") {
         whereClauses.push(`(LOWER(up.status) LIKE 'single_%' OR up.status IS NULL OR up.status = '')`);
@@ -516,7 +466,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Orientation Filter
     if (filters.orientation && filters.orientation !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying explicit orientation filter for others: ${filters.orientation}`);
       baseParams.push(filters.orientation.toLowerCase()); // Ensure filter value is lowercase
       const orientationPlaceholder = `$${baseParams.length}`;
       // Compare with lowercase orientation from filter, and allow for NULL target orientation
@@ -525,7 +474,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Meeting Types Filter
     if (filters.meetingTypes) {
-      // console.log(`[getDiscoverProfiles] Applying meetingTypes filter for others:`, JSON.stringify(filters.meetingTypes));
       const activeMeetingTypes = Object.entries(filters.meetingTypes)
         .filter(([, isActive]) => isActive)
         .map(([type]) => type);
@@ -533,7 +481,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         activeMeetingTypes.forEach(type => {
           if (['friendly', 'romantic', 'playful', 'open_curtains', 'libertine'].includes(type)) {
              whereClauses.push(`umt_filter.${type.toLowerCase()} = TRUE`); // Assuming umt_filter columns are lowercase
-             // console.log(`[getDiscoverProfiles] Added meeting type clause for others: umt_filter.${type.toLowerCase()} = TRUE`);
           }
         });
       }
@@ -541,7 +488,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     // Curtain Preference Filter
     if (filters.curtainPreference && filters.curtainPreference !== "all") {
-      // console.log(`[getDiscoverProfiles] Applying curtainPreference filter for others: ${filters.curtainPreference}`);
       const curtainPref = filters.curtainPreference.toLowerCase();
       if (curtainPref === "open") {
         whereClauses.push(`(upref_filter.prefer_curtain_open = TRUE OR upref_filter.prefer_curtain_open IS NULL)`);
@@ -551,7 +497,6 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     }
   }
 
-  // console.log("[getDiscoverProfiles] Constructed whereClauses:", JSON.stringify(whereClauses, null, 2));
   const baseFromClause = `
     FROM users u
     JOIN user_profiles up ON u.id = up.user_id
@@ -560,20 +505,15 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   `;
   const whereCondition = whereClauses.length > 1 ? `WHERE ${whereClauses.join(" AND ")}` : (whereClauses.length === 1 ? `WHERE ${whereClauses[0]}` : "");
 
-  console.log(`[getDiscoverProfiles] Final whereCondition for SQL: ${whereCondition}`);
-
   const totalCountQuery = `SELECT COUNT(DISTINCT u.id) as total ${baseFromClause} ${whereCondition}`;
-  console.log(`[getDiscoverProfiles] Total count query SQL: ${totalCountQuery}`);
   const totalCountResult = await sql.query(totalCountQuery, baseParams);
   const totalCount = totalCountResult && totalCountResult.length > 0 ? parseInt(totalCountResult[0].total, 10) : 0;
-  console.log(`[getDiscoverProfiles] Total count of profiles found: ${totalCount}`);
 
   let profilesParams = [...baseParams];
   profilesParams.push(pageSize);
   const limitPlaceholder = `$${profilesParams.length}`;
   profilesParams.push(offset);
   const offsetPlaceholder = `$${profilesParams.length}`;
-  // console.log("[getDiscoverProfiles] Final profilesParams for profiles query:", JSON.stringify(profilesParams, null, 2)); // Existing log
 
   const profilesQuery = `
     SELECT
@@ -589,6 +529,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       up.birthday,
       up.bio,
       up.interests,
+      u.updated_at,
       upref_filter.interested_in_restaurant,
       upref_filter.interested_in_events,
       upref_filter.interested_in_dating,
@@ -603,21 +544,22 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       umt_filter.specific_preferences,
       ${hasPresenceColumn ? 'u.last_seen_at,' : 'NULL as last_seen_at,'}
       ${onlineCondition} as online,
-      false as featured
+      false as featured,
+      (SELECT COUNT(*) FROM product_events pe
+        WHERE pe.event_name = 'profile_impression'
+          AND pe.subject_id = u.id
+          AND pe.created_at >= NOW() - INTERVAL '14 days') AS impressions_14d
     ${baseFromClause}
     ${whereCondition}
     ORDER BY
+      impressions_14d ASC,
       (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
-      (CASE WHEN u.avatar IS NOT NULL AND u.avatar != '' THEN 1 ELSE 0 END) DESC,
       u.created_at DESC
     LIMIT ${limitPlaceholder}
     OFFSET ${offsetPlaceholder}
   `;
-  // console.log("[getDiscoverProfiles] Profiles Query:", profilesQuery); // Existing log
-
   const profilesResult = await sql.query(profilesQuery, profilesParams);
   const profilesData = profilesResult || [];
-  console.log(`[getDiscoverProfiles] Fetched ${profilesData.length} raw profiles from DB.`);
 
   const currentMatchingProfile = buildMatchingProfile(await getUserProfile(currentUserId));
   const mappedProfiles = profilesData
@@ -661,26 +603,60 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         interests: profile.interests ? JSON.parse(profile.interests) : [],
         preferences,
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
-        popularity: 0
+        impressions14d: Number(profile.impressions_14d || 0),
+        profileQuality: Math.round((
+          (profile.image ? 35 : 0) +
+          (profile.bio ? 25 : 0) +
+          (profile.age ? 15 : 0) +
+          (profile.location ? 15 : 0) +
+          (profile.interests ? 10 : 0)
+        )),
+        lastSeenAt: profile.last_seen_at,
+        createdAt: profile.created_at
       };
     })
-    .sort((a: any, b: any) => Number(b.matchScore || 0) - Number(a.matchScore || 0));
-  console.log(`[getDiscoverProfiles] Mapped ${mappedProfiles.length} profiles for client.`);
+  const rankedProfiles = rankDiscoveryCandidates<any>(mappedProfiles, {
+    viewerId: currentUserId,
+    batch: Math.max(0, Math.floor(Number(batch) || 0))
+  })
 
   const result = {
-    profiles: mappedProfiles,
+    profiles: rankedProfiles,
     totalCount,
     currentPage: page,
     totalPages: Math.ceil(totalCount / pageSize),
-    hasMore: (offset + mappedProfiles.length) < totalCount
+    hasMore: (offset + rankedProfiles.length) < totalCount
   };
+  log('info', 'Discover profiles completed', {
+    operation: 'getDiscoverProfiles',
+    count: rankedProfiles.length,
+    totalCount,
+    page
+  });
   return result;
 }
 
+export async function recordProfileImpressions(userId: string, profileIds: string[], batch = 0) {
+  await requireSameUserOrAdmin(userId)
+  const safeIds = Array.from(new Set(profileIds))
+    .filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
+    .slice(0, 12)
+
+  await trackProductEvents(safeIds.map((subjectId, position) => ({
+    eventName: 'profile_impression' as const,
+    userId,
+    subjectId,
+    metadata: { surface: 'community', batch, position }
+  })))
+}
+
 // Send a match request (creates a pending match if not already exists)
-export async function sendMatchRequest(requesterId: string, receiverId: string) {
+export async function sendMatchRequest(
+  requesterId: string,
+  receiverId: string,
+  context?: { type?: string; source?: string }
+) {
   await requireSameUserOrAdmin(requesterId)
-  await assertUsersCanInteract(requesterId, receiverId)
 
   if (requesterId === receiverId) return { success: false, error: "Vous ne pouvez pas vous matcher vous-même." }
   // Check if receiver exists
@@ -689,6 +665,27 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     return { success: false, error: "L'utilisateur cible n'existe pas." }
   }
   try {
+    const [blocked, recentRequestCount] = await Promise.all([
+      sql`
+        SELECT 1 FROM user_blocks
+        WHERE (blocker_id = ${requesterId} AND blocked_id = ${receiverId})
+           OR (blocker_id = ${receiverId} AND blocked_id = ${requesterId})
+        LIMIT 1
+      `,
+      sql`
+        SELECT COUNT(*)::int AS count
+        FROM user_matches
+        WHERE user_id_1 = ${requesterId}
+          AND created_at >= NOW() - INTERVAL '1 hour'
+      `
+    ])
+    if (blocked.length > 0) {
+      return { success: false, error: "Cette interaction n'est pas disponible." }
+    }
+    if (Number(recentRequestCount[0]?.count || 0) >= 20) {
+      return { success: false, error: "Trop de demandes rapprochées. Réessayez un peu plus tard." }
+    }
+
     // Check if a match already exists (in either direction)
     const existing = await sql`
       SELECT * FROM user_matches
@@ -702,7 +699,9 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       )
       if (pendingIsActive) return { success: false, error: "Demande déjà envoyée." }
       if (status === "accepted") return { success: false, error: "Vous êtes déjà en match." }
-      // If previously rejected, allow to send again (optional: you can block this if you want)
+      if (status === 'rejected' && new Date(existing[0].updated_at).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000) {
+        return { success: false, error: "Cette demande pourra être renouvelée plus tard." }
+      }
     }
     // Fetch both user profiles for score calculation
     const requesterProfile = await getUserProfile(requesterId)
@@ -713,14 +712,30 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
     if (requester && receiver) {
       matchScore = calculateMatchScore(requester, receiver)
     }
-    const result = await sql`
-      INSERT INTO user_matches (user_id_1, user_id_2, status, match_score, expires_at)
-      VALUES (${requesterId}, ${receiverId}, 'pending', ${matchScore}, CURRENT_TIMESTAMP + INTERVAL '30 days')
-      ON CONFLICT (user_id_1, user_id_2) DO UPDATE SET
-        status = 'pending', accepted_at = NULL, responded_at = NULL,
-        expires_at = CURRENT_TIMESTAMP + INTERVAL '30 days',
-        updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
-    `
+    const safeContext = {
+      type: typeof context?.type === 'string' ? context.type.slice(0, 40) : 'profile',
+      source: typeof context?.source === 'string' ? context.source.slice(0, 40) : 'community'
+    }
+    if (existing.length > 0) {
+      await sql`
+        UPDATE user_matches
+        SET user_id_1 = ${requesterId}, user_id_2 = ${receiverId}, status = 'pending',
+            accepted_at = NULL, responded_at = NULL,
+            expires_at = CURRENT_TIMESTAMP + INTERVAL '30 days',
+            context = ${JSON.stringify(safeContext)}::jsonb,
+            updated_at = CURRENT_TIMESTAMP, match_score = ${matchScore}
+        WHERE id = ${existing[0].id}
+      `
+    } else {
+      await sql`
+        INSERT INTO user_matches (
+          user_id_1, user_id_2, status, match_score, expires_at, context
+        ) VALUES (
+          ${requesterId}, ${receiverId}, 'pending', ${matchScore},
+          CURRENT_TIMESTAMP + INTERVAL '30 days', ${JSON.stringify(safeContext)}::jsonb
+        )
+      `
+    }
     // Send notification to receiver
     await createNotification({
       userId: receiverId,
@@ -729,24 +744,19 @@ export async function sendMatchRequest(requesterId: string, receiverId: string) 
       description: 'Vous avez reçu une nouvelle demande de match.',
       link: '/matches',
     })
-    await sendMemberActivityEmail({
-      recipientUserId: receiverId,
-      category: 'matches',
-      subject: 'Nouvelle demande de match',
-      title: 'Une nouvelle rencontre vous attend',
-      description: 'Un membre souhaite entrer en contact avec vous.',
-      ctaLabel: 'Voir la demande',
-      ctaPath: '/matches'
-    })
     await trackProductEvent({
       eventName: 'match_request_sent',
       userId: requesterId,
       subjectId: receiverId,
-      metadata: { surface: 'members' }
+      metadata: { context_type: safeContext.type, source: safeContext.source }
     })
+    log('info', 'Match request stored', { operation: 'sendMatchRequest' })
     return { success: true }
   } catch (error) {
-    console.error("Erreur lors de l'envoi de la demande:", error)
+    log('error', 'Match request failed', {
+      operation: 'sendMatchRequest',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    })
     return { success: false, error: "Erreur lors de l'envoi de la demande." }
   }
 }
@@ -757,43 +767,58 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
 
   try {
     const result = await sql.query<Array<{ conversation_id: string }>>(
-      `WITH accepted_match AS (
-         UPDATE user_matches
-         SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP,
-             responded_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-         WHERE user_id_1 = $1 AND user_id_2 = $2 AND status = 'pending'
-           AND (expires_at IS NULL OR expires_at > NOW())
-           AND NOT EXISTS (
-             SELECT 1 FROM user_blocks
-             WHERE (blocker_id = $1 AND blocked_id = $2)
-                OR (blocker_id = $2 AND blocked_id = $1)
-           )
-         RETURNING id
-       ), existing_conversation AS (
-         SELECT c.id FROM conversations c
-         WHERE EXISTS (SELECT 1 FROM accepted_match)
-           AND EXISTS (SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = c.id AND cp.user_id = $1)
-           AND EXISTS (SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = c.id AND cp.user_id = $2)
-           AND (SELECT COUNT(*) FROM conversation_participants cp WHERE cp.conversation_id = c.id) = 2
-         LIMIT 1
-       ), created_conversation AS (
-         INSERT INTO conversations (created_at, updated_at)
-         SELECT CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-         WHERE EXISTS (SELECT 1 FROM accepted_match)
-           AND NOT EXISTS (SELECT 1 FROM existing_conversation)
-         RETURNING id
-       ), selected_conversation AS (
-         SELECT id FROM existing_conversation
-         UNION ALL SELECT id FROM created_conversation
-         LIMIT 1
-       ), inserted_participants AS (
-         INSERT INTO conversation_participants (conversation_id, user_id)
-         SELECT id, $1 FROM selected_conversation
-         UNION ALL SELECT id, $2 FROM selected_conversation
-         ON CONFLICT (conversation_id, user_id) DO NOTHING
-         RETURNING conversation_id
-       )
-       SELECT id AS conversation_id FROM selected_conversation`,
+      `
+        WITH accepted_match AS (
+          UPDATE user_matches
+          SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP,
+              responded_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id_1 = $1 AND user_id_2 = $2 AND status = 'pending'
+            AND (expires_at IS NULL OR expires_at > NOW())
+            AND NOT EXISTS (
+              SELECT 1 FROM user_blocks
+              WHERE (blocker_id = $1 AND blocked_id = $2)
+                 OR (blocker_id = $2 AND blocked_id = $1)
+            )
+          RETURNING id
+        ),
+        existing_conversation AS (
+          SELECT c.id
+          FROM conversations c
+          WHERE EXISTS (SELECT 1 FROM accepted_match)
+            AND EXISTS (
+              SELECT 1 FROM conversation_participants cp
+              WHERE cp.conversation_id = c.id AND cp.user_id = $1
+            )
+            AND EXISTS (
+              SELECT 1 FROM conversation_participants cp
+              WHERE cp.conversation_id = c.id AND cp.user_id = $2
+            )
+            AND (SELECT COUNT(*) FROM conversation_participants cp WHERE cp.conversation_id = c.id) = 2
+          LIMIT 1
+        ),
+        created_conversation AS (
+          INSERT INTO conversations (created_at, updated_at)
+          SELECT CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+          WHERE EXISTS (SELECT 1 FROM accepted_match)
+            AND NOT EXISTS (SELECT 1 FROM existing_conversation)
+          RETURNING id
+        ),
+        selected_conversation AS (
+          SELECT id FROM existing_conversation
+          UNION ALL
+          SELECT id FROM created_conversation
+          LIMIT 1
+        ),
+        inserted_participants AS (
+          INSERT INTO conversation_participants (conversation_id, user_id)
+          SELECT id, $1 FROM selected_conversation
+          UNION ALL
+          SELECT id, $2 FROM selected_conversation
+          ON CONFLICT (conversation_id, user_id) DO NOTHING
+          RETURNING conversation_id
+        )
+        SELECT id AS conversation_id FROM selected_conversation
+      `,
       [requesterId, receiverId]
     )
     const conversationId = result[0]?.conversation_id
@@ -807,15 +832,6 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
       title: 'Votre demande de match a été acceptée',
       description: 'Votre demande de match a été acceptée !',
       link: `/messages/${conversationId}`,
-    })
-    await sendMemberActivityEmail({
-      recipientUserId: requesterId,
-      category: 'matches',
-      subject: 'Votre demande de match a été acceptée',
-      title: 'Vous avez un nouveau match',
-      description: 'Votre demande de rencontre vient d’être acceptée.',
-      ctaLabel: 'Découvrir votre match',
-      ctaPath: '/matches'
     })
     await trackProductEvent({
       eventName: 'match_accepted',
@@ -839,6 +855,7 @@ export async function declineMatchRequest(requesterId: string, receiverId: strin
       SET status = 'rejected', accepted_at = NULL, responded_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
       WHERE user_id_1 = ${requesterId} AND user_id_2 = ${receiverId} AND status = 'pending'
+        AND (expires_at IS NULL OR expires_at > NOW())
     `
     if ((result as any).rowCount === 0) {
       return { success: false, error: "Aucune demande à refuser." }
@@ -869,13 +886,16 @@ export async function removeMatch(userId1: string, userId2: string) {
     // Assuming 'sql' result for DELETE has a 'rowCount' property.
     // Using 'as any' to bypass potential overly generic typing from the sql tag.
     if ((result as any).rowCount === 0) {
-      console.warn(`No accepted match found to remove between ${userId1} and ${userId2}`);
+      log('info', 'No accepted match to remove', { operation: 'removeMatch' });
       return { success: true, message: "No active match to remove or already removed." };
     }
     // Optionally, send notifications or perform other cleanup
     return { success: true };
   } catch (error) {
-    console.error("Erreur lors de la suppression du match:", error);
+    log('error', 'Match removal failed', {
+      operation: 'removeMatch',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return { success: false, error: "Erreur lors de la suppression du match." };
   }
 }
@@ -903,6 +923,7 @@ export async function getIncomingMatchRequests(userId: string) {
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_2 = ${userId} AND status = 'pending'
+      AND (expires_at IS NULL OR expires_at > NOW())
     ORDER BY created_at DESC
   `
 }
@@ -918,6 +939,7 @@ export async function getOutgoingMatchRequests(userId: string) {
   return await sql`
     SELECT * FROM user_matches
     WHERE user_id_1 = ${userId} AND status = 'pending'
+      AND (expires_at IS NULL OR expires_at > NOW())
     ORDER BY created_at DESC
   `
 }
@@ -934,153 +956,17 @@ export async function getAllUsers() {
   return users || []
 }
 
-export type AdminUserSearchFilters = {
-  page?: number
-  pageSize?: number
-  search?: string
-  accountStatus?: 'all' | 'active' | 'banned'
-  profileStatus?: string
-  gender?: string
-  orientation?: string
-  meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
-  onboarding?: 'all' | 'complete' | 'incomplete'
-  visibility?: 'all' | 'visible' | 'hidden'
-}
-
-export async function searchAdminUsers(input: AdminUserSearchFilters = {}) {
-  await requireAdmin()
-
-  const requestedPage = Number(input.page || 1)
-  const requestedPageSize = Number(input.pageSize || 24)
-  const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
-  const pageSize = Number.isFinite(requestedPageSize)
-    ? Math.min(100, Math.max(12, Math.floor(requestedPageSize)))
-    : 24
-  const whereClauses: string[] = []
-  const params: any[] = []
-
-  const addParam = (value: unknown) => {
-    params.push(value)
-    return `$${params.length}`
-  }
-
-  const search = input.search?.trim().toLowerCase()
-  if (search) {
-    const placeholder = addParam(`%${search}%`)
-    whereClauses.push(`(
-      LOWER(COALESCE(u.name, '')) LIKE ${placeholder}
-      OR LOWER(COALESCE(u.email, '')) LIKE ${placeholder}
-      OR LOWER(COALESCE(up.location, '')) LIKE ${placeholder}
-    )`)
-  }
-
-  if (input.accountStatus === 'active') {
-    whereClauses.push("COALESCE(u.is_banned, false) = false AND COALESCE(u.status, 'active') <> 'banned'")
-  } else if (input.accountStatus === 'banned') {
-    whereClauses.push("(COALESCE(u.is_banned, false) = true OR COALESCE(u.status, 'active') = 'banned')")
-  }
-
-  if (input.profileStatus && input.profileStatus !== 'all') {
-    whereClauses.push(`LOWER(COALESCE(up.status, '')) = ${addParam(input.profileStatus.toLowerCase())}`)
-  }
-
-  if (input.gender && input.gender !== 'all') {
-    whereClauses.push(`LOWER(COALESCE(up.gender, '')) = ${addParam(input.gender.toLowerCase())}`)
-  }
-
-  if (input.orientation && input.orientation !== 'all') {
-    whereClauses.push(`LOWER(COALESCE(up.orientation, '')) = ${addParam(input.orientation.toLowerCase())}`)
-  }
-
-  if (input.meetingCriterion === 'open_couples') {
-    whereClauses.push('umt.open_to_other_couples = TRUE')
-  } else if (input.meetingCriterion === 'open_curtains') {
-    whereClauses.push('umt.open_curtains = TRUE')
-  } else if (input.meetingCriterion === 'libertine') {
-    whereClauses.push('umt.libertine = TRUE')
-  }
-
-  if (input.onboarding === 'complete') {
-    whereClauses.push('u.onboarding_completed = TRUE')
-  } else if (input.onboarding === 'incomplete') {
-    whereClauses.push('COALESCE(u.onboarding_completed, false) = false')
-  }
-
-  if (input.visibility === 'visible') {
-    whereClauses.push('up.display_profile = TRUE')
-  } else if (input.visibility === 'hidden') {
-    whereClauses.push('(up.display_profile = FALSE OR up.display_profile IS NULL)')
-  }
-
-  const limitPlaceholder = addParam(pageSize)
-  const offsetPlaceholder = addParam((page - 1) * pageSize)
-  const users = await sql.query<any[]>(
-    `
-      SELECT
-        u.id,
-        u.name,
-        u.email,
-        u.role,
-        u.avatar,
-        primary_photo.url AS primary_photo,
-        u.is_banned,
-        u.status AS account_status,
-        u.created_at,
-        u.onboarding_completed,
-        up.location,
-        up.age,
-        up.status AS profile_status,
-        up.gender,
-        up.orientation,
-        up.display_profile,
-        umt.open_to_other_couples,
-        umt.open_curtains,
-        umt.libertine,
-        COUNT(*) OVER() AS total_count
-      FROM users u
-      LEFT JOIN user_profiles up ON up.user_id = u.id
-      LEFT JOIN LATERAL (
-        SELECT p.url
-        FROM photos p
-        WHERE p.user_id = u.id
-        ORDER BY is_primary DESC, p.created_at DESC
-        LIMIT 1
-      ) primary_photo ON TRUE
-      LEFT JOIN (
-        SELECT
-          user_id,
-          BOOL_OR(COALESCE(open_to_other_couples, false)) AS open_to_other_couples,
-          BOOL_OR(COALESCE(open_curtains, false)) AS open_curtains,
-          BOOL_OR(COALESCE(libertine, false)) AS libertine
-        FROM user_meeting_types
-        GROUP BY user_id
-      ) umt ON umt.user_id = u.id
-      ${whereClauses.length ? `WHERE ${whereClauses.join('\n        AND ')}` : ''}
-      ORDER BY u.created_at DESC
-      LIMIT ${limitPlaceholder}
-      OFFSET ${offsetPlaceholder}
-    `,
-    params
-  )
-
-  const totalCount = Number(users[0]?.total_count || 0)
-  return {
-    users: users.map(({ total_count: _totalCount, ...user }) => user),
-    totalCount,
-    currentPage: page,
-    pageSize,
-    totalPages: Math.ceil(totalCount / pageSize)
-  }
-}
-
 export async function getTotalUsersCount() {
   await requireAdmin()
 
   try {
     const result = await sql`SELECT COUNT(*) as count FROM users`;
-    return Number(result[0]?.count || 0)
+    return result[0].count as number;
   } catch (error) {
-    console.error("Error fetching total users count:", error);
+    log('error', 'Total user count failed', {
+      operation: 'getTotalUsersCount',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return 0;
   }
 }
@@ -1107,13 +993,20 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
       count: parseInt(row.count as string, 10)
     }));
   } catch (error) {
-    console.error('Erreur lors de la récupération des comptes par genre:', error);
+    log('error', 'User count by gender failed', {
+      operation: 'getUserCountsByGender',
+      errorName: error instanceof Error ? error.name : 'UnknownError'
+    });
     return null;
   }
 }
 
 export async function updateUserByAdmin(userId: string, { name, email, role, avatar }: { name?: string, email?: string, role?: string, avatar?: string }) {
-  const admin = await requireAdmin()
+  await requireAdmin()
+
+  if (role && !['user', 'community_moderator', 'admin'].includes(role)) {
+    throw new Error('Rôle utilisateur invalide')
+  }
 
   const [user] = await sql`
     UPDATE users
@@ -1125,62 +1018,34 @@ export async function updateUserByAdmin(userId: string, { name, email, role, ava
     WHERE id = ${userId}
     RETURNING *
   `
-  if (user) {
-    await notifyAdminByEmail({
-      kind: 'member_updated',
-      subject: `Adhérent modifié : ${user.name || user.email}`,
-      title: 'Une fiche adhérent vient d’être modifiée',
-      details: [
-        { label: 'Adhérent', value: user.name || user.email },
-        { label: 'Email', value: user.email },
-        { label: 'Rôle', value: user.role },
-        { label: 'Modification par', value: admin.email || admin.id }
-      ],
-      actionPath: `/admin/users/${userId}/edit`
-    })
-  }
   return user
 }
 
 export async function deleteUserByAdmin(userId: string) {
-  const admin = await requireAdmin()
-  const [user] = await sql`
-    SELECT id, name, email, role FROM users WHERE id = ${userId}
-  `
+  await requireAdmin()
 
   await sql`
     DELETE FROM users WHERE id = ${userId}
   `
-  await notifyAdminByEmail({
-    kind: 'member_deleted',
-    subject: `Adhérent supprimé : ${user?.name || user?.email || userId}`,
-    title: 'Un adhérent vient d’être supprimé',
-    details: [
-      { label: 'Adhérent', value: user?.name || user?.email || userId },
-      { label: 'Email', value: user?.email },
-      { label: 'Ancien rôle', value: user?.role },
-      { label: 'Suppression par', value: admin.email || admin.id }
-    ],
-    actionPath: '/admin/users'
-  })
   return { success: true }
-}
-
-function adminStatsDateTrunc(column: string, scale: "day" | "week" | "month") {
-  const unit = scale === 'month' ? 'month' : scale === 'week' ? 'week' : 'day'
-  return `TO_CHAR(DATE_TRUNC('${unit}', ${column} AT TIME ZONE 'Europe/Paris'), 'YYYY-MM-DD')`
 }
 
 // Get new users count grouped by day/week/month
 export async function getNewUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  const dateTrunc = adminStatsDateTrunc('created_at', scale)
+  let dateTrunc;
+  if (scale === "day") {
+    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
+  } else if (scale === "week") {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
+  } else {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
+  }
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM users
-    WHERE created_at >= ($1::date AT TIME ZONE 'Europe/Paris')
-      AND created_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -1188,16 +1053,22 @@ export async function getNewUsersStats({ startDate, endDate, scale }: { startDat
   return stats;
 }
 
-// Get active users from the presence heartbeat grouped by day/week/month.
+// Get active users (users who sent a message) grouped by day/week/month
 export async function getActiveUsersStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  const dateTrunc = adminStatsDateTrunc('last_seen_at', scale)
+  let dateTrunc;
+  if (scale === "day") {
+    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
+  } else if (scale === "week") {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
+  } else {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
+  }
   const query = `
-    SELECT ${dateTrunc} as period, COUNT(DISTINCT id) as count
-    FROM users
-    WHERE last_seen_at >= ($1::date AT TIME ZONE 'Europe/Paris')
-      AND last_seen_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
+    SELECT ${dateTrunc} as period, COUNT(DISTINCT sender_id) as count
+    FROM messages
+    WHERE created_at >= $1 AND created_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;
@@ -1205,16 +1076,22 @@ export async function getActiveUsersStats({ startDate, endDate, scale }: { start
   return stats;
 }
 
-// Get contact requests grouped by day/week/month.
+// Get new matches grouped by day/week/month
 export async function getMatchesStats({ startDate, endDate, scale }: { startDate: string, endDate: string, scale: "day"|"week"|"month" }) {
   await requireAdmin()
 
-  const dateTrunc = adminStatsDateTrunc('created_at', scale)
+  let dateTrunc;
+  if (scale === "day") {
+    dateTrunc = "TO_CHAR(DATE(accepted_at), 'YYYY-MM-DD')";
+  } else if (scale === "week") {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('week', accepted_at), 'YYYY-MM-DD')";
+  } else {
+    dateTrunc = "TO_CHAR(DATE_TRUNC('month', accepted_at), 'YYYY-MM-DD')";
+  }
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM user_matches
-    WHERE created_at >= ($1::date AT TIME ZONE 'Europe/Paris')
-      AND created_at < (($2::date + INTERVAL '1 day') AT TIME ZONE 'Europe/Paris')
+    WHERE status = 'accepted' AND accepted_at >= $1 AND accepted_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;

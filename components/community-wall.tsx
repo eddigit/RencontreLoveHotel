@@ -4,20 +4,15 @@ import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormE
 import Link from 'next/link'
 import {
   CalendarHeart,
-  Check,
   ChevronDown,
   Clock,
   Flag,
-  Hotel,
   ImagePlus,
-  MapPin,
   MessageCircle,
-  Pencil,
   Send,
   Sparkles,
   Trash2,
   UserRound,
-  Users,
   X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -25,21 +20,14 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   addWallComment,
   createWallPost,
-  decideWallParticipationRequest,
   getCommunityWallFeed,
   getWallComments,
   getWallEventOptions,
-  getWallParticipationRequests,
-  removeOwnWallComment,
   removeOwnWallPost,
   reportWallComment,
   reportWallPost,
-  requestWallParticipation,
-  updateOwnWallComment,
-  updateOwnWallPost,
   type CommunityWallComment,
-  type CommunityWallPost,
-  type WallParticipationRequest
+  type CommunityWallPost
 } from '@/actions/community-wall-actions'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
@@ -76,7 +64,7 @@ const postTypeOptions: Array<{
   {
     value: 'dispo_rideaux_ouverts',
     label: 'Rideaux ouverts',
-    detail: 'Chambre réservée',
+    detail: '24 h ou 48 h',
     icon: Sparkles
   }
 ]
@@ -108,12 +96,6 @@ function relativeTime(value?: string | Date | null) {
   return `il y a ${diffDays} j`
 }
 
-function wasEdited(createdAt?: string | Date | null, updatedAt?: string | Date | null) {
-  const created = toDate(createdAt)
-  const updated = toDate(updatedAt)
-  return Boolean(created && updated && updated.getTime() - created.getTime() > 1000)
-}
-
 function expirationLabel(value?: string | Date | null) {
   const date = toDate(value)
   if (!date) return null
@@ -134,18 +116,6 @@ function eventDateLabel(value?: string | Date | null) {
     weekday: 'short',
     day: '2-digit',
     month: 'short'
-  })
-}
-
-function invitationDateLabel(value?: string | Date | null) {
-  const date = toDate(value)
-  if (!date) return 'Horaire à confirmer'
-  return date.toLocaleString('fr-FR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit'
   })
 }
 
@@ -171,35 +141,18 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityWallComment[]>>({})
   const [expandedPostIds, setExpandedPostIds] = useState<Set<string>>(new Set())
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
-  const [requestsByPost, setRequestsByPost] = useState<Record<string, WallParticipationRequest[]>>({})
-  const [expandedRequestPostIds, setExpandedRequestPostIds] = useState<Set<string>>(new Set())
   const [type, setType] = useState<WallPostType>('profil')
   const [body, setBody] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [eventId, setEventId] = useState('')
-  const [venue, setVenue] = useState<'chatelet' | 'pigalle'>('chatelet')
-  const [roomName, setRoomName] = useState('')
-  const [startsAt, setStartsAt] = useState('')
-  const [guestCapacity, setGuestCapacity] = useState(1)
-  const [bookingConfirmed, setBookingConfirmed] = useState(false)
-  const [bookingReference, setBookingReference] = useState('')
+  const [durationHours, setDurationHours] = useState<24 | 48>(24)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [editingPostId, setEditingPostId] = useState<string | null>(null)
-  const [editingPostBody, setEditingPostBody] = useState('')
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null)
-  const [editingCommentBody, setEditingCommentBody] = useState('')
-  const [contentActionId, setContentActionId] = useState<string | null>(null)
   const [statusMessage, setStatusMessage] = useState('')
 
   const remainingChars = useMemo(() => 500 - body.length, [body])
-  const hasContent = Boolean(body.trim() || imageFile)
-  const hasBookedRoom = Boolean(
-    venue && startsAt && guestCapacity > 0 &&
-    (!bookingConfirmed || (roomName.trim() && bookingReference.trim()))
-  )
-  const canSubmit = hasContent && (type !== 'dispo_rideaux_ouverts' || hasBookedRoom)
+  const canSubmit = Boolean(body.trim() || imageFile)
 
   const loadWall = useCallback(async () => {
     setLoading(true)
@@ -246,12 +199,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
         formData.set('eventId', eventId)
       }
       if (type === 'dispo_rideaux_ouverts') {
-        formData.set('venue', venue)
-        formData.set('roomName', roomName)
-        formData.set('startsAt', new Date(startsAt).toISOString())
-        formData.set('guestCapacity', String(guestCapacity))
-        formData.set('bookingConfirmed', String(bookingConfirmed))
-        formData.set('bookingReference', bookingReference)
+        formData.set('durationHours', String(durationHours))
       }
       if (imageFile) {
         formData.set('image', imageFile)
@@ -261,12 +209,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       setBody('')
       setImageFile(null)
       setEventId('')
-      setVenue('chatelet')
-      setRoomName('')
-      setStartsAt('')
-      setGuestCapacity(1)
-      setBookingConfirmed(false)
-      setBookingReference('')
+      setDurationHours(24)
       setType('profil')
       setStatusMessage('Annonce publiée.')
       await loadWall()
@@ -339,8 +282,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   }
 
   async function handleRemovePost(postId: string) {
-    if (!window.confirm('Supprimer cette annonce ? Cette action ne peut pas être annulée.')) return
-
     setStatusMessage('')
     try {
       await removeOwnWallPost({ postId })
@@ -348,121 +289,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       await loadWall()
     } catch (error) {
       setStatusMessage('Suppression impossible pour le moment.')
-    }
-  }
-
-  function startEditingPost(post: CommunityWallPost) {
-    setEditingPostId(post.id)
-    setEditingPostBody(post.body || '')
-  }
-
-  async function saveEditedPost(post: CommunityWallPost) {
-    if (!editingPostBody.trim() && !post.image_url) return
-
-    setContentActionId(post.id)
-    setStatusMessage('')
-    try {
-      const result = await updateOwnWallPost({ postId: post.id, body: editingPostBody })
-      setEditingPostId(null)
-      setEditingPostBody('')
-      setStatusMessage(result.status === 'hidden'
-        ? 'Annonce modifiée et transmise à la modération.'
-        : 'Annonce modifiée.')
-      await loadWall()
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Modification impossible.')
-    } finally {
-      setContentActionId(null)
-    }
-  }
-
-  function startEditingComment(comment: CommunityWallComment) {
-    setEditingCommentId(comment.id)
-    setEditingCommentBody(comment.body)
-  }
-
-  async function saveEditedComment(postId: string, commentId: string) {
-    if (!editingCommentBody.trim()) return
-
-    setContentActionId(commentId)
-    setStatusMessage('')
-    try {
-      const result = await updateOwnWallComment({
-        commentId,
-        body: editingCommentBody
-      })
-      setEditingCommentId(null)
-      setEditingCommentBody('')
-      setStatusMessage(result.status === 'hidden'
-        ? 'Commentaire modifié et transmis à la modération.'
-        : 'Commentaire modifié.')
-      const rows = await getWallComments({ postId })
-      setCommentsByPost(current => ({ ...current, [postId]: rows }))
-      await loadWall()
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Modification impossible.')
-    } finally {
-      setContentActionId(null)
-    }
-  }
-
-  async function handleRemoveComment(postId: string, commentId: string) {
-    if (!window.confirm('Supprimer ce commentaire ? Cette action ne peut pas être annulée.')) return
-
-    setContentActionId(commentId)
-    setStatusMessage('')
-    try {
-      await removeOwnWallComment({ commentId })
-      setStatusMessage('Commentaire supprimé.')
-      const rows = await getWallComments({ postId })
-      setCommentsByPost(current => ({ ...current, [postId]: rows }))
-      await loadWall()
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Suppression impossible.')
-    } finally {
-      setContentActionId(null)
-    }
-  }
-
-  async function handleRequestParticipation(postId: string) {
-    setStatusMessage('')
-    try {
-      await requestWallParticipation({ postId })
-      setStatusMessage('Demande envoyée à l’organisateur.')
-      await loadWall()
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Demande impossible.')
-    }
-  }
-
-  async function toggleParticipationRequests(postId: string) {
-    const next = new Set(expandedRequestPostIds)
-    if (next.has(postId)) {
-      next.delete(postId)
-      setExpandedRequestPostIds(next)
-      return
-    }
-
-    next.add(postId)
-    setExpandedRequestPostIds(next)
-    const rows = await getWallParticipationRequests({ postId })
-    setRequestsByPost(current => ({ ...current, [postId]: rows }))
-  }
-
-  async function handleParticipationDecision(
-    postId: string,
-    requestId: string,
-    decision: 'accepted' | 'rejected'
-  ) {
-    setStatusMessage('')
-    try {
-      await decideWallParticipationRequest({ requestId, decision })
-      const rows = await getWallParticipationRequests({ postId })
-      setRequestsByPost(current => ({ ...current, [postId]: rows }))
-      setStatusMessage(decision === 'accepted' ? 'Participation acceptée.' : 'Demande refusée.')
-      await loadWall()
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Décision impossible.')
     }
   }
 
@@ -568,50 +394,21 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
         )}
 
         {type === 'dispo_rideaux_ouverts' && (
-          <div className='mt-3 rounded-xl border border-[#94ffc9]/20 bg-[#94ffc9]/[0.06] p-3'>
-            <div className='flex items-start gap-2'>
-              <Hotel className='mt-0.5 h-4 w-4 shrink-0 text-[#94ffc9]' />
-              <div>
-                <p className='text-sm font-black text-[#b8ffda]'>Une réservation confirmée rassure les participants</p>
-                <p className='mt-1 text-xs leading-5 text-white/52'>Vous pouvez publier sans réservation, mais l’annonce indiquera clairement que la disponibilité n’est pas garantie.</p>
-              </div>
-            </div>
-
-            <div className='mt-3 grid gap-2 sm:grid-cols-2'>
-              <label className='text-xs font-bold text-white/66'>
-                Établissement
-                <select value={venue} onChange={event => setVenue(event.target.value as 'chatelet' | 'pigalle')} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white'>
-                  <option value='chatelet'>Châtelet</option>
-                  <option value='pigalle'>Pigalle</option>
-                </select>
-              </label>
-              <label className='text-xs font-bold text-white/66'>
-                Chambre {bookingConfirmed ? 'réservée' : 'souhaitée (optionnel)'}
-                <input value={roomName} onChange={event => setRoomName(event.target.value)} placeholder='Ex. Secrets' className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white placeholder:text-white/35' />
-              </label>
-              <label className='text-xs font-bold text-white/66'>
-                Date et heure
-                <input type='datetime-local' value={startsAt} onChange={event => setStartsAt(event.target.value)} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white' />
-              </label>
-              <label className='text-xs font-bold text-white/66'>
-                Places recherchées
-                <input type='number' min={1} max={8} value={guestCapacity} onChange={event => setGuestCapacity(Number(event.target.value))} className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white' />
-              </label>
-              {bookingConfirmed && (
-                <label className='text-xs font-bold text-white/66 sm:col-span-2'>
-                  Référence de réservation (privée)
-                  <input value={bookingReference} onChange={event => setBookingReference(event.target.value)} placeholder='Numéro ou référence de confirmation' className='mt-1 h-10 w-full rounded-lg border border-white/10 bg-[#170321] px-3 text-sm text-white placeholder:text-white/35' />
-                </label>
-              )}
-            </div>
-
-            <label className='mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-white/10 bg-[#170321]/75 p-3 text-sm'>
-              <input type='checkbox' checked={bookingConfirmed} onChange={event => setBookingConfirmed(event.target.checked)} className='mt-0.5 h-4 w-4 accent-[#35e48d]' />
-              <span>
-                <span className='block font-black text-white'>Chambre déjà réservée</span>
-                <span className='mt-0.5 block text-xs leading-5 text-white/50'>Je confirme disposer d’une réservation valide pour ce créneau.</span>
-              </span>
-            </label>
+          <div className='mt-2 flex gap-2'>
+            {[24, 48].map(value => (
+              <button
+                key={value}
+                type='button'
+                onClick={() => setDurationHours(value as 24 | 48)}
+                className={`h-10 flex-1 rounded-xl border text-sm font-bold transition ${
+                  durationHours === value
+                    ? 'border-[#94ffc9]/55 bg-[#94ffc9]/14 text-[#94ffc9]'
+                    : 'border-[#94ffc9]/14 bg-[#21082f]/72 text-white/70'
+                }`}
+              >
+                {value} h
+              </button>
+            ))}
           </div>
         )}
 
@@ -652,16 +449,9 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
 
         {posts.map(post => {
           const expanded = expandedPostIds.has(post.id)
-          const requestsExpanded = expandedRequestPostIds.has(post.id)
           const comments = commentsByPost[post.id] || []
-          const participationRequests = requestsByPost[post.id] || []
           const commentCount = Number(post.comment_count || 0)
-          const requestCount = Number(post.participation_request_count || 0)
-          const acceptedCount = Number(post.accepted_participant_count || 0)
-          const capacity = Number(post.guest_capacity || 0)
-          const expiration = post.type === 'dispo_rideaux_ouverts'
-            ? null
-            : expirationLabel(post.expires_at)
+          const expiration = expirationLabel(post.expires_at)
           return (
             <article key={post.id} className='rounded-2xl border border-white/10 bg-white/[0.045] p-4'>
               <div className='flex items-start gap-3'>
@@ -685,7 +475,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                   </div>
                   <div className='mt-0.5 flex flex-wrap items-center gap-2 text-xs text-white/48'>
                     <span>{relativeTime(post.created_at)}</span>
-                    {wasEdited(post.created_at, post.updated_at) && <span>modifié</span>}
                     {expiration && (
                       <span className='inline-flex items-center gap-1 text-[#94ffc9]'>
                         <Clock className='h-3 w-3' />
@@ -696,62 +485,8 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 </div>
               </div>
 
-              {editingPostId === post.id ? (
-                <div className='mt-3 rounded-lg border border-white/12 bg-black/15 p-3'>
-                  <Textarea
-                    value={editingPostBody}
-                    onChange={event => setEditingPostBody(event.target.value.slice(0, 500))}
-                    rows={4}
-                    autoFocus
-                    aria-label='Modifier l’annonce'
-                    className='resize-y border-white/12 bg-[#170321] text-white'
-                  />
-                  <div className='mt-2 flex items-center justify-between gap-3'>
-                    <span className='text-xs text-white/45'>{500 - editingPostBody.length} caractères</span>
-                    <div className='flex gap-2'>
-                      <Button type='button' size='sm' variant='outline' onClick={() => setEditingPostId(null)} className='border-white/12'>
-                        <X className='mr-1 h-4 w-4' />Annuler
-                      </Button>
-                      <Button type='button' size='sm' onClick={() => saveEditedPost(post)} disabled={contentActionId === post.id || (!editingPostBody.trim() && !post.image_url)} className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                        <Check className='mr-1 h-4 w-4' />Enregistrer
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : post.body ? (
+              {post.body && (
                 <p className='mt-3 whitespace-pre-wrap text-sm leading-6 text-white/78'>{post.body}</p>
-              ) : null}
-
-              {post.type === 'dispo_rideaux_ouverts' && (
-                <div className='mt-3 rounded-xl border border-[#94ffc9]/25 bg-[#94ffc9]/[0.07] p-3'>
-                  <div className='flex flex-wrap items-center gap-2 text-xs font-bold'>
-                    {post.booking_confirmed ? (
-                      <span className='inline-flex items-center gap-1 rounded-full bg-[#35e48d]/15 px-2 py-1 text-[#b8ffda]'>
-                        <Check className='h-3.5 w-3.5' />
-                        Réservation confirmée
-                      </span>
-                    ) : (
-                      <span className='inline-flex items-center gap-1 rounded-full bg-[#ffd166]/15 px-2 py-1 text-[#ffe09a]'>
-                        <Clock className='h-3.5 w-3.5' />
-                        Disponibilité non garantie
-                      </span>
-                    )}
-                    <span className='inline-flex items-center gap-1 text-white/70'>
-                      <MapPin className='h-3.5 w-3.5 text-[#ff8cc8]' />
-                      {post.venue === 'pigalle' ? 'Pigalle' : 'Châtelet'}{post.room_name ? ` · ${post.room_name}` : ''}
-                    </span>
-                  </div>
-                  <div className='mt-3 grid gap-2 text-sm sm:grid-cols-2'>
-                    <div className='rounded-lg bg-black/15 px-3 py-2 text-white/72'>
-                      <Clock className='mr-1.5 inline h-4 w-4 text-[#94ffc9]' />
-                      {invitationDateLabel(post.starts_at)}
-                    </div>
-                    <div className='rounded-lg bg-black/15 px-3 py-2 text-white/72'>
-                      <Users className='mr-1.5 inline h-4 w-4 text-[#94ffc9]' />
-                      Places confirmées : {acceptedCount}/{capacity}
-                    </div>
-                  </div>
-                </div>
               )}
 
               {post.image_url && (
@@ -760,16 +495,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                     src={post.image_url}
                     alt={`Photo publiée par ${post.author_name || 'un membre'}`}
                     className='max-h-[520px] w-full object-cover'
-                  />
-                </div>
-              )}
-
-              {post.type === 'dispo_rideaux_ouverts' && !post.image_url && (
-                <div className='mt-3 overflow-hidden rounded-2xl border border-white/10 bg-[#170321]/60'>
-                  <img
-                    src='/rideaux-ouverts-rencontre.jpg'
-                    alt='Couple dans une expérience rideaux ouverts'
-                    className='max-h-[420px] w-full object-cover'
                   />
                 </div>
               )}
@@ -787,72 +512,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 </Link>
               )}
 
-              {post.type === 'dispo_rideaux_ouverts' && post.user_id !== currentUserId && (
-                <div className='mt-3'>
-                  {!post.current_user_request_status || post.current_user_request_status === 'rejected' ? (
-                    <Button
-                      type='button'
-                      onClick={() => handleRequestParticipation(post.id)}
-                      disabled={acceptedCount >= capacity}
-                      className='w-full bg-gradient-to-r from-[#21b56f] to-[#35e48d] font-black text-[#071c11] hover:opacity-90'
-                    >
-                      <Users className='mr-2 h-4 w-4' />
-                      {acceptedCount >= capacity ? 'Invitation complète' : 'Demander à participer'}
-                    </Button>
-                  ) : post.current_user_request_status === 'pending' ? (
-                    <Button type='button' disabled className='w-full bg-white/10 text-white/60'>Demande envoyée</Button>
-                  ) : (
-                    <Button asChild className='w-full bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                      <Link href={post.current_user_conversation_id ? `/messages/${post.current_user_conversation_id}` : '/messages'}>
-                        <MessageCircle className='mr-2 h-4 w-4' />
-                        Participation acceptée · Écrire
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              )}
-
-              {post.type === 'dispo_rideaux_ouverts' && post.user_id === currentUserId && (
-                <div className='mt-3'>
-                  <Button type='button' variant='outline' onClick={() => toggleParticipationRequests(post.id)} className='w-full border-[#94ffc9]/25 bg-[#94ffc9]/[0.06] text-white'>
-                    <Users className='mr-2 h-4 w-4 text-[#94ffc9]' />
-                    Voir les demandes ({requestCount})
-                    <ChevronDown className={`ml-2 h-4 w-4 transition ${requestsExpanded ? 'rotate-180' : ''}`} />
-                  </Button>
-
-                  {requestsExpanded && (
-                    <div className='mt-2 space-y-2 rounded-xl border border-white/10 bg-black/15 p-3'>
-                      {participationRequests.length === 0 && <p className='text-sm text-white/52'>Aucune demande pour le moment.</p>}
-                      {participationRequests.map(request => (
-                        <div key={request.id} className='flex flex-col gap-3 rounded-lg border border-white/8 bg-white/[0.04] p-3 sm:flex-row sm:items-center'>
-                          <Link href={`/profile/${request.user_id}`} className='flex min-w-0 flex-1 items-center gap-3'>
-                            <div className='h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                              {request.member_avatar ? <img src={request.member_avatar} alt='' className='h-full w-full object-cover' /> : <span className='flex h-full items-center justify-center font-black'>{avatarInitial(request.member_name)}</span>}
-                            </div>
-                            <div className='min-w-0'>
-                              <div className='truncate font-black'>{request.member_name || 'Membre'}</div>
-                              <div className='truncate text-xs text-white/48'>{request.member_location || 'Localisation non renseignée'}</div>
-                            </div>
-                          </Link>
-                          {request.status === 'pending' ? (
-                            <div className='flex gap-2'>
-                              <Button type='button' size='sm' onClick={() => handleParticipationDecision(post.id, request.id, 'accepted')} className='bg-[#21b56f] text-white hover:bg-[#27c87c]'>
-                                <Check className='mr-1 h-4 w-4' />Accepter
-                              </Button>
-                              <Button type='button' size='sm' variant='outline' onClick={() => handleParticipationDecision(post.id, request.id, 'rejected')} className='border-white/12'>
-                                <X className='mr-1 h-4 w-4' />Refuser
-                              </Button>
-                            </div>
-                          ) : (
-                            <span className='text-xs font-bold text-white/55'>{request.status === 'accepted' ? 'Acceptée' : 'Refusée'}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className='mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3'>
                 <button
                   type='button'
@@ -864,18 +523,23 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                   <ChevronDown className={`h-4 w-4 transition ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 <div className='flex gap-2'>
-                  {post.user_id === currentUserId ? (
-                    <>
-                      <button type='button' onClick={() => startEditingPost(post)} disabled={editingPostId === post.id} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ff8cc8]/35 hover:text-white disabled:opacity-40' aria-label='Modifier l’annonce'>
-                        <Pencil className='h-3.5 w-3.5' />Modifier
-                      </button>
-                      <button type='button' onClick={() => handleRemovePost(post.id)} disabled={contentActionId === post.id} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-red-300/35 hover:text-red-100 disabled:opacity-40'>
-                        <Trash2 className='h-3.5 w-3.5' />Supprimer
-                      </button>
-                    </>
-                  ) : (
-                    <button type='button' onClick={() => handleReportPost(post.id)} disabled={Boolean(post.has_reported)} className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ffd166]/35 hover:text-white disabled:opacity-45'>
-                      <Flag className='h-3.5 w-3.5' />Signaler
+                  <button
+                    type='button'
+                    onClick={() => handleReportPost(post.id)}
+                    disabled={Boolean(post.has_reported)}
+                    className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-[#ffd166]/35 hover:text-white disabled:opacity-45'
+                  >
+                    <Flag className='h-3.5 w-3.5' />
+                    Signaler
+                  </button>
+                  {post.user_id === currentUserId && (
+                    <button
+                      type='button'
+                      onClick={() => handleRemovePost(post.id)}
+                      className='inline-flex items-center gap-1 rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/58 transition hover:border-red-300/35 hover:text-red-100'
+                    >
+                      <Trash2 className='h-3.5 w-3.5' />
+                      Supprimer
                     </button>
                   )}
                 </div>
@@ -903,28 +567,18 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                             {comment.author_name || 'Membre'}
                           </Link>
                           <span className='text-white/42'>{relativeTime(comment.created_at)}</span>
-                          {wasEdited(comment.created_at, comment.updated_at) && <span className='text-white/42'>modifié</span>}
                         </div>
-                        {editingCommentId === comment.id ? (
-                          <div className='mt-2'>
-                            <textarea value={editingCommentBody} onChange={event => setEditingCommentBody(event.target.value.slice(0, 300))} rows={3} autoFocus aria-label='Modifier le commentaire' className='w-full resize-y rounded-lg border border-white/12 bg-[#170321] px-3 py-2 text-sm text-white outline-none focus:border-[#ff8cc8]' />
-                            <div className='mt-1 flex justify-end gap-1'>
-                              <button type='button' onClick={() => setEditingCommentId(null)} className='rounded-full p-1.5 text-white/55 hover:bg-white/10 hover:text-white' aria-label='Annuler la modification'><X className='h-3.5 w-3.5' /></button>
-                              <button type='button' onClick={() => saveEditedComment(post.id, comment.id)} disabled={!editingCommentBody.trim() || contentActionId === comment.id} className='rounded-full p-1.5 text-[#94ffc9] hover:bg-white/10 disabled:opacity-40' aria-label='Enregistrer le commentaire'><Check className='h-3.5 w-3.5' /></button>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className='mt-1 whitespace-pre-wrap text-sm text-white/72'>{comment.body}</p>
-                        )}
+                        <p className='mt-1 whitespace-pre-wrap text-sm text-white/72'>{comment.body}</p>
                       </div>
-                      {comment.user_id === currentUserId ? (
-                        <div className='flex h-8 shrink-0 items-center'>
-                          <button type='button' onClick={() => startEditingComment(comment)} disabled={editingCommentId === comment.id} className='rounded-full p-2 text-white/42 transition hover:text-[#ffb3d7] disabled:opacity-35' aria-label='Modifier le commentaire'><Pencil className='h-3.5 w-3.5' /></button>
-                          <button type='button' onClick={() => handleRemoveComment(post.id, comment.id)} disabled={contentActionId === comment.id} className='rounded-full p-2 text-white/42 transition hover:text-red-200 disabled:opacity-35' aria-label='Supprimer le commentaire'><Trash2 className='h-3.5 w-3.5' /></button>
-                        </div>
-                      ) : (
-                        <button type='button' onClick={() => handleReportComment(post.id, comment.id)} disabled={Boolean(comment.has_reported)} className='h-8 rounded-full px-2 text-white/42 transition hover:text-[#ffd166] disabled:opacity-35' aria-label='Signaler le commentaire'><Flag className='h-3.5 w-3.5' /></button>
-                      )}
+                      <button
+                        type='button'
+                        onClick={() => handleReportComment(post.id, comment.id)}
+                        disabled={Boolean(comment.has_reported)}
+                        className='h-8 rounded-full px-2 text-white/42 transition hover:text-[#ffd166] disabled:opacity-35'
+                        aria-label='Signaler le commentaire'
+                      >
+                        <Flag className='h-3.5 w-3.5' />
+                      </button>
                     </div>
                   ))}
                   <div className='flex gap-2'>

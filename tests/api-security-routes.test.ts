@@ -5,8 +5,6 @@ const getServerSessionMock = vi.hoisted(() => vi.fn())
 const acceptMatchRequestMock = vi.hoisted(() => vi.fn())
 const findOrCreateConversationMock = vi.hoisted(() => vi.fn())
 const notifyEventReservationAdminsMock = vi.hoisted(() => vi.fn())
-const requestParticipationMock = vi.hoisted(() => vi.fn())
-const withdrawParticipationMock = vi.hoisted(() => vi.fn())
 const sqlMock = vi.hoisted(() => vi.fn())
 const executeQueryMock = vi.hoisted(() => vi.fn())
 const logSecurityEventMock = vi.hoisted(() => vi.fn())
@@ -35,11 +33,6 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
-}))
-
-vi.mock('@/lib/event-participation-service', () => ({
-  requestParticipation: requestParticipationMock,
-  withdrawParticipation: withdrawParticipationMock
 }))
 
 vi.mock('@vercel/blob', () => ({
@@ -83,8 +76,6 @@ describe('sensitive API routes', () => {
     findOrCreateConversationMock.mockReset()
     notifyEventReservationAdminsMock.mockReset()
     notifyEventReservationAdminsMock.mockResolvedValue({ success: true, emailSent: true })
-    requestParticipationMock.mockReset()
-    withdrawParticipationMock.mockReset()
     sqlMock.mockReset()
     executeQueryMock.mockReset()
     logSecurityEventMock.mockReset()
@@ -189,7 +180,18 @@ describe('sensitive API routes', () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
     })
-    requestParticipationMock.mockResolvedValueOnce({ success: true, status: 'pending' })
+    sqlMock
+      .mockResolvedValueOnce([
+        {
+          id: 'event-1',
+          max_participants: 3,
+          event_date: new Date(Date.now() + 86_400_000).toISOString()
+        }
+      ])
+      .mockResolvedValueOnce([{ id: 'user-1' }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([])
 
     const { POST } = await import('@/app/api/events/[id]/participate/route')
     const response = (await POST(
@@ -198,10 +200,15 @@ describe('sensitive API routes', () => {
       }),
       { params: Promise.resolve({ id: 'event-1' }) }
     )) as Response
+    const insertValues = sqlMock.mock.calls.at(-1)?.slice(1)
+
     expect(response.status).toBe(200)
-    expect(requestParticipationMock).toHaveBeenCalledWith({
+    expect(insertValues?.[1]).toBe('event-1')
+    expect(insertValues?.[2]).toBe('user-1')
+    expect(notifyEventReservationAdminsMock).toHaveBeenCalledWith({
+      action: 'join',
       eventId: 'event-1',
-      actorId: 'user-1'
+      userId: 'user-1'
     })
   })
 
@@ -209,10 +216,15 @@ describe('sensitive API routes', () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'user-1', role: 'user' }
     })
-    requestParticipationMock.mockResolvedValueOnce({
-      success: false,
-      error: 'Événement non publié'
-    })
+    sqlMock.mockResolvedValueOnce([
+      {
+        id: 'event-1',
+        max_participants: 3,
+        event_date: new Date(Date.now() + 86_400_000).toISOString(),
+        event_time: '21:00:00',
+        publication_status: 'pending_review'
+      }
+    ])
 
     const { POST } = await import('@/app/api/events/[id]/participate/route')
     const response = (await POST(
@@ -225,10 +237,7 @@ describe('sensitive API routes', () => {
 
     expect(response.status).toBe(409)
     expect(data.error).toBe('Événement non publié')
-    expect(requestParticipationMock).toHaveBeenCalledWith({
-      eventId: 'event-1',
-      actorId: 'user-1'
-    })
+    expect(sqlMock).toHaveBeenCalledTimes(1)
     expect(notifyEventReservationAdminsMock).not.toHaveBeenCalled()
   })
 

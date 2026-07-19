@@ -12,10 +12,7 @@ vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('../lib/db', () => ({ sql: { query } }))
 vi.mock('next-auth/next', () => ({ getServerSession }))
 vi.mock('@/actions/notification-actions', () => ({ createNotification, notifyAdmins }))
-vi.mock('@/lib/notification-service', () => ({ createNotificationRecord: createNotification }))
 vi.mock('@/lib/product-events', () => ({ trackProductEvents }))
-vi.mock('@/lib/member-safety', () => ({ assertUsersCanInteract: vi.fn() }))
-vi.mock('@/lib/member-activity-email', () => ({ sendMemberActivityEmail: vi.fn() }))
 vi.mock('../utils/logger', () => ({ log: vi.fn() }))
 
 import { sendMessage } from '@/actions/conversation-actions'
@@ -29,7 +26,6 @@ function mockAuthorizedConversation() {
   query
     .mockResolvedValueOnce([{ ok: true }])
     .mockResolvedValueOnce([{ user_id: recipientId }])
-    .mockResolvedValueOnce([{ access_mode: 'match', has_history: false }])
     .mockResolvedValueOnce([{ ok: true }])
 }
 

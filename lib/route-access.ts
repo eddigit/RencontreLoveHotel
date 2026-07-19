@@ -11,10 +11,10 @@ const exactPublicPaths = new Set([
   '/loolyyb-memecoin',
   '/love-rooms',
   '/publicite',
-  '/privacy',
   '/premium',
-  '/rencontres',
+  '/privacy',
   '/register',
+  '/rencontres',
   '/reset-password',
   '/tarifs-publicite',
   '/terms',
@@ -35,19 +35,17 @@ const publicPrefixes = [
 
 const protectedPagePrefixes = [
   '/admin',
-  '/age-verification',
+  '/account',
   '/conciergerie',
   '/discover',
   '/en-direct',
-  '/email-preferences',
   '/matches',
   '/members',
   '/messages',
+  '/moderation',
   '/notifications',
   '/onboarding',
-  '/premium',
   '/profile',
-  '/rencontres',
   '/unsubscribe'
 ]
 
@@ -71,7 +69,7 @@ function matchesPrefix(pathname: string, prefix: string) {
 export function isPublicPath(pathname: string) {
   const normalized = normalizePath(pathname)
   if (exactPublicPaths.has(normalized)) return true
-  if (/^\/events\/[0-9a-f-]{36}$/i.test(normalized)) return true
+  if (/^\/events\/[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(normalized)) return true
   return publicPrefixes.some(prefix => matchesPrefix(normalized, prefix))
 }
 
@@ -82,7 +80,6 @@ export function isAdminPath(pathname: string) {
 
 export function isProtectedPagePath(pathname: string) {
   const normalized = normalizePath(pathname)
-  if (normalized === '/events/new' || normalized === '/events/edit' || normalized.startsWith('/events/edit/')) return true
   return protectedPagePrefixes.some(prefix => matchesPrefix(normalized, prefix))
 }
 
@@ -94,9 +91,4 @@ export function isAuthenticatedApiPath(pathname: string) {
 export function requiresVerifiedEmail(pathname: string) {
   const normalized = normalizePath(pathname)
   return matchesPrefix(normalized, '/messages')
-}
-
-export function requiresAdultMembership(pathname: string) {
-  const normalized = normalizePath(pathname)
-  return isProtectedPagePath(normalized) && normalized !== '/age-verification'
 }

@@ -11,16 +11,13 @@ import { Badge } from '@/components/ui/badge'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
-import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
-import { defaultMemberImage } from '@/lib/default-member-image'
 import {
   declineMatchRequest,
-  getIncomingMatchRequests,
-  getOutgoingMatchRequests,
-  getUserMatches,
-  getUserProfile,
+  getMemberRelationships,
   removeMatch
 } from '@/actions/user-actions'
+import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
+import { defaultMemberImage } from '@/lib/default-member-image'
 
 type MatchProfile = {
   id: string
@@ -31,17 +28,18 @@ type MatchProfile = {
   matchScore?: number | null
 }
 
-async function toProfile (userId: string, matchScore?: number | null): Promise<MatchProfile | null> {
-  const data = await getUserProfile(userId)
-  if (!data?.user) return null
-  const primaryPhoto = data.photos?.find((photo: any) => photo.is_primary)?.url
+function toProfile (relationship: any): MatchProfile {
   return {
-    id: data.user.user_id || data.user.id,
-    name: data.user.name || 'Membre',
-    age: data.user.age,
-    location: data.user.location || 'Paris',
-    image: defaultMemberImage({ ...data.user, avatar: data.user.avatar || primaryPhoto }),
-    matchScore
+    id: relationship.other_user_id,
+    name: relationship.other_user_name || 'Membre',
+    age: relationship.other_user_age,
+    location: relationship.other_user_location || 'Paris',
+    image: defaultMemberImage({
+      avatar: relationship.other_user_avatar,
+      status: relationship.other_user_profile_status,
+      gender: relationship.other_user_gender
+    }),
+    matchScore: relationship.match_score
   }
 }
 
@@ -65,6 +63,7 @@ export default function MatchesPage () {
       router.replace('/login')
       return
     }
+
     if (authLoading) return
 
     async function fetchMatches () {
@@ -72,32 +71,14 @@ export default function MatchesPage () {
       setLoading(true)
       setError(null)
       try {
-        const [acceptedRows, incomingRows, outgoingRows] = await Promise.all([
-          getUserMatches(user.id),
-          getIncomingMatchRequests(user.id),
-          getOutgoingMatchRequests(user.id)
-        ])
-
-        const acceptedProfiles = await Promise.all(
-          acceptedRows.map(async (match: any) => {
-            const otherId = match.user_id_1 === user.id ? match.user_id_2 : match.user_id_1
-            return toProfile(otherId, match.match_score)
-          })
-        )
-        const incomingProfiles = await Promise.all(
-          incomingRows.map((request: any) => toProfile(request.user_id_1, request.match_score))
-        )
-        const outgoingProfiles = await Promise.all(
-          outgoingRows.map((request: any) => toProfile(request.user_id_2, request.match_score))
-        )
-
-        setMatches(acceptedProfiles.filter(Boolean) as MatchProfile[])
-        setIncoming(incomingProfiles.filter(Boolean) as MatchProfile[])
-        setOutgoing(outgoingProfiles.filter(Boolean) as MatchProfile[])
+        const overview = await getMemberRelationships(user.id)
+        setMatches(overview.accepted.map(toProfile))
+        setIncoming(overview.incoming.map(toProfile))
+        setOutgoing(overview.outgoing.map(toProfile))
       } catch (err) {
-        if (recoverFromStaleServerAction(err)) return
-        console.error('Failed to fetch matches data:', err)
-        setError('Impossible de charger les matchs pour le moment.')
+        if (!recoverFromStaleServerAction(err)) {
+          setError('Impossible de charger les matchs pour le moment. Rechargez la page pour réessayer.')
+        }
       } finally {
         setLoading(false)
       }
@@ -143,7 +124,7 @@ export default function MatchesPage () {
     setError(result.error || "Le match n'a pas pu être supprimé.")
   }
 
-  if (!user?.id) return null
+  if (authLoading || !user?.id) return null
 
   return (
     <MainLayout user={user}>

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getUpcomingEvents, notifyEventParticipants } from "@/actions/event-actions"
+import { getEventParticipants, getUpcomingEvents } from "@/actions/event-actions"
+import { createNotification } from "@/actions/notification-actions"
 import { ProtectedRoute } from "@/components/protected-route"
 import MainLayout from "@/components/layout/main-layout"
 import { AdminTabs } from "@/components/admin-tabs"
@@ -39,7 +40,18 @@ export default function AdminEventNotifyPage() {
     setError("")
     setSuccess(false)
     try {
-      await notifyEventParticipants(eventId, { title, description })
+      const subscribers = await getEventParticipants(eventId)
+      await Promise.all(
+        subscribers.map((user: any) =>
+          createNotification({
+            userId: user.id,
+            type: "event",
+            title,
+            description,
+            link: `/events/${eventId}`
+          })
+        )
+      )
       setSuccess(true)
       setTitle("")
       setDescription("")

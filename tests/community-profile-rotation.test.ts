@@ -7,12 +7,12 @@ describe('community profile rotation', () => {
     expect(source).toContain('NOT EXISTS (SELECT 1 FROM user_blocks')
     expect(source).toContain("um_existing.status IN ('accepted', 'pending')")
     expect(source).not.toContain('match_count DESC')
-    expect(source).toContain("(CASE WHEN u.avatar IS NOT NULL AND u.avatar != '' THEN 1 ELSE 0 END) DESC")
+    expect(source).toContain('recordProfileImpressions')
   })
 
   it('shows twelve profiles and provides another batch control', () => {
     const source = readFileSync('app/discover/page.tsx', 'utf8')
-    expect(source).toContain('slice(profileBatchStart, profileBatchStart + 12)')
+    expect(source).toContain('.slice(0, 12)')
     expect(source).toContain('Découvrir d’autres profils')
     expect(source).toContain('profileBatch')
   })

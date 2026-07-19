@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { touchCurrentUserPresence } from '@/actions/presence-actions'
 import { useAuth } from '@/contexts/auth-context'
 import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
-import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 export function PresenceHeartbeat() {
   const { user } = useAuth()
@@ -19,7 +18,6 @@ export function PresenceHeartbeat() {
       try {
         await touchCurrentUserPresence()
       } catch (error) {
-        if (recoverFromStaleServerAction(error)) return
         console.error('Unable to refresh user presence:', error)
       }
     }

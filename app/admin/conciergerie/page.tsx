@@ -15,10 +15,6 @@ interface RequestRecord {
   request_type: string | null
   response_preference: string | null
   conversation_id: string | null
-  venue_preference: string | null
-  desired_date: string | null
-  party_size: string | null
-  mood: string | null
   besoin: string
   budget: string | null
   email_sent: boolean | null
@@ -49,10 +45,6 @@ async function ensureConciergerieSchema() {
         request_type VARCHAR(100) NOT NULL DEFAULT 'custom_evening',
         response_preference VARCHAR(20) NOT NULL DEFAULT 'email',
         conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
-        venue_preference VARCHAR(160),
-        desired_date VARCHAR(160),
-        party_size VARCHAR(160),
-        mood VARCHAR(120),
         besoin TEXT NOT NULL,
         budget VARCHAR(100),
         email_sent BOOLEAN NOT NULL DEFAULT FALSE,
@@ -72,10 +64,6 @@ async function ensureConciergerieSchema() {
         ADD COLUMN IF NOT EXISTS request_type VARCHAR(100) NOT NULL DEFAULT 'custom_evening',
         ADD COLUMN IF NOT EXISTS response_preference VARCHAR(20) NOT NULL DEFAULT 'email',
         ADD COLUMN IF NOT EXISTS conversation_id UUID REFERENCES conversations(id) ON DELETE SET NULL,
-        ADD COLUMN IF NOT EXISTS venue_preference VARCHAR(160),
-        ADD COLUMN IF NOT EXISTS desired_date VARCHAR(160),
-        ADD COLUMN IF NOT EXISTS party_size VARCHAR(160),
-        ADD COLUMN IF NOT EXISTS mood VARCHAR(120),
         ADD COLUMN IF NOT EXISTS email_sent BOOLEAN NOT NULL DEFAULT FALSE,
         ADD COLUMN IF NOT EXISTS admin_notified_at TIMESTAMPTZ,
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
@@ -116,10 +104,6 @@ export default async function AdminConciergeriePage() {
           request_type,
           response_preference,
           conversation_id,
-          venue_preference,
-          desired_date,
-          party_size,
-          mood,
           besoin,
           budget,
           email_sent,
@@ -235,23 +219,7 @@ export default async function AdminConciergeriePage() {
                     </p>
                   </div>
 
-                  <dl className='mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-2 xl:grid-cols-3'>
-                    <div className='rounded-2xl bg-white/[0.04] p-3'>
-                      <dt className='font-bold text-white'>Lieu souhaité</dt>
-                      <dd>{demande.venue_preference || 'À définir'}</dd>
-                    </div>
-                    <div className='rounded-2xl bg-white/[0.04] p-3'>
-                      <dt className='font-bold text-white'>Date ou période</dt>
-                      <dd>{demande.desired_date || 'À définir'}</dd>
-                    </div>
-                    <div className='rounded-2xl bg-white/[0.04] p-3'>
-                      <dt className='font-bold text-white'>Participants</dt>
-                      <dd>{demande.party_size || 'À définir'}</dd>
-                    </div>
-                    <div className='rounded-2xl bg-white/[0.04] p-3'>
-                      <dt className='font-bold text-white'>Ambiance</dt>
-                      <dd>{demande.mood || 'À définir'}</dd>
-                    </div>
+                  <dl className='mt-4 grid gap-3 text-sm text-white/70 md:grid-cols-2'>
                     <div className='rounded-2xl bg-white/[0.04] p-3'>
                       <dt className='font-bold text-white'>Budget</dt>
                       <dd>{demande.budget || 'Non précisé'}</dd>

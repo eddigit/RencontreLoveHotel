@@ -20,24 +20,21 @@ describe('Progressive Love Hotel encounter concept', () => {
     expect(discover.indexOf('RIDEAUX OUVERTS')).toBeLessThan(discover.indexOf("<h2 className='font-black'>Vos matchs</h2>"))
   })
 
-  it('positions events as visual formats around real Love Hotel places', () => {
+  it('positions events as progressive experiences around real Love Hotel places', () => {
     const events = readFile('app/events/page.tsx')
-    const creation = readFile('app/events/new.tsx')
 
-    expect(events).toContain('Événements à venir')
-    expect(creation).toContain("label: 'Apéro jacuzzi'")
-    expect(creation).toContain("detail: '2 à 4 couples'")
-    expect(creation).toContain("label: 'Rideaux ouverts'")
-    expect(creation).toContain("detail: '2 ou 3 chambres'")
-    expect(creation).toContain('/apero-jacuzzi-rencontre.jpg')
-    expect(creation).toContain('/rideaux-ouverts-rencontre.jpg')
+    expect(events).toContain('De la rencontre douce à l’expérience assumée')
+    expect(events).toContain('Apéro jacuzzi 2 à 4 couples')
+    expect(events).toContain('Initiation rideaux modulables')
+    expect(events).toContain('Soirée rideaux ouverts')
   })
 
   it('frames Love Rooms as the physical trigger for community encounters', () => {
     const loveRooms = readFile('app/love-rooms/page.tsx')
 
-    expect(loveRooms).toContain('Réserver une Love Room')
-    expect(loveRooms).toContain('Apéro jacuzzi')
+    expect(loveRooms).toContain('La chambre devient le déclencheur de rencontre')
+    expect(loveRooms).toContain('Rideaux fermés')
+    expect(loveRooms).toContain('Rideaux entrouverts')
     expect(loveRooms).toContain('Rideaux ouverts')
   })
 })

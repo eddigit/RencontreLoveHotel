@@ -16,7 +16,6 @@ import {
   listEmailTemplates,
   prepareCampaignRecipients,
   previewEmailAudience,
-  sendPreparedEmailCampaign,
   type EmailAudience,
   type EmailAudiencePreview,
   type EmailCampaignSummary,
@@ -39,7 +38,6 @@ export default function AdminEmailCampaignsPage () {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [preparingCampaignId, setPreparingCampaignId] = useState<string | null>(null)
-  const [sendingCampaignId, setSendingCampaignId] = useState<string | null>(null)
   const [status, setStatus] = useState('')
   const [audience, setAudience] = useState<EmailAudience>('all_active')
   const [form, setForm] = useState({
@@ -127,24 +125,6 @@ export default function AdminEmailCampaignsPage () {
     }
   }
 
-  async function handleSendCampaign(campaign: EmailCampaignSummary) {
-    if (!window.confirm(
-      `Envoyer maintenant « ${campaign.name} » à ${campaign.eligible_count} destinataire(s) éligible(s) ?`
-    )) return
-
-    setSendingCampaignId(campaign.id)
-    setStatus('')
-    try {
-      const result = await sendPreparedEmailCampaign(campaign.id)
-      setStatus(`${result.sentCount} email(s) envoyé(s), ${result.errorCount} erreur(s).`)
-      await loadData()
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : 'Envoi de la campagne impossible.')
-    } finally {
-      setSendingCampaignId(null)
-    }
-  }
-
   return (
     <ProtectedRoute allowedRoles={['admin']}>
       <MainLayout user={user}>
@@ -160,11 +140,9 @@ export default function AdminEmailCampaignsPage () {
                 supprime, banni ou non consentant ne peut entrer dans la file.
               </p>
             </div>
-            <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-              <a href='#campaigns'>
+            <Button disabled className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
               <Send className='mr-2 h-4 w-4' />
-              Voir les envois
-              </a>
+              Envoi reel verrouille
             </Button>
           </div>
 
@@ -217,9 +195,9 @@ export default function AdminEmailCampaignsPage () {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className='text-base font-bold'>Consentement obligatoire</div>
+                <div className='text-base font-bold'>Reset mot de passe uniquement</div>
                 <p className='mt-2 text-sm text-muted-foreground'>
-                  Une campagne ne part qu’après préparation et confirmation manuelle.
+                  Les emails automatiques membres sont bloques hors demande explicite.
                 </p>
               </CardContent>
             </Card>
@@ -298,7 +276,7 @@ export default function AdminEmailCampaignsPage () {
             </Card>
 
             <div className='space-y-6'>
-              <Card id='campaigns'>
+              <Card>
                 <CardHeader>
                   <CardTitle>Campagnes recentes</CardTitle>
                 </CardHeader>
@@ -325,17 +303,6 @@ export default function AdminEmailCampaignsPage () {
                             ? 'Preparation...'
                             : 'Preparer les destinataires'}
                         </Button>
-                        {campaign.status === 'ready' && campaign.audience_filter?.audience === 'manual' && (
-                          <Button
-                            size='sm'
-                            className='mt-2 w-full'
-                            disabled={sendingCampaignId === campaign.id}
-                            onClick={() => void handleSendCampaign(campaign)}
-                          >
-                            <Send className='mr-2 h-4 w-4' />
-                            {sendingCampaignId === campaign.id ? 'Envoi...' : 'Envoyer maintenant'}
-                          </Button>
-                        )}
                       </div>
                     ))
                   ) : (

@@ -38,47 +38,39 @@ export function AdminStats() {
   const [scale, setScale] = useState<"day"|"week"|"month">(defaultScale as any)
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any[]>([])
-  const [error, setError] = useState('')
 
   useEffect(() => {
     async function fetchStats() {
       setLoading(true)
-      try {
-        const { startDate, endDate } = getDateRange(defaultRange)
-        const [users, actives, matches, messages, subscriptions] = await Promise.all([
-          getNewUsersStats({ startDate, endDate, scale }),
-          getActiveUsersStats({ startDate, endDate, scale }),
-          getMatchesStats({ startDate, endDate, scale }),
-          getMessagesStats({ startDate, endDate, scale }),
-          getEventSubscriptionsStats({ startDate, endDate, scale }),
-        ])
-        const periods = Array.from(new Set([
-          ...users.map((d: any) => d.period),
-          ...actives.map((d: any) => d.period),
-          ...matches.map((d: any) => d.period),
-          ...messages.map((d: any) => d.period),
-          ...subscriptions.map((d: any) => d.period),
-        ])).sort()
-        const merged = periods.map(period => ({
-          period,
-          newUsers: users.find((d: any) => d.period === period)?.count || 0,
-          activeUsers: actives.find((d: any) => d.period === period)?.count || 0,
-          newMatches: matches.find((d: any) => d.period === period)?.count || 0,
-          messages: messages.find((d: any) => d.period === period)?.count || 0,
-          eventSubscriptions: subscriptions.find((d: any) => d.period === period)?.count || 0,
-        })).sort((a, b) => a.period.localeCompare(b.period))
-        setData(merged)
-        setError('')
-      } catch (fetchError) {
-        console.error('Impossible de charger les graphiques administrateur:', fetchError)
-        setError('Les graphiques d’activité sont momentanément indisponibles.')
-      } finally {
-        setLoading(false)
-      }
+      const { startDate, endDate } = getDateRange(defaultRange)
+      const [users, actives, matches, messages, subscriptions] = await Promise.all([
+        getNewUsersStats({ startDate, endDate, scale }),
+        getActiveUsersStats({ startDate, endDate, scale }),
+        getMatchesStats({ startDate, endDate, scale }),
+        getMessagesStats({ startDate, endDate, scale }),
+        getEventSubscriptionsStats({ startDate, endDate, scale }),
+      ])
+      // Merge all stats by period
+      const periods = Array.from(new Set([
+        ...users.map((d: any) => d.period),
+        ...actives.map((d: any) => d.period),
+        ...matches.map((d: any) => d.period),
+        ...messages.map((d: any) => d.period),
+        ...subscriptions.map((d: any) => d.period),
+      ])).sort()
+      const merged = periods.map(period => ({
+        period,
+        newUsers: users.find((d: any) => d.period === period)?.count || 0,
+        activeUsers: actives.find((d: any) => d.period === period)?.count || 0,
+        newMatches: matches.find((d: any) => d.period === period)?.count || 0,
+        messages: messages.find((d: any) => d.period === period)?.count || 0,
+        eventSubscriptions: subscriptions.find((d: any) => d.period === period)?.count || 0,
+      }))
+      .sort((a, b) => a.period.localeCompare(b.period))
+      setData(merged)
+      setLoading(false)
     }
-    void fetchStats()
-    const interval = setInterval(fetchStats, 120000)
-    return () => clearInterval(interval)
+    fetchStats()
   }, [scale])
 
   return (
@@ -97,9 +89,7 @@ export function AdminStats() {
           ))}
         </div>
       </div>
-      {error ? (
-        <div className="rounded-md border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>
-      ) : loading ? (
+      {loading ? (
         <div>Chargement des statistiques...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -134,7 +124,7 @@ export function AdminStats() {
             </ResponsiveContainer>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Demandes de contact</h3>
+            <h3 className="font-semibold mb-2">Nouveaux matchs</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />

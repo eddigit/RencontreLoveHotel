@@ -349,44 +349,42 @@ export default function MembersPage() {
           ) : members.length === 0 ? (
             <div className='rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-8 text-center text-white/60'>Aucun membre ne correspond à ces critères.</div>
           ) : (
-            <div className='grid gap-3 sm:grid-cols-2 lg:grid-cols-5'>
+            <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
               {members.map(member => (
-                <article key={member.id} className='min-w-0 overflow-hidden rounded-xl border border-white/10 bg-white/[0.045]'>
+                <article key={member.id} className='overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]'>
                   <Link href={`/profile/${member.id}`} className='group block'>
-                    <div className='relative aspect-square bg-white/10'>
+                    <div className='relative aspect-[4/3] bg-white/10'>
                       {imageFor(member).startsWith('http') ? (
                         <img src={imageFor(member)} alt={member.name || 'Profil membre'} className='h-full w-full object-cover transition group-hover:scale-105' />
                       ) : (
-                        <Image src={imageFor(member)} alt={member.name || 'Profil membre'} fill className='object-cover transition group-hover:scale-105' sizes='(min-width: 1024px) 16vw, (min-width: 640px) 50vw, 100vw' />
+                        <Image src={imageFor(member)} alt={member.name || 'Profil membre'} fill className='object-cover transition group-hover:scale-105' sizes='320px' />
                       )}
                       <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent' />
-                      {member.online && <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' />}
-                      <div className='absolute bottom-2 left-2 right-2 min-w-0'>
-                        <h3 className='truncate text-base font-black'>{member.name || 'Membre'}{member.age ? `, ${member.age}` : ''}</h3>
-                        <div className='flex min-w-0 items-center gap-1 text-[11px] text-white/70'>
-                          <MapPin className='h-3 w-3 shrink-0' />
-                          <span className='truncate'>{member.location || 'Localisation non renseignée'}</span>
+                      {member.online && <span className='absolute right-3 top-3 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' />}
+                      <div className='absolute bottom-3 left-3 right-3'>
+                        <h3 className='text-lg font-black'>{member.name || 'Membre'}{member.age ? `, ${member.age}` : ''}</h3>
+                        <div className='flex items-center gap-1 text-xs text-white/70'>
+                          <MapPin className='h-3.5 w-3.5' />
+                          {member.location || 'Localisation non renseignée'}
                         </div>
                       </div>
                     </div>
                   </Link>
-                  <div className='p-2.5'>
-                    <div className='flex flex-wrap gap-1 text-[10px] leading-4'>
-                      <span className='rounded-full bg-[#94ffc9]/12 px-1.5 py-0.5 text-[#b8ffdb]'>{profileTypeLabel(member)}</span>
-                      {orientationLabel(member.orientation) && <span className='rounded-full bg-white/8 px-1.5 py-0.5 text-white/65'>{orientationLabel(member.orientation)}</span>}
-                      {member.open_to_other_couples && <span className='rounded-full bg-white/8 px-1.5 py-0.5 text-white/65'>Ouvert aux couples</span>}
-                      {member.open_curtains && <span className='rounded-full bg-[#ff8cc8]/12 px-1.5 py-0.5 text-[#ffb8dc]'>Rideaux ouverts</span>}
-                      {member.libertine && <span className='rounded-full bg-white/8 px-1.5 py-0.5 text-white/65'>Libertin</span>}
+                  <div className='p-3'>
+                    <div className='flex flex-wrap gap-1.5 text-xs'>
+                      <span className='rounded-full bg-[#94ffc9]/12 px-2 py-1 text-[#b8ffdb]'>{profileTypeLabel(member)}</span>
+                      {orientationLabel(member.orientation) && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>{orientationLabel(member.orientation)}</span>}
+                      {member.open_to_other_couples && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Ouvert aux couples</span>}
+                      {member.open_curtains && <span className='rounded-full bg-[#ff8cc8]/12 px-2 py-1 text-[#ffb8dc]'>Rideaux ouverts</span>}
+                      {member.libertine && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Libertin</span>}
                     </div>
-                    {member.bio ? (
-                      <p className='mt-2 line-clamp-2 min-h-8 text-xs leading-4 text-white/58'>{member.bio}</p>
-                    ) : null}
-                    <div className='mt-2 flex gap-1.5'>
-                      <Button asChild size='sm' className='h-8 min-w-0 flex-1 bg-[#ff3b8b] px-2 text-xs hover:bg-[#ff62a8]'>
-                        <Link href={`/profile/${member.id}`}>Profil</Link>
+                    <p className='mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/58'>{member.bio || 'Profil disponible pour une rencontre dans la communauté.'}</p>
+                    <div className='mt-3 flex gap-2'>
+                      <Button asChild size='sm' className='flex-1 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
+                        <Link href={`/profile/${member.id}`}>Voir le profil</Link>
                       </Button>
-                      <Button asChild size='sm' variant='outline' className='h-8 w-8 shrink-0 border-white/12 bg-white/[0.04] p-0' title='Ouvrir la messagerie'>
-                        <Link href={`/messages?user=${member.id}`}><MessageCircle className='h-3.5 w-3.5' /></Link>
+                      <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]' title='Ouvrir la messagerie'>
+                        <Link href={`/messages?user=${member.id}`}><MessageCircle className='h-4 w-4' /></Link>
                       </Button>
                     </div>
                   </div>

@@ -1,78 +1,64 @@
 'use client'
 
-import Image from 'next/image'
 import React, { useState } from 'react'
-import { CalendarHeart, Mail, Phone, Send, Sparkles } from 'lucide-react'
+import {
+  CalendarHeart,
+  Mail,
+  Phone,
+  Sparkles
+} from 'lucide-react'
 
 const inputClass =
-  'w-full rounded-lg border border-white/15 bg-white/[0.08] px-4 py-3 text-white placeholder:text-white/45 outline-none transition focus:border-[#ff4fa3] focus:ring-2 focus:ring-[#ff4fa3]/30'
+  'w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-white placeholder:text-white/45 outline-none transition focus:border-[#ff4fa3] focus:ring-2 focus:ring-[#ff4fa3]/30'
 
 const conciergerieImageUrl = '/conciergerie-service.jpg'
 
 const requestTypes = [
   {
     value: 'custom_evening',
-    label: 'Une soirée sur mesure',
-    description: 'Romantique, coquine ou plus assumée.',
-    featured: true
+    label: 'Soirée sur mesure',
+    description: 'Scénario romantique, coquin ou plus assumé.'
+  },
+  {
+    value: 'weekend',
+    label: 'Week-end particulier',
+    description: 'Organisation complète autour d’une Love Room.'
   },
   {
     value: 'love_room',
-    label: 'Une Love Room préparée',
-    description: 'Ambiance, attentions et horaires.',
-    featured: true
+    label: 'Love Room préparée',
+    description: 'Chambre, attentions, ambiance, horaires.'
   },
   {
     value: 'open_curtains',
     label: 'Rideaux ouverts',
-    description: 'Initiation ou expérience entre chambres.',
-    featured: true
+    description: 'Initiation ou expérience entre chambres.'
   },
   {
     value: 'jacuzzi',
-    label: 'Un jacuzzi privé',
-    description: 'Un moment intime ou en petit comité.',
-    featured: true
-  },
-  {
-    value: 'weekend',
-    label: 'Un week-end particulier',
-    description: 'Une organisation complète autour du séjour.',
-    featured: true
-  },
-  {
-    value: 'other',
-    label: 'Une autre idée',
-    description: 'Dites-nous simplement ce que vous imaginez.',
-    featured: true
+    label: 'Apéro jacuzzi privé',
+    description: '2, 3 ou 4 couples maximum selon le format.'
   },
   {
     value: 'limousine',
     label: 'Limousine / arrivée scénarisée',
-    description: 'Une mise en scène avant la chambre.',
-    featured: false
+    description: 'Mise en scène premium avant la chambre.'
   },
   {
     value: 'libertine_event',
     label: 'Événement libertin spécifique',
-    description: 'Une demande consentie et préparée.',
-    featured: false
+    description: 'Demande cadrée, consentie et préparée.'
+  },
+  {
+    value: 'other',
+    label: 'Autre demande',
+    description: 'Une envie particulière à organiser.'
   }
 ]
 
-const featuredRequestTypes = requestTypes.filter(type => type.featured)
-
-type ConciergerieFormProps = {
-  initialName?: string
-  initialEmail?: string
-}
-
-export default function ConciergerieForm({
-  initialName = '',
-  initialEmail = ''
-}: ConciergerieFormProps) {
-  const [nom, setNom] = useState(initialName)
-  const [email, setEmail] = useState(initialEmail)
+export default function ConciergerieForm() {
+  const [nom, setNom] = useState('')
+  const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [requestType, setRequestType] = useState('custom_evening')
   const [venuePreference, setVenuePreference] = useState('à définir')
@@ -84,13 +70,13 @@ export default function ConciergerieForm({
   const [submittedMessage, setSubmittedMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
     setSubmittedMessage('')
     setIsSubmitting(true)
 
     try {
-      const response = await fetch('/api/conciergerie', {
+      const res = await fetch('/api/conciergerie', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,16 +93,16 @@ export default function ConciergerieForm({
           budget
         })
       })
-      const data = await response.json().catch(() => ({}))
+      const data = await res.json().catch(() => ({}))
 
-      if (response.ok) {
+      if (res.ok) {
         setSubmittedMessage(
           data?.emailSent
-            ? 'Votre idée est bien arrivée à la conciergerie. Nous vous répondrons personnellement par email.'
-            : 'Votre demande est bien enregistrée dans notre suivi. La conciergerie va la reprendre personnellement.'
+            ? 'Votre demande est envoyée à la conciergerie. Vous recevrez une réponse par email.'
+            : 'Votre demande est enregistrée. La conciergerie la traitera dès que possible.'
         )
-        setNom(initialName)
-        setEmail(initialEmail)
+        setNom('')
+        setEmail('')
         setPhone('')
         setRequestType('custom_evening')
         setVenuePreference('à définir')
@@ -127,13 +113,13 @@ export default function ConciergerieForm({
         setBudget('')
       } else {
         setSubmittedMessage(
-          data?.error || 'La demande n’a pas pu être envoyée. Merci de réessayer.'
+          data?.error || 'Une erreur est survenue, veuillez réessayer.'
         )
       }
-    } catch (error) {
-      console.error('Erreur réseau conciergerie', error)
+    } catch (err) {
+      console.error('Erreur réseau conciergerie', err)
       setSubmittedMessage(
-        'Impossible de joindre la conciergerie. Vérifiez votre connexion puis réessayez.'
+        "Impossible d'envoyer la demande, vérifiez votre connexion."
       )
     } finally {
       setIsSubmitting(false)
@@ -141,229 +127,222 @@ export default function ConciergerieForm({
   }
 
   return (
-    <section aria-labelledby='conciergerie-form-title' className='w-full border-t border-white/10 pt-8'>
-      <div className='mb-6 max-w-3xl'>
-        <p className='text-sm font-black uppercase text-[#ff8cc8]'>
-          Construisons votre moment
-        </p>
-        <h2 id='conciergerie-form-title' className='mt-2 text-3xl font-black md:text-4xl'>
-          Parlez-nous de votre idée
-        </h2>
-        <p className='mt-3 text-sm leading-7 text-white/66 md:text-base'>
-          Quelques mots suffisent pour commencer. Nous reviendrons vers vous
-          pour préciser ensemble ce qui est possible et activer les bons
-          contacts.
-        </p>
-      </div>
-
-      <div className='grid overflow-hidden rounded-lg border border-white/15 bg-[#26002f]/80 shadow-2xl xl:grid-cols-[360px_minmax(0,1fr)]'>
-        <div className='relative min-h-[300px] overflow-hidden bg-[#130018] xl:min-h-full'>
-          <Image
+    <section className='w-full py-10'>
+      <div className='grid w-full gap-6 overflow-hidden rounded-3xl border border-white/15 bg-[#26002f]/80 shadow-2xl lg:grid-cols-[0.9fr_1.1fr]'>
+        <div className='relative min-h-[360px] overflow-hidden bg-[#130018]'>
+          <img
             src={conciergerieImageUrl}
             alt='Conciergerie privée Love Hotel'
-            fill
-            sizes='(max-width: 1280px) 100vw, 360px'
-            className='object-cover opacity-75'
+            className='absolute inset-0 h-full w-full object-cover opacity-75'
           />
-          <div className='absolute inset-0 bg-gradient-to-t from-[#18001e] via-[#18001e]/45 to-transparent' />
-          <div className='relative z-10 flex h-full min-h-[300px] flex-col justify-end p-6'>
-            <div className='mb-3 inline-flex w-fit items-center gap-2 rounded-md bg-[#ff3b8b] px-3 py-2 text-xs font-black uppercase text-white'>
+          <div className='absolute inset-0 bg-gradient-to-t from-[#18001e] via-[#18001e]/40 to-transparent' />
+          <div className='relative z-10 flex h-full flex-col justify-end p-6 md:p-8'>
+            <div className='mb-4 inline-flex w-fit items-center gap-2 rounded-full bg-[#ff3b8b] px-4 py-2 text-sm font-black uppercase tracking-wide text-white'>
               <Sparkles className='h-4 w-4' />
               Conciergerie coquine
             </div>
-            <p className='max-w-sm text-xl font-black leading-snug text-white'>
-              « J’aimerais organiser quelque chose de différent, mais je ne
-              sais pas par où commencer. »
-            </p>
-            <p className='mt-3 text-sm leading-6 text-white/76'>
-              C’est précisément à ce moment que notre réseau devient utile.
+            <h2 className='max-w-md text-3xl font-black leading-tight text-white md:text-4xl'>
+              Confiez-nous l’organisation de votre moment privé.
+            </h2>
+            <p className='mt-4 max-w-md text-sm leading-6 text-white/80'>
+              Love Room préparée, apéro jacuzzi, rideaux ouverts, week-end,
+              arrivée scénarisée ou événement plus libertin : la demande passe
+              uniquement par ce formulaire et arrive directement à la
+              conciergerie.
             </p>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className='space-y-7 p-5 md:p-8'>
-          <fieldset>
-            <legend className='mb-3 text-base font-black text-white'>
-              Qu’avez-vous envie de vivre ?
-            </legend>
-            <div className='grid gap-2 sm:grid-cols-2 lg:grid-cols-3'>
-              {featuredRequestTypes.map(type => (
+        <form onSubmit={handleSubmit} className='space-y-5 p-6 md:p-8'>
+          <div>
+            <div className='mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-[#ff8cc8]'>
+              <Sparkles className='h-4 w-4' />
+              Choisissez le point de départ
+            </div>
+            <div className='grid gap-3 md:grid-cols-3'>
+              {requestTypes.map(type => (
                 <button
                   key={type.value}
                   type='button'
-                  aria-pressed={requestType === type.value}
                   onClick={() => setRequestType(type.value)}
                   className={[
-                    'min-h-[96px] rounded-lg border p-3 text-left transition',
+                    'rounded-2xl border p-4 text-left transition',
                     requestType === type.value
-                      ? 'border-[#ff7ac0] bg-[#ff3b8b]/22 text-white'
-                      : 'border-white/10 bg-white/[0.045] text-white/74 hover:border-[#ff7ac0]/60 hover:text-white'
+                      ? 'border-[#ff7ac0] bg-[#ff3b8b]/22 text-white shadow-lg shadow-[#ff3b8b]/10'
+                      : 'border-white/10 bg-white/[0.055] text-white/74 hover:border-[#ff7ac0]/60 hover:text-white'
                   ].join(' ')}
                 >
                   <span className='block text-sm font-black'>{type.label}</span>
-                  <span className='mt-1 block text-xs leading-5 text-white/58'>
+                  <span className='mt-2 block text-xs leading-5 text-white/58'>
                     {type.description}
                   </span>
                 </button>
               ))}
             </div>
-          </fieldset>
+          </div>
 
-          <label className='block space-y-2'>
+          <div className='grid gap-4 md:grid-cols-2'>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Votre nom</span>
+              <input
+                type='text'
+                value={nom}
+                onChange={e => setNom(e.target.value)}
+                required
+                className={inputClass}
+                placeholder='Nom ou pseudo'
+              />
+            </label>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Votre email</span>
+              <input
+                type='email'
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className={inputClass}
+                placeholder='adresse@email.com'
+              />
+            </label>
+          </div>
+
+          <div className='grid gap-4 md:grid-cols-2'>
+            <label className='space-y-2'>
+              <span className='flex items-center gap-2 text-sm font-bold text-white'>
+                <Phone className='h-4 w-4 text-[#ff7ac0]' />
+                Téléphone optionnel
+              </span>
+              <input
+                type='tel'
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                className={inputClass}
+                placeholder='Si vous voulez être rappelé'
+              />
+            </label>
+            <label className='space-y-2'>
+              <span className='flex items-center gap-2 text-sm font-bold text-white'>
+                <CalendarHeart className='h-4 w-4 text-[#ff7ac0]' />
+                Type retenu
+              </span>
+              <select
+                value={requestType}
+                onChange={e => setRequestType(e.target.value)}
+                className={inputClass}
+              >
+                {requestTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className='grid gap-4 md:grid-cols-2'>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Établissement souhaité</span>
+              <select
+                value={venuePreference}
+                onChange={e => setVenuePreference(e.target.value)}
+                className={inputClass}
+              >
+                <option value='à définir'>À définir ensemble</option>
+                <option value='Pigalle'>Love Hotel Pigalle</option>
+                <option value='Châtelet'>Love Hotel Châtelet</option>
+                <option value='Pigalle ou Châtelet'>Pigalle ou Châtelet</option>
+              </select>
+            </label>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Date ou période souhaitée</span>
+              <input
+                type='text'
+                value={desiredDate}
+                onChange={e => setDesiredDate(e.target.value)}
+                className={inputClass}
+                placeholder='Ex : samedi soir, week-end de juillet...'
+              />
+            </label>
+          </div>
+
+          <div className='grid gap-4 md:grid-cols-2'>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Nombre de personnes ou couples</span>
+              <input
+                type='text'
+                value={partySize}
+                onChange={e => setPartySize(e.target.value)}
+                className={inputClass}
+                placeholder='Ex : 1 couple, 3 couples, 2 chambres...'
+              />
+            </label>
+            <label className='space-y-2'>
+              <span className='text-sm font-bold text-white'>Ambiance recherchée</span>
+              <select
+                value={mood}
+                onChange={e => setMood(e.target.value)}
+                className={inputClass}
+              >
+                <option value='romantique'>Romantique</option>
+                <option value='coquin élégant'>Coquin élégant</option>
+                <option value='initiation douce'>Initiation douce</option>
+                <option value='rideaux ouverts'>Rideaux ouverts</option>
+                <option value='libertin assumé'>Libertin assumé</option>
+                <option value='surprise'>Surprise à organiser</option>
+              </select>
+            </label>
+          </div>
+
+          <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-4 text-sm leading-6 text-white/78'>
+            <div className='mb-1 flex items-center gap-2 font-black text-white'>
+              <Mail className='h-4 w-4 text-[#ff8cc8]' />
+              Demande envoyée uniquement par formulaire
+            </div>
+            Elle arrive directement à la conciergerie Love Hotel sur l’adresse
+            opérationnelle dédiée. La réponse se fait par email ou téléphone si
+            vous l’indiquez.
+          </div>
+
+          <label className='space-y-2'>
             <span className='text-sm font-bold text-white'>
-              Racontez-nous ce que vous imaginez
+              Décrivez votre envie
             </span>
             <textarea
               value={besoin}
-              onChange={event => setBesoin(event.target.value)}
+              onChange={e => setBesoin(e.target.value)}
               required
-              rows={5}
-              className={`${inputClass} resize-y`}
-              placeholder='Par exemple : une soirée surprise pour notre anniversaire, un apéro jacuzzi avec deux couples, une première expérience rideaux ouverts…'
+              rows={6}
+              className={`${inputClass} resize-none`}
+              placeholder='Ex : apéro jacuzzi pour trois couples, rideaux ouverts dans deux chambres, week-end surprise avec Love Room, ambiance plus romantique ou plus libertine...'
             />
           </label>
 
-          <div>
-            <div className='mb-3 flex items-center gap-2 text-sm font-black text-[#94ffc9]'>
-              <CalendarHeart className='h-4 w-4' />
-              Quand, où et avec qui ?
-            </div>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Lieu souhaité</span>
-                <select
-                  value={venuePreference}
-                  onChange={event => setVenuePreference(event.target.value)}
-                  className={inputClass}
-                >
-                  <option value='à définir'>À définir ensemble</option>
-                  <option value='Pigalle'>Love Hotel Pigalle</option>
-                  <option value='Châtelet'>Love Hotel Châtelet</option>
-                  <option value='Pigalle ou Châtelet'>Pigalle ou Châtelet</option>
-                  <option value='Autre lieu'>Un autre lieu</option>
-                </select>
-              </label>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Date ou période</span>
-                <input
-                  type='text'
-                  value={desiredDate}
-                  onChange={event => setDesiredDate(event.target.value)}
-                  className={inputClass}
-                  placeholder='Samedi soir, un week-end en juillet…'
-                />
-              </label>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Participants</span>
-                <input
-                  type='text'
-                  value={partySize}
-                  onChange={event => setPartySize(event.target.value)}
-                  className={inputClass}
-                  placeholder='Un couple, trois couples, deux chambres…'
-                />
-              </label>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Ambiance recherchée</span>
-                <select
-                  value={mood}
-                  onChange={event => setMood(event.target.value)}
-                  className={inputClass}
-                >
-                  <option value='romantique'>Romantique</option>
-                  <option value='coquin élégant'>Coquin élégant</option>
-                  <option value='initiation douce'>Initiation douce</option>
-                  <option value='rideaux ouverts'>Rideaux ouverts</option>
-                  <option value='libertin assumé'>Libertin assumé</option>
-                  <option value='surprise'>Surprise à organiser</option>
-                </select>
-              </label>
-            </div>
-          </div>
+          <label className='space-y-2'>
+            <span className='text-sm font-bold text-white'>
+              Budget indicatif optionnel
+            </span>
+            <input
+              type='text'
+              value={budget}
+              onChange={e => setBudget(e.target.value)}
+              className={inputClass}
+              placeholder='Ex : 300-600 euros'
+            />
+          </label>
 
-          <div>
-            <div className='mb-3 flex items-center gap-2 text-sm font-black text-[#ffb4d8]'>
-              <Mail className='h-4 w-4' />
-              Comment pouvons-nous vous répondre ?
-            </div>
-            <div className='grid gap-4 md:grid-cols-2'>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Votre nom ou pseudo</span>
-                <input
-                  type='text'
-                  value={nom}
-                  onChange={event => setNom(event.target.value)}
-                  required
-                  className={inputClass}
-                  placeholder='Nom ou pseudo'
-                />
-              </label>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Votre email</span>
-                <input
-                  type='email'
-                  value={email}
-                  onChange={event => setEmail(event.target.value)}
-                  required
-                  className={inputClass}
-                  placeholder='adresse@email.com'
-                />
-              </label>
-              <label className='space-y-2'>
-                <span className='flex items-center gap-2 text-sm font-bold text-white'>
-                  <Phone className='h-4 w-4 text-[#ff7ac0]' />
-                  Téléphone facultatif
-                </span>
-                <input
-                  type='tel'
-                  value={phone}
-                  onChange={event => setPhone(event.target.value)}
-                  className={inputClass}
-                  placeholder='Uniquement si vous souhaitez être rappelé'
-                />
-              </label>
-              <label className='space-y-2'>
-                <span className='text-sm font-bold text-white'>Budget indicatif facultatif</span>
-                <input
-                  type='text'
-                  value={budget}
-                  onChange={event => setBudget(event.target.value)}
-                  className={inputClass}
-                  placeholder='Une fourchette suffit'
-                />
-              </label>
-            </div>
-          </div>
+          <button
+            type='submit'
+            disabled={isSubmitting}
+            className='w-full rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff7ac0] px-5 py-4 text-base font-black text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60'
+          >
+            {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande privée'}
+          </button>
 
-          <div className='flex flex-col gap-4 border-t border-white/10 pt-5 sm:flex-row sm:items-center sm:justify-between'>
-            <div className='max-w-xl text-sm leading-6 text-white/62'>
-              <div className='font-black text-white'>Demande envoyée uniquement par formulaire</div>
-              Elle arrive directement dans le suivi privé de la conciergerie et
-              une notification email est adressée à l’équipe opérationnelle.
-            </div>
-            <button
-              type='submit'
-              disabled={isSubmitting}
-              className='inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-[#ff3b8b] px-5 py-3 text-sm font-black text-white transition hover:bg-[#ff5ca3] disabled:cursor-not-allowed disabled:opacity-60'
-            >
-              {isSubmitting ? (
-                'Envoi en cours…'
-              ) : (
-                <>
-                  <Send className='h-4 w-4' />
-                  Envoyer mon idée
-                </>
-              )}
-            </button>
-          </div>
-
-          <div aria-live='polite'>
-            {submittedMessage ? (
-              <p className='rounded-lg border border-[#94ffc9]/25 bg-[#10251d]/65 p-4 text-sm font-bold text-white'>
-                {submittedMessage}
-              </p>
-            ) : null}
-          </div>
+          {submittedMessage && (
+            <p className='rounded-2xl border border-white/15 bg-white/10 p-4 text-center text-sm font-bold text-white'>
+              {submittedMessage}
+            </p>
+          )}
         </form>
       </div>
     </section>

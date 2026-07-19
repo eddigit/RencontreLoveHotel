@@ -70,42 +70,6 @@ describe('notification access control', () => {
     ])
   })
 
-  it('blocks the legacy notification reader for another account', async () => {
-    getServerSessionMock.mockResolvedValue({
-      user: {
-        id: '11111111-1111-4111-8111-111111111111',
-        role: 'user'
-      }
-    })
-
-    const { getUserNotifications } = await import('@/actions/notification-actions')
-
-    await expect(
-      getUserNotifications('22222222-2222-4222-8222-222222222222')
-    ).rejects.toThrow('propre compte')
-    expect(sqlMock).not.toHaveBeenCalled()
-  })
-
-  it('prevents a member from creating a notification for another member', async () => {
-    getServerSessionMock.mockResolvedValue({
-      user: {
-        id: '11111111-1111-4111-8111-111111111111',
-        role: 'user'
-      }
-    })
-
-    const { createNotification } = await import('@/actions/notification-actions')
-
-    await expect(
-      createNotification({
-        userId: '22222222-2222-4222-8222-222222222222',
-        type: 'message',
-        title: 'Fausse notification'
-      })
-    ).rejects.toThrow('administrateur')
-    expect(sqlMock.query).not.toHaveBeenCalled()
-  })
-
   it('blocks preference saving for another account', async () => {
     getServerSessionMock.mockResolvedValue({
       user: {

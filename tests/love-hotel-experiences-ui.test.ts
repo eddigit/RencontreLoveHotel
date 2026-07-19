@@ -8,6 +8,7 @@ describe('Love Hotel experiences UI', () => {
   const loveRoomsPage = fs.readFileSync(path.join(process.cwd(), 'app/love-rooms/page.tsx'), 'utf8')
   const eventCard = fs.readFileSync(path.join(process.cwd(), 'components/event-card.tsx'), 'utf8')
   const adminCreatePage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/new/page.tsx'), 'utf8')
+  const adminEventsPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/page.tsx'), 'utf8')
   const adminEditPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/events/[id]/edit/page.tsx'), 'utf8')
   const memberEditPage = fs.readFileSync(path.join(process.cwd(), 'app/events/edit.tsx'), 'utf8')
   const adminOptionsPage = fs.readFileSync(path.join(process.cwd(), 'app/admin/options/page.tsx'), 'utf8')
@@ -16,11 +17,9 @@ describe('Love Hotel experiences UI', () => {
     expect(createPage).toContain('Créer une expérience')
     expect(createPage).toContain('Pigalle')
     expect(createPage).toContain('Châtelet')
-    expect(createPage).toContain("label: 'Apéro jacuzzi'")
-    expect(createPage).toContain("detail: '2 à 4 couples'")
+    expect(createPage).toContain('Apéro jacuzzi - 2 à 4 couples')
     expect(createPage).toContain('Rideaux ouverts')
-    expect(createPage).toContain("label: 'Rideaux ouverts'")
-    expect(createPage).toContain("detail: '2 ou 3 chambres'")
+    expect(createPage).toContain('Rideaux ouverts - 2 ou 3 chambres')
     expect(createPage).toContain('Capacité')
     expect(createPage).not.toContain("value='restaurant'")
     expect(createPage).not.toContain("value='champagne'")
@@ -30,13 +29,13 @@ describe('Love Hotel experiences UI', () => {
     expect(createPage).toContain('max_participants: 4')
   })
 
-  it('turns the Love Rooms page into a booking-first experience', () => {
-    expect(loveRoomsPage).toContain('Réserver une Love Room')
-    expect(loveRoomsPage).toContain('Réservation officielle Love Hotel')
-    expect(loveRoomsPage).toContain('LoveHotelBookingWidget')
+  it('puts restaurant and bar offers in standby on the Love Rooms page', () => {
+    expect(loveRoomsPage).toContain('Offres en standby')
+    expect(loveRoomsPage).toContain('Restaurant et bar indisponibles')
     expect(loveRoomsPage).toContain('Rideaux ouverts')
+    expect(loveRoomsPage).toContain('2 ou 3 chambres')
     expect(loveRoomsPage).toContain('Apéro jacuzzi')
-    expect(loveRoomsPage).not.toContain('Offres en standby')
+    expect(loveRoomsPage).toContain('2, 3 ou 4 couples maximum')
     expect(loveRoomsPage).not.toContain('Petit-déjeuner & Love Room')
     expect(loveRoomsPage).not.toContain('Lunch & Love Room')
     expect(loveRoomsPage).not.toContain('Drink & Love Room')
@@ -47,13 +46,10 @@ describe('Love Hotel experiences UI', () => {
   it('limits admin and member event categories to active hotel formats', () => {
     const activeFallback = 'jacuzzi|Apéro jacuzzi 2 à 4 couples\\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
 
-    for (const source of [adminCreatePage, adminEditPage, memberEditPage, adminOptionsPage]) {
+    for (const source of [listPage, adminCreatePage, adminEditPage, memberEditPage, adminOptionsPage]) {
       expect(source).toContain(activeFallback)
       expect(source).not.toContain('speed-dating|Speed Dating\\njacuzzi|Jacuzzi\\nrestaurant|Restaurant')
     }
-
-    expect(listPage).toContain("jacuzzi: 'Apéro jacuzzi'")
-    expect(listPage).toContain("open_curtains: 'Rideaux ouverts'")
 
     expect(adminCreatePage).toContain('activeEventCategoryValues')
     expect(adminEditPage).toContain('activeEventCategoryValues')
@@ -61,16 +57,46 @@ describe('Love Hotel experiences UI', () => {
   })
 
   it('reframes the listing as a commercial community experience page', () => {
+    expect(listPage).toContain('Expériences Love Hotel')
     expect(listPage).toContain('Événements à venir')
-    expect(listPage).toContain('Apéro jacuzzi')
+    expect(listPage).toContain('Apéros jacuzzi')
     expect(listPage).toContain('Rideaux ouverts')
-    expect(listPage).toContain('Mes événements')
+    expect(listPage).toContain('Créées par la communauté')
+  })
+
+  it('puts the actionable event list before editorial content', () => {
+    const upcomingIndex = listPage.indexOf('Événements à venir')
+    const editorialIndex = listPage.indexOf('Créer une rencontre autour d’un lieu réel')
+
+    expect(upcomingIndex).toBeGreaterThan(-1)
+    expect(editorialIndex).toBeGreaterThan(upcomingIndex)
+    expect(listPage).toContain('Aucun événement programmé pour le moment')
+    expect(listPage).toContain('Événements passés')
   })
 
   it('event cards show experience metadata', () => {
     expect(eventCard).toContain('experienceType')
     expect(eventCard).toContain('venue')
     expect(eventCard).toContain('maxParticipants')
-    expect(eventCard).toContain('Demander à participer')
+    expect(eventCard).toContain('isPast')
+    expect(eventCard).toContain('Terminé')
+    expect(eventCard).not.toContain('Publié en bêta')
+    expect(eventCard).not.toContain('Format en standby')
+    expect(eventCard).not.toContain('/placeholder.svg')
+  })
+
+  it('uses event photo uploads and previews in creation and edition forms', () => {
+    const eventPhotoField = fs.readFileSync(path.join(process.cwd(), 'components/event-photo-field.tsx'), 'utf8')
+    const detailPage = fs.readFileSync(path.join(process.cwd(), 'app/events/[id]/EventDetailPage.tsx'), 'utf8')
+
+    for (const source of [createPage, adminCreatePage, adminEditPage, memberEditPage, adminEventsPage]) {
+      expect(source).toContain('EventPhotoField')
+      expect(source).not.toContain('Image (URL)')
+    }
+
+    expect(createPage).not.toContain('Publication bêta')
+    expect(eventPhotoField).toContain('/api/events/photos/upload')
+    expect(eventPhotoField).toContain('Aperçu')
+    expect(detailPage).not.toContain('/placeholder.svg')
   })
 })

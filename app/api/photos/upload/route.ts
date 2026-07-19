@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '@/lib/auth'
 import { sql } from '@/lib/db'
-import { validateImageFile } from '@/lib/image-upload-validation'
 import { put } from '@vercel/blob'
+import { validateImageUploadFile } from '@/lib/upload-validation'
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Aucun fichier sélectionné' }, { status: 400 })
   }
 
-  const validation = await validateImageFile(file)
+  const validation = await validateImageUploadFile(file)
   if (!validation.ok) {
     return NextResponse.json({ error: validation.error }, { status: 400 })
   }
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Maximum 10 photos autorisées' }, { status: 400 })
     }
     const blob = await put(
-      `user-photos/${user.id}-${Date.now()}.${validation.image.extension}`,
+      `user-photos/${user.id}-${Date.now()}.${validation.extension}`,
       file,
       { access: 'public' }
     )

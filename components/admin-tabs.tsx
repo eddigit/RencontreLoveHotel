@@ -8,7 +8,6 @@ const tabs = [
   { label: 'Événements', href: '/admin/events' },
   { label: 'Messages', href: '/admin/messages' },
   { label: 'Messages internes', href: '/admin/internal-messages' },
-  { label: 'Support membres', href: '/admin/feedback' },
   { label: 'Modération', href: '/admin/moderation' },
   { label: 'Emails', href: '/admin/email-campaigns' },
   { label: 'Conciergerie', href: '/admin/conciergerie' },

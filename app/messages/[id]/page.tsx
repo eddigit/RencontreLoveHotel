@@ -1,21 +1,18 @@
 'use client'
 
 import type React from 'react'
-import { use, useCallback, useEffect, useRef, useState } from 'react'
+import { use, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
   CalendarHeart,
-  Check,
   ImageIcon,
   Mic,
   Paperclip,
-  Pencil,
   Send,
   Sparkles,
   Square,
-  Trash2,
   Video,
   X
 } from 'lucide-react'
@@ -29,13 +26,8 @@ import {
   getConversationMessages,
   getUserConversations,
   markConversationMessagesAsRead,
-  sendMessage,
-  updateOwnMessage,
-  deleteOwnMessage
+  sendMessage
 } from '@/actions/conversation-actions'
-import { useNotifications } from '@/contexts/notification-context'
-import { MemberSafetyControls, type MemberSafetyState } from '@/components/member-safety-controls'
-import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 
 interface MessageAttachment {
   id?: string
@@ -59,9 +51,6 @@ interface Message {
   sender_id: string
   content: string
   created_at: string
-  updated_at?: string
-  edited_at?: string | null
-  deleted_at?: string | null
   sender_name?: string
   sender_avatar?: string
   attachments?: MessageAttachment[]
@@ -69,13 +58,16 @@ interface Message {
 
 interface ConversationDetails {
   id: string
-  other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
-  access_mode: 'match' | 'legacy_import' | 'admin'
-  blocked_by_me: boolean
-  blocked_me: boolean
-  can_interact: boolean
+}
+
+const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+
+function memberFacingError (error: unknown, fallback: string) {
+  return error instanceof Error && error.message.toLowerCase().includes('coordonnées')
+    ? CONTACT_SAFETY_EXPLANATION
+    : fallback
 }
 
 function formatBytes (bytes?: number | null) {
@@ -141,7 +133,6 @@ export default function ConversationPage ({
 }) {
   const { id } = use(params)
   const { data: session } = useSession()
-  const { notifications, markAsRead } = useNotifications()
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [conversationDetails, setConversationDetails] =
@@ -152,9 +143,6 @@ export default function ConversationPage ({
   const [error, setError] = useState<string | null>(null)
   const [sendError, setSendError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const [editingMessageId, setEditingMessageId] = useState<string | null>(null)
-  const [editingMessageContent, setEditingMessageContent] = useState('')
-  const [messageActionId, setMessageActionId] = useState<string | null>(null)
   const [recording, setRecording] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
@@ -170,18 +158,6 @@ export default function ConversationPage ({
   }, [messages])
 
   useEffect(() => {
-    for (const notification of notifications) {
-      if (
-        !notification.read &&
-        notification.type === 'new_message' &&
-        notification.link === `/messages/${id}`
-      ) {
-        markAsRead(notification.id)
-      }
-    }
-  }, [id, notifications, markAsRead])
-
-  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -192,49 +168,43 @@ export default function ConversationPage ({
     }
   }, [])
 
-  const fetchData = useCallback(async () => {
-    if (!session?.user?.id || !id) return
-
-    setLoading(true)
-    setError(null)
-    try {
-      const fetchedMessages = await getConversationMessages(id, session.user.id)
-      setMessages(fetchedMessages as Message[])
-      await markConversationMessagesAsRead(id, session.user.id)
-      setLastSyncedAt(new Date())
-
-      const userConversations = await getUserConversations(session.user.id)
-      const currentConv = userConversations.find((conv: any) => conv.id === id)
-      if (currentConv) {
-        setConversationDetails({
-          id: currentConv.id,
-          other_user_id: currentConv.other_user_id,
-          other_user_name: currentConv.other_user_name,
-          other_user_avatar: currentConv.other_user_avatar,
-          access_mode: currentConv.access_mode || 'match',
-          blocked_by_me: currentConv.blocked_by_me === true,
-          blocked_me: currentConv.blocked_me === true,
-          can_interact: currentConv.can_interact !== false
-        })
-      } else {
-        setError('Conversation introuvable ou non autorisée.')
-      }
-    } catch (error) {
-      if (recoverFromStaleServerAction(error)) return
-      console.error('Failed to fetch conversation data:', error)
-      if (error instanceof Error && error.message.includes('Access denied')) {
-        setError('Vous n’avez pas accès à cette conversation.')
-      } else {
-        setError('Une erreur est survenue lors du chargement de la conversation.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }, [session?.user?.id, id])
-
   useEffect(() => {
-    void fetchData()
-  }, [fetchData])
+    async function fetchData () {
+      if (!session?.user?.id || !id) return
+
+      setLoading(true)
+      setError(null)
+      try {
+        const fetchedMessages = await getConversationMessages(id, session.user.id)
+        setMessages(fetchedMessages as Message[])
+        await markConversationMessagesAsRead(id, session.user.id)
+        setLastSyncedAt(new Date())
+
+        const userConversations = await getUserConversations(session.user.id)
+        const currentConv = userConversations.find((conv: any) => conv.id === id)
+        if (currentConv) {
+          setConversationDetails({
+            id: currentConv.id,
+            other_user_name: currentConv.other_user_name,
+            other_user_avatar: currentConv.other_user_avatar
+          })
+        } else {
+          setError('Conversation introuvable ou non autorisée.')
+        }
+      } catch (error) {
+        console.error('Failed to fetch conversation data:', error)
+        if (error instanceof Error && error.message.includes('Access denied')) {
+          setError('Vous n’avez pas accès à cette conversation.')
+        } else {
+          setError('Une erreur est survenue lors du chargement de la conversation.')
+        }
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [session?.user?.id, id])
 
   useEffect(() => {
     if (!session?.user?.id || !id || loading || error) return
@@ -246,12 +216,9 @@ export default function ConversationPage ({
     async function syncNewMessages () {
       if (cancelled || inFlight || document.visibilityState === 'hidden') return
 
-      const latestKnownTimestamp = messagesRef.current.reduce((latest, item) => {
-        const createdAt = new Date(item.created_at).getTime()
-        const updatedAt = item.updated_at ? new Date(item.updated_at).getTime() : createdAt
-        return Math.max(latest, createdAt, updatedAt)
-      }, 0)
-      const afterCursor = new Date(Math.max(0, latestKnownTimestamp - 5000)).toISOString()
+      const currentMessages = messagesRef.current
+      const lastMessage = currentMessages[currentMessages.length - 1]
+      const afterCursor = lastMessage?.created_at || '1970-01-01T00:00:00.000Z'
 
       inFlight = true
       setSyncing(true)
@@ -263,29 +230,30 @@ export default function ConversationPage ({
           authenticatedUserId
         ) as Message[]
 
-        const syncedAt = new Date()
-
         if (cancelled || freshMessages.length === 0) {
-          setLastSyncedAt(syncedAt)
+          setLastSyncedAt(new Date())
           return
         }
 
-        setMessages(prevMessages => {
-          const freshById = new Map(freshMessages.map(item => [item.id, item]))
-          const prevIds = new Set(prevMessages.map(item => item.id))
-          return [
-            ...prevMessages.map(item => freshById.get(item.id) || item),
-            ...freshMessages.filter(item => !prevIds.has(item.id))
-          ]
-        })
+        const existingIds = new Set(messagesRef.current.map(item => item.id))
+        const unseenMessages = freshMessages.filter(item => !existingIds.has(item.id))
 
-        if (freshMessages.some(item => item.sender_id !== authenticatedUserId)) {
-          await markConversationMessagesAsRead(id, authenticatedUserId)
+        if (unseenMessages.length > 0) {
+          setMessages(prevMessages => {
+            const prevIds = new Set(prevMessages.map(item => item.id))
+            return [
+              ...prevMessages,
+              ...unseenMessages.filter(item => !prevIds.has(item.id))
+            ]
+          })
+
+          if (unseenMessages.some(item => item.sender_id !== authenticatedUserId)) {
+            await markConversationMessagesAsRead(id, authenticatedUserId)
+          }
         }
 
-        setLastSyncedAt(syncedAt)
+        setLastSyncedAt(new Date())
       } catch (error) {
-        if (recoverFromStaleServerAction(error)) return
         console.error('Failed to sync new messages:', error)
       } finally {
         inFlight = false
@@ -327,11 +295,7 @@ export default function ConversationPage ({
       setPendingAttachments(prev => [...prev, ...uploaded].slice(0, 4))
     } catch (error) {
       console.error('Failed to upload message attachment:', error)
-      setSendError(
-        error instanceof Error && error.message.includes('coordonnées')
-          ? 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés.'
-          : 'Le média n’a pas pu être ajouté. Réessayez avec un fichier plus léger.'
-      )
+      setSendError(memberFacingError(error, 'Le média n’a pas pu être ajouté. Réessayez avec un fichier plus léger.'))
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -419,7 +383,7 @@ export default function ConversationPage ({
   const handleSendMessage = async (event: React.FormEvent) => {
     event.preventDefault()
     const currentMessage = message.trim()
-    if (!conversationDetails?.can_interact || (!currentMessage && pendingAttachments.length === 0) || !session?.user?.id || !id || sending || uploading) return
+    if ((!currentMessage && pendingAttachments.length === 0) || !session?.user?.id || !id || sending || uploading) return
 
     setSendError(null)
     setSending(true)
@@ -443,11 +407,23 @@ export default function ConversationPage ({
         content: currentMessage,
         attachments: attachmentsToSend
       })
+      if (newMessage.delivery_status === 'held') {
+        setMessages(prevMessages =>
+          prevMessages.filter(msg => msg.id !== optimisticMessage.id)
+        )
+        setMessage(currentMessage)
+        setPendingAttachments(attachmentsToSend)
+        setSendError('Ce message n’a pas été remis. Il attend un réexamen humain selon la charte de sécurité communautaire.')
+        return
+      }
       setMessages(prevMessages =>
         prevMessages.map(msg =>
           msg.id === optimisticMessage.id ? (newMessage as Message) : msg
         )
       )
+      if (newMessage.moderation_outcome === 'warn') {
+        setSendError('Rappel : aucune sollicitation sexuelle contre argent, cadeau, service ou avantage n’est autorisée.')
+      }
     } catch (error) {
       console.error('Failed to send message:', error)
       setMessages(prevMessages =>
@@ -455,93 +431,22 @@ export default function ConversationPage ({
       )
       setMessage(currentMessage)
       setPendingAttachments(attachmentsToSend)
-      if (recoverFromStaleServerAction(error)) return
-      setSendError('Le message n’a pas pu être envoyé. Réessayez dans un instant.')
+      setSendError(memberFacingError(error, 'Le message n’a pas pu être envoyé. Réessayez dans un instant.'))
     } finally {
       setSending(false)
     }
   }
 
-  const startEditingMessage = (item: Message) => {
-    setEditingMessageId(item.id)
-    setEditingMessageContent(item.content)
-    setSendError(null)
-  }
-
-  const cancelEditingMessage = () => {
-    setEditingMessageId(null)
-    setEditingMessageContent('')
-  }
-
-  const saveEditedMessage = async () => {
-    if (!editingMessageId || !editingMessageContent.trim()) return
-
-    setMessageActionId(editingMessageId)
-    setSendError(null)
-    try {
-      const updated = await updateOwnMessage({
-        messageId: editingMessageId,
-        conversationId: id,
-        content: editingMessageContent
-      }) as Message
-      setMessages(current => current.map(item =>
-        item.id === editingMessageId ? { ...item, ...updated } : item
-      ))
-      cancelEditingMessage()
-    } catch (error) {
-      if (recoverFromStaleServerAction(error)) return
-      setSendError(error instanceof Error ? error.message : 'Modification impossible.')
-    } finally {
-      setMessageActionId(null)
-    }
-  }
-
-  const removeMessage = async (messageId: string) => {
-    if (!window.confirm('Supprimer ce message ? Cette action ne peut pas être annulée.')) return
-
-    setMessageActionId(messageId)
-    setSendError(null)
-    try {
-      const deleted = await deleteOwnMessage({
-        messageId,
-        conversationId: id
-      }) as Message
-      setMessages(current => current.map(item =>
-        item.id === messageId ? { ...item, ...deleted, attachments: [] } : item
-      ))
-      if (editingMessageId === messageId) cancelEditingMessage()
-    } catch (error) {
-      if (recoverFromStaleServerAction(error)) return
-      setSendError(error instanceof Error ? error.message : 'Suppression impossible.')
-    } finally {
-      setMessageActionId(null)
-    }
-  }
-
   const currentUserId = session?.user?.id
-  const canSend = Boolean(conversationDetails?.can_interact) && (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
-
-  const handleInteractionChange = (state: MemberSafetyState) => {
-    if (state.canInteract) {
-      void fetchData()
-      return
-    }
-
-    setConversationDetails(current => current ? {
-      ...current,
-      blocked_by_me: state.blockedByMe,
-      blocked_me: state.blockedMe,
-      can_interact: false
-    } : current)
-  }
+  const canSend = (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
 
   return (
     <MainLayout user={session?.user}>
       <LhrV2Shell
         user={session?.user}
-        eyebrow={conversationDetails?.access_mode === 'admin' ? 'Support Love Hotel' : 'Conversation privée'}
+        eyebrow='Conversation privée'
         title={conversationDetails?.other_user_name || 'Messages'}
-        subtitle='Un espace privé pour échanger avec clarté, texte, images, vocaux et vidéos.'
+        subtitle='Texte, vocaux, images et vidéos pour transformer une affinité en vraie rencontre.'
         action={
           <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
             <Link href='/messages'>
@@ -554,24 +459,21 @@ export default function ConversationPage ({
         <div className='grid min-h-[720px] overflow-hidden rounded-2xl border border-white/10 bg-black/16 lg:grid-cols-[minmax(0,1fr)_330px]'>
           <section className='flex min-h-[680px] flex-col'>
             <div className='flex items-center justify-between gap-3 border-b border-white/10 p-4'>
-              {conversationDetails && conversationDetails.access_mode !== 'admin' ? (
-                <Link href={`/profile/${conversationDetails.other_user_id}`} className='flex min-w-0 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.05]'>
-                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                    <Image src={conversationDetails.other_user_avatar || '/purple-haze-chat.png'} alt={conversationDetails.other_user_name || 'Profil'} fill className='object-cover' sizes='48px' />
-                  </div>
-                  <div className='min-w-0'>
-                    <h2 className='truncate font-black hover:text-[#ffb3d7]'>{conversationDetails.other_user_name}</h2>
-                    <p className='text-xs text-[#94ffc9]'>Voir le profil</p>
-                  </div>
-                </Link>
-              ) : (
-                <div className='flex min-w-0 items-center gap-3'>
-                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                    <Image src={conversationDetails?.other_user_avatar || '/purple-haze-chat.png'} alt={conversationDetails?.other_user_name || 'Profil'} fill className='object-cover' sizes='48px' />
-                  </div>
-                  <div className='min-w-0'>
-                    <h2 className='truncate font-black'>{conversationDetails?.other_user_name || 'Conversation'}</h2>
-                    <p className='text-xs text-[#94ffc9]'>
+              <div className='flex min-w-0 items-center gap-3'>
+                <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                  <Image
+                    src={conversationDetails?.other_user_avatar || '/purple-haze-chat.png'}
+                    alt={conversationDetails?.other_user_name || 'Profil'}
+                    fill
+                    className='object-cover'
+                    sizes='48px'
+                  />
+                </div>
+                <div className='min-w-0'>
+                  <h2 className='truncate font-black'>
+                    {conversationDetails?.other_user_name || 'Conversation'}
+                  </h2>
+                  <p className='text-xs text-[#94ffc9]'>
                     {loading
                       ? 'Chargement...'
                       : error
@@ -579,27 +481,16 @@ export default function ConversationPage ({
                         : syncing
                           ? 'Synchronisation...'
                           : lastSyncedAt
-                            ? conversationDetails?.access_mode === 'admin'
-                              ? 'Réponse de l’équipe disponible'
-                              : 'Synchronisé'
+                            ? 'Synchronisé'
                             : 'Disponible pour échanger'}
-                    </p>
-                  </div>
+                  </p>
                 </div>
-              )}
-              {conversationDetails && conversationDetails.access_mode !== 'admin' && (
-                <MemberSafetyControls
-                  memberId={conversationDetails.other_user_id}
-                  memberName={conversationDetails.other_user_name}
-                  initialState={{
-                    blockedByMe: conversationDetails.blocked_by_me,
-                    blockedMe: conversationDetails.blocked_me,
-                    canInteract: conversationDetails.can_interact
-                  }}
-                  compact
-                  onInteractionChange={handleInteractionChange}
-                />
-              )}
+              </div>
+              <div className='hidden items-center gap-2 text-xs font-bold text-white/50 sm:flex'>
+                <ImageIcon className='h-4 w-4' />
+                <Mic className='h-4 w-4' />
+                <Video className='h-4 w-4' />
+              </div>
             </div>
 
             {loading && (
@@ -622,9 +513,9 @@ export default function ConversationPage ({
                   {messages.length === 0 ? (
                     <div className='flex h-full items-center justify-center text-center'>
                       <div>
-                        <h3 className='text-xl font-black'>Commencer la conversation</h3>
+                        <h3 className='text-xl font-black'>Premier message</h3>
                         <p className='mt-2 max-w-sm text-sm leading-6 text-white/56'>
-                          Écrivez un premier mot, partagez une image ou envoyez un vocal court.
+                          Lancez l’échange avec un mot, une photo d’ambiance ou un vocal court.
                         </p>
                       </div>
                     </div>
@@ -646,7 +537,7 @@ export default function ConversationPage ({
                                   : 'rounded-bl-md border border-white/10 bg-white/10 text-white shadow-black/10'
                               ].join(' ')}
                             >
-                              {!msg.deleted_at && attachments.length > 0 && (
+                              {attachments.length > 0 && (
                                 <div className='mb-3 space-y-2'>
                                   {attachments.map((attachment, index) => (
                                     <div key={attachment.id || `${attachment.url}-${index}`}>
@@ -655,52 +546,12 @@ export default function ConversationPage ({
                                   ))}
                                 </div>
                               )}
-                              {editingMessageId === msg.id ? (
-                                <div className='space-y-2'>
-                                  <textarea
-                                    value={editingMessageContent}
-                                    onChange={event => setEditingMessageContent(event.target.value.slice(0, 1000))}
-                                    rows={3}
-                                    autoFocus
-                                    className='w-full resize-y rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-sm text-white outline-none focus:border-white/50'
-                                    aria-label='Modifier le message'
-                                  />
-                                  <div className='flex justify-end gap-2'>
-                                    <button type='button' onClick={cancelEditingMessage} className='rounded-full p-1.5 text-white/70 hover:bg-white/10 hover:text-white' aria-label='Annuler la modification'>
-                                      <X className='h-4 w-4' />
-                                    </button>
-                                    <button type='button' onClick={saveEditedMessage} disabled={!editingMessageContent.trim() || messageActionId === msg.id} className='rounded-full p-1.5 text-white hover:bg-white/15 disabled:opacity-40' aria-label='Enregistrer le message'>
-                                      <Check className='h-4 w-4' />
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                msg.content && (
-                                  <div className={msg.deleted_at ? 'break-words italic text-white/62' : 'break-words'}>
-                                    {msg.content}
-                                  </div>
-                                )
-                              )}
-                              <div className='mt-1 flex items-center justify-end gap-2'>
-                                {msg.edited_at && !msg.deleted_at && <span className='text-[11px] text-white/55'>modifié</span>}
-                                <span className={mine ? 'text-xs text-white/72' : 'text-xs text-white/42'}>
-                                  {new Date(msg.created_at).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </span>
-                                {mine && !msg.deleted_at && editingMessageId !== msg.id && !msg.id.startsWith('optimistic-') && (
-                                  <span className='flex items-center gap-0.5'>
-                                    {msg.content && (
-                                      <button type='button' onClick={() => startEditingMessage(msg)} className='rounded-full p-1 text-white/65 hover:bg-white/15 hover:text-white' aria-label='Modifier le message'>
-                                        <Pencil className='h-3.5 w-3.5' />
-                                      </button>
-                                    )}
-                                    <button type='button' onClick={() => removeMessage(msg.id)} disabled={messageActionId === msg.id} className='rounded-full p-1 text-white/65 hover:bg-white/15 hover:text-white disabled:opacity-40' aria-label='Supprimer le message'>
-                                      <Trash2 className='h-3.5 w-3.5' />
-                                    </button>
-                                  </span>
-                                )}
+                              {msg.content && <div className='break-words'>{msg.content}</div>}
+                              <div className={mine ? 'mt-1 text-right text-xs text-white/72' : 'mt-1 text-right text-xs text-white/42'}>
+                                {new Date(msg.created_at).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
                               </div>
                             </div>
                           </div>
@@ -712,12 +563,6 @@ export default function ConversationPage ({
                 </div>
 
                 <div className='border-t border-white/10 bg-black/20 p-4'>
-                  {!conversationDetails?.can_interact && (
-                    <div className='mb-3 rounded-2xl border border-[#ffd166]/25 bg-[#ffd166]/10 px-4 py-3'>
-                      <p className='font-black text-[#ffe09a]'>Conversation en lecture seule</p>
-                      <p className='mt-1 text-xs text-white/58'>L’historique reste disponible, mais aucun nouveau message ou média ne peut être envoyé.</p>
-                    </div>
-                  )}
                   {sendError && (
                     <p className='mb-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
                       {sendError}
@@ -757,7 +602,7 @@ export default function ConversationPage ({
                       variant='outline'
                       onClick={() => fileInputRef.current?.click()}
                       className='h-12 rounded-2xl border-white/12 bg-white/[0.04] px-4'
-                      disabled={!conversationDetails?.can_interact || uploading || sending || recording || pendingAttachments.length >= 4}
+                      disabled={uploading || sending || recording || pendingAttachments.length >= 4}
                     >
                       <Paperclip className='h-4 w-4' />
                     </Button>
@@ -771,7 +616,7 @@ export default function ConversationPage ({
                           ? 'bg-[#ff3b8b]/24 text-[#ffb4d8]'
                           : 'bg-white/[0.04]'
                       ].join(' ')}
-                      disabled={!conversationDetails?.can_interact || uploading || sending || pendingAttachments.length >= 4}
+                      disabled={uploading || sending || pendingAttachments.length >= 4}
                       aria-label={recording ? 'Arrêter le vocal' : 'Enregistrer un vocal'}
                     >
                       {recording ? <Square className='h-4 w-4' /> : <Mic className='h-4 w-4' />}
@@ -781,7 +626,7 @@ export default function ConversationPage ({
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
                       className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
-                      disabled={!conversationDetails?.can_interact || sending || recording}
+                      disabled={sending || recording}
                     />
                     <Button
                       type='submit'

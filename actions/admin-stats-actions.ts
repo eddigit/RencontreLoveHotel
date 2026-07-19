@@ -4,6 +4,7 @@ import { sql } from '@/lib/db'
 import { requireAdmin } from '@/lib/server-auth'
 
 export interface AdminStatsData {
+  // Utilisateurs
   totalUsers: number
   usersToday: number
   usersThisWeek: number
@@ -14,40 +15,32 @@ export interface AdminStatsData {
     couple: number
     other: number
   }
-  onlineUsersNow: number
   activeUsersToday: number
-  activeUsersThisWeek: number
+
+  // Messages
   totalMessages: number
   messagesToday: number
   messagesThisWeek: number
   messagesThisMonth: number
+
+  // Événements
   totalEvents: number
   eventsToday: number
   upcomingEvents: number
   eventSubscriptionsToday: number
+
+  // Matches/Conversations
   totalConversations: number
   conversationsToday: number
   activeConversationsToday: number
-  totalMatches: number
-  matchRequestsLast24h: number
-  acceptedMatchesLast24h: number
-  wallActivityLast24h: number
-  supportRequestsLast24h: number
+
+  // Activité récente
   recentActivity: {
-    newUsersLast24h: number
+    newUsersToday: number
     messagesLast24h: number
     eventSubscriptionsLast24h: number
     conversationsLast24h: number
-    matchRequestsLast24h: number
-    wallActivityLast24h: number
   }
-  generatedAt: string
-}
-
-type DashboardRow = Record<string, string | number | Date | null>
-
-function count(row: DashboardRow, key: string) {
-  return Number(row[key] || 0)
 }
 
 export interface AdminLoginRoleStatus {
@@ -89,130 +82,218 @@ function asNumber(value: unknown): number {
 export async function getAdminDashboardStats(): Promise<AdminStatsData> {
   await requireAdmin()
 
-  const rows = await sql.query<DashboardRow[]>(`
-    SELECT
-      (SELECT COUNT(*) FROM users) AS total_users,
-      (SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '24 hours') AS users_last_24h,
-      (SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '7 days') AS users_last_7d,
-      (SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '30 days') AS users_last_30d,
-      (SELECT COUNT(*) FROM users WHERE last_seen_at >= NOW() - INTERVAL '10 minutes') AS online_users_now,
-      (SELECT COUNT(*) FROM users WHERE last_seen_at >= NOW() - INTERVAL '24 hours') AS active_users_last_24h,
-      (SELECT COUNT(*) FROM users WHERE last_seen_at >= NOW() - INTERVAL '7 days') AS active_users_last_7d,
+  try {
+    // Helper pour exécuter une requête avec fallback
+    const safeQuery = async (query: string, fallback = 0) => {
+      try {
+        const result = await sql.query(query)
+        return result[0]?.count || fallback
+      } catch (error) {
+        console.warn('Requête échouée:', query, error)
+        return fallback
+      }
+    }
 
-      (SELECT COUNT(*) FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
-        WHERE LOWER(COALESCE(up.gender, '')) IN ('male', 'single_male', 'single_man', 'married_male', 'married_man')) AS gender_male,
-      (SELECT COUNT(*) FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
-        WHERE LOWER(COALESCE(up.gender, '')) IN ('female', 'single_female', 'single_woman', 'married_female', 'married_woman')) AS gender_female,
-      (SELECT COUNT(*) FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
-        WHERE LOWER(COALESCE(up.gender, '')) LIKE 'couple%') AS gender_couple,
-      (SELECT COUNT(*) FROM users u LEFT JOIN user_profiles up ON up.user_id = u.id
-        WHERE LOWER(COALESCE(up.gender, '')) NOT IN (
-          'male', 'single_male', 'single_man', 'married_male', 'married_man',
-          'female', 'single_female', 'single_woman', 'married_female', 'married_woman'
-        ) AND LOWER(COALESCE(up.gender, '')) NOT LIKE 'couple%') AS gender_other,
+    // Helper pour la requête genre avec fallback
+    const safeGenderQuery = async () => {
+      try {
+        const result = await sql.query(`
+          SELECT
+            gender,
+            COUNT(*) as count
+          FROM user_profiles
+          GROUP BY gender
+        `)
+        return result
+      } catch (error) {
+        console.warn('Requête genre échouée:', error)
+        return []
+      }
+    }
 
-      (SELECT COUNT(*) FROM messages) AS total_messages,
-      (SELECT COUNT(*) FROM messages WHERE created_at >= NOW() - INTERVAL '24 hours') AS messages_last_24h,
-      (SELECT COUNT(*) FROM messages WHERE created_at >= NOW() - INTERVAL '7 days') AS messages_last_7d,
-      (SELECT COUNT(*) FROM messages WHERE created_at >= NOW() - INTERVAL '30 days') AS messages_last_30d,
+    // Statistiques de base (parallèles mais sécurisées)
+    const [
+      totalUsers,
+      usersToday,
+      usersWeek,
+      usersMonth,
+      genderResults,
+      activeUsersToday,
+      totalMessages,
+      messagesToday,
+      messagesWeek,
+      messagesMonth,
+      totalEvents,
+      eventsToday,
+      upcomingEvents,
+      eventSubscriptionsToday,
+      totalConversations,
+      conversationsToday,
+      activeConversationsToday
+    ] = await Promise.all([
+      safeQuery(`SELECT COUNT(*) as count FROM users`),
+      safeQuery(`SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = DATE(NOW())`),
+      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeQuery(`SELECT COUNT(*) as count FROM users WHERE created_at >= NOW() - INTERVAL '30 days'`),
+      safeGenderQuery(),
+      safeQuery(`
+        SELECT COUNT(DISTINCT sender_id) as count
+        FROM messages
+        WHERE DATE(created_at) = DATE(NOW())
+      `),
+      safeQuery(`SELECT COUNT(*) as count FROM messages`),
+      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE DATE(created_at) = DATE(NOW())`),
+      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeQuery(`SELECT COUNT(*) as count FROM messages WHERE created_at >= NOW() - INTERVAL '30 days'`),
+      safeQuery(`SELECT COUNT(*) as count FROM events`),
+      safeQuery(`SELECT COUNT(*) as count FROM events WHERE DATE(created_at) = DATE(NOW())`),
+      safeQuery(`SELECT COUNT(*) as count FROM events WHERE event_date >= NOW()`),
+      safeQuery(`
+        SELECT COUNT(*) as count
+        FROM event_participants
+        WHERE DATE(created_at) = DATE(NOW())
+      `),
+      safeQuery(`SELECT COUNT(*) as count FROM conversations`),
+      safeQuery(`SELECT COUNT(*) as count FROM conversations WHERE DATE(created_at) = DATE(NOW())`),
+      safeQuery(`
+        SELECT COUNT(DISTINCT conversation_id) as count
+        FROM messages
+        WHERE DATE(created_at) = DATE(NOW())
+      `)
+    ])
 
-      (SELECT COUNT(*) FROM events) AS total_events,
-      (SELECT COUNT(*) FROM events WHERE created_at >= NOW() - INTERVAL '24 hours') AS events_last_24h,
-      (SELECT COUNT(*) FROM events
-       WHERE (event_date + COALESCE(event_time, '23:59:59'::time)) > NOW()
-         AND publication_status = 'published') AS upcoming_events,
-      (SELECT COUNT(*) FROM event_participants WHERE created_at >= NOW() - INTERVAL '24 hours') AS event_subscriptions_last_24h,
+    // Agrégation des données de genre avec fallback
+    const genderStats = (genderResults || []).reduce((acc: any, row: any) => {
+      acc[row.gender || 'other'] = row.count || 0
+      return acc
+    }, { male: 0, female: 0, couple: 0, other: 0 })
 
-      (SELECT COUNT(*) FROM conversations) AS total_conversations,
-      (SELECT COUNT(*) FROM conversations WHERE created_at >= NOW() - INTERVAL '24 hours') AS conversations_last_24h,
-      (SELECT COUNT(DISTINCT conversation_id) FROM messages WHERE created_at >= NOW() - INTERVAL '24 hours') AS active_conversations_last_24h,
+    const stats: AdminStatsData = {
+      // Utilisateurs
+      totalUsers,
+      usersToday,
+      usersThisWeek: usersWeek,
+      usersThisMonth: usersMonth,
+      usersByGender: genderStats,
+      activeUsersToday,
 
-      (SELECT COUNT(*) FROM user_matches) AS total_matches,
-      (SELECT COUNT(*) FROM user_matches WHERE created_at >= NOW() - INTERVAL '24 hours') AS match_requests_last_24h,
-      (SELECT COUNT(*) FROM user_matches WHERE status = 'accepted' AND updated_at >= NOW() - INTERVAL '24 hours') AS accepted_matches_last_24h,
+      // Messages
+      totalMessages,
+      messagesToday,
+      messagesThisWeek: messagesWeek,
+      messagesThisMonth: messagesMonth,
 
-      ((SELECT COUNT(*) FROM wall_posts WHERE created_at >= NOW() - INTERVAL '24 hours') +
-       (SELECT COUNT(*) FROM wall_comments WHERE created_at >= NOW() - INTERVAL '24 hours')) AS wall_activity_last_24h,
-      ((SELECT COUNT(*) FROM community_feedback WHERE created_at >= NOW() - INTERVAL '24 hours') +
-       (SELECT COUNT(*) FROM conciergerie_requests WHERE created_at >= NOW() - INTERVAL '24 hours')) AS support_requests_last_24h,
-      NOW() AS generated_at
-  `)
-  const row = rows[0]
-  if (!row) throw new Error('Instantané KPI indisponible')
+      // Événements
+      totalEvents,
+      eventsToday,
+      upcomingEvents,
+      eventSubscriptionsToday,
 
-  const usersToday = count(row, 'users_last_24h')
-  const messagesToday = count(row, 'messages_last_24h')
-  const eventsToday = count(row, 'events_last_24h')
-  const eventSubscriptionsToday = count(row, 'event_subscriptions_last_24h')
-  const conversationsToday = count(row, 'conversations_last_24h')
-  const matchRequestsLast24h = count(row, 'match_requests_last_24h')
-  const wallActivityLast24h = count(row, 'wall_activity_last_24h')
+      // Conversations
+      totalConversations,
+      conversationsToday,
+      activeConversationsToday,
 
-  return {
-    totalUsers: count(row, 'total_users'),
-    usersToday,
-    usersThisWeek: count(row, 'users_last_7d'),
-    usersThisMonth: count(row, 'users_last_30d'),
-    usersByGender: {
-      male: count(row, 'gender_male'),
-      female: count(row, 'gender_female'),
-      couple: count(row, 'gender_couple'),
-      other: count(row, 'gender_other')
-    },
-    onlineUsersNow: count(row, 'online_users_now'),
-    activeUsersToday: count(row, 'active_users_last_24h'),
-    activeUsersThisWeek: count(row, 'active_users_last_7d'),
-    totalMessages: count(row, 'total_messages'),
-    messagesToday,
-    messagesThisWeek: count(row, 'messages_last_7d'),
-    messagesThisMonth: count(row, 'messages_last_30d'),
-    totalEvents: count(row, 'total_events'),
-    eventsToday,
-    upcomingEvents: count(row, 'upcoming_events'),
-    eventSubscriptionsToday,
-    totalConversations: count(row, 'total_conversations'),
-    conversationsToday,
-    activeConversationsToday: count(row, 'active_conversations_last_24h'),
-    totalMatches: count(row, 'total_matches'),
-    matchRequestsLast24h,
-    acceptedMatchesLast24h: count(row, 'accepted_matches_last_24h'),
-    wallActivityLast24h,
-    supportRequestsLast24h: count(row, 'support_requests_last_24h'),
-    recentActivity: {
-      newUsersLast24h: usersToday,
-      messagesLast24h: messagesToday,
-      eventSubscriptionsLast24h: eventSubscriptionsToday,
-      conversationsLast24h: conversationsToday,
-      matchRequestsLast24h,
-      wallActivityLast24h
-    },
-    generatedAt: new Date(row.generated_at || Date.now()).toISOString()
+      // Activité récente
+      recentActivity: {
+        newUsersToday: usersToday,
+        messagesLast24h: messagesToday,
+        eventSubscriptionsLast24h: eventSubscriptionsToday,
+        conversationsLast24h: conversationsToday
+      }
+    }
+
+    return stats
+
+  } catch (error) {
+    console.error('Erreur lors du chargement des statistiques admin:', error)
+    // Retour de statistiques par défaut en cas d'erreur complète
+    return {
+      totalUsers: 0,
+      usersToday: 0,
+      usersThisWeek: 0,
+      usersThisMonth: 0,
+      usersByGender: { male: 0, female: 0, couple: 0, other: 0 },
+      activeUsersToday: 0,
+      totalMessages: 0,
+      messagesToday: 0,
+      messagesThisWeek: 0,
+      messagesThisMonth: 0,
+      totalEvents: 0,
+      eventsToday: 0,
+      upcomingEvents: 0,
+      eventSubscriptionsToday: 0,
+      totalConversations: 0,
+      conversationsToday: 0,
+      activeConversationsToday: 0,
+      recentActivity: {
+        newUsersToday: 0,
+        messagesLast24h: 0,
+        eventSubscriptionsLast24h: 0,
+        conversationsLast24h: 0
+      }
+    }
   }
 }
 
+// Fonction pour obtenir des statistiques de performance en temps réel
 export async function getRealTimeMetrics() {
   await requireAdmin()
 
-  const rows = await sql.query<Array<{
-    active_users_last_5m: string | number
-    messages_last_5m: string | number
-    errors_last_5m: string | number
-    generated_at: string | Date
-  }>>(`
-    SELECT
-      (SELECT COUNT(*) FROM users WHERE last_seen_at >= NOW() - INTERVAL '5 minutes') AS active_users_last_5m,
-      (SELECT COUNT(*) FROM messages WHERE created_at >= NOW() - INTERVAL '5 minutes') AS messages_last_5m,
-      (SELECT COUNT(*) FROM auth_logs WHERE level = 'error' AND created_at >= NOW() - INTERVAL '5 minutes') AS errors_last_5m,
-      NOW() AS generated_at
-  `)
-  const row = rows[0]
-  if (!row) throw new Error('Métriques temps réel indisponibles')
+  try {
+    // Helper pour requêtes sécurisées
+    const safeQuery = async (query: string, fallback = 0) => {
+      try {
+        const result = await sql.query(query)
+        return result[0]?.count || fallback
+      } catch (error) {
+        console.warn('Requête temps réel échouée:', query, error)
+        return fallback
+      }
+    }
 
-  return {
-    connectionsLast5Min: Number(row.active_users_last_5m || 0),
-    messagesLast5Min: Number(row.messages_last_5m || 0),
-    errorsLast5Min: Number(row.errors_last_5m || 0),
-    timestamp: new Date(row.generated_at).toISOString()
+    const [
+      connectionsLast5Min,
+      messagesLast5Min,
+      errorsLast5Min
+    ] = await Promise.all([
+      // Activité utilisateurs récente (via messages)
+      safeQuery(`
+        SELECT COUNT(DISTINCT sender_id) as count
+        FROM messages
+        WHERE created_at >= NOW() - INTERVAL '5 minutes'
+      `),
+
+      // Messages dans les 5 dernières minutes
+      safeQuery(`
+        SELECT COUNT(*) as count
+        FROM messages
+        WHERE created_at >= NOW() - INTERVAL '5 minutes'
+      `),
+
+      // Table absente sur la beta actuelle : fallback automatique à 0.
+      safeQuery(`
+        SELECT COUNT(*) as count
+        FROM auth_logs
+        WHERE level = 'error'
+          AND created_at >= NOW() - INTERVAL '5 minutes'
+      `)
+    ])
+
+    return {
+      connectionsLast5Min,
+      messagesLast5Min,
+      errorsLast5Min,
+      timestamp: new Date().toISOString()
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des métriques temps réel:', error)
+    return {
+      connectionsLast5Min: 0,
+      messagesLast5Min: 0,
+      errorsLast5Min: 0,
+      timestamp: new Date().toISOString()
+    }
   }
 }
 

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
 import { ArrowLeft, ArrowRight, Check } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -160,8 +161,10 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
       case 1:
         return (
           formData.status !== "" &&
+          formData.age !== null &&
           formData.orientation !== "" &&
-          formData.gender !== ""
+          formData.gender !== "" &&
+          formData.birthday !== ""
         )
       case 2:
         return true // Toutes les options sont facultatives dans cette étape
@@ -227,6 +230,27 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="age" className="text-purple-100">
+                Votre âge
+              </Label>
+              <Select
+                value={formData.age?.toString() || ""}
+                onValueChange={(value) => updateFormData("age", Number.parseInt(value))}
+              >
+                <SelectTrigger id="age" className="bg-purple-900/20 border-purple-800/50 focus:ring-[#ff3b8b]">
+                  <SelectValue placeholder="Sélectionnez votre âge" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#2d1155] border-purple-800/50">
+                  {Array.from({ length: 62 }, (_, i) => i + 18).map((age) => (
+                    <SelectItem key={age} value={age.toString()} className="focus:bg-[#ff3b8b]/20">
+                      {age} ans
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="orientation" className="text-purple-100">
                 Votre orientation
               </Label>
@@ -281,6 +305,18 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
               </Select>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="birthday" className="text-purple-100">
+                Date de naissance
+              </Label>
+              <Input
+                id="birthday"
+                type="date"
+                value={formData.birthday}
+                onChange={(e) => updateFormData("birthday", e.target.value)}
+                className="bg-purple-900/20 border-purple-800/50 focus:ring-[#ff3b8b] focus:border-[#ff3b8b] text-white"
+              />
+            </div>
           </div>
         )}
 

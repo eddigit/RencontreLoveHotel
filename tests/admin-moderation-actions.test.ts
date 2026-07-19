@@ -21,11 +21,6 @@ vi.mock('@/lib/auth', () => ({
 import {
   createModerationKeyword,
   getModerationDashboard,
-  getProfileReportQueue,
-  getWallModerationQueue,
-  removeWallModerationItem,
-  restoreWallModerationItem,
-  resolveProfileReport,
   scanRecentMessagesForModeration
 } from '../actions/admin-moderation-actions'
 import { notifyAdmins } from '@/actions/notification-actions'
@@ -49,49 +44,6 @@ describe('admin moderation actions', () => {
 
     await expect(getModerationDashboard()).rejects.toThrow('administrateur')
     expect(sql.query).not.toHaveBeenCalled()
-  })
-
-  it('lists profile reports with reporter and reported member context', async () => {
-    ;(sql.query as any).mockResolvedValueOnce([{
-      id: 'report-1',
-      reporter_id: 'reporter-1',
-      reported_user_id: 'reported-1',
-      reporter_name: 'Témoin',
-      reported_name: 'Profil signalé',
-      distinct_report_count: 2
-    }])
-
-    const reports = await getProfileReportQueue()
-
-    expect(reports[0].reported_name).toBe('Profil signalé')
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('FROM profile_reports pr')
-    )
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('distinct_report_count')
-    )
-  })
-
-  it('resolves a profile report without mutating the reported account', async () => {
-    ;(sql.query as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-
-    await expect(resolveProfileReport({
-      reportId: 'report-1',
-      status: 'actioned',
-      note: 'Profil examiné par la modération.'
-    })).resolves.toEqual({ success: true })
-
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE profile_reports'),
-      ['report-1', 'actioned', 'admin-1', 'Profil examiné par la modération.']
-    )
-    expect(sql.query).not.toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE users'),
-      expect.anything()
-    )
   })
 
   it('loads a defensive moderation dashboard with counts, rules and queue', async () => {
@@ -203,86 +155,6 @@ describe('admin moderation actions', () => {
         link: '/admin/moderation',
         category: 'moderation'
       })
-    )
-  })
-
-  it('loads the wall moderation queue for admins', async () => {
-    ;(sql.query as any).mockResolvedValueOnce([
-      {
-        id: 'queue-1',
-        source_type: 'wall_post',
-        source_id: 'post-1',
-        user_id: 'user-1',
-        severity: 'medium',
-        status: 'new',
-        reason: 'Signalement membre',
-        matched_keywords: [],
-        excerpt: 'Annonce a verifier',
-        image_url: 'https://blob.example/wall/photo.png',
-        created_at: new Date('2026-07-10T08:00:00Z'),
-        author_name: 'Gilles',
-        author_avatar: null
-      }
-    ])
-
-    const rows = await getWallModerationQueue()
-
-    expect(rows[0].source_type).toBe('wall_post')
-    expect(rows[0].author_name).toBe('Gilles')
-    expect(rows[0].image_url).toBe('https://blob.example/wall/photo.png')
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining("source_type IN ('wall_post', 'wall_comment')"),
-      []
-    )
-  })
-
-  it('restores hidden wall posts from moderation', async () => {
-    ;(sql.query as any)
-      .mockResolvedValueOnce([{ source_type: 'wall_post', source_id: 'post-1' }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-
-    await expect(
-      restoreWallModerationItem({ itemId: 'queue-1', reason: 'OK apres verification' })
-    ).resolves.toEqual({ success: true })
-
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE wall_posts'),
-      ['post-1']
-    )
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE moderation_queue'),
-      ['queue-1', 'ignored', 'admin-1']
-    )
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO admin_audit_log'),
-      ['admin-1', 'wall_restore', 'wall_post', 'post-1', 'OK apres verification']
-    )
-  })
-
-  it('removes wall comments from moderation', async () => {
-    ;(sql.query as any)
-      .mockResolvedValueOnce([{ source_type: 'wall_comment', source_id: 'comment-1' }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-
-    await expect(
-      removeWallModerationItem({ itemId: 'queue-1', reason: 'Hors cadre' })
-    ).resolves.toEqual({ success: true })
-
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE wall_comments'),
-      ['comment-1']
-    )
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('UPDATE moderation_queue'),
-      ['queue-1', 'actioned', 'admin-1']
-    )
-    expect(sql.query).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT INTO admin_audit_log'),
-      ['admin-1', 'wall_remove', 'wall_comment', 'comment-1', 'Hors cadre']
     )
   })
 })

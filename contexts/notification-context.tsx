@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/actions"
 import { useAuth } from "@/contexts/auth-context"
 import type { Notification } from "@/components/notifications-dropdown"
@@ -43,18 +43,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     let pollingStopped = false;
     let interval: NodeJS.Timeout;
     async function loadNotifications() {
+      if (pollingStopped || document.visibilityState === 'hidden') return
       try {
         const { notifications } = await getNotifications(currentUserId)
         if (isMounted) setNotifications(notifications)
       } catch (error) {
         pollingStopped = true
-        if (!recoverFromStaleServerAction(error) && isMounted) console.error("Failed to load notifications:", error)
+        if (isMounted) recoverFromStaleServerAction(error)
       }
     }
     loadNotifications()
-    interval = setInterval(() => {
-      if (!pollingStopped) void loadNotifications()
-    }, 15000)
+    interval = setInterval(loadNotifications, 15000)
     return () => {
       isMounted = false;
       clearInterval(interval)
@@ -67,20 +66,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     setCounts({
       total: unreadNotifications.length,
-      messages: unreadNotifications.filter((n) =>
-        ['message', 'new_message'].includes(n.type)
-      ).length,
-      events: unreadNotifications.filter((n) =>
-        ['event', 'event_reservation', 'event_moderation'].includes(n.type)
-      ).length,
+      messages: unreadNotifications.filter((n) => n.type === "message").length,
+      events: unreadNotifications.filter((n) => n.type === "event").length,
       likes: unreadNotifications.filter((n) => n.type === "like").length,
-      matches: unreadNotifications.filter((n) =>
-        ['match', 'match_request', 'match_accepted'].includes(n.type)
-      ).length,
+      matches: unreadNotifications.filter((n) => n.type === "match").length,
     })
   }, [notifications])
 
-  const markAsRead = useCallback(async (id: string) => {
+  const markAsRead = async (id: string) => {
     setNotifications((prev) => {
       const notification = prev.find((n) => n.id === id)
       if (!notification || notification.read) {
@@ -93,9 +86,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       recoverFromStaleServerAction(e)
     }
-  }, [])
+  }
 
-  const markAllAsRead = useCallback(async () => {
+  const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })))
     if (user?.id) {
       try {
@@ -104,11 +97,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         recoverFromStaleServerAction(e)
       }
     }
-  }, [user?.id])
+  }
 
-  const addNotification = useCallback((notification: Notification) => {
+  const addNotification = (notification: Notification) => {
     setNotifications((prev) => [notification, ...prev])
-  }, [])
+  }
 
   return (
     <NotificationContext.Provider

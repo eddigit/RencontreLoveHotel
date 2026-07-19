@@ -5,7 +5,6 @@ import {
   isAuthenticatedApiPath,
   isProtectedPagePath,
   isPublicPath,
-  requiresAdultMembership,
   requiresVerifiedEmail
 } from "@/lib/route-access"
 
@@ -29,11 +28,6 @@ export default withAuth(
       if (!token) {
         return NextResponse.redirect(new URL('/login', req.url))
       }
-      if (requiresAdultMembership(pathname) && token.adultVerified !== true) {
-        const verificationUrl = new URL('/age-verification', req.url)
-        verificationUrl.searchParams.set('callbackUrl', `${pathname}${req.nextUrl.search}`)
-        return NextResponse.redirect(verificationUrl)
-      }
       if (requiresVerifiedEmail(pathname) && !token.email_verified) {
         return NextResponse.redirect(new URL('/verify-email-pending', req.url))
       }
@@ -42,12 +36,6 @@ export default withAuth(
     if (isAuthenticatedApiPath(pathname)) {
       if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
-      if (token.adultVerified !== true) {
-        return NextResponse.json(
-          { error: 'Vérification de majorité requise' },
-          { status: 403 }
-        )
       }
     }
 
@@ -63,7 +51,7 @@ export default withAuth(
         }
 
         // Pour toutes les autres routes, exiger un token
-        return Boolean(token && !token.blocked)
+        return !!token
       },
     },
   }

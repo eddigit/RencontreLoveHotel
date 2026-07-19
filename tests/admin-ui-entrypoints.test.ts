@@ -27,7 +27,7 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).toContain("<ProtectedRoute allowedRoles={['admin']}>")
     expect(source).toContain('Centre de modération')
     expect(source).toContain("href='/moderation'")
-    expect(source).toContain('Scanner les messages')
+    expect(source).not.toContain('Scanner les messages')
   })
 
   it('protects the admin options page', () => {
@@ -45,11 +45,11 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).toContain('sendInternalMessageToAllUsers')
   })
 
-  it('labels rolling dashboard KPIs with their explicit 24-hour window', () => {
+  it('labels calendar-day dashboard KPIs as today rather than rolling 24 hours', () => {
     const source = readFileSync('components/admin-real-time-stats.tsx', 'utf8')
 
-    expect(source).toContain('Activité sur 24 h')
-    expect(source).toContain('Actifs sur 24 h')
+    expect(source).toContain('Activité aujourd’hui')
+    expect(source).toContain('Actifs aujourd’hui')
     expect(source).not.toContain('Activité Récente (24h)')
   })
 })

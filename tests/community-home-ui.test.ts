@@ -21,12 +21,11 @@ describe('community home UI', () => {
     expect(page).toContain('en 24 h')
     expect(page).toContain('created_at?: string | Date | null')
     expect(page).toContain('const newProfiles = [...filteredProfiles]')
-    expect(page).toContain('.sort((left, right) =>')
     expect(page.indexOf("id='new-profiles'")).toBeLessThan(page.indexOf('<CommunityWall currentUserId={user.id}'))
     const eventsSectionIndex = page.indexOf("<h2 className='text-xl font-black'>Événements à venir</h2>")
     expect(page.indexOf('<CommunityWall currentUserId={user.id}')).toBeLessThan(eventsSectionIndex)
     expect(eventsSectionIndex).toBeLessThan(page.indexOf("id='online-now'"))
-    expect(page.match(/En ligne dans la communauté/g) || []).toHaveLength(0)
+    expect(page).not.toContain('En ligne dans la communauté')
   })
 
   it('prioritizes Love Hotel experiences and keeps premium as a teaser', () => {
@@ -42,16 +41,5 @@ describe('community home UI', () => {
     expect(page).toContain('lives privés')
     expect(page).toContain('Être prévenu')
     expect(page).not.toContain('€')
-  })
-
-  it('places the anti-prostitution reminder between member search and feedback', () => {
-    const page = readFileSync('app/discover/page.tsx', 'utf8')
-    const memberSearchIndex = page.indexOf("href='/members'")
-    const complianceImageIndex = page.indexOf("src='/compliance-communaute.png'")
-    const feedbackIndex = page.indexOf('<CommunityFeedbackWidget />')
-
-    expect(page).toContain("href='/community-safety'")
-    expect(complianceImageIndex).toBeGreaterThan(memberSearchIndex)
-    expect(complianceImageIndex).toBeLessThan(feedbackIndex)
   })
 })

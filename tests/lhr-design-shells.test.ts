@@ -72,7 +72,7 @@ describe('LHR moderation presentation', () => {
 
     expect(page).toContain('Dossiers ciblés à examiner')
     expect(page).toContain("href='/moderation'")
-    expect(page).toContain("href='/admin/messages'")
-    expect(page).toContain('scanRecentMessagesForModeration')
+    expect(page).not.toContain("href='/admin/messages'")
+    expect(page).not.toContain('scanRecentMessagesForModeration')
   })
 })

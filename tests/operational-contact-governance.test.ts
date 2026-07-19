@@ -5,7 +5,7 @@ import { OPERATIONAL_CONTACT_EMAIL } from '@/lib/operational-contact'
 describe('LHR operational contact governance', () => {
   it('routes non-legal operations to the requested contact', () => {
     expect(OPERATIONAL_CONTACT_EMAIL).toBe('loolyyb@gmail.com')
-    expect(readFileSync('app/api/conciergerie/route.ts', 'utf8')).toContain('getConciergerieRecipientEmail')
+    expect(readFileSync('app/api/conciergerie/route.ts', 'utf8')).toContain('OPERATIONAL_CONTACT_EMAIL')
   })
 
   it('promotes the operational account without changing legal identity', () => {

@@ -33,9 +33,12 @@ export function LhrV2Shell({
           ) : null}
         </div>
         {action ? (
-          <div className='flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end'>{action}</div>
+          <div className='flex flex-wrap items-center gap-2 sm:shrink-0 sm:justify-end'>
+            {action}
+          </div>
         ) : null}
       </header>
+
       <div className='p-3 sm:p-4 lg:p-5'>{children}</div>
     </section>
   )

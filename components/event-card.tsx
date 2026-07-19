@@ -1,37 +1,33 @@
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Calendar, MapPin, Sparkles, Users } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { CalendarDays, Check, Clock3, DoorOpen, MapPin, UsersRound } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-
-type ParticipationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+import { getEventImage } from '@/lib/event-presentation'
 
 interface EventCardProps {
-  id: string
   title: string
   location: string
   date: string
   image?: string | null
   attendees: number
-  maxParticipants?: number
-  venue?: string
+  prix_personne_seule?: number
+  prix_couple?: number
+  price?: number
+  isParticipating?: boolean
+  isPast?: boolean
+  onSubscribeToggle?: () => void
+  id?: string
+  creatorId?: string
+  currentUserId?: string
+  isAdmin?: boolean
+  venue?: 'pigalle' | 'chatelet' | string
   experienceType?: string
-  creatorName?: string
-  bookingConfirmed?: boolean
-  participationStatus?: ParticipationStatus
-  isOwner?: boolean
-  loading?: boolean
-  onRequest?: () => void
-  onWithdraw?: () => void
-}
-
-const experienceImages: Record<string, string> = {
-  jacuzzi: '/apero-jacuzzi-rencontre.jpg',
-  open_curtains: '/rideaux-ouverts-rencontre.jpg'
-}
-
-const experienceLabels: Record<string, string> = {
-  jacuzzi: 'Apéro jacuzzi',
-  open_curtains: 'Rideaux ouverts'
+  maxParticipants?: number
+  createdByRole?: string
+  publicationStatus?: string
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
 const venueLabels: Record<string, string> = {
@@ -39,88 +35,155 @@ const venueLabels: Record<string, string> = {
   chatelet: 'Châtelet'
 }
 
+const experienceLabels: Record<string, string> = {
+  jacuzzi: 'Apéro jacuzzi',
+  open_curtains: 'Rideaux ouverts'
+}
+
 export function EventCard ({
-  id,
   title,
   location,
   date,
   image,
   attendees,
-  maxParticipants,
+  prix_personne_seule,
+  prix_couple,
+  price,
+  isParticipating,
+  isPast,
+  onSubscribeToggle,
+  id,
+  creatorId,
+  currentUserId,
+  isAdmin,
   venue,
   experienceType,
-  creatorName,
-  bookingConfirmed,
-  participationStatus,
-  isOwner,
-  loading,
-  onRequest,
-  onWithdraw
+  maxParticipants,
+  createdByRole,
+  publicationStatus,
+  onEdit,
+  onDelete
 }: EventCardProps) {
-  const remaining = maxParticipants == null
-    ? null
-    : Math.max(0, Number(maxParticipants) - Number(attendees || 0))
-  const isFull = remaining === 0
-  const cover = image || experienceImages[experienceType || ''] || '/placeholder.svg'
-  const detailHref = `/events/${id}`
+  const canEdit =
+    isAdmin || (creatorId && currentUserId && creatorId === currentUserId)
+  const singlePrice = prix_personne_seule ?? 0
+  const couplePrice = prix_couple ?? 0
+  const eventImage = getEventImage({ image, experience_type: experienceType })
+  const experienceLabel = experienceType ? experienceLabels[experienceType] : ''
+  const isFull = Boolean(
+    maxParticipants && Number(attendees || 0) >= Number(maxParticipants)
+  )
+  const actionDisabled = Boolean(
+    isPast || !onSubscribeToggle || (isFull && !isParticipating)
+  )
+  const remainingPlaces = maxParticipants
+    ? Math.max(0, Number(maxParticipants) - Number(attendees || 0))
+    : null
 
   return (
-    <article className='overflow-hidden rounded-lg border border-white/10 bg-[#260633] shadow-lg shadow-black/20'>
-      <Link href={detailHref} className='relative block aspect-[16/9] overflow-hidden'>
-        <Image src={cover} alt={title} fill sizes='(max-width: 768px) 100vw, 33vw' className='object-cover transition duration-300 hover:scale-[1.02]' />
-        <span className='absolute left-3 top-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white'>
-          {experienceLabels[experienceType || ''] || 'Événement'}
-        </span>
-        {experienceType === 'open_curtains' && (
-          <span className={`absolute bottom-3 left-3 rounded-full px-3 py-1 text-xs font-bold ${bookingConfirmed ? 'bg-[#94ffc9] text-[#10241b]' : 'bg-[#ffd166] text-[#352600]'}`}>
-            {bookingConfirmed ? 'Chambre réservée' : 'Chambre à confirmer'}
-          </span>
-        )}
-      </Link>
-
-      <div className='space-y-4 p-4'>
-        <div>
-          <Link href={detailHref} className='text-lg font-black text-white hover:text-[#ff9dce]'>
-            {title}
-          </Link>
-          <p className='mt-1 text-sm text-white/55'>Organisé par {creatorName || 'un membre'}</p>
-        </div>
-
-        <div className='grid gap-2 text-sm text-white/75'>
-          <span className='flex items-center gap-2'><CalendarDays className='h-4 w-4 text-[#ff8cc8]' />{date}</span>
-          <span className='flex items-center gap-2'><MapPin className='h-4 w-4 text-[#94ffc9]' />{venueLabels[venue || ''] || location}</span>
-          <span className='flex items-center gap-2'><UsersRound className='h-4 w-4 text-[#ffd166]' />{remaining == null ? `${attendees} participant${attendees > 1 ? 's' : ''}` : `${remaining} place${remaining > 1 ? 's' : ''} restante${remaining > 1 ? 's' : ''}`}</span>
-        </div>
-
-        {isOwner ? (
-          <div className='flex h-11 items-center justify-center gap-2 rounded-md border border-[#94ffc9]/25 bg-[#94ffc9]/10 text-sm font-bold text-[#94ffc9]'>
-            <DoorOpen className='h-4 w-4' />Vous organisez
-          </div>
-        ) : participationStatus === 'accepted' ? (
-          <div className='space-y-2'>
-            <div className='flex h-11 items-center justify-center gap-2 rounded-md bg-[#94ffc9] text-sm font-bold text-[#10241b]'>
-              <Check className='h-4 w-4' />Participation acceptée
+    <Card className='overflow-hidden card-hover border-0 shadow-lg shadow-purple-900/20'>
+      <div className='relative h-48 sm:h-56'>
+        <Image
+          src={eventImage}
+          alt={title}
+          fill
+          className='object-cover'
+        />
+        <div className='absolute inset-0 bg-gradient-to-t from-[#1a0d2e] via-[#3d1155]/50 to-transparent flex items-end p-4'>
+          <div className='text-white'>
+            <h3 className='font-bold text-lg line-clamp-1'>{title}</h3>
+            <div className='flex items-center gap-1 text-sm'>
+              <MapPin className='h-3 w-3 flex-shrink-0' />
+              <span className='line-clamp-1'>{location}</span>
             </div>
-            <button type='button' onClick={onWithdraw} className='w-full text-xs text-white/50 underline hover:text-white'>Se retirer de l’événement</button>
           </div>
-        ) : participationStatus === 'pending' ? (
-          <div className='space-y-2'>
-            <Button disabled className='h-11 w-full bg-[#ffd166]/18 text-[#ffe7a3]'>
-              <Clock3 className='mr-2 h-4 w-4' />Demande envoyée
-            </Button>
-            <button type='button' onClick={onWithdraw} className='w-full text-xs text-white/50 underline hover:text-white'>Retirer ma demande</button>
-          </div>
-        ) : participationStatus === 'rejected' ? (
-          <div className='space-y-2'>
-            <p className='text-center text-xs text-red-200'>Demande refusée</p>
-            <Button onClick={onRequest} disabled={loading || isFull} className='h-11 w-full bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>Redemander à participer</Button>
-          </div>
-        ) : (
-          <Button onClick={onRequest} disabled={loading || isFull} className='h-11 w-full bg-[#ff4fa3] font-bold text-white hover:bg-[#ff6cb4]'>
-            {loading ? 'Envoi...' : isFull ? 'Événement complet' : 'Demander à participer'}
-          </Button>
-        )}
+        </div>
       </div>
-    </article>
+      <CardContent className='p-4 space-y-4 bg-gradient-to-br from-[#2d1155]/90 to-[#3d1155]/80'>
+        <div className='flex flex-wrap gap-2 text-xs font-semibold'>
+          {experienceLabel && (
+            <span className='inline-flex items-center gap-1 rounded-full bg-[#ff3b8b]/18 px-3 py-1 text-[#ff8cc8]'>
+              <Sparkles className='h-3 w-3' />
+              {experienceLabel}
+            </span>
+          )}
+          {venue && (
+            <span className='rounded-full bg-white/10 px-3 py-1 text-white/80'>
+              {venueLabels[venue] || venue}
+            </span>
+          )}
+          {createdByRole === 'member' && (
+            <span className='rounded-full bg-white/10 px-3 py-1 text-white/70'>
+              Communauté
+            </span>
+          )}
+        </div>
+        <div className='flex items-center justify-between flex-wrap gap-y-2'>
+          <div className='flex items-center gap-1 text-sm text-gray-300'>
+            <Calendar className='h-3 w-3 flex-shrink-0' />
+            <span>{date}</span>
+          </div>
+          <div className='flex items-center gap-1 text-sm text-gray-300'>
+            <Users className='h-3 w-3 flex-shrink-0' />
+            <span>
+              {remainingPlaces !== null
+                ? `${remainingPlaces} place${remainingPlaces > 1 ? 's' : ''} restante${remainingPlaces > 1 ? 's' : ''}`
+                : `${attendees} participant${attendees > 1 ? 's' : ''}`}
+            </span>
+          </div>
+        </div>
+        {(singlePrice > 0 || couplePrice > 0) && (
+          <div className='flex flex-col gap-1 text-pink-300 font-semibold'>
+            {singlePrice > 0 && <span>Pers. seule : {singlePrice}€</span>}
+            {couplePrice > 0 && <span>Couple : {couplePrice}€</span>}
+          </div>
+        )}
+        {singlePrice === 0 && couplePrice === 0 && price && (
+          <div className='text-pink-300 font-semibold'>{price}€</div>
+        )}
+        <Button
+          className={`w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] border-0 hover:opacity-90`}
+          variant={isParticipating ? 'secondary' : 'default'}
+          onClick={onSubscribeToggle}
+          disabled={actionDisabled}
+        >
+          {isPast
+            ? 'Terminé'
+            : isParticipating
+            ? 'Se désinscrire'
+            : isFull
+            ? 'Complet'
+            : 'Participer'}
+        </Button>
+
+        <Link href={`/events/${id}`}>
+          <Button variant="outline" className="w-full mt-2">
+            Voir les détails
+          </Button>
+        </Link>
+        {canEdit && (
+          <div className='flex gap-2 mt-2'>
+            <Button
+              size='sm'
+              variant='outline'
+              className='w-full'
+              onClick={onEdit}
+            >
+              Modifier
+            </Button>
+            {onDelete && (
+              <Button
+                size='sm'
+                variant='destructive'
+                className='w-full'
+                onClick={onDelete}
+              >
+                Supprimer
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

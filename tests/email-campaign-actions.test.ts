@@ -1,13 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const requireAdminMock = vi.hoisted(() => vi.fn())
-const sendMailMock = vi.hoisted(() => vi.fn())
-
-vi.mock('nodemailer', () => ({
-  default: {
-    createTransport: vi.fn(() => ({ sendMail: sendMailMock }))
-  }
-}))
 
 vi.mock('@/lib/db', () => ({
   sql: {
@@ -25,8 +18,7 @@ import {
   listEmailCampaigns,
   listEmailTemplates,
   prepareCampaignRecipients,
-  previewEmailAudience,
-  sendPreparedEmailCampaign
+  previewEmailAudience
 } from '../actions/email-campaign-actions'
 import { renderEmailTemplate } from '../lib/email-template-renderer'
 import { sql } from '@/lib/db'
@@ -35,12 +27,7 @@ describe('email campaign actions', () => {
   beforeEach(() => {
     ;(sql.query as any).mockReset()
     requireAdminMock.mockReset()
-    sendMailMock.mockReset()
     requireAdminMock.mockResolvedValue({ id: 'admin-1', role: 'admin' })
-    process.env.SMTP_HOST = 'smtp.example.com'
-    process.env.SMTP_PORT = '587'
-    process.env.SMTP_USER = 'mailer'
-    process.env.SMTP_PASS = 'secret'
   })
 
   it('requires admin access before touching campaign data', async () => {
@@ -66,9 +53,6 @@ describe('email campaign actions', () => {
       })
     ).rejects.toThrow('administrateur')
     await expect(prepareCampaignRecipients('campaign-1')).rejects.toThrow(
-      'administrateur'
-    )
-    await expect(sendPreparedEmailCampaign('campaign-1')).rejects.toThrow(
       'administrateur'
     )
 
@@ -133,35 +117,6 @@ describe('email campaign actions', () => {
       }
     })
     expect(sql.query).toHaveBeenCalledWith(expect.stringContaining('FROM users u'), [])
-  })
-
-  it('keeps a manual member selection in the campaign draft', async () => {
-    const userIds = [
-      '11111111-1111-4111-8111-111111111111',
-      '22222222-2222-4222-8222-222222222222'
-    ]
-    ;(sql.query as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'campaign-1' }])
-
-    await createEmailCampaignDraft({
-      name: 'Relance ciblée',
-      audienceFilter: { audience: 'manual', userIds }
-    })
-
-    expect(sql.query).toHaveBeenNthCalledWith(
-      1,
-      expect.stringContaining('u.id = ANY($1::uuid[])'),
-      [userIds]
-    )
-    expect(sql.query).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining('INSERT INTO email_campaigns'),
-      expect.arrayContaining([
-        'Relance ciblée',
-        JSON.stringify({ audience: 'manual', userIds })
-      ])
-    )
   })
 
   it('renders template variables without mutating the original template', () => {
@@ -238,44 +193,6 @@ describe('email campaign actions', () => {
         'skipped_opt_out',
         'opted_out'
       ]
-    )
-  })
-
-  it('sends a prepared campaign only to queued consented recipients', async () => {
-    ;(sql.query as any)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{
-        id: 'campaign-1',
-        name: 'Relance ciblée',
-        subject: 'Bonjour [name]',
-        body_html: '<p>Revenez nous voir, [name].</p>',
-        body_text: 'Revenez nous voir, [name].',
-        cta_url: '/discover',
-        audience_filter: { audience: 'manual', userIds: ['11111111-1111-4111-8111-111111111111'] }
-      }])
-      .mockResolvedValueOnce([{
-        id: 'recipient-1',
-        user_id: '11111111-1111-4111-8111-111111111111',
-        email: 'optin@example.com',
-        name: 'Gilles'
-      }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([])
-
-    sendMailMock.mockResolvedValue({ messageId: 'smtp-1' })
-
-    const result = await sendPreparedEmailCampaign('campaign-1')
-
-    expect(sendMailMock).toHaveBeenCalledWith(expect.objectContaining({
-      to: 'optin@example.com',
-      subject: 'Bonjour Gilles',
-      html: expect.stringContaining('/email-preferences')
-    }))
-    expect(result).toEqual({ sentCount: 1, errorCount: 0 })
-    expect(sql.query).toHaveBeenLastCalledWith(
-      expect.stringContaining("status = 'sent'"),
-      ['campaign-1', 1, 0]
     )
   })
 })

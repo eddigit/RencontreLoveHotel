@@ -14,12 +14,6 @@ CREATE TABLE users
     avatar VARCHAR(255) NULL,
     onboarding_completed BOOLEAN DEFAULT FALSE NULL,
     email_verified BOOLEAN DEFAULT FALSE NULL,
-    date_of_birth DATE NULL,
-    adult_consent_at TIMESTAMPTZ NULL,
-    adult_verified_at TIMESTAMPTZ NULL,
-    terms_accepted_at TIMESTAMPTZ NULL,
-    adult_consent_version TEXT NULL,
-    adult_verification_method TEXT NULL,
     -- Renamed from is_verified and made nullable
     is_banned BOOLEAN DEFAULT FALSE NULL,
     -- Made nullable
@@ -34,42 +28,9 @@ CREATE TABLE users
     -- Made nullable
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Made nullable
-    last_seen_at TIMESTAMPTZ NULL,
+    last_seen_at TIMESTAMPTZ NULL
     -- Last authenticated activity for online presence
-    CONSTRAINT users_adult_membership_record_check CHECK (
-        adult_verified_at IS NULL
-        OR (
-            date_of_birth IS NOT NULL
-            AND date_of_birth >= DATE '1900-01-01'
-            AND adult_consent_at IS NOT NULL
-            AND terms_accepted_at IS NOT NULL
-            AND adult_consent_version IS NOT NULL
-            AND adult_verification_method IS NOT NULL
-        )
-    )
 );
-
-CREATE OR REPLACE FUNCTION validate_adult_membership_record()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    IF NEW.adult_verified_at IS NOT NULL AND (
-        NEW.date_of_birth IS NULL
-        OR NEW.date_of_birth > (CURRENT_DATE - INTERVAL '18 years')::date
-    ) THEN
-        RAISE EXCEPTION 'Adult membership requires an age of 18 or older'
-            USING ERRCODE = '23514';
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER enforce_adult_membership
-BEFORE INSERT OR UPDATE ON users
-FOR EACH ROW
-EXECUTE FUNCTION validate_adult_membership_record();
 
 -- Table des profils utilisateurs
 CREATE TABLE user_profiles
@@ -154,6 +115,7 @@ CREATE TABLE user_matches
     -- Score de compatibilité entre 0 et 100
     status VARCHAR(50) DEFAULT 'pending',
     -- 'pending', 'accepted', 'rejected'
+    accepted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_match UNIQUE (user_id_1, user_id_2)
@@ -416,17 +378,9 @@ CREATE TABLE events
     max_participants INTEGER DEFAULT 50,
     image VARCHAR(500),
     category VARCHAR(100),
-    experience_type TEXT,
-    booking_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
-    booking_reference TEXT,
     creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT events_open_curtains_booking_check CHECK (
-        experience_type IS DISTINCT FROM 'open_curtains'
-        OR booking_confirmed = FALSE
-        OR char_length(trim(COALESCE(booking_reference, ''))) > 0
-    )
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table des participants aux événements
@@ -435,14 +389,8 @@ CREATE TABLE event_participants
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    status TEXT NOT NULL DEFAULT 'accepted',
-    decided_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    decided_at TIMESTAMPTZ,
     joined_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT event_participants_status_check
-        CHECK (status IN ('pending', 'accepted', 'rejected', 'withdrawn')),
     CONSTRAINT unique_event_participation UNIQUE (event_id, user_id)
 );
 
@@ -471,6 +419,7 @@ CREATE INDEX idx_user_meeting_types_user_id ON user_meeting_types(user_id);
 CREATE INDEX idx_user_additional_options_user_id ON user_additional_options(user_id);
 CREATE INDEX idx_user_matches_user_id_1 ON user_matches(user_id_1);
 CREATE INDEX idx_user_matches_user_id_2 ON user_matches(user_id_2);
+CREATE INDEX IF NOT EXISTS idx_user_matches_accepted_at ON user_matches(accepted_at) WHERE status = 'accepted';
 CREATE INDEX idx_conversation_participants_conversation_id ON conversation_participants(conversation_id);
 CREATE INDEX idx_conversation_participants_user_id ON conversation_participants(user_id);
 CREATE INDEX idx_messages_conversation_id ON messages(conversation_id);
@@ -481,16 +430,97 @@ CREATE INDEX IF NOT EXISTS idx_notifications_admin_unread ON notifications(audie
 CREATE INDEX IF NOT EXISTS idx_email_campaign_recipients_campaign_status ON email_campaign_recipients(campaign_id, status);
 CREATE INDEX IF NOT EXISTS idx_moderation_queue_status_created ON moderation_queue(status, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_moderation_queue_user ON moderation_queue(user_id, created_at DESC);
+
+-- Versioned legal acceptance and focused anti-solicitation moderation evidence.
+CREATE TABLE IF NOT EXISTS legal_acceptances (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    document_type TEXT NOT NULL,
+    document_version TEXT NOT NULL,
+    adult_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    accepted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    UNIQUE (user_id, document_type, document_version)
+);
+CREATE INDEX IF NOT EXISTS idx_legal_acceptances_user
+    ON legal_acceptances(user_id, accepted_at DESC);
+
+CREATE TABLE IF NOT EXISTS moderation_policy_versions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    policy_version TEXT NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT FALSE,
+    activated_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    activated_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE moderation_keywords
+    ADD COLUMN IF NOT EXISTS category TEXT NOT NULL DEFAULT 'general',
+    ADD COLUMN IF NOT EXISTS weight INTEGER NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS phrase BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS policy_version TEXT NOT NULL DEFAULT 'legacy';
+
+ALTER TABLE moderation_queue
+    ADD COLUMN IF NOT EXISTS reporter_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS score INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS outcome TEXT NOT NULL DEFAULT 'warn',
+    ADD COLUMN IF NOT EXISTS policy_version TEXT NOT NULL DEFAULT 'legacy',
+    ADD COLUMN IF NOT EXISTS subject_pseudonym TEXT,
+    ADD COLUMN IF NOT EXISTS retention_until TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS legal_hold BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS messaging_restricted_until TIMESTAMPTZ;
+
+CREATE TABLE IF NOT EXISTS moderation_case_access (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    case_id UUID NOT NULL REFERENCES moderation_queue(id) ON DELETE CASCADE,
+    actor_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_role TEXT NOT NULL CHECK (actor_role IN ('admin', 'community_moderator')),
+    purpose TEXT NOT NULL,
+    accessed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS moderation_decisions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    case_id UUID NOT NULL REFERENCES moderation_queue(id) ON DELETE CASCADE,
+    actor_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    action TEXT NOT NULL CHECK (action IN ('no_action', 'reminder', 'warning', 'message_restriction', 'suspension', 'permanent_ban', 'legal_escalation')),
+    reason TEXT NOT NULL,
+    statement_of_reasons TEXT NOT NULL,
+    automation_contributed BOOLEAN NOT NULL DEFAULT TRUE,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS moderation_appeals (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    case_id UUID NOT NULL REFERENCES moderation_queue(id) ON DELETE CASCADE,
+    appellant_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_review', 'upheld', 'reversed')),
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    review_reason TEXT,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_log_target ON admin_audit_log(target_type, target_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_auth_logs_level_created ON auth_logs(level, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_event_created ON auth_logs(event, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_logs_email_created ON auth_logs(LOWER(email), created_at DESC) WHERE email IS NOT NULL;
+
+-- Cockpit d'enquête de modération : appliquer la migration idempotente
+-- migrations/20260718_moderation_investigation_cockpit.sql après ce schéma de base.
 CREATE INDEX IF NOT EXISTS idx_conciergerie_requests_created ON conciergerie_requests(created_at DESC);
 CREATE INDEX idx_events_date ON events(event_date);
 CREATE INDEX idx_events_creator ON events(creator_id);
 CREATE INDEX idx_event_participants_event_id ON event_participants(event_id);
 CREATE INDEX idx_event_participants_user_id ON event_participants(user_id);
-CREATE INDEX idx_event_participants_event_status ON event_participants(event_id, status, created_at DESC);
-CREATE INDEX idx_event_participants_user_status ON event_participants(user_id, status, created_at DESC);
--- Compliance audit and contact-safety foundation (additive and idempotent).
+
+-- Compliance foundation. Kept aligned with the additive production migration.
+-- Compliance foundation: additive, idempotent and disabled by application flags.
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
 CREATE TABLE IF NOT EXISTS compliance_audit_log (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   sequence_id BIGSERIAL UNIQUE NOT NULL,
@@ -506,6 +536,11 @@ CREATE TABLE IF NOT EXISTS compliance_audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_compliance_audit_entity
+  ON compliance_audit_log(entity_type, entity_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_compliance_audit_actor
+  ON compliance_audit_log(actor_user_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS compliance_safety_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   actor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -519,7 +554,30 @@ CREATE TABLE IF NOT EXISTS compliance_safety_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_compliance_safety_actor_created
+  ON compliance_safety_events(actor_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_compliance_safety_hmac_created
+  ON compliance_safety_events(content_hmac, created_at DESC);
+
 ALTER TABLE moderation_case_access
   ADD COLUMN IF NOT EXISTS access_reason TEXT,
   ADD COLUMN IF NOT EXISTS scope_basis TEXT,
   ADD COLUMN IF NOT EXISTS authorized_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'moderation_investigations'::regclass
+      AND conname = 'moderation_investigations_category_check'
+      AND pg_get_constraintdef(oid) NOT LIKE '%external_contact%'
+  ) THEN
+    ALTER TABLE moderation_investigations
+      DROP CONSTRAINT moderation_investigations_category_check;
+    ALTER TABLE moderation_investigations
+      ADD CONSTRAINT moderation_investigations_category_check
+      CHECK (category IN ('paid_solicitation', 'external_contact', 'safety', 'harassment', 'fraud', 'other'));
+  END IF;
+END
+$$;

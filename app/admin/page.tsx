@@ -15,15 +15,14 @@ import { useAuth } from '@/contexts/auth-context'
 import MainLayout from '@/components/layout/main-layout'
 import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
-import { getTotalUsersCount } from '@/actions/user-actions'
+import { getAllUsers } from '@/actions/user-actions'
 import { getUpcomingEvents } from '@/actions/event-actions'
 import { useEffect, useState } from 'react'
 import { AdminStats } from '@/components/admin-stats'
 import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
-import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
-import { AdminProductActivity } from '@/components/admin-product-activity'
 import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
 import { AdminLoginStatus } from '@/components/admin-login-status'
+import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
 import { ComplianceReadiness } from '@/components/admin/compliance-readiness'
 
 export default function AdminPage () {
@@ -34,8 +33,8 @@ export default function AdminPage () {
 
   useEffect(() => {
     async function fetchDashboardData () {
-      const usersCount = await getTotalUsersCount()
-      setUserCount(usersCount)
+      const users = await getAllUsers()
+      setUserCount(users.length)
       const events = await getUpcomingEvents()
       setEventCount(events.length)
     }
@@ -50,7 +49,9 @@ export default function AdminPage () {
           <AdminTabs />
 
           <ComplianceReadiness />
+
           <AdminMessagingRecovery />
+
           <AdminLoginStatus />
           
           {/* Nouvelles statistiques temps réel */}
@@ -61,8 +62,6 @@ export default function AdminPage () {
             </div>
             <AdminRealTimeStats />
           </div>
-
-          <AdminProductActivity />
 
           {/* Actions rapides */}
           <div className="mb-8">

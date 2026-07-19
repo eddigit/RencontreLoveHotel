@@ -1,10 +1,12 @@
 import nodemailer from 'nodemailer'
 import { sql } from '@/lib/db'
-import { ADMIN_NOTIFICATION_EMAIL } from '@/lib/admin-email-notifications'
-import { sendMemberActivityEmail } from '@/lib/member-activity-email'
+import { OPERATIONAL_CONTACT_EMAIL } from '@/lib/operational-contact'
 
 export const EVENT_RESERVATION_RECIPIENT_EMAIL =
-  ADMIN_NOTIFICATION_EMAIL
+  process.env.EVENT_RESERVATION_RECIPIENT_EMAIL ||
+  process.env.ADMIN_NOTIFICATION_EMAIL ||
+  process.env.FEEDBACK_RECIPIENT_EMAIL ||
+  OPERATIONAL_CONTACT_EMAIL
 
 type EventReservationAction = 'join' | 'leave'
 
@@ -238,31 +240,12 @@ export async function notifyEventReservationAdmins(input: NotifyEventReservation
       return { success: false, emailSent: false, adminNotificationCount: 0 }
     }
 
-    const isJoin = input.action === 'join'
-    await sendMemberActivityEmail({
-      recipientUserId: participant.id,
-      category: 'events',
-      subject: isJoin
-        ? `Inscription confirmée : ${event.title || 'événement'}`
-        : `Désinscription confirmée : ${event.title || 'événement'}`,
-      title: isJoin ? 'Votre inscription est confirmée' : 'Votre désinscription est confirmée',
-      description: isJoin
-        ? `Vous êtes inscrit à ${event.title || 'cet événement'} le ${formatEventDate(event)}.`
-        : `Votre participation à ${event.title || 'cet événement'} a bien été annulée.`,
-      ctaLabel: 'Voir l’événement',
-      ctaPath: `/events/${event.id}`
-    })
     const adminNotificationCount = await createAdminNotifications(
       event,
       participant,
       input.action
     )
-    let emailSent = false
-    try {
-      emailSent = await sendReservationEmail(event, participant, input.action)
-    } catch (error) {
-      console.warn('E-mail admin réservation événement indisponible:', error)
-    }
+    const emailSent = await sendReservationEmail(event, participant, input.action)
 
     return { success: true, emailSent, adminNotificationCount }
   } catch (error) {

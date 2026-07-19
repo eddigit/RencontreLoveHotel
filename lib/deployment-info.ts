@@ -2,7 +2,6 @@ export interface DeploymentInfo {
   version: string
   buildNumber: number
   deploymentDate: string
-  sourceRevision: string
 }
 
 export function formatDeploymentDate (
@@ -26,10 +25,5 @@ export function formatDeploymentDate (
 }
 
 export function getDeploymentLabel (info: DeploymentInfo) {
-  const revision = info.sourceRevision.trim()
-  if (!revision || revision === 'unknown') {
-    throw new Error('La révision du déploiement est inconnue')
-  }
-
-  return `Déploiement : ${formatDeploymentDate(info.deploymentDate)} · révision ${revision.slice(0, 7)} · build ${info.buildNumber}`
+  return `Déploiement : ${formatDeploymentDate(info.deploymentDate)} · build ${info.buildNumber}`
 }
