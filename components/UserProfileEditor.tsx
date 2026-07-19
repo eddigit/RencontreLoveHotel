@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/select'
 import Image from 'next/image'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { validateImageUploadFile } from '@/lib/upload-validation'
 
 export function UserProfileEditor ({
   user,
@@ -86,9 +87,16 @@ export function UserProfileEditor ({
     const file = e.target.files?.[0]
     if (!file) return
 
-    setUploading(true)
     setUploadMessage(null)
     setUploadError(null)
+    const validation = await validateImageUploadFile(file)
+    if (!validation.ok) {
+      setUploadError(validation.error)
+      e.target.value = ''
+      return
+    }
+
+    setUploading(true)
     try {
       const formData = new FormData()
       formData.append('photo', file)
@@ -192,6 +200,9 @@ export function UserProfileEditor ({
             disabled={uploading}
             className='border-white/10 bg-white/[0.06] text-white file:text-white'
           />
+          <p className='text-xs font-medium leading-5 text-white/65'>
+            Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.
+          </p>
           {uploading && (
             <p className='text-sm font-medium text-[#94ffc9]'>Envoi de la photo...</p>
           )}

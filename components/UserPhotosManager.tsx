@@ -1,5 +1,6 @@
 'use client'
 import React, { useRef, useState, useTransition } from 'react'
+import { validateImageUploadFile } from '@/lib/upload-validation'
 
 interface UserPhoto {
   id: string
@@ -26,9 +27,16 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
-      setUploading(true)
       setError(null)
       setMessage(null)
+      const validation = await validateImageUploadFile(file)
+      if (!validation.ok) {
+        setError(validation.error)
+        e.target.value = ''
+        return
+      }
+
+      setUploading(true)
       try {
         const formData = new FormData()
         formData.append('photo', file)
@@ -135,6 +143,9 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
       </div>
       <p className='text-sm text-gray-500'>
         Vous pouvez ajouter jusqu'à {maxPhotos} photos.
+      </p>
+      <p className='mt-1 text-sm font-medium text-white/65'>
+        Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.
       </p>
     </div>
   )
