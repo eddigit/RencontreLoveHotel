@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { Camera, Images, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,6 +27,7 @@ export function UserProfileEditor ({
   onSave: (data: any) => void
 }) {
   const router = useRouter()
+  const { update } = useSession()
   const [form, setForm] = useState(() => {
     let interests = user.interests
     if (typeof interests === 'string') {
@@ -111,6 +113,7 @@ export function UserProfileEditor ({
       }
 
       setForm(current => ({ ...current, avatar: result.url }))
+      await update()
       setUploadMessage('Photo enregistrée')
       router.refresh()
     } catch (error) {
@@ -136,6 +139,7 @@ export function UserProfileEditor ({
         throw new Error(result?.error || "L'avatar n'a pas pu être supprimé.")
       }
       setForm(current => ({ ...current, avatar: '' }))
+      await update()
       setUploadMessage('Photo supprimée. Avatar proposé rétabli.')
       router.refresh()
     } catch (error) {
@@ -153,6 +157,7 @@ export function UserProfileEditor ({
     e.preventDefault()
     setSaving(true)
     await onSave(form)
+    await update()
     setSaving(false)
     router.refresh()
   }

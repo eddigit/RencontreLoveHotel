@@ -20,6 +20,8 @@ describe('my profile matching UI', () => {
     expect(editor).toContain('Couple')
     expect(editor).toContain("formData.append('purpose', 'avatar')")
     expect(editor).toContain("fetch('/api/photos/upload'")
+    expect(editor).toContain('useSession')
+    expect(editor).toContain('await update()')
     expect(editor).toContain('Photo enregistrée')
     expect(editor).toContain('validateImageUploadFile')
     expect(editor).toContain('Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.')
