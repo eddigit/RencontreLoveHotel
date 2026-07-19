@@ -198,7 +198,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
                   {Array.from({ length: 82 }, (_, index) => index + 18).map(age => <option key={age} value={String(age)}>{age} ans</option>)}
                 </select>
               </div>
-              <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onChange={event => updateFormData('birthday', event.target.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
+              <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onInput={event => updateFormData('birthday', event.currentTarget.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
             </div>
             <p className='text-xs leading-5 text-purple-100/65'>Réservé aux personnes majeures. L’âge et la date permettent de contrôler la cohérence du profil.</p>
             {missingIdentityFields.length > 0 && (
