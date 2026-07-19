@@ -72,4 +72,25 @@ describe('registration legal consent', () => {
       })
     )
   })
+
+  it('explains that an account already exists for a duplicate email', async () => {
+    createUser.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate email'), {
+        code: '23505',
+        constraint: 'users_email_key'
+      })
+    )
+
+    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: LEGAL_POLICY_VERSIONS
+    })
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Un compte existe déjà avec cette adresse email. Connectez-vous ou réinitialisez votre mot de passe.'
+    })
+  })
 })

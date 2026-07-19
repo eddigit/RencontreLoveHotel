@@ -5,7 +5,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { MessageCircle, Plus, Search } from 'lucide-react'
-import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -41,7 +40,6 @@ function formatMessageDate (date: Date): string {
 export default function MessagesPage () {
   const { user: authUser, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const { data: session } = useSession()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -56,12 +54,12 @@ export default function MessagesPage () {
     let pollingStopped = false
 
     async function fetchConversations (showLoader = false) {
-      if (!session?.user?.id) return
+      if (!authUser?.id) return
 
       try {
         if (showLoader) setLoading(true)
         setError(null)
-        const fetchedConversations = await getUserConversations(session.user.id)
+        const fetchedConversations = await getUserConversations(authUser.id)
         if (cancelled) return
         setConversations(
           fetchedConversations.map((conv: any) => ({
@@ -95,7 +93,7 @@ export default function MessagesPage () {
       cancelled = true
       clearInterval(interval)
     }
-  }, [session?.user?.id])
+  }, [authUser?.id])
 
   const filteredConversations = useMemo(() => {
     const query = search.trim().toLowerCase()

@@ -127,6 +127,19 @@ export async function registerUser(
     return { success: !!user, user }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)
+    if (
+      error &&
+      typeof error === 'object' &&
+      'code' in error &&
+      error.code === '23505' &&
+      'constraint' in error &&
+      error.constraint === 'users_email_key'
+    ) {
+      return {
+        success: false,
+        error: 'Un compte existe déjà avec cette adresse email. Connectez-vous ou réinitialisez votre mot de passe.'
+      }
+    }
     return { success: false, error: "Erreur lors de l'inscription" }
   }
 }

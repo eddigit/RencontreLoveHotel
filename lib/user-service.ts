@@ -72,7 +72,7 @@ export async function createUser(
     return result.length ? result[0] : null
   } catch (error) {
     console.error("Erreur lors de la création de l'utilisateur:", error)
-    return null
+    throw error
   }
 }
 
