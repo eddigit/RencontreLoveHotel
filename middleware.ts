@@ -15,7 +15,7 @@ export default withAuth(
 
     // Routes d'administration - seuls les admins
     if (isAdminPath(pathname)) {
-      if (!token || token.role !== 'admin') {
+      if (!token || token.authBlocked || !token.sub || token.role !== 'admin') {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
@@ -25,7 +25,7 @@ export default withAuth(
 
     // Routes communautaires - utilisateurs connectés uniquement
     if (isProtectedPagePath(pathname)) {
-      if (!token) {
+      if (!token || token.authBlocked || !token.sub) {
         return NextResponse.redirect(new URL('/login', req.url))
       }
       if (requiresVerifiedEmail(pathname) && !token.email_verified) {
@@ -34,7 +34,7 @@ export default withAuth(
     }
 
     if (isAuthenticatedApiPath(pathname)) {
-      if (!token) {
+      if (!token || token.authBlocked || !token.sub) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
     }
@@ -51,7 +51,7 @@ export default withAuth(
         }
 
         // Pour toutes les autres routes, exiger un token
-        return !!token
+        return Boolean(token?.sub && !token.authBlocked)
       },
     },
   }

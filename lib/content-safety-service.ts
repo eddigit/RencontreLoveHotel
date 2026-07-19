@@ -1,4 +1,3 @@
-import { createAppNotification } from '@/actions/notification-actions'
 import { getComplianceFlags } from '@/config/compliance'
 import { hmacSensitiveValue } from '@/lib/compliance-audit'
 import {
@@ -8,6 +7,7 @@ import {
   type SafetySurface
 } from '@/lib/contact-safety-policy'
 import { sql } from '@/lib/db'
+import { createAppNotificationInternal as createAppNotification } from '@/lib/notification-service'
 
 export type EnforceMemberContentInput = {
   actorUserId: string

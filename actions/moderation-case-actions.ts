@@ -1,7 +1,7 @@
 'use server'
 
-import { createAppNotification } from '@/actions/notification-actions'
 import { sql } from '@/lib/db'
+import { createAppNotificationInternal as createAppNotification } from '@/lib/notification-service'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { requireModerator } from '@/lib/moderation-auth'
 

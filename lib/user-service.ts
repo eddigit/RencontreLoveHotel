@@ -20,6 +20,14 @@ export interface User {
   updated_at: Date
 }
 
+export function isUserAllowedToAuthenticate(
+  user: Pick<User, 'status' | 'is_banned'> | null | undefined
+): boolean {
+  return Boolean(user) &&
+    user?.is_banned !== true &&
+    (!user?.status || user.status === 'active')
+}
+
 // Créer un nouvel utilisateur
 export async function createUser(
   email: string,
@@ -103,7 +111,8 @@ export async function verifyUserCredentials(email: string, password: string): Pr
   try {
     const normalizedEmail = email.trim().toLowerCase()
     const query = `
-      SELECT id, email, password_hash, name, role, avatar, onboarding_completed, email_verified, created_at, updated_at
+      SELECT id, email, password_hash, name, role, avatar, onboarding_completed,
+             email_verified, status, is_banned, created_at, updated_at
       FROM users
       WHERE lower(email) = $1
     `
@@ -118,6 +127,10 @@ export async function verifyUserCredentials(email: string, password: string): Pr
     const passwordMatch = await compare(password, user.password_hash)
 
     if (!passwordMatch) {
+      return null
+    }
+
+    if (!isUserAllowedToAuthenticate(user)) {
       return null
     }
 
@@ -189,10 +202,14 @@ export async function updateOnboardingStatus(userId: string, completed: boolean)
 
 // Récupérer un compte OAuth existant. Toute création exige les consentements versionnés.
 export async function getOrCreateOAuthUser({ email, name, avatar }: { email: string, name?: string, avatar?: string }) {
+  const normalizedEmail = email.trim().toLowerCase()
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
-    `SELECT id, email, name, role, avatar, onboarding_completed, created_at, updated_at FROM users WHERE email = $1`,
-    [email]
+    `SELECT id, email, name, role, avatar, onboarding_completed, email_verified,
+            status, is_banned, created_at, updated_at
+     FROM users
+     WHERE lower(email) = $1`,
+    [normalizedEmail]
   )
   if (existing.length > 0) {
     return existing[0]

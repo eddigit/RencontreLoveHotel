@@ -10,6 +10,8 @@ vi.mock('@/lib/user-service', () => ({
   getOrCreateOAuthUser: getOrCreateOAuthUserMock,
   getUserByEmail: getUserByEmailMock,
   getUserById: getUserByIdMock,
+  isUserAllowedToAuthenticate: (user: { is_banned?: boolean | null; status?: string | null } | null) =>
+    Boolean(user) && user?.is_banned !== true && (!user?.status || user.status === 'active'),
   verifyUserCredentials: verifyUserCredentialsMock
 }))
 
@@ -51,6 +53,68 @@ describe('authOptions', () => {
 
     expect(token.email_verified).toBe(false)
     expect(token.onboardingCompleted).toBe(false)
+    expect(token.authBlocked).toBe(true)
+    expect(token.sub).toBeUndefined()
+  })
+
+  it('reconciles a stale JWT subject from the active database on every session read', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'active-database-user',
+      email: 'member@example.com',
+      name: 'Membre',
+      role: 'user',
+      avatar: null,
+      onboarding_completed: true,
+      email_verified: true,
+      status: 'active',
+      is_banned: false
+    })
+
+    const token = await authOptions.callbacks!.jwt!({
+      token: { sub: 'obsolete-database-user', email: 'member@example.com' },
+      user: undefined,
+      account: null,
+      profile: undefined,
+      trigger: undefined,
+      session: undefined
+    } as any)
+
+    expect(getUserByEmailMock).toHaveBeenCalledWith('member@example.com')
+    expect(token.sub).toBe('active-database-user')
+    expect(token.authBlocked).toBe(false)
+  })
+
+  it('invalidates an existing JWT when the active database account is banned', async () => {
+    getUserByEmailMock.mockResolvedValue({
+      id: 'active-database-user',
+      email: 'member@example.com',
+      status: 'banned',
+      is_banned: true
+    })
+
+    const token = await authOptions.callbacks!.jwt!({
+      token: { sub: 'obsolete-database-user', email: 'member@example.com' },
+      user: undefined,
+      account: null,
+      profile: undefined,
+      trigger: undefined,
+      session: undefined
+    } as any)
+
+    expect(token.authBlocked).toBe(true)
+    expect(token.sub).toBeUndefined()
+  })
+
+  it('removes the user from blocked sessions', async () => {
+    const session = await authOptions.callbacks!.session!({
+      session: {
+        user: { id: 'stale-user', email: 'member@example.com', name: 'Membre' },
+        expires: new Date(Date.now() + 60_000).toISOString()
+      },
+      token: { sub: 'stale-user', email: 'member@example.com', authBlocked: true }
+    } as any)
+
+    expect(session.user).toBeUndefined()
   })
 
   it('records successful sign-ins with role and provider', async () => {
@@ -109,6 +173,31 @@ describe('authOptions', () => {
     expect(result).toBe(false)
     expect(recordAuthEventMock).toHaveBeenCalledWith(expect.objectContaining({
       email: 'new@example.com',
+      provider: 'google',
+      success: false
+    }))
+  })
+
+  it('refuses OAuth for an inactive existing account', async () => {
+    getOrCreateOAuthUserMock.mockResolvedValue({
+      id: 'oauth-user',
+      email: 'inactive@example.com',
+      name: 'Inactif',
+      status: 'inactive',
+      is_banned: false
+    })
+
+    const result = await authOptions.callbacks!.signIn!({
+      user: { id: 'oauth-user', email: 'inactive@example.com', name: 'Inactif' },
+      account: { provider: 'google' },
+      profile: undefined,
+      email: undefined,
+      credentials: undefined
+    } as any)
+
+    expect(result).toBe(false)
+    expect(recordAuthEventMock).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'inactive@example.com',
       provider: 'google',
       success: false
     }))

@@ -12,7 +12,7 @@ const { query, requireModerator, requireAdmin, requireCurrentUser, createAppNoti
 vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('@/lib/moderation-auth', () => ({ requireModerator }))
 vi.mock('@/lib/server-auth', () => ({ requireAdmin, requireCurrentUser }))
-vi.mock('@/actions/notification-actions', () => ({ createAppNotification }))
+vi.mock('@/lib/notification-service', () => ({ createAppNotificationInternal: createAppNotification }))
 vi.mock('@/config/compliance', () => ({ getComplianceFlags: () => ({ scopedConversationAccess: true }) }))
 vi.mock('@/lib/compliance-audit', () => ({ appendComplianceAudit }))
 

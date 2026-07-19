@@ -1,29 +1,22 @@
 "use server"
 
 import { sql } from "@/lib/db"
-import { requireAdmin } from "@/lib/server-auth"
+import {
+  createAppNotificationInternal,
+  createNotificationInternal,
+  notifyAdminsInternal,
+  type AdminNotificationInput,
+  type AppNotificationInput,
+  type NotificationPriority
+} from '@/lib/notification-service'
+import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 
-export type NotificationPriority = 'low' | 'normal' | 'high' | 'critical'
-export type NotificationAudience = 'user' | 'admin'
-
-export type AppNotificationInput = {
-  userId: string
-  type: string
-  title: string
-  description?: string
-  link?: string
-  image?: string | null
-  priority?: NotificationPriority
-  category?: string
-  audience?: NotificationAudience
-  metadata?: Record<string, unknown>
-  createdBy?: string | null
-}
-
-export type AdminNotificationInput = Omit<
+export type {
+  AdminNotificationInput,
   AppNotificationInput,
-  'userId' | 'audience'
->
+  NotificationAudience,
+  NotificationPriority
+} from '@/lib/notification-service'
 
 export type InternalBroadcastInput = {
   title: string
@@ -33,62 +26,45 @@ export type InternalBroadcastInput = {
 }
 
 export async function getUserNotifications(userId: string) {
-  const notifications = await sql`
+  await requireSameUserOrAdmin(userId)
+  const notifications = await sql.query(
+    `
     SELECT * FROM notifications
-    WHERE user_id = ${userId}
+    WHERE user_id = $1
     ORDER BY created_at DESC
-  `
+    `,
+    [userId]
+  )
 
   return notifications || []
 }
 
 export async function markNotificationAsRead(notificationId: string) {
-  await sql`
-    UPDATE notifications
-    SET read = true,
-        read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
-    WHERE id = ${notificationId}
-  `
+  const currentUser = await requireCurrentUser()
+  const notifications = currentUser.role === 'admin'
+    ? await sql.query(
+        `UPDATE notifications
+         SET read = true,
+             read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+         WHERE id = $1
+         RETURNING id`,
+        [notificationId]
+      )
+    : await sql.query(
+        `UPDATE notifications
+         SET read = true,
+             read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+         WHERE id = $1 AND user_id = $2
+         RETURNING id`,
+        [notificationId, currentUser.id]
+      )
 
-  return { success: true }
+  return { success: notifications.length > 0 }
 }
 
 export async function createAppNotification(input: AppNotificationInput) {
-  const [notification] = await sql.query(
-    `
-      INSERT INTO notifications (
-        user_id,
-        type,
-        title,
-        description,
-        link,
-        image,
-        priority,
-        category,
-        audience,
-        metadata,
-        created_by,
-        read
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, false)
-      RETURNING *
-    `,
-    [
-      input.userId,
-      input.type,
-      input.title,
-      input.description || '',
-      input.link || '',
-      input.image || null,
-      input.priority || 'normal',
-      input.category || input.type,
-      input.audience || 'user',
-      JSON.stringify(input.metadata || {}),
-      input.createdBy || null
-    ]
-  )
-
-  return { success: true, notification }
+  await requireAdmin()
+  return createAppNotificationInternal(input)
 }
 
 export async function createNotification({ userId, type, title, description, link }: {
@@ -98,40 +74,19 @@ export async function createNotification({ userId, type, title, description, lin
   description?: string;
   link?: string;
 }) {
-  return createAppNotification({
+  await requireAdmin()
+  return createNotificationInternal({
     userId,
     type,
     title,
     description,
-    link,
-    category: type
+    link
   })
 }
 
 export async function notifyAdmins(input: AdminNotificationInput) {
   await requireAdmin()
-
-  const admins = await sql.query<{ id: string }[]>(
-    `
-      SELECT id
-      FROM users
-      WHERE role = 'admin'
-        AND COALESCE(is_banned, false) = false
-        AND COALESCE(status, 'active') = 'active'
-      ORDER BY created_at ASC
-    `,
-    []
-  )
-
-  for (const admin of admins) {
-    await createAppNotification({
-      ...input,
-      userId: admin.id,
-      audience: 'admin'
-    })
-  }
-
-  return { success: true, notifiedCount: admins.length }
+  return notifyAdminsInternal(input)
 }
 
 export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
@@ -215,7 +170,7 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
       [conversationId]
     )
 
-    await createAppNotification({
+    await createAppNotificationInternal({
       userId: recipient.id,
       type: 'admin_broadcast',
       title,

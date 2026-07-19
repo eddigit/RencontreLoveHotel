@@ -14,8 +14,8 @@ vi.mock('@/lib/db', () => ({
 }))
 
 // mock notification actions alias import
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationInternal: vi.fn()
 }))
 
 // mock logger module

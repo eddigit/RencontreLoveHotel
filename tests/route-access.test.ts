@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { readFileSync } from 'node:fs'
 import {
   isAdminPath,
   isAuthenticatedApiPath,
@@ -8,6 +9,13 @@ import {
 } from '@/lib/route-access'
 
 describe('route access policy', () => {
+  it('rejects blocked or identity-less authentication tokens', () => {
+    const middlewareSource = readFileSync('middleware.ts', 'utf8')
+
+    expect(middlewareSource).toContain('token.authBlocked')
+    expect(middlewareSource).toContain('token?.sub')
+  })
+
   it('keeps the landing page public without making every route public', () => {
     expect(isPublicPath('/')).toBe(true)
     expect(isPublicPath('/login')).toBe(true)

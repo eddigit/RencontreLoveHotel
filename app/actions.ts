@@ -2,6 +2,7 @@
 
 import type { Notification } from "@/components/notifications-dropdown"
 import type { OnboardingData } from "@/components/onboarding-form"
+import { acceptMatchRequest } from "@/actions/user-actions"
 import { saveOnboardingData } from "@/lib/onboarding-service"
 import { createUser, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
@@ -10,6 +11,7 @@ import {
   isCurrentRegistrationConsent,
   type RegistrationConsent
 } from '@/lib/legal-policy'
+import { userRegistrationSchema } from '@/lib/validation'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -122,8 +124,27 @@ export async function registerUser(
     }
   }
 
+  const registration = userRegistrationSchema.safeParse({
+    email,
+    password,
+    name,
+    agreeTerms: true
+  })
+  if (!registration.success) {
+    return {
+      success: false,
+      error: registration.error.errors[0]?.message || "Données d'inscription invalides"
+    }
+  }
+
   try {
-    const user = await createUser(email, password, name, 'user', consent)
+    const user = await createUser(
+      registration.data.email,
+      registration.data.password,
+      registration.data.name,
+      'user',
+      consent
+    )
     return { success: !!user, user }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)
@@ -155,25 +176,11 @@ export async function loginUser(email: string, password: string) {
   }
 }
 
-// Fonction pour accepter un match
-export async function acceptMatch(userId: string, matchId: string) {
-  await requireSameUserOrAdmin(userId)
-
-  try {
-    await executeQuery(
-      `
-      UPDATE user_matches
-      SET status = 'accepted', accepted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE (user_id_1 = $1 AND user_id_2 = $2) OR (user_id_1 = $2 AND user_id_2 = $1)
-    `,
-      [userId, matchId],
-    )
-
-    return { success: true }
-  } catch (error) {
-    console.error(`Erreur lors de l'acceptation du match:`, error)
-    return { success: false }
-  }
+// Compatibilité avec l'ancienne action : seul le destinataire peut accepter.
+// Le cycle sécurisé vérifie aussi le statut, l'expiration et les blocages.
+export async function acceptMatch(requesterId: string, receiverId: string) {
+  await requireSameUserOrAdmin(receiverId)
+  return acceptMatchRequest(requesterId, receiverId)
 }
 
 // Fonction pour refuser un match

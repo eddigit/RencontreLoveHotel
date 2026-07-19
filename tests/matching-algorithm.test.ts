@@ -18,6 +18,8 @@ const baseProfile = {
     interested_in_events: true,
     interested_in_dating: true,
     prefer_curtain_open: true,
+    relationship_intents: ['casual'],
+    bdsm_roles: ['none'],
     meetingTypes: {
       friendly: true,
       romantic: true,
@@ -65,6 +67,8 @@ describe('matching algorithm', () => {
         interested_in_events: true,
         interested_in_dating: true,
         prefer_curtain_open: true,
+        relationship_intents: ['casual'],
+        bdsm_roles: ['none'],
         meetingTypes: {
           friendly: true,
           romantic: true,

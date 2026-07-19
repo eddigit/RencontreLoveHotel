@@ -31,7 +31,7 @@ describe('messaging recovery match timestamps', () => {
       /SET status = 'accepted',\s*accepted_at = CURRENT_TIMESTAMP/
     )
     expect(legacyActions).toMatch(
-      /SET status = 'accepted',\s*accepted_at = CURRENT_TIMESTAMP/
+      /return acceptMatchRequest\(requesterId, receiverId\)/
     )
     expect(userActions).toMatch(
       /status = 'pending',[\s\S]*accepted_at = NULL, responded_at = NULL/

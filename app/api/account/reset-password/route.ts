@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByResetToken, updateUserPassword } from '@/lib/user-service'; // You'll need to create these
 import { hash } from 'bcryptjs';
+import { accountPasswordSchema } from '@/lib/validation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,6 +10,14 @@ export async function POST(req: NextRequest) {
 
     if (!token || !password) {
       return NextResponse.json({ message: 'Token et nouveau mot de passe sont requis.' }, { status: 400 });
+    }
+
+    const passwordValidation = accountPasswordSchema.safeParse(password);
+    if (!passwordValidation.success) {
+      return NextResponse.json(
+        { message: passwordValidation.error.errors[0]?.message || 'Mot de passe invalide.' },
+        { status: 400 }
+      );
     }
 
     // 1. Validate the token and get user
@@ -24,7 +33,7 @@ export async function POST(req: NextRequest) {
     // }
 
     // 2. Hash the new password
-    const hashedPassword = await hash(password, 10);
+    const hashedPassword = await hash(passwordValidation.data, 10);
 
     // 3. Update the user's password and clear the reset token
     const success = await updateUserPassword(user.id, hashedPassword);

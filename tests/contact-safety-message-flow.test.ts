@@ -10,7 +10,10 @@ vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('../lib/db', () => ({ sql: { query } }))
 vi.mock('next-auth/next', () => ({ getServerSession }))
 vi.mock('@/lib/content-safety-service', () => ({ enforceMemberContent }))
-vi.mock('@/actions/notification-actions', () => ({ createNotification: vi.fn(), notifyAdmins: vi.fn() }))
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationInternal: vi.fn(),
+  notifyAdminsInternal: vi.fn()
+}))
 vi.mock('@/lib/product-events', () => ({ trackProductEvents: vi.fn() }))
 vi.mock('../utils/logger', () => ({ log: vi.fn() }))
 

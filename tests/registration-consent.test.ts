@@ -25,7 +25,7 @@ describe('registration legal consent', () => {
   })
 
   it('rejects registration when one commitment is missing', async () => {
-    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+    const result = await registerUser('member@example.test', 'Secret123', 'Membre', {
       adult: true,
       terms: true,
       antiSolicitation: false,
@@ -40,7 +40,7 @@ describe('registration legal consent', () => {
   })
 
   it('rejects stale legal document versions', async () => {
-    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+    const result = await registerUser('member@example.test', 'Secret123', 'Membre', {
       adult: true,
       terms: true,
       antiSolicitation: true,
@@ -52,7 +52,7 @@ describe('registration legal consent', () => {
   })
 
   it('passes complete versioned consent to user creation', async () => {
-    await registerUser('member@example.test', 'secret-value', 'Membre', {
+    await registerUser('member@example.test', 'Secret123', 'Membre', {
       adult: true,
       terms: true,
       antiSolicitation: true,
@@ -61,7 +61,7 @@ describe('registration legal consent', () => {
 
     expect(createUser).toHaveBeenCalledWith(
       'member@example.test',
-      'secret-value',
+      'Secret123',
       'Membre',
       'user',
       expect.objectContaining({
@@ -81,7 +81,7 @@ describe('registration legal consent', () => {
       })
     )
 
-    const result = await registerUser('member@example.test', 'secret-value', 'Membre', {
+    const result = await registerUser('member@example.test', 'Secret123', 'Membre', {
       adult: true,
       terms: true,
       antiSolicitation: true,
@@ -92,5 +92,39 @@ describe('registration legal consent', () => {
       success: false,
       error: 'Un compte existe déjà avec cette adresse email. Connectez-vous ou réinitialisez votre mot de passe.'
     })
+  })
+
+  it.each([
+    {
+      label: 'invalid email',
+      email: 'not-an-email',
+      password: 'Secret123',
+      name: 'Membre',
+      expectedError: 'Adresse email invalide'
+    },
+    {
+      label: 'weak password',
+      email: 'member@example.test',
+      password: 'weak',
+      name: 'Membre',
+      expectedError: 'Le mot de passe doit contenir au moins 8 caractères'
+    },
+    {
+      label: 'short name',
+      email: 'member@example.test',
+      password: 'Secret123',
+      name: 'M',
+      expectedError: 'Le nom doit contenir au moins 2 caractères'
+    }
+  ])('rejects server-side registration data: $label', async input => {
+    const result = await registerUser(input.email, input.password, input.name, {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: LEGAL_POLICY_VERSIONS
+    })
+
+    expect(result).toEqual({ success: false, error: input.expectedError })
+    expect(createUser).not.toHaveBeenCalled()
   })
 })

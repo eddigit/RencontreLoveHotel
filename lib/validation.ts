@@ -55,6 +55,13 @@ export const createConversationSchema = z.object({
 // SCHÉMAS DE VALIDATION POUR LES UTILISATEURS
 // ==============================
 
+export const accountPasswordSchema = z.string()
+  .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
+  .max(128, 'Le mot de passe ne peut pas dépasser 128 caractères')
+  .regex(/(?=.*[a-z])/, 'Le mot de passe doit contenir au moins une minuscule')
+  .regex(/(?=.*[A-Z])/, 'Le mot de passe doit contenir au moins une majuscule')
+  .regex(/(?=.*\d)/, 'Le mot de passe doit contenir au moins un chiffre')
+
 export const userRegistrationSchema = z.object({
   name: z.string()
     .min(2, 'Le nom doit contenir au moins 2 caractères')
@@ -63,12 +70,7 @@ export const userRegistrationSchema = z.object({
   email: z.string()
     .email('Adresse email invalide')
     .max(255, 'L\'email ne peut pas dépasser 255 caractères'),
-  password: z.string()
-    .min(8, 'Le mot de passe doit contenir au moins 8 caractères')
-    .max(128, 'Le mot de passe ne peut pas dépasser 128 caractères')
-    .regex(/(?=.*[a-z])/, 'Le mot de passe doit contenir au moins une minuscule')
-    .regex(/(?=.*[A-Z])/, 'Le mot de passe doit contenir au moins une majuscule')
-    .regex(/(?=.*\d)/, 'Le mot de passe doit contenir au moins un chiffre'),
+  password: accountPasswordSchema,
   agreeTerms: z.boolean().refine(
     (val) => val === true,
     'Vous devez accepter les conditions d\'utilisation'

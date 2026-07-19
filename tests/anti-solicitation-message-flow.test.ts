@@ -11,7 +11,10 @@ const { query, getServerSession, createNotification, notifyAdmins, trackProductE
 vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('../lib/db', () => ({ sql: { query } }))
 vi.mock('next-auth/next', () => ({ getServerSession }))
-vi.mock('@/actions/notification-actions', () => ({ createNotification, notifyAdmins }))
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationInternal: createNotification,
+  notifyAdminsInternal: notifyAdmins
+}))
 vi.mock('@/lib/product-events', () => ({ trackProductEvents }))
 vi.mock('../utils/logger', () => ({ log: vi.fn() }))
 

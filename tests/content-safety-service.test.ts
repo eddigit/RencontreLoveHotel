@@ -6,7 +6,7 @@ const { query, createAppNotification } = vi.hoisted(() => ({
 }))
 
 vi.mock('@/lib/db', () => ({ sql: { query } }))
-vi.mock('@/actions/notification-actions', () => ({ createAppNotification }))
+vi.mock('@/lib/notification-service', () => ({ createAppNotificationInternal: createAppNotification }))
 
 import { enforceMemberContent } from '@/lib/content-safety-service'
 

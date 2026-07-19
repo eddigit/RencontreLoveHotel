@@ -1,14 +1,27 @@
 import type { NextAuthOptions } from 'next-auth'
+import type { JWT } from 'next-auth/jwt'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import FacebookProvider from 'next-auth/providers/facebook'
 import GoogleProvider from 'next-auth/providers/google'
 import {
   getOrCreateOAuthUser,
   getUserByEmail,
-  getUserById,
+  isUserAllowedToAuthenticate,
   verifyUserCredentials
 } from '@/lib/user-service'
 import { recordAuthEvent } from '@/lib/auth-audit'
+
+function invalidateAuthToken(token: JWT): JWT {
+  token.sub = undefined
+  token.role = undefined
+  token.avatar = undefined
+  token.onboardingCompleted = false
+  token.email_verified = false
+  token.profile_status = undefined
+  token.gender = undefined
+  token.authBlocked = true
+  return token
+}
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
@@ -101,7 +114,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name ?? undefined,
           avatar: user.image ?? undefined
         })
-        if (!dbUser) {
+        if (!dbUser || !isUserAllowedToAuthenticate(dbUser)) {
           await recordAuthEvent({
             email: user.email,
             provider: account.provider,
@@ -122,6 +135,11 @@ export const authOptions: NextAuthOptions = {
       return true
     },
     async session({ session, token }) {
+      if (token.authBlocked || !token.sub) {
+        delete (session as Partial<typeof session>).user
+        return session
+      }
+
       if (session.user) {
         session.user.id = token.sub
         session.user.role = token.role as string
@@ -133,49 +151,31 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       try {
-        if (user?.email) {
-          const dbUser = await getUserByEmail(user.email)
-          if (dbUser) {
-            token.sub = dbUser.id
-            token.role = dbUser.role
-            token.avatar = dbUser.avatar
-            token.onboardingCompleted = dbUser.onboarding_completed
-            token.email_verified = dbUser.email_verified
-            token.profile_status = dbUser.profile_status
-            token.gender = dbUser.gender
-          } else {
-            console.warn(
-              "Impossible de récupérer l'utilisateur depuis la DB, utilisation des données de base"
-            )
-            token.sub = user.id || token.sub
-            token.role = token.role || 'user'
-            token.onboardingCompleted = token.onboardingCompleted ?? false
-            token.email_verified = token.email_verified ?? false
-          }
+        const email = user?.email || token.email
+        if (!email) {
+          return invalidateAuthToken(token)
         }
 
-        if (trigger === 'update' && token.sub) {
-          const dbUser = await getUserById(token.sub as string)
-          if (dbUser) {
-            token.name = dbUser.name
-            token.role = dbUser.role
-            token.avatar = dbUser.avatar
-            token.onboardingCompleted = dbUser.onboarding_completed
-            token.email_verified = dbUser.email_verified
-            token.profile_status = dbUser.profile_status
-            token.gender = dbUser.gender
-          }
+        const dbUser = await getUserByEmail(email)
+        if (!dbUser || !isUserAllowedToAuthenticate(dbUser)) {
+          return invalidateAuthToken(token)
         }
+
+        token.sub = dbUser.id
+        token.email = dbUser.email
+        token.name = dbUser.name
+        token.role = dbUser.role
+        token.avatar = dbUser.avatar
+        token.onboardingCompleted = dbUser.onboarding_completed
+        token.email_verified = dbUser.email_verified
+        token.profile_status = dbUser.profile_status
+        token.gender = dbUser.gender
+        token.authBlocked = false
       } catch (error) {
         console.error('Erreur dans le callback JWT:', error)
-        if (user) {
-          token.sub = user.id || token.sub
-          token.role = token.role || 'user'
-          token.onboardingCompleted = token.onboardingCompleted ?? false
-          token.email_verified = token.email_verified ?? false
-        }
+        return invalidateAuthToken(token)
       }
       return token
     }

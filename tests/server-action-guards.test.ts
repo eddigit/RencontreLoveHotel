@@ -20,8 +20,8 @@ vi.mock('@/lib/db', () => ({
   sql: sqlMock
 }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationInternal: vi.fn()
 }))
 
 describe('server action authorization guards', () => {

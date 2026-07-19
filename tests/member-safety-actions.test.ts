@@ -7,7 +7,7 @@ const { query, requireCurrentUser } = vi.hoisted(() => ({
 
 vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('@/lib/server-auth', () => ({ requireCurrentUser }))
-vi.mock('@/actions/notification-actions', () => ({ createAppNotification: vi.fn() }))
+vi.mock('@/lib/notification-service', () => ({ createAppNotificationInternal: vi.fn() }))
 
 import { blockMember, reportMember } from '@/actions/member-safety-actions'
 

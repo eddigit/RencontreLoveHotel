@@ -1,5 +1,5 @@
-import { notifyAdmins } from '@/actions/notification-actions'
 import { sql } from '@/lib/db'
+import { notifyAdminsInternal } from '@/lib/notification-service'
 import {
   evaluateAntiSolicitation,
   type ModerationPolicyRule,
@@ -94,7 +94,7 @@ export async function createModerationCase(input: {
 
   if (!moderationCase) throw new Error('Dossier de modération indisponible')
 
-  await notifyAdmins({
+  await notifyAdminsInternal({
     type: 'moderation_alert',
     title: 'Alerte de sécurité communautaire',
     description: 'Un dossier confidentiel attend un examen humain.',

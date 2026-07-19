@@ -2,9 +2,9 @@
 
 import { getServerSession } from 'next-auth'
 import nodemailer from 'nodemailer'
-import { createAppNotification } from '@/actions/notification-actions'
 import { authOptions } from '@/lib/auth'
 import { FEEDBACK_RECIPIENT_EMAIL } from '@/lib/community-feedback-config'
+import { createAppNotificationInternal as createAppNotification } from '@/lib/notification-service'
 import { getUserByEmail } from '@/lib/user-service'
 
 type CommunityFeedbackKind = 'bug' | 'suggestion'

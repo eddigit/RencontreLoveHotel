@@ -29,8 +29,10 @@ declare module "next-auth/jwt" {
     role?: string | null;
     avatar?: string | null;
     onboardingCompleted?: boolean | null;
+    email_verified?: boolean | null;
     profile_status?: string | null;
     gender?: string | null;
+    authBlocked?: boolean;
     // 'sub' (subject, typically user ID) is already part of DefaultJWT
   }
 }

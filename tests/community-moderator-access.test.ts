@@ -8,7 +8,7 @@ const { query, requireCurrentUser, createAppNotification } = vi.hoisted(() => ({
 
 vi.mock('@/lib/db', () => ({ sql: { query } }))
 vi.mock('@/lib/server-auth', () => ({ requireCurrentUser }))
-vi.mock('@/actions/notification-actions', () => ({ createAppNotification }))
+vi.mock('@/lib/notification-service', () => ({ createAppNotificationInternal: createAppNotification }))
 
 import { requireModerator } from '@/lib/moderation-auth'
 import {

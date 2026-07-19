@@ -12,8 +12,8 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
-vi.mock('@/actions/notification-actions', () => ({
-  createNotification: vi.fn()
+vi.mock('@/lib/notification-service', () => ({
+  createNotificationInternal: vi.fn()
 }))
 
 vi.mock('../utils/logger', () => ({

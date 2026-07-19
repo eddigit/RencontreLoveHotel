@@ -2,7 +2,7 @@
 
 import { sql } from "@/lib/db"
 import { log } from "../utils/logger"
-import { createNotification } from "@/actions/notification-actions"
+import { createNotificationInternal as createNotification } from '@/lib/notification-service'
 import { messageSchema, getMessagesSchema, createConversationSchema, validateSchema, type MessageAttachmentInput } from "@/lib/validation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"

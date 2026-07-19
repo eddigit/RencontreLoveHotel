@@ -109,6 +109,7 @@ function likesGender(source: NormalizedPreferences, target: NormalizedPreference
 }
 
 function orientationCompatible(a: NormalizedPreferences, b: NormalizedPreferences) {
+  if (!a.orientation || !b.orientation || !profileType(a) || !profileType(b)) return false
   return likesGender(a, b) && likesGender(b, a)
 }
 
@@ -163,17 +164,19 @@ export function calculateMatchScore(userA: UserProfile, userB: UserProfile): num
   if (!isMutuallyTargeted(userA, userB)) return 0
 
   let score = 30
-  score += a.relationshipIntents.length === 0 || b.relationshipIntents.length === 0
-    ? 25
-    : ratioScore(a.relationshipIntents, b.relationshipIntents, 25)
+  if (a.relationshipIntents.length > 0 && b.relationshipIntents.length > 0) {
+    score += ratioScore(a.relationshipIntents, b.relationshipIntents, 25)
+  }
   if (orientationCompatible(a, b)) score += 20
-  if (bdsmCompatible(a.bdsmRoles, b.bdsmRoles)) score += 15
+  if (a.bdsmRoles.length > 0 && b.bdsmRoles.length > 0 && bdsmCompatible(a.bdsmRoles, b.bdsmRoles)) {
+    score += 15
+  }
 
   const interestsA = activeMeetingTypes(a)
   const interestsB = activeMeetingTypes(b)
-  score += interestsA.length === 0 || interestsB.length === 0
-    ? 5
-    : ratioScore(interestsA, interestsB, 10)
+  if (interestsA.length > 0 && interestsB.length > 0) {
+    score += ratioScore(interestsA, interestsB, 10)
+  }
 
   return Math.max(0, Math.min(100, Math.round(score)))
 }

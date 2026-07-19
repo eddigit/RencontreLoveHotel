@@ -1,8 +1,8 @@
 'use server'
 
 import { createHash } from 'node:crypto'
-import { createAppNotification } from '@/actions/notification-actions'
 import { sql } from '@/lib/db'
+import { createAppNotificationInternal as createAppNotification } from '@/lib/notification-service'
 import { requireModerator } from '@/lib/moderation-auth'
 import { requireAdmin, requireCurrentUser } from '@/lib/server-auth'
 import { getComplianceFlags } from '@/config/compliance'
