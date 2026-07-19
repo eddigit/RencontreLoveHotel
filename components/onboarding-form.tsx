@@ -118,6 +118,16 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
     return true
   }
 
+  const missingIdentityFields = step === 1
+    ? [
+        !formData.status && 'le type de profil',
+        !formData.orientation && "l’orientation",
+        !formData.age && "l’âge",
+        !formData.birthday && 'la date de naissance',
+        formData.status === 'couple' && !formData.coupleComposition && 'la composition du couple'
+      ].filter(Boolean) as string[]
+    : []
+
   const nextStep = async () => {
     if (submitting || !isStepValid()) return
     if (step < totalSteps) {
@@ -191,6 +201,11 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
               <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onChange={event => updateFormData('birthday', event.target.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
             </div>
             <p className='text-xs leading-5 text-purple-100/65'>Réservé aux personnes majeures. L’âge et la date permettent de contrôler la cohérence du profil.</p>
+            {missingIdentityFields.length > 0 && (
+              <p role='status' className='rounded-xl border border-[#ffd166]/25 bg-[#ffd166]/10 p-3 text-sm text-[#ffe8ad]'>
+                Pour continuer, renseignez {missingIdentityFields.join(', ')}.
+              </p>
+            )}
           </div>
         )}
 
