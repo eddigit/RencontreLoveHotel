@@ -30,5 +30,6 @@ describe('moderation investigation cockpit UI', () => {
     expect(messages).toContain('getAdminConversations')
     expect(messages).toContain('ConversationThread')
     expect(messages).toContain('ModerationAvatar')
+    expect(read('components/moderation/moderation-avatar.tsx')).toContain('/default-member-couple.jpg')
   })
 })
