@@ -18,7 +18,7 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
-import { signIn } from 'next-auth/react'
+import { getSession, signIn } from 'next-auth/react'
 import { AuthPageShell } from '@/components/auth-page-shell'
 import { shouldShowOAuthProviders } from '@/lib/oauth-visibility'
 
@@ -44,15 +44,19 @@ export default function LoginPage () {
         redirect: false
       })
       if (result && result.ok) {
+        const session = await getSession()
         toast({
           title: 'Connexion réussie',
           description: 'Bienvenue !',
           variant: 'default'
         })
-        // Attendre un peu pour que la session soit mise à jour
-        setTimeout(() => {
+        if (session?.user?.email_verified === false) {
+          router.push(
+            '/verify-email-pending?email=' + encodeURIComponent(email)
+          )
+        } else {
           router.push('/discover')
-        }, 100)
+        }
       } else {
         toast({
           title: 'Erreur de connexion',

@@ -22,7 +22,8 @@ describe('registration page integrity', () => {
 
   it('offers the same Google entry point as the login page', () => {
     expect(source).toContain('shouldShowOAuthProviders')
-    expect(source).toContain("signIn('google', { callbackUrl: '/onboarding' })")
+    expect(source).toContain("signIn('google', { callbackUrl: '/discover' })")
+    expect(source).toContain("fetch('/api/auth/prepare-google-registration'")
     expect(source).toContain('Continuer avec Google')
   })
 })

@@ -5,6 +5,7 @@ const getUserByEmailMock = vi.hoisted(() => vi.fn())
 const getUserByIdMock = vi.hoisted(() => vi.fn())
 const verifyUserCredentialsMock = vi.hoisted(() => vi.fn())
 const recordAuthEventMock = vi.hoisted(() => vi.fn())
+const consumeOAuthRegistrationConsentMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/user-service', () => ({
   getOrCreateOAuthUser: getOrCreateOAuthUserMock,
@@ -19,6 +20,10 @@ vi.mock('@/lib/auth-audit', () => ({
   recordAuthEvent: recordAuthEventMock
 }))
 
+vi.mock('@/lib/oauth-registration-consent-cookie', () => ({
+  consumeOAuthRegistrationConsent: consumeOAuthRegistrationConsentMock
+}))
+
 import { authOptions } from '../lib/auth'
 
 describe('authOptions', () => {
@@ -29,6 +34,8 @@ describe('authOptions', () => {
     verifyUserCredentialsMock.mockReset()
     recordAuthEventMock.mockReset()
     recordAuthEventMock.mockResolvedValue(undefined)
+    consumeOAuthRegistrationConsentMock.mockReset()
+    consumeOAuthRegistrationConsentMock.mockResolvedValue(null)
   })
 
   it('does not expose invalid NextAuth route-only options', () => {
@@ -175,6 +182,44 @@ describe('authOptions', () => {
       email: 'new@example.com',
       provider: 'google',
       success: false
+    }))
+  })
+
+  it('passes current consent and verified Google email to OAuth user creation', async () => {
+    const consent = {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: {
+        terms: '2026-07-15',
+        privacy: '2026-07-15',
+        antiSolicitation: '2026-07-15'
+      }
+    }
+    consumeOAuthRegistrationConsentMock.mockResolvedValue(consent)
+    getOrCreateOAuthUserMock.mockResolvedValue({
+      id: 'new-google-user',
+      email: 'new@example.com',
+      name: 'Nouveau',
+      role: 'user',
+      email_verified: true,
+      status: 'active',
+      is_banned: false
+    })
+
+    const result = await authOptions.callbacks!.signIn!({
+      user: { id: 'google-profile', email: 'new@example.com', name: 'Nouveau' },
+      account: { provider: 'google' },
+      profile: { email_verified: true },
+      email: undefined,
+      credentials: undefined
+    } as any)
+
+    expect(result).toBe(true)
+    expect(getOrCreateOAuthUserMock).toHaveBeenCalledWith(expect.objectContaining({
+      email: 'new@example.com',
+      consent,
+      emailVerifiedByProvider: true
     }))
   })
 

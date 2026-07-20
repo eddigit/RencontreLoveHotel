@@ -1,10 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createUser } = vi.hoisted(() => ({ createUser: vi.fn() }))
+const { createUser, sendVerificationEmail } = vi.hoisted(() => ({
+  createUser: vi.fn(),
+  sendVerificationEmail: vi.fn()
+}))
 
 vi.mock('@/lib/user-service', () => ({
   createUser,
   verifyUserCredentials: vi.fn()
+}))
+
+vi.mock('@/lib/email-verification-token', () => ({
+  createEmailVerificationToken: vi.fn(() => 'signed-verification-token')
+}))
+
+vi.mock('@/lib/verification-email', () => ({
+  sendVerificationEmail
 }))
 
 vi.mock('@/lib/onboarding-service', () => ({ saveOnboardingData: vi.fn() }))
@@ -20,8 +31,11 @@ const LEGAL_POLICY_VERSIONS = {
 
 describe('registration legal consent', () => {
   beforeEach(() => {
+    process.env.NEXTAUTH_SECRET = 'test-nextauth-secret'
     createUser.mockReset()
     createUser.mockResolvedValue({ id: 'user-1' })
+    sendVerificationEmail.mockReset()
+    sendVerificationEmail.mockResolvedValue(undefined)
   })
 
   it('rejects registration when one commitment is missing', async () => {
@@ -69,8 +83,13 @@ describe('registration legal consent', () => {
         terms: true,
         antiSolicitation: true,
         versions: LEGAL_POLICY_VERSIONS
-      })
+      }),
+      'signed-verification-token'
     )
+    expect(sendVerificationEmail).toHaveBeenCalledWith({
+      email: 'member@example.test',
+      token: 'signed-verification-token'
+    })
   })
 
   it('explains that an account already exists for a duplicate email', async () => {

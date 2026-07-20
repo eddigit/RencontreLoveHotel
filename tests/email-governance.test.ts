@@ -2,14 +2,19 @@ import { readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
 
 describe('email governance', () => {
-  it('disables automatic verification emails from registration and resend flows', () => {
+  it('allows only explicit transactional verification emails from registration and resend flows', () => {
     const userService = readFileSync('lib/user-service.ts', 'utf8')
+    const registration = readFileSync('app/actions.ts', 'utf8')
     const resendRoute = readFileSync('app/api/resend-verification/route.ts', 'utf8')
+    const verificationService = readFileSync('lib/verification-email.ts', 'utf8')
 
     expect(userService).not.toContain('createTransport')
     expect(userService).not.toContain('sendVerificationEmail')
-    expect(resendRoute).not.toContain('sendMail')
-    expect(resendRoute).toContain('Seule une demande explicite de renouvellement de mot de passe')
+    expect(registration).toContain('sendVerificationEmail')
+    expect(resendRoute).toContain('sendVerificationEmail')
+    expect(resendRoute).not.toContain('Utilisateur introuvable')
+    expect(verificationService).toContain('requestedByUser: true')
+    expect(verificationService).toContain('sendMail')
   })
 
   it('keeps explicit password reset email as the allowed transactional flow', () => {

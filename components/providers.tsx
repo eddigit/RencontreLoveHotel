@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { SessionProvider } from "next-auth/react"
 import { NoSSR } from "@/components/no-ssr"
 import { PresenceHeartbeat } from "@/components/presence-heartbeat"
+import { Toaster } from '@/components/ui/toaster'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -16,6 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             <NotificationProvider>
               {children}
             </NotificationProvider>
+            <Toaster />
           </AuthProvider>
         </SessionProvider>
       </ThemeProvider>

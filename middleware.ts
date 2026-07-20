@@ -37,6 +37,9 @@ export default withAuth(
       if (!token || token.authBlocked || !token.sub) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
       }
+      if (requiresVerifiedEmail(pathname) && !token.email_verified) {
+        return NextResponse.json({ error: 'Email verification required' }, { status: 403 })
+      }
     }
 
     return NextResponse.next()

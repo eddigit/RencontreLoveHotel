@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { executeQuery } from "@/lib/db";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { logSecurityEvent } from "@/utils/logger";
+import {
+  getUserById,
+  updateUserVerificationToken
+} from '@/lib/user-service'
+import { createEmailVerificationToken } from '@/lib/email-verification-token'
+import { sendVerificationEmail } from '@/lib/verification-email'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,16 +19,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Accès administrateur requis." }, { status: 403 });
     }
 
-    const { userId, token } = await req.json();
+    const { userId } = await req.json();
     
-    if (!userId || !token) {
+    if (!userId) {
       return NextResponse.json({ success: false, error: "Paramètres manquants." }, { status: 400 });
     }
 
     // Validation des paramètres
-    if (typeof userId !== 'string' || typeof token !== 'string') {
+    if (typeof userId !== 'string') {
       return NextResponse.json({ success: false, error: "Types de paramètres invalides." }, { status: 400 });
     }
+
+    const user = await getUserById(userId)
+    if (!user || user.email_verified) {
+      return NextResponse.json({ success: false, error: "Compte non vérifiable." }, { status: 400 })
+    }
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || ''
+    if (!secret) {
+      return NextResponse.json({ success: false, error: "Configuration indisponible." }, { status: 500 })
+    }
+    const token = createEmailVerificationToken(user.email, secret)
 
     // Log pour audit
     logSecurityEvent('EMAIL_VERIFICATION_TOKEN_UPDATE', {
@@ -32,10 +47,11 @@ export async function POST(req: NextRequest) {
       userAgent: req.headers.get('user-agent')
     });
 
-    await executeQuery(
-      `UPDATE users SET email_verification_token = $1 WHERE id = $2`,
-      [token, userId]
-    );
+    const updated = await updateUserVerificationToken(userId, token)
+    if (!updated) {
+      return NextResponse.json({ success: false, error: "Compte non vérifiable." }, { status: 409 })
+    }
+    await sendVerificationEmail({ email: user.email, token })
     
     return NextResponse.json({ success: true });
   } catch (error) {

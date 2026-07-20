@@ -1,7 +1,14 @@
 import { executeQuery } from "./db"
 import { hash, compare } from "bcryptjs"
 import { v4 as uuidv4 } from "uuid"
-import type { RegistrationConsent } from '@/lib/legal-policy'
+import {
+  isCurrentRegistrationConsent,
+  type RegistrationConsent
+} from '@/lib/legal-policy'
+import {
+  digestEmailVerificationToken,
+  verifyEmailVerificationToken
+} from '@/lib/email-verification-token'
 
 // Types
 export interface User {
@@ -34,9 +41,13 @@ export async function createUser(
   password: string,
   name: string,
   role: "user" | "admin" = "user",
-  consent?: RegistrationConsent
+  consent?: RegistrationConsent,
+  verificationToken?: string
 ): Promise<User | null> {
   try {
+    if (consent && !verificationToken) {
+      throw new Error('Jeton de vérification requis pour une inscription membre.')
+    }
     const normalizedEmail = email.trim().toLowerCase()
     const hashedPassword = await hash(password, 10)
     const userId = uuidv4()
@@ -70,8 +81,8 @@ export async function createUser(
       hashedPassword,
       name,
       role,
-      true,
-      null,
+      consent ? false : true,
+      verificationToken ? digestEmailVerificationToken(verificationToken) : null,
       ...(consent ? [
         consent.versions.terms,
         consent.versions.privacy,
@@ -89,21 +100,83 @@ export async function createUser(
 // Vérifier le token de vérification d'email
 export async function verifyEmailToken(token: string): Promise<{ success: boolean; error?: string }> {
   try {
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || ''
+    const payload = verifyEmailVerificationToken(token, secret)
+    if (!payload) {
+      return { success: false, error: "Token invalide ou déjà utilisé." }
+    }
     const users = await executeQuery<User[]>(
-      `SELECT id FROM users WHERE email_verification_token = $1 AND email_verified = false`,
-      [token]
+      `UPDATE users
+       SET email_verified = true, email_verification_token = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE email_verification_token = $1
+         AND email_verified = false
+         AND lower(email) = $2
+       RETURNING id`,
+      [digestEmailVerificationToken(token), payload.email]
     )
     if (!users.length) {
       return { success: false, error: "Token invalide ou déjà utilisé." }
     }
-    await executeQuery(
-      `UPDATE users SET email_verified = true, email_verification_token = NULL WHERE id = $1`,
-      [users[0].id]
-    )
     return { success: true }
   } catch (error) {
     return { success: false, error: "Erreur serveur." }
   }
+}
+
+export async function updateUserVerificationToken(
+  userId: string,
+  token: string
+): Promise<boolean> {
+  const result = await executeQuery<Array<{ id: string }>>(
+    `UPDATE users
+     SET email_verification_token = $1, updated_at = CURRENT_TIMESTAMP
+     WHERE id = $2 AND email_verified = false
+     RETURNING id`,
+    [digestEmailVerificationToken(token), userId]
+  )
+  return result.length === 1
+}
+
+export async function reserveVerificationEmailSend(
+  userId: string,
+  email: string
+): Promise<string | null> {
+  const rows = await executeQuery<Array<{ id: string }>>(
+    `WITH locked AS MATERIALIZED (
+       SELECT pg_advisory_xact_lock(hashtext($1))
+     ), recent AS (
+       SELECT COUNT(*)::int AS count
+       FROM email_send_logs, locked
+       WHERE user_id = $2
+         AND purpose = 'verification'
+         AND created_at >= NOW() - INTERVAL '1 hour'
+     ), inserted AS (
+       INSERT INTO email_send_logs (
+         user_id, email, purpose, status, metadata
+       )
+       SELECT $2, $3, 'verification', 'sent', '{"phase":"reserved"}'::jsonb
+       FROM recent
+       WHERE recent.count < 3
+       RETURNING id
+     )
+     SELECT id FROM inserted`,
+    [`verification:${email.trim().toLowerCase()}`, userId, email.trim().toLowerCase()]
+  )
+  return rows[0]?.id || null
+}
+
+export async function finalizeVerificationEmailSend(
+  logId: string,
+  status: 'sent' | 'error'
+): Promise<void> {
+  await executeQuery(
+    `UPDATE email_send_logs
+     SET status = $1,
+         error_message = CASE WHEN $1 = 'error' THEN 'smtp_delivery_failed' ELSE NULL END,
+         metadata = jsonb_build_object('phase', $1)
+     WHERE id = $2`,
+    [status, logId]
+  )
 }
 
 // Vérifier les identifiants de l'utilisateur
@@ -201,7 +274,19 @@ export async function updateOnboardingStatus(userId: string, completed: boolean)
 }
 
 // Récupérer un compte OAuth existant. Toute création exige les consentements versionnés.
-export async function getOrCreateOAuthUser({ email, name, avatar }: { email: string, name?: string, avatar?: string }) {
+export async function getOrCreateOAuthUser({
+  email,
+  name,
+  avatar,
+  consent,
+  emailVerifiedByProvider = false
+}: {
+  email: string
+  name?: string
+  avatar?: string
+  consent?: RegistrationConsent | null
+  emailVerifiedByProvider?: boolean
+}) {
   const normalizedEmail = email.trim().toLowerCase()
   // Vérifier si l'utilisateur existe déjà
   const existing = await executeQuery<User[]>(
@@ -212,9 +297,69 @@ export async function getOrCreateOAuthUser({ email, name, avatar }: { email: str
     [normalizedEmail]
   )
   if (existing.length > 0) {
+    if (!emailVerifiedByProvider) {
+      return null
+    }
+    if (emailVerifiedByProvider && existing[0].email_verified !== true) {
+      const verified = await executeQuery<User[]>(
+        `UPDATE users
+         SET email_verified = true, email_verification_token = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING id, email, name, role, avatar, onboarding_completed, email_verified,
+                   status, is_banned, created_at, updated_at`,
+        [existing[0].id]
+      )
+      return verified[0] || existing[0]
+    }
     return existing[0]
   }
-  return null
+
+  if (!emailVerifiedByProvider || !isCurrentRegistrationConsent(consent)) {
+    return null
+  }
+
+  const userId = uuidv4()
+  const displayName = name?.trim() || normalizedEmail.split('@')[0]
+  const created = await executeQuery<User[]>(
+    `WITH inserted_user AS (
+       INSERT INTO users (
+         id, email, password_hash, name, role, avatar,
+         email_verified, email_verification_token
+       )
+       VALUES ($1, $2, NULL, $3, 'user', $4, true, NULL)
+       ON CONFLICT (email) DO UPDATE
+       SET email_verified = true,
+           email_verification_token = NULL,
+           updated_at = CURRENT_TIMESTAMP
+       RETURNING id, email, name, role, avatar, onboarding_completed,
+                 email_verified, status, is_banned, created_at, updated_at
+     ), recorded_acceptances AS (
+       INSERT INTO legal_acceptances (
+         user_id, document_type, document_version, adult_confirmed, metadata
+       )
+       SELECT inserted_user.id, acceptance.document_type,
+              acceptance.document_version, true,
+              jsonb_build_object('source', 'oauth_registration', 'provider', 'google')
+       FROM inserted_user
+       CROSS JOIN (VALUES
+         ('terms', $5::text),
+         ('privacy', $6::text),
+         ('anti_solicitation', $7::text)
+       ) AS acceptance(document_type, document_version)
+       ON CONFLICT ON CONSTRAINT legal_acceptances_unique_version DO NOTHING
+     )
+     SELECT * FROM inserted_user`,
+    [
+      userId,
+      normalizedEmail,
+      displayName,
+      avatar || null,
+      consent.versions.terms,
+      consent.versions.privacy,
+      consent.versions.antiSolicitation
+    ]
+  )
+  return created[0] || null
 }
 
 // Mettre à jour le token de réinitialisation du mot de passe d'un utilisateur

@@ -10,6 +10,7 @@ import {
   verifyUserCredentials
 } from '@/lib/user-service'
 import { recordAuthEvent } from '@/lib/auth-audit'
+import { consumeOAuthRegistrationConsent } from '@/lib/oauth-registration-consent-cookie'
 
 function invalidateAuthToken(token: JWT): JWT {
   token.sub = undefined
@@ -105,14 +106,21 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login'
   },
   callbacks: {
-    async signIn({ user, account }) {
+    async signIn({ user, account, profile }) {
       let auditUser = user
 
       if (account?.provider && account.provider !== 'credentials') {
+        const consent = account.provider === 'google'
+          ? await consumeOAuthRegistrationConsent()
+          : null
         const dbUser = await getOrCreateOAuthUser({
           email: user.email!,
           name: user.name ?? undefined,
-          avatar: user.image ?? undefined
+          avatar: user.image ?? undefined,
+          consent,
+          emailVerifiedByProvider:
+            account.provider === 'google' &&
+            Boolean((profile as { email_verified?: boolean } | undefined)?.email_verified)
         })
         if (!dbUser || !isUserAllowedToAuthenticate(dbUser)) {
           await recordAuthEvent({

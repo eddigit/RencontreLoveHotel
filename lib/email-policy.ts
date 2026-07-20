@@ -10,6 +10,7 @@ export type EmailPurpose =
 export type EmailPolicyReason =
   | 'password_reset_requested'
   | 'password_reset_not_requested'
+  | 'verification_requested'
   | 'campaign_opted_in'
   | 'missing_campaign_opt_in'
   | 'opted_out'
@@ -55,6 +56,12 @@ export function canSendEmailForPurpose(
     return input.requestedByUser
       ? { allowed: true, reason: 'password_reset_requested' }
       : { allowed: false, reason: 'password_reset_not_requested' }
+  }
+
+  if (purpose === 'verification') {
+    return input.requestedByUser
+      ? { allowed: true, reason: 'verification_requested' }
+      : { allowed: false, reason: 'purpose_blocked_by_default' }
   }
 
   const userIsBlocked =

@@ -12,6 +12,8 @@ import {
   type RegistrationConsent
 } from '@/lib/legal-policy'
 import { userRegistrationSchema } from '@/lib/validation'
+import { createEmailVerificationToken } from '@/lib/email-verification-token'
+import { sendVerificationEmail } from '@/lib/verification-email'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -138,14 +140,36 @@ export async function registerUser(
   }
 
   try {
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || ''
+    if (!secret) {
+      return { success: false, error: "Configuration d'inscription indisponible." }
+    }
+    const verificationToken = createEmailVerificationToken(
+      registration.data.email,
+      secret
+    )
     const user = await createUser(
       registration.data.email,
       registration.data.password,
       registration.data.name,
       'user',
-      consent
+      consent,
+      verificationToken
     )
-    return { success: !!user, user }
+    if (!user) {
+      return { success: false, error: "Erreur lors de l'inscription" }
+    }
+
+    try {
+      await sendVerificationEmail({
+        email: registration.data.email,
+        token: verificationToken
+      })
+      return { success: true, user, emailSent: true }
+    } catch {
+      console.error("Échec de l'envoi de l'email de vérification.")
+      return { success: true, user, emailSent: false }
+    }
   } catch (error) {
     console.error("Erreur lors de l'inscription:", error)
     if (

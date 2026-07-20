@@ -28,6 +28,7 @@ export default function RegisterPage () {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -70,13 +71,9 @@ export default function RegisterPage () {
       )
 
       if (result.success) {
-        const signInResult = await signIn('credentials', {
-          email: formData.email,
-          password: formData.password,
-          redirect: false
-        })
-
-        router.push(signInResult?.ok ? '/onboarding' : '/login')
+        router.push(
+          '/verify-email-pending?email=' + encodeURIComponent(formData.email)
+        )
       } else {
         setError(result.error || "L'inscription n'a pas pu être finalisée.")
       }
@@ -85,6 +82,38 @@ export default function RegisterPage () {
       setError('Une erreur est survenue. Réessayez dans quelques instants.')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleGoogleRegistration = async () => {
+    setError('')
+    if (!formData.adult || !formData.agreeTerms || !formData.antiSolicitation) {
+      setError('Confirmez votre majorité et acceptez les règles obligatoires avant de continuer avec Google.')
+      return
+    }
+
+    setIsGoogleSubmitting(true)
+    try {
+      const response = await fetch('/api/auth/prepare-google-registration', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adult: formData.adult,
+          terms: formData.agreeTerms,
+          antiSolicitation: formData.antiSolicitation,
+          versions: LEGAL_POLICY_VERSIONS
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        setError(result.error || "L'inscription Google n'a pas pu être préparée.")
+        return
+      }
+      await signIn('google', { callbackUrl: '/discover' })
+    } catch {
+      setError("L'inscription Google n'a pas pu être préparée.")
+    } finally {
+      setIsGoogleSubmitting(false)
     }
   }
 
@@ -249,7 +278,13 @@ export default function RegisterPage () {
                       type='button'
                       variant='outline'
                       className='h-11 w-full'
-                      onClick={() => signIn('google', { callbackUrl: '/onboarding' })}
+                      disabled={
+                        isGoogleSubmitting ||
+                        !formData.adult ||
+                        !formData.agreeTerms ||
+                        !formData.antiSolicitation
+                      }
+                      onClick={handleGoogleRegistration}
                     >
                       <svg className='mr-2 h-4 w-4' viewBox='0 0 24 24' aria-hidden='true'>
                         <path d='M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z' fill='#4285F4' />
@@ -257,7 +292,7 @@ export default function RegisterPage () {
                         <path d='M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z' fill='#FBBC05' />
                         <path d='M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-3.71 6.16-4.53z' fill='#EA4335' />
                       </svg>
-                      Continuer avec Google
+                      {isGoogleSubmitting ? 'Connexion à Google...' : 'Continuer avec Google'}
                     </Button>
                   </>
                 )}

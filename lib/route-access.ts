@@ -28,6 +28,7 @@ const exactPublicPaths = new Set([
 const publicPrefixes = [
   '/api/auth',
   '/api/verify-email',
+  '/api/resend-verification',
   '/api/account/request-password-reset',
   '/api/account/reset-password',
   '/love-rooms/'
@@ -89,6 +90,5 @@ export function isAuthenticatedApiPath(pathname: string) {
 }
 
 export function requiresVerifiedEmail(pathname: string) {
-  const normalized = normalizePath(pathname)
-  return matchesPrefix(normalized, '/messages')
+  return isProtectedPagePath(pathname) || isAuthenticatedApiPath(pathname)
 }
