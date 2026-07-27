@@ -12,16 +12,24 @@ import { Progress } from '@/components/ui/progress'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  memberIdentityFromStatus,
+  profileTypeOptions,
+  seekingProfileTypeOptions,
+  type MemberGender,
+  type MemberStatus,
+  type SeekingProfileType
+} from '@/lib/member-profile-types'
 
 export interface OnboardingData {
-  status: 'couple' | 'single_male' | 'single_female' | ''
+  status: MemberStatus | ''
   age: number | null
   orientation: 'hetero' | 'homo' | 'bi' | ''
-  gender: 'male' | 'female' | 'couple' | ''
+  gender: MemberGender | ''
   birthday: string
   coupleComposition: 'mixed' | 'male_male' | 'female_female' | 'other' | ''
   avatarUrl: string
-  seekingProfileTypes: Array<'male' | 'female' | 'couple'>
+  seekingProfileTypes: SeekingProfileType[]
   relationshipIntents: Array<'serious' | 'regular' | 'casual' | 'libertine' | 'friendship'>
   bdsmRoles: Array<'discovery' | 'dominant' | 'submissive' | 'switch' | 'none'>
   interestedInRestaurant: boolean
@@ -52,9 +60,6 @@ const initialData: OnboardingData = {
   openToOtherCouples: false, specificPreferences: '', joinExclusiveEvents: false, premiumAccess: false
 }
 
-const profileTypes = [
-  ['male', 'Hommes'], ['female', 'Femmes'], ['couple', 'Couples']
-] as const
 const relationshipIntents = [
   ['serious', 'Relation sérieuse'], ['regular', 'Relation régulière'], ['casual', 'Rencontre occasionnelle'],
   ['libertine', 'Relation libertine'], ['friendship', 'Relation amicale']
@@ -88,7 +93,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
   }
 
   const updateStatus = (status: OnboardingData['status']) => {
-    const gender = status === 'couple' ? 'couple' : status === 'single_male' ? 'male' : status === 'single_female' ? 'female' : ''
+    const gender = status ? memberIdentityFromStatus(status).gender : ''
     setFormData(previous => ({ ...previous, status, gender, coupleComposition: status === 'couple' ? previous.coupleComposition : '' }))
   }
 
@@ -160,10 +165,10 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
             <div className='space-y-2'>
               <Label>Votre profil</Label>
               <RadioGroup value={formData.status} onValueChange={value => updateStatus(value as OnboardingData['status'])} className='grid gap-2'>
-                {[['single_male', 'Homme'], ['single_female', 'Femme'], ['couple', 'Couple']].map(([value, label]) => (
-                  <div key={value} className='flex items-center gap-3 rounded-xl border border-purple-800/50 bg-purple-900/20 p-3'>
-                    <RadioGroupItem value={value} id={`status-${value}`} className='border-purple-500' />
-                    <Label htmlFor={`status-${value}`} className='flex-1 cursor-pointer'>{label}</Label>
+                {profileTypeOptions.map(option => (
+                  <div key={option.value} className='flex items-center gap-3 rounded-xl border border-purple-800/50 bg-purple-900/20 p-3'>
+                    <RadioGroupItem value={option.value} id={`status-${option.value}`} className='border-purple-500' />
+                    <Label htmlFor={`status-${option.value}`} className='flex-1 cursor-pointer'>{option.label}</Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -213,7 +218,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
 
         {step === 3 && (
           <div className='space-y-6'>
-            <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{profileTypes.map(([value, label]) => <Choice key={value} id={`seeking-${value}`} label={label} checked={formData.seekingProfileTypes.includes(value)} onChange={() => toggleArrayValue('seekingProfileTypes', value)} />)}</div>
+            <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{seekingProfileTypeOptions.map(option => <Choice key={option.value} id={`seeking-${option.value}`} label={option.label} checked={formData.seekingProfileTypes.includes(option.value)} onChange={() => toggleArrayValue('seekingProfileTypes', option.value)} />)}</div>
             <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2>{relationshipIntents.map(([value, label]) => <Choice key={value} id={`intent-${value}`} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleArrayValue('relationshipIntents', value)} />)}</div>
             <div className='space-y-3'><div><h2 className='font-bold'>Affinités BDSM</h2><p className='text-sm text-purple-100/65'>Facultatif. « Sans BDSM » exclut les autres choix.</p></div>{bdsmRoles.map(([value, label]) => <Choice key={value} id={`bdsm-${value}`} label={label} checked={formData.bdsmRoles.includes(value)} onChange={() => value === 'none' ? toggleArrayValue('bdsmRoles', 'none') : toggleArrayValue('bdsmRoles', value)} />)}</div>
           </div>

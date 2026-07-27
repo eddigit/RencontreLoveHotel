@@ -19,6 +19,7 @@ interface Conversation {
   last_message: string | null
   last_message_date: string | null
   other_user_avatar: string | null
+  other_user_online?: boolean
 }
 
 function formatMessageDate (date: Date): string {
@@ -69,7 +70,8 @@ export default function MessagesPage () {
             last_message_date: conv.last_message_date
               ? formatMessageDate(new Date(conv.last_message_date))
               : '',
-            other_user_avatar: conv.other_user_avatar
+            other_user_avatar: conv.other_user_avatar,
+            other_user_online: Boolean(conv.other_user_online)
           }))
         )
       } catch (error) {
@@ -174,6 +176,9 @@ export default function MessagesPage () {
                       className='object-cover'
                       sizes='56px'
                     />
+                    {conversation.other_user_online && (
+                      <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
+                    )}
                   </div>
                   <div className='min-w-0 flex-1'>
                     <div className='flex items-center justify-between gap-3'>
@@ -206,6 +211,9 @@ export default function MessagesPage () {
                         className='object-cover'
                         sizes='48px'
                       />
+                      {activeConversation.other_user_online && (
+                        <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
+                      )}
                     </div>
                     <div>
                       <h2 className='font-black'>{activeConversation.other_user_name}</h2>

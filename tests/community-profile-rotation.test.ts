@@ -17,19 +17,26 @@ describe('community profile rotation', () => {
     expect(source).toContain('profileBatch')
   })
 
-  it('prepares another profile batch without replacing visible cards immediately', () => {
+  it('loads another profile batch with one explicit click', () => {
     const source = readFileSync('app/discover/page.tsx', 'utf8')
     const showAnotherBatch = source.slice(
       source.indexOf('const showAnotherBatch'),
-      source.indexOf('const applyPreparedProfiles')
+      source.indexOf('const handleSearchChange')
     )
 
-    expect(source).toContain('preparedProfiles')
-    expect(source).toContain('setPreparedProfiles')
-    expect(source).toContain('applyPreparedProfiles')
-    expect(source).toContain('Afficher ces profils')
-    expect(showAnotherBatch).not.toContain('setProfiles(')
-    expect(showAnotherBatch).not.toContain('writeDiscoverUrlState')
+    expect(showAnotherBatch).toContain('await recordProfileImpressions')
+    expect(showAnotherBatch).toContain('writeDiscoverUrlState')
+    expect(source).not.toContain('preparedProfiles')
+    expect(source).not.toContain('preparedBatch')
+    expect(source).not.toContain('Afficher ces profils')
+  })
+
+  it('uses the connected member impression history across devices', () => {
+    const source = readFileSync('actions/user-actions.ts', 'utf8')
+
+    expect(source).toContain('AND pe.user_id = $1')
+    expect(source).toContain('AS viewer_impressions_14d')
+    expect(source).toContain('profile.viewer_impressions_14d')
   })
 
   it('keeps schema changes out of runtime presence checks', () => {

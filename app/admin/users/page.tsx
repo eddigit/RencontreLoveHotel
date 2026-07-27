@@ -132,6 +132,8 @@ export default function AdminUsersPage () {
       'couple_ff': 'Couples F/F',
       'single_male': 'Homme seul',
       'single_female': 'Femme seule',
+      'single_trans': 'Personne trans',
+      'trans': 'Personne trans',
       'married_male': 'Homme marié',
       'married_female': 'Femme mariée',
       'other': 'Autre',

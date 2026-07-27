@@ -14,6 +14,7 @@ import {
 import { userRegistrationSchema } from '@/lib/validation'
 import { createEmailVerificationToken } from '@/lib/email-verification-token'
 import { sendVerificationEmail } from '@/lib/verification-email'
+import { sendRegistrationAdminNotification } from '@/lib/registration-admin-notification'
 
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
@@ -99,6 +100,27 @@ export async function markAllNotificationsAsRead(userId: string) {
   return { success: true }
 }
 
+export async function markResourceNotificationsAsRead(userId: string, resourceLink: string) {
+  await requireSameUserOrAdmin(userId)
+
+  const normalizedLink = resourceLink.trim()
+  const allowedResource = normalizedLink === '/matches' || normalizedLink.startsWith('/messages/')
+  if (!allowedResource) {
+    throw new Error('Ressource de notification non autorisée')
+  }
+
+  await sql`
+    UPDATE notifications
+    SET read = true,
+        read_at = COALESCE(read_at, CURRENT_TIMESTAMP)
+    WHERE user_id = ${userId}
+      AND COALESCE(read, false) = false
+      AND link = ${resourceLink}
+  `
+
+  return { success: true }
+}
+
 // Fonction pour sauvegarder les préférences utilisateur (utilise maintenant la base de données)
 export async function saveUserPreferences(userId: string, data: OnboardingData) {
   await requireSameUserOrAdmin(userId)
@@ -158,6 +180,16 @@ export async function registerUser(
     )
     if (!user) {
       return { success: false, error: "Erreur lors de l'inscription" }
+    }
+
+    try {
+      await sendRegistrationAdminNotification({
+        userId: user.id,
+        email: registration.data.email,
+        name: registration.data.name
+      })
+    } catch {
+      console.error("Échec de l'envoi de l'email opérateur de nouvelle inscription.")
     }
 
     try {

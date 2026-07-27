@@ -155,7 +155,7 @@ function RealTimeActivity() {
           <Badge variant="outline" className="ml-2">Live</Badge>
         </CardTitle>
         <CardDescription>
-          Dernière mise à jour: {new Date(metrics.timestamp).toLocaleTimeString('fr-FR')}
+          Dernière mise à jour: {metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString('fr-FR') : 'en attente'}
         </CardDescription>
       </CardHeader>
       <CardContent>

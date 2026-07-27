@@ -24,6 +24,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+deployments.log
+
+# macOS
+.DS_Store
 
 # env files
 .env*

@@ -1,6 +1,6 @@
 'use client'
 import React, { useRef, useState, useTransition } from 'react'
-import { validateImageUploadFile } from '@/lib/upload-validation'
+import { uploadProfilePhoto } from '@/lib/profile-photo-upload'
 
 interface UserPhoto {
   id: string
@@ -10,11 +10,13 @@ interface UserPhoto {
 
 interface UserPhotosManagerProps {
   photos: UserPhoto[]
+  userId: string
   maxPhotos?: number
 }
 
 export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   photos: initialPhotos,
+  userId,
   maxPhotos = 10
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -23,32 +25,22 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0]
       setError(null)
       setMessage(null)
-      const validation = await validateImageUploadFile(file)
-      if (!validation.ok) {
-        setError(validation.error)
-        e.target.value = ''
-        return
-      }
-
       setUploading(true)
+      setUploadProgress(0)
       try {
-        const formData = new FormData()
-        formData.append('photo', file)
-        formData.append('purpose', 'gallery')
-        const res = await fetch('/api/photos/upload', {
-          method: 'POST',
-          body: formData
+        const data = await uploadProfilePhoto({
+          file,
+          purpose: 'gallery',
+          userId,
+          onProgress: setUploadProgress
         })
-        const data = await res.json()
-        if (!res.ok || !data.success || !data.url) {
-          throw new Error(data.error || "Erreur lors de l'envoi")
-        }
         setPhotos(p => [
           ...p,
           { id: data.id || data.url, url: data.url, is_primary: false }
@@ -62,6 +54,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
         )
       } finally {
         setUploading(false)
+        setUploadProgress(0)
         e.target.value = ''
       }
     }
@@ -92,7 +85,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
         <div role='alert' className='mb-3 rounded-xl border border-red-400/30 bg-red-500/10 p-3 text-red-100'>{error}</div>
       )}
       {uploading && (
-        <div className='mb-3 text-sm font-medium text-[#94ffc9]'>Envoi de la photo...</div>
+        <div className='mb-3 text-sm font-medium text-[#94ffc9]'>Envoi de la photo{uploadProgress > 0 ? ` : ${uploadProgress} %` : '...'}</div>
       )}
       <div className='flex flex-wrap gap-4 mb-4'>
         {photos.map(photo => (
@@ -145,7 +138,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
         Vous pouvez ajouter jusqu'à {maxPhotos} photos.
       </p>
       <p className='mt-1 text-sm font-medium text-white/65'>
-        Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.
+        Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo. HEIC iPhone : exportez la photo en JPG.
       </p>
     </div>
   )

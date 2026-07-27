@@ -90,16 +90,41 @@ function mapMetrics(row: SummaryRow, suffix: 'today' | 'previous'): MessagingRec
 }
 
 const conversationCtes = `
-  conversation_types AS (
+  conversation_base AS (
     SELECT
       c.id,
       c.created_at,
-      COUNT(cp.user_id) = 2 AND NOT BOOL_OR(u.role = 'admin') AS is_member,
-      BOOL_OR(u.role = 'admin') AS is_service
+      COUNT(cp.user_id)::int AS participant_count,
+      BOOL_OR(u.role = 'admin') AS has_admin
     FROM conversations c
     JOIN conversation_participants cp ON cp.conversation_id = c.id
     JOIN users u ON u.id = cp.user_id
     GROUP BY c.id, c.created_at
+  ),
+  accepted_match_conversations AS (
+    SELECT DISTINCT cp1.conversation_id
+    FROM conversation_participants cp1
+    JOIN conversation_participants cp2
+      ON cp2.conversation_id = cp1.conversation_id
+      AND cp2.user_id <> cp1.user_id
+    JOIN user_matches um
+      ON um.status = 'accepted'
+      AND (
+        (um.user_id_1 = cp1.user_id AND um.user_id_2 = cp2.user_id)
+        OR
+        (um.user_id_1 = cp2.user_id AND um.user_id_2 = cp1.user_id)
+      )
+  ),
+  conversation_types AS (
+    SELECT
+      cb.id,
+      cb.created_at,
+      cb.participant_count = 2
+        AND (NOT cb.has_admin OR amc.conversation_id IS NOT NULL) AS is_member,
+      cb.has_admin
+        AND NOT (cb.participant_count = 2 AND amc.conversation_id IS NOT NULL) AS is_service
+    FROM conversation_base cb
+    LEFT JOIN accepted_match_conversations amc ON amc.conversation_id = cb.id
   ),
   message_rollup AS (
     SELECT

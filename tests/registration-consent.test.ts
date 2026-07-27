@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { createUser, sendVerificationEmail } = vi.hoisted(() => ({
+const { createUser, sendRegistrationAdminNotification, sendVerificationEmail } = vi.hoisted(() => ({
   createUser: vi.fn(),
+  sendRegistrationAdminNotification: vi.fn(),
   sendVerificationEmail: vi.fn()
 }))
 
@@ -16,6 +17,10 @@ vi.mock('@/lib/email-verification-token', () => ({
 
 vi.mock('@/lib/verification-email', () => ({
   sendVerificationEmail
+}))
+
+vi.mock('@/lib/registration-admin-notification', () => ({
+  sendRegistrationAdminNotification
 }))
 
 vi.mock('@/lib/onboarding-service', () => ({ saveOnboardingData: vi.fn() }))
@@ -33,7 +38,13 @@ describe('registration legal consent', () => {
   beforeEach(() => {
     process.env.NEXTAUTH_SECRET = 'test-nextauth-secret'
     createUser.mockReset()
-    createUser.mockResolvedValue({ id: 'user-1' })
+    createUser.mockResolvedValue({
+      id: 'user-1',
+      email: 'member@example.test',
+      name: 'Membre'
+    })
+    sendRegistrationAdminNotification.mockReset()
+    sendRegistrationAdminNotification.mockResolvedValue(undefined)
     sendVerificationEmail.mockReset()
     sendVerificationEmail.mockResolvedValue(undefined)
   })
@@ -90,6 +101,26 @@ describe('registration legal consent', () => {
       email: 'member@example.test',
       token: 'signed-verification-token'
     })
+    expect(sendRegistrationAdminNotification).toHaveBeenCalledWith({
+      userId: 'user-1',
+      email: 'member@example.test',
+      name: 'Membre'
+    })
+  })
+
+  it('keeps registration successful when the admin notification email fails', async () => {
+    sendRegistrationAdminNotification.mockRejectedValueOnce(new Error('smtp down'))
+
+    const result = await registerUser('member@example.test', 'Secret123', 'Membre', {
+      adult: true,
+      terms: true,
+      antiSolicitation: true,
+      versions: LEGAL_POLICY_VERSIONS
+    })
+
+    expect(result.success).toBe(true)
+    expect(sendVerificationEmail).toHaveBeenCalled()
+    expect(sendRegistrationAdminNotification).toHaveBeenCalled()
   })
 
   it('explains that an account already exists for a duplicate email', async () => {

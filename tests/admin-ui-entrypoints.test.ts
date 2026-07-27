@@ -53,6 +53,12 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).not.toContain('Activité Récente (24h)')
   })
 
+  it('does not render an invalid date while real-time metrics are loading', () => {
+    const source = readFileSync('components/admin-real-time-stats.tsx', 'utf8')
+
+    expect(source).toContain("metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString('fr-FR') : 'en attente'")
+  })
+
   it('uses the native member image by profile type in the global user administration', () => {
     const page = readFileSync('app/admin/users/page.tsx', 'utf8')
     const actions = readFileSync('actions/user-actions.ts', 'utf8')

@@ -446,7 +446,7 @@ export default async function ProfilePage ({
                 Mes photos
               </h3>
               {/* UserPhotosManager handles upload/delete UI */}
-              <UserPhotosManager photos={userPhotos} maxPhotos={10} />
+              <UserPhotosManager userId={String(dbUser.id)} photos={userPhotos} maxPhotos={10} />
             </div>
           </TabsContent>
         </Tabs>

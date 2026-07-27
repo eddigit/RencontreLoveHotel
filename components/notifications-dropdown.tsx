@@ -21,7 +21,7 @@ import { motion, AnimatePresence } from "framer-motion"
 
 export type Notification = {
   id: string
-  type: "message" | "like" | "event" | "match" | "system"
+  type: "message" | "new_message" | "like" | "event" | "match" | "match_request" | "match_accepted" | "system" | string
   title: string
   description: string
   time: string
@@ -64,7 +64,13 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="relative rounded-full">
+        <Button
+          variant="outline"
+          size="icon"
+          className="relative rounded-full"
+          aria-label="Ouvrir les notifications"
+          title="Notifications"
+        >
           <Bell className="h-4 w-4" />
           <AnimatePresence>
             {unreadCount > 0 && (

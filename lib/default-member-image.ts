@@ -22,6 +22,7 @@ export function defaultMemberImage(profile: MemberImageProfile) {
     profile.preferences?.gender
   ].filter(Boolean).join(' ').toLowerCase()
 
+  if (type.includes('trans')) return '/default-member-trans.jpg'
   if (type.includes('couple_mm') || type.includes('couple_hh')) {
     return '/default-member-couple-mm.jpg'
   }

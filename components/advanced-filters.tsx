@@ -18,7 +18,7 @@ export interface FilterOptions {
   ageRange: [number, number]
   distance: number
   onlineOnly: boolean
-  status: 'all' | 'single' | 'couple'
+  status: 'all' | 'single' | 'couple' | 'trans'
   orientation: 'all' | 'hetero' | 'homo' | 'bi'
   meetingTypes: {
     friendly: boolean
@@ -230,6 +230,19 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   className='text-xs cursor-pointer'
                 >
                   Couples
+                </Label>
+              </div>
+              <div className='flex items-center space-x-1 rounded-md border border-purple-800/50 p-2 bg-purple-900/20'>
+                <RadioGroupItem
+                  value='trans'
+                  id='status-trans'
+                  className='border-purple-500'
+                />
+                <Label
+                  htmlFor='status-trans'
+                  className='text-xs cursor-pointer'
+                >
+                  Trans
                 </Label>
               </div>
             </RadioGroup>

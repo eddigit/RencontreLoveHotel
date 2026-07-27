@@ -71,10 +71,27 @@ export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
       return { ...candidate, discoveryScore, explorationScore }
     })
     .sort((left, right) => {
+      const impressionDifference =
+        Number(left.impressions14d || 0) - Number(right.impressions14d || 0)
+      if (impressionDifference) return impressionDifference
       const photoDifference = Number(hasPersonalPhoto(right)) - Number(hasPersonalPhoto(left))
       if (photoDifference) return photoDifference
       const featuredDifference = Number(Boolean(right.featured)) - Number(Boolean(left.featured))
       if (featuredDifference) return featuredDifference
       return right.discoveryScore - left.discoveryScore || left.id.localeCompare(right.id)
     })
+}
+
+export function rotateDiscoveryBatch<T>(
+  candidates: T[],
+  batch: number,
+  windowSize = 12
+): T[] {
+  const safeWindowSize = Math.max(1, Math.floor(Number(windowSize) || 12))
+  const safeBatch = Math.max(0, Math.floor(Number(batch) || 0))
+  if (safeBatch === 0 || candidates.length <= safeWindowSize) return candidates
+
+  const offset = (safeBatch * safeWindowSize) % candidates.length
+  if (offset === 0) return candidates
+  return [...candidates.slice(offset), ...candidates.slice(0, offset)]
 }

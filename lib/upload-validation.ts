@@ -43,6 +43,18 @@ export async function validateImageUploadFile(file: File) {
     }
   }
 
+  if (
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    /\.hei[cf]$/i.test(file.name)
+  ) {
+    return {
+      ok: false as const,
+      error:
+        'Format HEIC non accepté. Sur iPhone, choisissez une photo JPG/PNG/WebP ou activez le format « Le plus compatible ».'
+    }
+  }
+
   if (!(file.type in IMAGE_TYPES)) {
     return {
       ok: false as const,

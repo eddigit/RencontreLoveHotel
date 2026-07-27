@@ -176,4 +176,29 @@ describe('conversation-actions', () => {
       ]
     )
   })
+
+  it('loads the latest conversation window and renders it chronologically', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([])
+
+    await getConversationMessages(
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440099'
+    )
+
+    expect(sql.query).toHaveBeenLastCalledWith(
+      expect.stringContaining('ORDER BY m.created_at DESC, m.id DESC'),
+      [
+        '550e8400-e29b-41d4-a716-446655440001',
+        80
+      ]
+    )
+    const [statement] = (sql.query as any).mock.calls.at(-1)
+    expect(statement).toContain('LIMIT $2')
+    expect(statement).toContain('ORDER BY m.created_at ASC, m.id ASC')
+  })
 })

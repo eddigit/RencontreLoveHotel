@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowUpRight,
+  Bell,
   CalendarHeart,
   Crown,
   Heart,
@@ -22,8 +23,10 @@ import { CommunityFeedbackWidget } from '@/components/community-feedback-widget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { NotificationsButton } from '@/components/notifications-button'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
+import { useNotifications } from '@/contexts/notification-context'
 import {
   getCommunityMemberStats,
   getDiscoverProfiles,
@@ -34,6 +37,10 @@ import {
 import { getUpcomingEvents } from '@/actions/event-actions'
 import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import {
+  discoverySnapshotKey,
+  orderProfilesFromSnapshot
+} from '@/lib/discovery-session-state'
 
 type DiscoverProfile = {
   id: string
@@ -62,8 +69,10 @@ type MatchRow = {
   user_id_2: string
   user1_name: string
   user1_avatar: string | null
+  user1_online?: boolean
   user2_name: string
   user2_avatar: string | null
+  user2_online?: boolean
   match_score?: number | string | null
 }
 
@@ -88,7 +97,7 @@ const openCurtainsImageUrl = '/rideaux-ouverts-rencontre.jpg'
 const conciergerieImageUrl = '/conciergerie-service.jpg'
 
 function isDiscoverStatus(value: string | null): value is FilterOptions['status'] {
-  return value === 'all' || value === 'single' || value === 'couple'
+  return value === 'all' || value === 'single' || value === 'couple' || value === 'trans'
 }
 
 function isDiscoverOrientation(value: string | null): value is FilterOptions['orientation'] {
@@ -196,8 +205,39 @@ function formatCount (value: number) {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
 
+function DashboardActivityLink ({
+  href,
+  icon,
+  label,
+  count
+}: {
+  href: string
+  icon: React.ReactNode
+  label: string
+  count: number
+}) {
+  return (
+    <Link
+      href={href}
+      className='flex min-h-16 items-center gap-3 rounded-lg border border-white/10 bg-black/16 px-3 py-2 transition hover:border-white/20 hover:bg-white/[0.06]'
+    >
+      <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]'>
+        {icon}
+      </span>
+      <span className='min-w-0'>
+        <span className='block truncate text-sm font-bold'>{label}</span>
+        <span className='block text-xs text-white/52'>
+          {count > 0 ? `${count} non ${count > 1 ? 'lues' : 'lue'}` : 'Aucune nouvelle'}
+        </span>
+      </span>
+      <span className='ml-auto text-xl font-black'>{count}</span>
+    </Link>
+  )
+}
+
 export default function DiscoverPage () {
   const { user, isLoading } = useAuth()
+  const { counts } = useNotifications()
   const router = useRouter()
   const searchParams = useSearchParams()
   const searchParamString = searchParams.toString()
@@ -214,30 +254,62 @@ export default function DiscoverPage () {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
-  const [preparedProfiles, setPreparedProfiles] = useState<DiscoverProfile[]>([])
-  const [preparedBatch, setPreparedBatch] = useState<number | null>(null)
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const restoreProfileOrder = (
+    resultProfiles: DiscoverProfile[],
+    currentFilters: FilterOptions,
+    currentSearch: string,
+    batch: number
+  ) => {
+    const key = discoverySnapshotKey(
+      String(user?.id || ''),
+      currentFilters,
+      currentSearch,
+      batch
+    )
+    try {
+      const storedIds = JSON.parse(window.sessionStorage.getItem(key) || '[]')
+      const orderedProfiles = Array.isArray(storedIds)
+        ? orderProfilesFromSnapshot(resultProfiles, storedIds)
+        : resultProfiles
+      window.sessionStorage.setItem(
+        key,
+        JSON.stringify(orderedProfiles.map(profile => profile.id))
+      )
+      return orderedProfiles
+    } catch {
+      return resultProfiles
+    }
+  }
+
   const fetchCommunity = useCallback(
-    async (currentFilters?: FilterOptions, batch = 0) => {
+    async (currentFilters?: FilterOptions, batch = 0, currentSearch = '') => {
       if (!user?.id) return
 
       setLoading(true)
       setError(null)
       try {
+        const resolvedFilters = currentFilters || filters
         const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await Promise.all([
-          getDiscoverProfiles(user.id, 1, 240, currentFilters || filters, batch),
+          getDiscoverProfiles(user.id, 1, 240, resolvedFilters, batch),
           getOnlineCommunityMembers(),
           getUserMatches(user.id),
           getUpcomingEvents(user.id),
           getCommunityMemberStats()
         ])
 
-        setProfiles(profileResult.profiles || [])
+        const restoredProfiles = restoreProfileOrder(
+          profileResult.profiles || [],
+          resolvedFilters,
+          currentSearch,
+          batch
+        )
+        setProfiles(restoredProfiles)
         void recordProfileImpressions(
           user.id,
-          (profileResult.profiles || []).slice(0, 12).map((profile: DiscoverProfile) => profile.id),
+          restoredProfiles.slice(0, 12).map((profile: DiscoverProfile) => profile.id),
           batch
         )
         setOnlineMembers((onlineResult || []) as DiscoverProfile[])
@@ -249,6 +321,7 @@ export default function DiscoverPage () {
         setError('Impossible de charger la communauté pour le moment.')
       } finally {
         setLoading(false)
+        setPreparingProfiles(false)
       }
     },
     [user?.id, filters]
@@ -267,7 +340,7 @@ export default function DiscoverPage () {
     setFilters(restoredFilters)
     setSearchQuery(restoredSearch)
     setProfileBatch(restoredBatch)
-    fetchCommunity(restoredFilters, restoredBatch)
+    fetchCommunity(restoredFilters, restoredBatch, restoredSearch)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router, searchParamString])
 
@@ -286,8 +359,6 @@ export default function DiscoverPage () {
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     setProfileBatch(0)
-    setPreparedProfiles([])
-    setPreparedBatch(null)
     writeDiscoverUrlState(router, newFilters, searchQuery, 0)
   }
 
@@ -297,35 +368,21 @@ export default function DiscoverPage () {
     setPreparingProfiles(true)
     setError(null)
     try {
-      const profileResult = await getDiscoverProfiles(user.id, 1, 240, filters, nextBatch)
-      setPreparedProfiles(profileResult.profiles || [])
-      setPreparedBatch(nextBatch)
+      await recordProfileImpressions(
+        user.id,
+        profiles.slice(0, 12).map(profile => profile.id),
+        profileBatch
+      )
+      writeDiscoverUrlState(router, filters, searchQuery, nextBatch)
     } catch (error) {
-      console.error('Error preparing another profile batch:', error)
-      setError("Impossible de préparer d'autres profils pour le moment.")
-    } finally {
+      console.error('Error loading another profile batch:', error)
+      setError("Impossible de charger d'autres profils pour le moment.")
       setPreparingProfiles(false)
     }
   }
 
-  const applyPreparedProfiles = () => {
-    if (!user?.id || preparedBatch === null) return
-    setProfiles(preparedProfiles)
-    setProfileBatch(preparedBatch)
-    setPreparedProfiles([])
-    setPreparedBatch(null)
-    void recordProfileImpressions(
-      user.id,
-      preparedProfiles.slice(0, 12).map(profile => profile.id),
-      preparedBatch
-    )
-    writeDiscoverUrlState(router, filters, searchQuery, preparedBatch)
-  }
-
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
-    setPreparedProfiles([])
-    setPreparedBatch(null)
     writeDiscoverUrlState(router, filters, value, profileBatch)
   }
 
@@ -390,6 +447,9 @@ export default function DiscoverPage () {
         subtitle='Les profils actifs, les matchs, les événements et les expériences Love Rooms au même endroit.'
         action={
           <div className='flex flex-wrap items-center gap-2'>
+            <div className='hidden lg:block'>
+              <NotificationsButton />
+            </div>
             <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
             <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
               <Link href='/love-rooms'>
@@ -454,6 +514,44 @@ export default function DiscoverPage () {
           </aside>
 
           <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
+            <section
+              aria-label='Activité à suivre'
+              className='border-y border-white/10 bg-white/[0.025] px-3 py-3'
+            >
+              <div className='mb-3 flex items-center justify-between gap-3'>
+                <div>
+                  <p className='text-xs font-bold uppercase tracking-wider text-[#ff8cc8]'>Activité à suivre</p>
+                  <h2 className='mt-1 text-lg font-black'>Vos dernières alertes</h2>
+                </div>
+                <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]'>
+                  <Link href='/notifications'>
+                    <Bell className='mr-2 h-4 w-4' />
+                    Tout voir
+                  </Link>
+                </Button>
+              </div>
+              <div className='grid gap-2 sm:grid-cols-3'>
+                <DashboardActivityLink
+                  href='/messages'
+                  icon={<MessageCircle className='h-4 w-4 text-[#94ffc9]' />}
+                  label='Messages non lus'
+                  count={counts.messages}
+                />
+                <DashboardActivityLink
+                  href='/matches'
+                  icon={<Heart className='h-4 w-4 text-[#ff8cc8]' />}
+                  label='Matchs à consulter'
+                  count={counts.matches}
+                />
+                <DashboardActivityLink
+                  href='/events'
+                  icon={<CalendarHeart className='h-4 w-4 text-[#ffd166]' />}
+                  label='Alertes événements'
+                  count={counts.events}
+                />
+              </div>
+            </section>
+
             <div className='grid gap-3 md:grid-cols-3'>
               <Link href='#new-profiles' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
@@ -493,7 +591,7 @@ export default function DiscoverPage () {
             <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <h2 className='text-xl font-black'>Nouveaux membres</h2>
+                  <h2 className='text-xl font-black'>Nouveaux profils visibles</h2>
                   <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
                 </div>
                 <div className='flex shrink-0 flex-col items-end gap-2'>
@@ -502,13 +600,8 @@ export default function DiscoverPage () {
                   </span>
                   <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles} className='border-white/12 bg-white/[0.04]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
-                    {preparingProfiles ? 'Préparation...' : 'Découvrir d’autres profils'}
+                    {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>
-                  {preparedProfiles.length > 0 && (
-                    <Button type='button' size='sm' onClick={applyPreparedProfiles} className='bg-[#94ffc9] text-[#12031c] hover:bg-[#b8ffdb]'>
-                      Afficher ces profils
-                    </Button>
-                  )}
                 </div>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
@@ -520,6 +613,12 @@ export default function DiscoverPage () {
                   >
                     <div className='relative aspect-[4/5] bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
+                      {profile.online && (
+                        <span
+                          aria-label='En ligne'
+                          className='absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                        />
+                      )}
                       <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
                       <div className='absolute bottom-3 left-3 right-3'>
                         <div className='text-lg font-black'>
@@ -837,11 +936,18 @@ export default function DiscoverPage () {
                   const otherIsUser1 = match.user_id_1 !== user.id
                   const name = otherIsUser1 ? match.user1_name : match.user2_name
                   const avatar = otherIsUser1 ? match.user1_avatar : match.user2_avatar
+                  const online = otherIsUser1 ? match.user1_online : match.user2_online
                   const otherId = otherIsUser1 ? match.user_id_1 : match.user_id_2
                   return (
                     <Link key={match.id} href={`/profile/${otherId}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
                       <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
                         {mediaImage(avatar || '/default-member-couple.jpg', name || 'Match')}
+                        {online && (
+                          <span
+                            aria-label='En ligne'
+                            className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                          />
+                        )}
                       </div>
                       <div className='min-w-0 flex-1'>
                         <div className='truncate font-bold'>{name}</div>

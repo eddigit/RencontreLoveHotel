@@ -1,10 +1,12 @@
 import { sql } from '@/lib/db'
+import { ensurePresenceSchema, onlinePresenceCondition } from '@/lib/presence'
 
 export type ConversationSummary = {
   id: string
   other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
+  other_user_online?: boolean
   last_message: string | null
   last_message_date: string | null
 }
@@ -19,6 +21,7 @@ export type RelationshipRow = {
   other_user_location?: string | null
   other_user_profile_status?: string | null
   other_user_gender?: string | null
+  other_user_online?: boolean
   match_score?: number | null
   expires_at?: string | null
   context?: Record<string, unknown> | null
@@ -30,7 +33,7 @@ export type RelationshipOverview = {
   outgoing: RelationshipRow[]
 }
 
-function conversationSummaryQuery(includeAttachments: boolean) {
+function conversationSummaryQuery(includeAttachments: boolean, presenceColumn: string) {
   const attachmentFallback = includeAttachments
     ? `WHEN EXISTS (
           SELECT 1 FROM message_attachments ma
@@ -84,6 +87,7 @@ function conversationSummaryQuery(includeAttachments: boolean) {
       other_user.id AS other_user_id,
       COALESCE(other_user.name, 'Membre') AS other_user_name,
       other_user.avatar AS other_user_avatar,
+      ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
       lm.content AS last_message,
       lm.created_at AS last_message_date
     FROM valid_conversations vc
@@ -102,15 +106,18 @@ function isMissingAttachmentSchema(error: unknown) {
 }
 
 export async function getMemberConversationSummaries(userId: string) {
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'other_user.updated_at'
+
   try {
     return await sql.query<ConversationSummary[]>(
-      conversationSummaryQuery(true),
+      conversationSummaryQuery(true, presenceColumn),
       [userId]
     )
   } catch (error) {
     if (!isMissingAttachmentSchema(error)) throw error
     return sql.query<ConversationSummary[]>(
-      conversationSummaryQuery(false),
+      conversationSummaryQuery(false, presenceColumn),
       [userId]
     )
   }
@@ -119,6 +126,10 @@ export async function getMemberConversationSummaries(userId: string) {
 export async function getMemberRelationshipOverview(
   userId: string
 ): Promise<RelationshipOverview> {
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const presenceColumn = hasPresenceColumn
+    ? 'other_user.last_seen_at'
+    : 'other_user.updated_at'
   const rows = await sql.query<RelationshipRow[]>(
     `
       SELECT
@@ -135,6 +146,7 @@ export async function getMemberRelationshipOverview(
         other_profile.location AS other_user_location,
         other_profile.status AS other_user_profile_status,
         other_profile.gender AS other_user_gender,
+        ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
         um.match_score,
         um.expires_at,
         um.context

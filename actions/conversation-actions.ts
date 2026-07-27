@@ -16,6 +16,7 @@ import {
 import { enforceMemberContent } from '@/lib/content-safety-service'
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+const INITIAL_CONVERSATION_MESSAGE_LIMIT = 80
 
 function isContactSafetyError(error: unknown): error is Error & { code: string } {
   return error instanceof Error && 'code' in error && error.code === 'OFF_PLATFORM_CONTACT_BLOCKED'
@@ -86,8 +87,17 @@ export async function getConversationMessages(conversationId: string, userId?: s
     `SELECT m.*,
       u.name as sender_name,
       u.avatar as sender_avatar,
-      COALESCE(
-        json_agg(
+      COALESCE(ma.attachments, '[]'::json) as attachments
+    FROM (
+      SELECT m.*
+      FROM messages m
+      WHERE m.conversation_id = $1
+      ORDER BY m.created_at DESC, m.id DESC
+      LIMIT $2
+    ) m
+    JOIN users u ON m.sender_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT json_agg(
           json_build_object(
             'id', ma.id,
             'url', ma.url,
@@ -100,16 +110,12 @@ export async function getConversationMessages(conversationId: string, userId?: s
             'height', ma.height
           )
           ORDER BY ma.sort_order, ma.created_at
-        ) FILTER (WHERE ma.id IS NOT NULL),
-        '[]'::json
-      ) as attachments
-    FROM messages m
-    JOIN users u ON m.sender_id = u.id
-    LEFT JOIN message_attachments ma ON ma.message_id = m.id
-    WHERE m.conversation_id = $1
-    GROUP BY m.id, u.name, u.avatar
-    ORDER BY m.created_at ASC`,
-    [conversationId]
+      ) FILTER (WHERE ma.id IS NOT NULL) as attachments
+      FROM message_attachments ma
+      WHERE ma.message_id = m.id
+    ) ma ON TRUE
+    ORDER BY m.created_at ASC, m.id ASC`,
+    [conversationId, INITIAL_CONVERSATION_MESSAGE_LIMIT]
   )
 
   return messages || []

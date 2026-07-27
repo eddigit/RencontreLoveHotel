@@ -17,7 +17,12 @@ import {
 } from '@/components/ui/select'
 import Image from 'next/image'
 import { defaultMemberImage } from '@/lib/default-member-image'
-import { validateImageUploadFile } from '@/lib/upload-validation'
+import {
+  memberIdentityFromStatus,
+  profileTypeOptions,
+  type MemberStatus
+} from '@/lib/member-profile-types'
+import { uploadProfilePhoto } from '@/lib/profile-photo-upload'
 
 export function UserProfileEditor ({
   user,
@@ -58,6 +63,7 @@ export function UserProfileEditor ({
   const [saving, setSaving] = useState(false)
   const [newInterest, setNewInterest] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
@@ -69,6 +75,11 @@ export function UserProfileEditor ({
 
   function handleSelectChange (name: string, value: string) {
     setForm({ ...form, [name]: value })
+  }
+
+  function handleStatusChange (value: string) {
+    const identity = memberIdentityFromStatus(value as MemberStatus)
+    setForm({ ...form, ...identity })
   }
 
   function handleAddInterest () {
@@ -91,26 +102,15 @@ export function UserProfileEditor ({
 
     setUploadMessage(null)
     setUploadError(null)
-    const validation = await validateImageUploadFile(file)
-    if (!validation.ok) {
-      setUploadError(validation.error)
-      e.target.value = ''
-      return
-    }
-
     setUploading(true)
+    setUploadProgress(0)
     try {
-      const formData = new FormData()
-      formData.append('photo', file)
-      formData.append('purpose', 'avatar')
-      const response = await fetch('/api/photos/upload', {
-        method: 'POST',
-        body: formData
+      const result = await uploadProfilePhoto({
+        file,
+        purpose: 'avatar',
+        userId: String(user.id),
+        onProgress: setUploadProgress
       })
-      const result = await response.json()
-      if (!response.ok || !result?.url) {
-        throw new Error(result?.error || "La photo n'a pas pu être envoyée.")
-      }
 
       setForm(current => ({ ...current, avatar: result.url }))
       await update()
@@ -124,6 +124,7 @@ export function UserProfileEditor ({
       )
     } finally {
       setUploading(false)
+      setUploadProgress(0)
       e.target.value = ''
     }
   }
@@ -206,10 +207,10 @@ export function UserProfileEditor ({
             className='border-white/10 bg-white/[0.06] text-white file:text-white'
           />
           <p className='text-xs font-medium leading-5 text-white/65'>
-            Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.
+            Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo. HEIC iPhone : exportez la photo en JPG.
           </p>
           {uploading && (
-            <p className='text-sm font-medium text-[#94ffc9]'>Envoi de la photo...</p>
+            <p className='text-sm font-medium text-[#94ffc9]'>Envoi de la photo{uploadProgress > 0 ? ` : ${uploadProgress} %` : '...'}</p>
           )}
           {uploadMessage && (
             <p role='status' className='text-sm font-medium text-[#94ffc9]'>
@@ -260,15 +261,15 @@ export function UserProfileEditor ({
           <div>
             <Select
               value={form.status}
-              onValueChange={value => handleSelectChange('status', value)}
+              onValueChange={handleStatusChange}
             >
               <SelectTrigger id='status' className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'>
                 <SelectValue placeholder='Statut relationnel' />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value='single_male'>Homme seul</SelectItem>
-                <SelectItem value='single_female'>Femme seule</SelectItem>
-                <SelectItem value='couple'>Couple</SelectItem>
+                {profileTypeOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -283,6 +284,8 @@ export function UserProfileEditor ({
               <SelectContent>
                 <SelectItem value='male'>Homme</SelectItem>
                 <SelectItem value='female'>Femme</SelectItem>
+                <SelectItem value='trans'>Personne trans</SelectItem>
+                <SelectItem value='couple'>Couple</SelectItem>
                 <SelectItem value='other'>Autre</SelectItem>
               </SelectContent>
             </Select>

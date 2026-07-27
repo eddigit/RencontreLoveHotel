@@ -28,6 +28,7 @@ import {
   markConversationMessagesAsRead,
   sendMessage
 } from '@/actions/conversation-actions'
+import { markResourceNotificationsAsRead } from '@/app/actions'
 
 interface MessageAttachment {
   id?: string
@@ -60,6 +61,7 @@ interface ConversationDetails {
   id: string
   other_user_name: string
   other_user_avatar: string | null
+  other_user_online?: boolean
 }
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
@@ -178,6 +180,7 @@ export default function ConversationPage ({
         const fetchedMessages = await getConversationMessages(id, session.user.id)
         setMessages(fetchedMessages as Message[])
         await markConversationMessagesAsRead(id, session.user.id)
+        await markResourceNotificationsAsRead(session.user.id, `/messages/${id}`)
         setLastSyncedAt(new Date())
 
         const userConversations = await getUserConversations(session.user.id)
@@ -186,7 +189,8 @@ export default function ConversationPage ({
           setConversationDetails({
             id: currentConv.id,
             other_user_name: currentConv.other_user_name,
-            other_user_avatar: currentConv.other_user_avatar
+            other_user_avatar: currentConv.other_user_avatar,
+            other_user_online: Boolean(currentConv.other_user_online)
           })
         } else {
           setError('Conversation introuvable ou non autorisée.')
@@ -477,6 +481,9 @@ export default function ConversationPage ({
                     className='object-cover'
                     sizes='48px'
                   />
+                  {conversationDetails?.other_user_online && (
+                    <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
+                  )}
                 </div>
                 <div className='min-w-0'>
                   <h2 className='truncate font-black'>

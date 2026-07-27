@@ -16,6 +16,7 @@ import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
 import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
+import type { DirectoryProfileType } from '@/lib/member-profile-types'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -101,19 +102,27 @@ export async function getUserMatches(userId: string) {
     return []
   }
 
-  const matches = await sql`
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const user1PresenceColumn = hasPresenceColumn ? 'u1.last_seen_at' : 'u1.updated_at'
+  const user2PresenceColumn = hasPresenceColumn ? 'u2.last_seen_at' : 'u2.updated_at'
+  const matches = await sql.query<any[]>(
+    `
     SELECT
       um.*,
       u1.name as user1_name,
       u1.avatar as user1_avatar,
+      ${onlinePresenceCondition(user1PresenceColumn)} as user1_online,
       u2.name as user2_name,
-      u2.avatar as user2_avatar
+      u2.avatar as user2_avatar,
+      ${onlinePresenceCondition(user2PresenceColumn)} as user2_online
     FROM user_matches um
     JOIN users u1 ON um.user_id_1 = u1.id
     JOIN users u2 ON um.user_id_2 = u2.id
-    WHERE (um.user_id_1 = ${userId} OR um.user_id_2 = ${userId}) AND um.status = 'accepted'
+    WHERE (um.user_id_1 = $1 OR um.user_id_2 = $1) AND um.status = 'accepted'
     ORDER BY um.match_score DESC
-  `
+    `,
+    [userId]
+  )
 
   return matches || []
 }
@@ -196,7 +205,7 @@ export type CommunityMemberDirectoryFilters = {
   page?: number
   pageSize?: number
   search?: string
-  profileType?: 'all' | 'couple' | 'woman' | 'man'
+  profileType?: DirectoryProfileType
   orientation?: 'all' | 'hetero' | 'bi' | 'bisexual' | 'homo' | 'gay' | 'lesbian' | 'pansexual'
   meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
   onlineOnly?: boolean
@@ -239,6 +248,8 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     whereClauses.push("(LOWER(COALESCE(up.gender, '')) IN ('female', 'single_female', 'single_woman', 'married_female', 'married_woman', 'couple_ff') OR LOWER(COALESCE(up.status, '')) IN ('single_female', 'single_woman', 'married_woman'))")
   } else if (input.profileType === 'man') {
     whereClauses.push("(LOWER(COALESCE(up.gender, '')) IN ('male', 'single_male', 'single_man', 'married_male', 'married_man', 'couple_mm') OR LOWER(COALESCE(up.status, '')) IN ('single_male', 'single_man', 'married_man'))")
+  } else if (input.profileType === 'trans') {
+    whereClauses.push("(LOWER(COALESCE(up.gender, '')) LIKE '%trans%' OR LOWER(COALESCE(up.status, '')) LIKE '%trans%')")
   }
 
   if (input.orientation && input.orientation !== 'all') {
@@ -409,6 +420,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     // Define SQL conditions for target profile genders based on user clarification
     const targetMaleEntitiesSQL = `(LOWER(up.gender) IN ('male', 'single_male', 'married_male', 'couple_mm', 'couple_mf'))`;
     const targetFemaleEntitiesSQL = `(LOWER(up.gender) IN ('female', 'single_female', 'married_female', 'couple_ff', 'couple_mf'))`;
+    const targetTransEntitiesSQL = `(LOWER(up.gender) LIKE '%trans%' OR LOWER(up.status) LIKE '%trans%')`;
 
     // Define SQL conditions for target profile orientations (reusable parts)
     const targetOrientationHeteroBiCompatibleSQL = `(LOWER(up.orientation) = 'hetero' OR LOWER(up.orientation) = 'straight' OR LOWER(up.orientation) = 'bisexual' OR up.orientation IS NULL OR up.orientation = '')`;
@@ -420,38 +432,31 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
     if (cUserOrientation === 'hetero' || cUserOrientation === 'straight') {
       if (isCurrentUserEffectivelyMale) {
-        genderOrientationMatchingClauses.push(targetFemaleEntitiesSQL); // Male hetero seeks Female entities
-        genderOrientationMatchingClauses.push(targetOrientationHeteroBiCompatibleSQL);
+        genderOrientationMatchingClauses.push(`((${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (isCurrentUserEffectivelyFemale) {
-        genderOrientationMatchingClauses.push(targetMaleEntitiesSQL); // Female hetero seeks Male entities
-        genderOrientationMatchingClauses.push(targetOrientationHeteroBiCompatibleSQL);
+        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (cUserPGender === 'couple_mf') {
-        // Hetero couple_mf: This logic is complex.
-        // Placeholder: assume they are open to male or female entities who are hetero/bi.
-        genderOrientationMatchingClauses.push(`(${targetMaleEntitiesSQL} OR ${targetFemaleEntitiesSQL})`);
-        genderOrientationMatchingClauses.push(targetOrientationHeteroBiCompatibleSQL);
+        genderOrientationMatchingClauses.push(`(((${targetMaleEntitiesSQL} OR ${targetFemaleEntitiesSQL}) AND ${targetOrientationHeteroBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       }
     } else if (cUserOrientation === 'gay' || cUserOrientation === 'homo') {
       if (isCurrentUserEffectivelyMale) {
-        genderOrientationMatchingClauses.push(targetMaleEntitiesSQL); // Male gay seeks Male entities
-        genderOrientationMatchingClauses.push(targetOrientationGayBiCompatibleSQL);
+        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (isCurrentUserEffectivelyFemale) {
-        genderOrientationMatchingClauses.push(targetFemaleEntitiesSQL); // Female gay seeks Female entities
-        genderOrientationMatchingClauses.push(targetOrientationGayBiCompatibleSQL);
+        genderOrientationMatchingClauses.push(`((${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (cUserPGender === 'couple_mf') {
         // Gay/Homo couple_mf: Contradictory for the unit's orientation.
       }
     } else if (cUserOrientation === 'bisexual' || cUserOrientation === 'bi') {
       if (isCurrentUserEffectivelyMale) { // Bi Male
         // Seeks (Male Gay/Bi) OR (Female Hetero/Bi)
-        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}))`);
+        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (isCurrentUserEffectivelyFemale) { // Bi Female
         // Seeks (Female Gay/Bi) OR (Male Hetero/Bi)
-        genderOrientationMatchingClauses.push(`((${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetMaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}))`);
+        genderOrientationMatchingClauses.push(`((${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetMaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       } else if (cUserPGender === 'couple_mf') { // Bi couple_mf
         // Placeholder: Open to (Male Gay/Bi) OR (Female Hetero/Bi) OR (Female Gay/Bi)
         // This covers seeking males for the male part, females for the male part, females for the female part, males for the female part, with compatible orientations.
-        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}))`);
+        genderOrientationMatchingClauses.push(`((${targetMaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationHeteroBiCompatibleSQL}) OR (${targetFemaleEntitiesSQL} AND ${targetOrientationGayBiCompatibleSQL}) OR ${targetTransEntitiesSQL})`);
       }
     }
     if (genderOrientationMatchingClauses.length > 0) {
@@ -489,6 +494,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         baseParams.push('couple'); // Compare with lowercase 'couple'
         const statusPlaceholder = `$${baseParams.length}`;
         whereClauses.push(`(LOWER(up.status) = ${statusPlaceholder} OR up.status IS NULL OR up.status = '')`);
+      } else if (filterStatus === 'trans') {
+        whereClauses.push(`(LOWER(up.status) LIKE '%trans%' OR LOWER(up.gender) LIKE '%trans%')`);
       }
     }
 
@@ -578,12 +585,13 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       false as featured,
       (SELECT COUNT(*) FROM product_events pe
         WHERE pe.event_name = 'profile_impression'
+          AND pe.user_id = $1
           AND pe.subject_id = u.id
-          AND pe.created_at >= NOW() - INTERVAL '14 days') AS impressions_14d
+          AND pe.created_at >= NOW() - INTERVAL '14 days') AS viewer_impressions_14d
     ${baseFromClause}
     ${whereCondition}
     ORDER BY
-      impressions_14d ASC,
+      viewer_impressions_14d ASC,
       (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
       u.created_at DESC
     LIMIT ${limitPlaceholder}
@@ -638,7 +646,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         preferences,
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
         matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
-        impressions14d: Number(profile.impressions_14d || 0),
+        impressions14d: Number(profile.viewer_impressions_14d || 0),
         profileQuality: Math.round((
           (profile.image ? 35 : 0) +
           (profile.bio ? 25 : 0) +
@@ -651,9 +659,10 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       };
     })
     .filter((profile: any) => profile.matchingEligible)
+  const safeBatch = Math.max(0, Math.floor(Number(batch) || 0))
   const rankedProfiles = rankDiscoveryCandidates<any>(mappedProfiles, {
     viewerId: currentUserId,
-    batch: Math.max(0, Math.floor(Number(batch) || 0))
+    batch: safeBatch
   })
 
   const result = {

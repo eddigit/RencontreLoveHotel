@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
-import { ArrowLeft, CalendarHeart, Heart, MapPin, MessageCircle, Sparkles, Wine } from 'lucide-react'
+import { CalendarHeart, Heart, MapPin, MessageCircle, Sparkles, Wine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -11,8 +11,10 @@ import { MatchRequestButton } from '@/components/match-request-button'
 import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
+import { MemberProfileBackButton } from '@/components/member-profile-back-button'
 import { authOptions } from '@/lib/auth'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { isUserRecentlySeen } from '@/lib/presence'
 import {
   acceptMatchRequest,
   declineMatchRequest,
@@ -60,6 +62,7 @@ export default async function ProfilePage ({
   const currentUser = session?.user as SessionUser
   const avatar = defaultMemberImage(profile)
   const interests = Array.isArray(profile.interests) ? profile.interests : []
+  const profileOnline = isUserRecentlySeen(profile.last_seen_at)
 
   let matchStatus: any = null
   let isRequester = false
@@ -77,67 +80,67 @@ export default async function ProfilePage ({
         eyebrow='Profil membre'
         title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
         subtitle='Une fiche claire pour décider vite : intention, compatibilité, contexte et action.'
-        action={
-          <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-            <Link href='/discover'>
-              <ArrowLeft className='mr-2 h-4 w-4' />
-              Découvrir
-            </Link>
-          </Button>
-        }
+        action={<MemberProfileBackButton />}
       >
         <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]'>
           <section className='overflow-hidden rounded-3xl border border-white/10 bg-black/18'>
-            <div className='relative min-h-[640px]'>
-              {avatar.startsWith('http') ? (
-                <img src={avatar} alt={profile.name} className='absolute inset-0 h-full w-full object-cover' />
-              ) : (
-                <Image
-                  src={avatar}
-                  alt={profile.name}
-                  fill
-                  className='object-cover'
-                  sizes='(max-width: 1280px) 100vw, 900px'
-                  priority
-                />
-              )}
-              <div className='absolute inset-0 bg-gradient-to-t from-[#100118] via-[#100118]/58 to-[#100118]/8' />
-
-              <div className='absolute inset-x-0 bottom-0 p-5 sm:p-8'>
-                <div className='mb-4 flex flex-wrap gap-2'>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    <MapPin className='mr-1 h-3.5 w-3.5' />
-                    {profile.location || 'Paris'}
-                  </Badge>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    Disponible ce soir
-                  </Badge>
-                  <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white backdrop-blur-md'>
-                    Premium
-                  </Badge>
-                </div>
-
-                <h2 className='text-4xl font-black sm:text-6xl'>
-                  {profile.name}
-                  {profile.age ? `, ${profile.age}` : ''}
-                </h2>
-                {profile.bio && (
-                  <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>{profile.bio}</p>
+            <div className='bg-black/30 p-3 sm:p-5'>
+              <div className='relative mx-auto aspect-[4/5] w-full max-w-[640px] overflow-hidden rounded-lg bg-black/35'>
+                {avatar.startsWith('http') ? (
+                  <img src={avatar} alt={profile.name} className='h-full w-full object-contain' />
+                ) : (
+                  <Image
+                    src={avatar}
+                    alt={profile.name}
+                    fill
+                    className='object-contain'
+                    sizes='(max-width: 1280px) 100vw, 640px'
+                    priority
+                  />
                 )}
+                {profileOnline && (
+                  <span
+                    aria-label='En ligne'
+                    className='absolute right-4 top-4 z-10 h-4 w-4 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                  />
+                )}
+              </div>
+            </div>
 
-                <div className='mt-6 grid gap-3 sm:grid-cols-3'>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>{compatibilityFromProfile(profile)}%</div>
-                    <div className='text-sm font-bold text-white/72'>compatibilité</div>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>4 km</div>
-                    <div className='text-sm font-bold text-white/72'>distance</div>
-                  </div>
-                  <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                    <div className='text-3xl font-black'>{interests.length}</div>
-                    <div className='text-sm font-bold text-white/72'>intérêts</div>
-                  </div>
+            <div className='border-t border-white/10 p-5 sm:p-8'>
+              <div className='mb-4 flex flex-wrap gap-2'>
+                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
+                  <MapPin className='mr-1 h-3.5 w-3.5' />
+                  {profile.location || 'Paris'}
+                </Badge>
+                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
+                  Disponible ce soir
+                </Badge>
+                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
+                  Premium
+                </Badge>
+              </div>
+
+              <h2 className='text-4xl font-black sm:text-5xl'>
+                {profile.name}
+                {profile.age ? `, ${profile.age}` : ''}
+              </h2>
+              {profile.bio && (
+                <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>{profile.bio}</p>
+              )}
+
+              <div className='mt-6 grid gap-3 sm:grid-cols-3'>
+                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                  <div className='text-3xl font-black'>{compatibilityFromProfile(profile)}%</div>
+                  <div className='text-sm font-bold text-white/72'>compatibilité</div>
+                </div>
+                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                  <div className='text-3xl font-black'>4 km</div>
+                  <div className='text-sm font-bold text-white/72'>distance</div>
+                </div>
+                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
+                  <div className='text-3xl font-black'>{interests.length}</div>
+                  <div className='text-sm font-bold text-white/72'>intérêts</div>
                 </div>
               </div>
             </div>

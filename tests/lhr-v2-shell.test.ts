@@ -21,4 +21,5 @@ describe('LHR V2 shell', () => {
     expect(layout).toContain("pathname.startsWith('/admin')")
     expect(layout).toContain('return <>{children}</>')
   })
+
 })

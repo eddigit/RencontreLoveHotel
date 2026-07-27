@@ -87,7 +87,7 @@ describe('Reproduction du problème plebreton', () => {
     )
     expect(sql.query).toHaveBeenNthCalledWith(2,
       expect.stringContaining('SELECT m.*'),
-      ['550e8400-e29b-41d4-a716-446655440001']
+      ['550e8400-e29b-41d4-a716-446655440001', 80]
     )
   })
 

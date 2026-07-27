@@ -52,10 +52,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (isMounted) recoverFromStaleServerAction(error)
       }
     }
+    function handleVisibilityChange() {
+      if (document.visibilityState !== "hidden") void loadNotifications()
+    }
     loadNotifications()
     interval = setInterval(loadNotifications, 15000)
+    window.addEventListener("focus", loadNotifications)
+    document.addEventListener("visibilitychange", handleVisibilityChange)
     return () => {
       isMounted = false;
+      window.removeEventListener("focus", loadNotifications)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
       clearInterval(interval)
     }
   }, [user?.id])
@@ -66,10 +73,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     setCounts({
       total: unreadNotifications.length,
-      messages: unreadNotifications.filter((n) => n.type === "message").length,
+      messages: unreadNotifications.filter((n) => n.type === "message" || n.type === "new_message").length,
       events: unreadNotifications.filter((n) => n.type === "event").length,
       likes: unreadNotifications.filter((n) => n.type === "like").length,
-      matches: unreadNotifications.filter((n) => n.type === "match").length,
+      matches: unreadNotifications.filter((n) => n.type === "match" || n.type.startsWith("match_")).length,
     })
   }, [notifications])
 
@@ -83,6 +90,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     })
     try {
       await markNotificationAsRead(id)
+      if (user?.id) {
+        const { notifications } = await getNotifications(user.id)
+        setNotifications(notifications)
+      }
     } catch (e) {
       recoverFromStaleServerAction(e)
     }
@@ -93,6 +104,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     if (user?.id) {
       try {
         await markAllNotificationsAsRead(user.id)
+        const { notifications } = await getNotifications(user.id)
+        setNotifications(notifications)
       } catch (e) {
         recoverFromStaleServerAction(e)
       }

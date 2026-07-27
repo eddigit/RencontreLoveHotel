@@ -16,6 +16,7 @@ import {
   getMemberRelationships,
   removeMatch
 } from '@/actions/user-actions'
+import { markResourceNotificationsAsRead } from '@/app/actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 import { defaultMemberImage } from '@/lib/default-member-image'
 
@@ -26,6 +27,7 @@ type MatchProfile = {
   location?: string
   image: string
   matchScore?: number | null
+  online?: boolean
 }
 
 type MatchesTab = 'active' | 'incoming' | 'outgoing'
@@ -54,7 +56,8 @@ function toProfile (relationship: any): MatchProfile {
       status: relationship.other_user_profile_status,
       gender: relationship.other_user_gender
     }),
-    matchScore: relationship.match_score
+    matchScore: relationship.match_score,
+    online: Boolean(relationship.other_user_online)
   }
 }
 
@@ -93,6 +96,7 @@ export default function MatchesPage () {
         setMatches(overview.accepted.map(toProfile))
         setIncoming(overview.incoming.map(toProfile))
         setOutgoing(overview.outgoing.map(toProfile))
+        await markResourceNotificationsAsRead(user.id, '/matches')
       } catch (err) {
         if (!recoverFromStaleServerAction(err)) {
           setError('Impossible de charger les matchs pour le moment. Rechargez la page pour réessayer.')
@@ -354,6 +358,12 @@ function MatchGrid ({
               <div className='absolute left-3 top-3 rounded-full bg-black/45 px-3 py-1 text-xs font-bold backdrop-blur'>
                 {scoreLabel(profile.matchScore)}
               </div>
+              {profile.online && (
+                <span
+                  aria-label='En ligne'
+                  className='absolute bottom-3 right-3 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                />
+              )}
             </Link>
             <div className='p-4'>
               <div className='flex items-start justify-between gap-3'>

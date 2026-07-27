@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { query } = vi.hoisted(() => ({ query: vi.fn() }))
 
 vi.mock('@/lib/db', () => ({ sql: { query } }))
+vi.mock('@/lib/presence', () => ({
+  ensurePresenceSchema: vi.fn().mockResolvedValue(true),
+  onlinePresenceCondition: (column = 'u.last_seen_at') => `(${column} >= NOW() - INTERVAL '5 minutes')`
+}))
 
 import {
   getMemberConversationSummaries,
@@ -33,6 +37,15 @@ describe('member relationship service', () => {
     ])
     expect(query).toHaveBeenCalledTimes(2)
     expect(query.mock.calls[1][0]).not.toContain('message_attachments')
+  })
+
+  it('includes the other member presence status in conversation summaries', async () => {
+    query.mockResolvedValueOnce([])
+
+    await getMemberConversationSummaries('member-1')
+
+    expect(query.mock.calls[0][0]).toContain('AS other_user_online')
+    expect(query.mock.calls[0][0]).toContain('other_user.last_seen_at')
   })
 
   it('groups accepted, incoming and outgoing relationship rows', async () => {

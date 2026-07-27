@@ -101,7 +101,7 @@ describe('messaging recovery admin KPIs', () => {
     expect(sql.query).toHaveBeenCalledTimes(2)
     const summarySql = (sql.query as any).mock.calls[0][0]
     const seriesSql = (sql.query as any).mock.calls[1][0]
-    expect(summarySql).toContain('COUNT(cp.user_id) = 2')
+    expect(summarySql).toContain('COUNT(cp.user_id)::int AS participant_count')
     expect(summarySql).toContain("BOOL_OR(u.role = 'admin')")
     expect(summarySql).toContain('MIN(m.created_at) AS first_message_at')
     expect(summarySql).toContain('COUNT(DISTINCT m.sender_id) AS distinct_senders')
@@ -130,6 +130,23 @@ describe('messaging recovery admin KPIs', () => {
     expect(summarySql).toContain("DATE_TRUNC('week', timezone('Europe/Paris', CURRENT_TIMESTAMP))")
     expect(summarySql).toContain("INTERVAL '1 week'")
     expect(summarySql).toContain("timezone('Europe/Paris', mm.created_at)")
+  })
+
+  it('counts an accepted two-person match as member activity even when one account is admin', async () => {
+    ;(sql.query as any).mockResolvedValueOnce([{}]).mockResolvedValueOnce([])
+
+    await getMessagingRecoveryStats({ scale: 'week', days: 30 })
+
+    const summarySql = (sql.query as any).mock.calls[0][0]
+    const compactSummarySql = summarySql.replace(/\s+/g, ' ')
+    expect(compactSummarySql).toContain('accepted_match_conversations AS')
+    expect(compactSummarySql).toContain('cb.participant_count = 2')
+    expect(compactSummarySql).toContain(
+      'NOT cb.has_admin OR amc.conversation_id IS NOT NULL'
+    )
+    expect(compactSummarySql).toContain(
+      'cb.has_admin AND NOT (cb.participant_count = 2 AND amc.conversation_id IS NOT NULL)'
+    )
   })
 
   it('requires an administrator before reading lifetime messaging history', async () => {
@@ -200,7 +217,7 @@ describe('messaging recovery admin KPIs', () => {
     expect(historySql).toContain('MIN(activity_at)')
     expect(historySql).toContain("BOOL_OR(u.role = 'admin')")
     expect(historySql).toContain('COUNT(DISTINCT m.conversation_id)')
-    expect((historySql.match(/WITH\s+conversation_types AS/g) || []).length).toBe(1)
+    expect((historySql.match(/WITH\s+conversation_base AS/g) || []).length).toBe(1)
     expect(comparisonSql).toContain("INTERVAL '60 days'")
     expect(comparisonSql).toContain("timezone('Europe/Paris', m.created_at)")
     expect(comparisonSql).toContain("timezone('Europe/Paris', CURRENT_TIMESTAMP)")

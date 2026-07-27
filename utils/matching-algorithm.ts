@@ -83,9 +83,14 @@ function isCouple(profile: NormalizedPreferences) {
 
 function profileType(profile: NormalizedPreferences) {
   if (isCouple(profile)) return 'couple'
+  if (isTrans(profile)) return 'trans'
   if (isFemale(profile)) return 'female'
   if (isMale(profile)) return 'male'
   return ''
+}
+
+function isTrans(profile: NormalizedPreferences) {
+  return profile.status.includes('trans') || profile.gender.includes('trans')
 }
 
 function isMale(profile: NormalizedPreferences) {
@@ -97,6 +102,7 @@ function isFemale(profile: NormalizedPreferences) {
 }
 
 function likesGender(source: NormalizedPreferences, target: NormalizedPreferences) {
+  if (isTrans(source) || isTrans(target)) return true
   if (isCouple(source)) return source.openToOtherCouples || source.orientation === 'bi'
   if (source.orientation === 'bi' || source.orientation === 'bisexual') return isMale(target) || isFemale(target) || isCouple(target)
   if (source.orientation === 'hetero' || source.orientation === 'straight') {

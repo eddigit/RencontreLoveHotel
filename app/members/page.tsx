@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { directoryProfileTypeLabel } from '@/lib/member-profile-types'
 import {
   getCommunityMemberStats,
   searchCommunityMembers,
@@ -48,7 +49,7 @@ const initialFilters: CommunityMemberDirectoryFilters = {
 }
 
 function isDirectoryProfileType(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['profileType']> {
-  return value === 'all' || value === 'couple' || value === 'woman' || value === 'man'
+  return value === 'all' || value === 'couple' || value === 'woman' || value === 'man' || value === 'trans'
 }
 
 function isDirectoryOrientation(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['orientation']> {
@@ -106,12 +107,7 @@ function imageFor(member: CommunityMember) {
 }
 
 function profileTypeLabel(member: CommunityMember) {
-  const status = (member.profile_status || '').toLowerCase()
-  const gender = (member.gender || '').toLowerCase()
-  if (status.startsWith('couple') || gender.startsWith('couple')) return 'Couple'
-  if (gender.includes('female') || gender.includes('woman') || status.includes('female') || status.includes('woman')) return 'Femme'
-  if (gender.includes('male') || gender.includes('man') || status.includes('male') || status.includes('man')) return 'Homme'
-  return 'Profil membre'
+  return directoryProfileTypeLabel(member)
 }
 
 function orientationLabel(value?: string | null) {
@@ -206,6 +202,7 @@ export default function MembersPage() {
     appliedFilters.profileType === 'couple' ? 'Couples' : null,
     appliedFilters.profileType === 'woman' ? 'Femmes' : null,
     appliedFilters.profileType === 'man' ? 'Hommes' : null,
+    appliedFilters.profileType === 'trans' ? 'Personnes trans' : null,
     appliedFilters.orientation !== 'all' ? orientationLabel(appliedFilters.orientation) : null,
     appliedFilters.meetingCriterion === 'open_couples' ? 'Ouverts aux couples' : null,
     appliedFilters.meetingCriterion === 'open_curtains' ? 'Rideaux ouverts' : null,
@@ -320,6 +317,7 @@ export default function MembersPage() {
                   <option value='couple'>Couples</option>
                   <option value='woman'>Femmes</option>
                   <option value='man'>Hommes</option>
+                  <option value='trans'>Personnes trans</option>
                 </select>
               </label>
 
