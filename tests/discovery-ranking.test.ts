@@ -29,13 +29,39 @@ describe('fair discovery ranking', () => {
   it('keeps members with a personal photo ahead of native-avatar profiles', () => {
     const ranked = rankDiscoveryCandidates([
       { id: 'native', image: '/default-member-woman.jpg', matchScore: 100, impressions14d: 0, profileQuality: 100 },
-      { id: 'photo', image: 'https://blob.example/member.jpg', matchScore: 60, impressions14d: 0, profileQuality: 60 }
+      { id: 'photo', image: 'https://blob.example/member.jpg', matchScore: 60, impressions14d: 4, profileQuality: 60 }
     ], { viewerId: 'viewer', batch: 0 })
 
     expect(ranked[0].id).toBe('photo')
   })
 
-  it('shows unseen members before profiles already shown to the connected member', () => {
+  it('treats legacy native avatars as profiles without a personal photo', () => {
+    const ranked = rankDiscoveryCandidates([
+      { id: 'legacy-native', image: '/mystical-forest-spirit.png', impressions14d: 0 },
+      { id: 'photo', image: 'https://blob.example/member.jpg', impressions14d: 2 }
+    ], { viewerId: 'viewer', batch: 0 })
+
+    expect(ranked[0].id).toBe('photo')
+  })
+
+  it('puts member-uploaded photos ahead of OAuth avatars that may only contain initials', () => {
+    const ranked = rankDiscoveryCandidates([
+      {
+        id: 'oauth-avatar',
+        image: 'https://lh3.googleusercontent.com/a/generated-avatar=s96-c',
+        impressions14d: 0
+      },
+      {
+        id: 'uploaded-photo',
+        image: 'https://member.public.blob.vercel-storage.com/user-avatar.jpg',
+        impressions14d: 4
+      }
+    ], { viewerId: 'viewer', batch: 0 })
+
+    expect(ranked[0].id).toBe('uploaded-photo')
+  })
+
+  it('shows unseen members first within the personal-photo group', () => {
     const ranked = rankDiscoveryCandidates([
       {
         id: 'already-seen',
@@ -46,7 +72,7 @@ describe('fair discovery ranking', () => {
       },
       {
         id: 'unseen',
-        image: '/default-member-woman.jpg',
+        image: 'https://blob.example/another-member.jpg',
         matchScore: 50,
         impressions14d: 0,
         profileQuality: 50

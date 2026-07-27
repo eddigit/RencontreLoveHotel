@@ -39,6 +39,20 @@ describe('community profile rotation', () => {
     expect(source).toContain('profile.viewer_impressions_14d')
   })
 
+  it('selects uploaded-photo profiles before limiting the discovery pool', () => {
+    const source = readFileSync('actions/user-actions.ts', 'utf8')
+    const discoverQuery = source.slice(
+      source.indexOf('const profilesQuery'),
+      source.indexOf('const profilesResult')
+    )
+
+    expect(discoverQuery).toContain('AS photo_priority')
+    expect(discoverQuery).toContain("LIKE '%blob.vercel-storage.com/%'")
+    expect(discoverQuery).toContain('photo_priority DESC')
+    expect(discoverQuery.indexOf('photo_priority DESC'))
+      .toBeLessThan(discoverQuery.indexOf('viewer_impressions_14d ASC'))
+  })
+
   it('keeps schema changes out of runtime presence checks', () => {
     const source = readFileSync('lib/presence.ts', 'utf8')
     expect(source).not.toContain('ALTER TABLE')

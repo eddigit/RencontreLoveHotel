@@ -41,9 +41,22 @@ function freshnessScore(value: string | Date | null | undefined, now: Date) {
   return 20
 }
 
-function hasPersonalPhoto(candidate: DiscoveryCandidate) {
-  const image = String(candidate.avatar || candidate.image || '').trim().toLowerCase()
-  return Boolean(image) && !image.includes('/default-member-')
+function photoPriority(candidate: DiscoveryCandidate) {
+  const nativeAvatarMarkers = [
+    '/default-member-',
+    '/mystical-forest-spirit',
+    '/purple-haze-chat',
+    '/serene-woman',
+    '/contemplative-portrait'
+  ]
+
+  const images = [candidate.avatar, candidate.image]
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean)
+
+  if (images.some(image => image.includes('blob.vercel-storage.com/'))) return 2
+  if (images.some(image => !nativeAvatarMarkers.some(marker => image.includes(marker)))) return 1
+  return 0
 }
 
 export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
@@ -71,11 +84,11 @@ export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
       return { ...candidate, discoveryScore, explorationScore }
     })
     .sort((left, right) => {
+      const photoDifference = photoPriority(right) - photoPriority(left)
+      if (photoDifference) return photoDifference
       const impressionDifference =
         Number(left.impressions14d || 0) - Number(right.impressions14d || 0)
       if (impressionDifference) return impressionDifference
-      const photoDifference = Number(hasPersonalPhoto(right)) - Number(hasPersonalPhoto(left))
-      if (photoDifference) return photoDifference
       const featuredDifference = Number(Boolean(right.featured)) - Number(Boolean(left.featured))
       if (featuredDifference) return featuredDifference
       return right.discoveryScore - left.discoveryScore || left.id.localeCompare(right.id)

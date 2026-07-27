@@ -583,6 +583,19 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       ${hasPresenceColumn ? 'u.last_seen_at,' : 'NULL as last_seen_at,'}
       ${onlineCondition} as online,
       false as featured,
+      CASE
+        WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
+          AND LOWER(u.avatar) LIKE '%blob.vercel-storage.com/%'
+        THEN 2
+        WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
+          AND LOWER(u.avatar) NOT LIKE '%/default-member-%'
+          AND LOWER(u.avatar) NOT LIKE '%/mystical-forest-spirit%'
+          AND LOWER(u.avatar) NOT LIKE '%/purple-haze-chat%'
+          AND LOWER(u.avatar) NOT LIKE '%/serene-woman%'
+          AND LOWER(u.avatar) NOT LIKE '%/contemplative-portrait%'
+        THEN 1
+        ELSE 0
+      END AS photo_priority,
       (SELECT COUNT(*) FROM product_events pe
         WHERE pe.event_name = 'profile_impression'
           AND pe.user_id = $1
@@ -591,6 +604,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     ${baseFromClause}
     ${whereCondition}
     ORDER BY
+      photo_priority DESC,
       viewer_impressions_14d ASC,
       (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
       u.created_at DESC
@@ -648,7 +662,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
         impressions14d: Number(profile.viewer_impressions_14d || 0),
         profileQuality: Math.round((
-          (profile.image ? 35 : 0) +
+          (Number(profile.photo_priority || 0) > 0 ? 35 : 0) +
           (profile.bio ? 25 : 0) +
           (profile.age ? 15 : 0) +
           (profile.location ? 15 : 0) +

@@ -9,7 +9,7 @@ export function discoverySnapshotKey(
   batch: number
 ) {
   return [
-    'lhr-discovery-v2',
+    'lhr-discovery-v4',
     userId,
     JSON.stringify(filters),
     search.trim().toLowerCase(),

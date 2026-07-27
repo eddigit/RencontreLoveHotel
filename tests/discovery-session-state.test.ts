@@ -16,7 +16,7 @@ describe('discovery session state', () => {
       discoverySnapshotKey('member-1', filters, 'Paris', 2)
     )
     expect(discoverySnapshotKey('member-1', filters, 'Paris', 2))
-      .toContain('lhr-discovery-v2')
+      .toContain('lhr-discovery-v4')
   })
 
   it('restores the exact profile order after returning from a member profile', () => {
