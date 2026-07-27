@@ -92,4 +92,18 @@ describe('fair discovery ranking', () => {
     expect(rotateDiscoveryBatch(ranked, 2, 12).slice(0, 6).map(item => item.id))
       .toEqual(ranked.slice(24, 30).map(item => item.id))
   })
+
+  it('does not repeat a profile across consecutive local rotations', () => {
+    let ranked = Array.from({ length: 60 }, (_, index) => ({ id: `profile-${index + 1}` }))
+    const displayed = new Set<string>()
+
+    for (let batch = 0; batch < 5; batch += 1) {
+      const visibleIds = ranked.slice(0, 12).map(item => item.id)
+      expect(visibleIds.some(id => displayed.has(id))).toBe(false)
+      visibleIds.forEach(id => displayed.add(id))
+      ranked = rotateDiscoveryBatch(ranked, 1, 12)
+    }
+
+    expect(displayed.size).toBe(60)
+  })
 })

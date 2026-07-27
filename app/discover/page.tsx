@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -41,6 +41,7 @@ import {
   discoverySnapshotKey,
   orderProfilesFromSnapshot
 } from '@/lib/discovery-session-state'
+import { rotateDiscoveryBatch } from '@/lib/discovery-ranking'
 
 type DiscoverProfile = {
   id: string
@@ -256,6 +257,29 @@ export default function DiscoverPage () {
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const localBatchNavigationRef = useRef<number | null>(null)
+
+  const saveProfileOrder = (
+    profilesToSave: DiscoverProfile[],
+    currentFilters: FilterOptions,
+    currentSearch: string,
+    batch: number
+  ) => {
+    const key = discoverySnapshotKey(
+      String(user?.id || ''),
+      currentFilters,
+      currentSearch,
+      batch
+    )
+    try {
+      window.sessionStorage.setItem(
+        key,
+        JSON.stringify(profilesToSave.map(profile => profile.id))
+      )
+    } catch {
+      // Session storage is optional; discovery still works when it is unavailable.
+    }
+  }
 
   const restoreProfileOrder = (
     resultProfiles: DiscoverProfile[],
@@ -274,10 +298,7 @@ export default function DiscoverPage () {
       const orderedProfiles = Array.isArray(storedIds)
         ? orderProfilesFromSnapshot(resultProfiles, storedIds)
         : resultProfiles
-      window.sessionStorage.setItem(
-        key,
-        JSON.stringify(orderedProfiles.map(profile => profile.id))
-      )
+      saveProfileOrder(orderedProfiles, currentFilters, currentSearch, batch)
       return orderedProfiles
     } catch {
       return resultProfiles
@@ -337,6 +358,13 @@ export default function DiscoverPage () {
     const restoredFilters = discoverFiltersFromSearchParams(restoredSearchParams)
     const restoredSearch = discoverSearchFromSearchParams(restoredSearchParams)
     const restoredBatch = discoverBatchFromSearchParams(restoredSearchParams)
+    if (localBatchNavigationRef.current === restoredBatch) {
+      localBatchNavigationRef.current = null
+      setProfileBatch(restoredBatch)
+      setPreparingProfiles(false)
+      return
+    }
+    localBatchNavigationRef.current = null
     setFilters(restoredFilters)
     setSearchQuery(restoredSearch)
     setProfileBatch(restoredBatch)
@@ -362,21 +390,34 @@ export default function DiscoverPage () {
     writeDiscoverUrlState(router, newFilters, searchQuery, 0)
   }
 
-  const showAnotherBatch = async () => {
-    if (!user?.id || preparingProfiles) return
+  const showAnotherBatch = () => {
+    if (
+      !user?.id ||
+      preparingProfiles ||
+      localBatchNavigationRef.current !== null ||
+      profiles.length <= 12
+    ) return
+
     const nextBatch = profileBatch + 1
+    const nextProfiles = rotateDiscoveryBatch(profiles, 1, 12)
     setPreparingProfiles(true)
     setError(null)
     try {
-      await recordProfileImpressions(
-        user.id,
-        profiles.slice(0, 12).map(profile => profile.id),
-        profileBatch
-      )
+      localBatchNavigationRef.current = nextBatch
+      setProfiles(nextProfiles)
+      setProfileBatch(nextBatch)
+      saveProfileOrder(nextProfiles, filters, searchQuery, nextBatch)
       writeDiscoverUrlState(router, filters, searchQuery, nextBatch)
+      void recordProfileImpressions(
+        user.id,
+        nextProfiles.slice(0, 12).map(profile => profile.id),
+        nextBatch
+      )
     } catch (error) {
       console.error('Error loading another profile batch:', error)
       setError("Impossible de charger d'autres profils pour le moment.")
+      localBatchNavigationRef.current = null
+    } finally {
       setPreparingProfiles(false)
     }
   }
@@ -598,7 +639,7 @@ export default function DiscoverPage () {
                   <span className='text-right text-sm text-white/52'>
                     {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
                   </span>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles} className='border-white/12 bg-white/[0.04]'>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-white/12 bg-white/[0.04]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
                     {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>

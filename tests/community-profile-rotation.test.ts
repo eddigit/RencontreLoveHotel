@@ -17,15 +17,21 @@ describe('community profile rotation', () => {
     expect(source).toContain('profileBatch')
   })
 
-  it('loads another profile batch with one explicit click', () => {
+  it('loads another profile batch immediately with one explicit click', () => {
     const source = readFileSync('app/discover/page.tsx', 'utf8')
     const showAnotherBatch = source.slice(
       source.indexOf('const showAnotherBatch'),
       source.indexOf('const handleSearchChange')
     )
 
-    expect(showAnotherBatch).toContain('await recordProfileImpressions')
+    expect(source).toContain("import { rotateDiscoveryBatch } from '@/lib/discovery-ranking'")
+    expect(showAnotherBatch).toContain('rotateDiscoveryBatch(profiles, 1, 12)')
+    expect(showAnotherBatch).toContain('setProfiles(nextProfiles)')
+    expect(showAnotherBatch).toContain('void recordProfileImpressions')
+    expect(showAnotherBatch).not.toContain('await recordProfileImpressions')
+    expect(showAnotherBatch).toContain('localBatchNavigationRef.current = nextBatch')
     expect(showAnotherBatch).toContain('writeDiscoverUrlState')
+    expect(source).toContain('if (localBatchNavigationRef.current === restoredBatch)')
     expect(source).not.toContain('preparedProfiles')
     expect(source).not.toContain('preparedBatch')
     expect(source).not.toContain('Afficher ces profils')
