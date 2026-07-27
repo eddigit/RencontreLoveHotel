@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Filter, MapPin, MessageCircle, RotateCcw, Search, UsersRound, X } from 'lucide-react'
 import MainLayout from '@/components/layout/main-layout'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -47,6 +47,56 @@ const initialFilters: CommunityMemberDirectoryFilters = {
   onlineOnly: false
 }
 
+function isDirectoryProfileType(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['profileType']> {
+  return value === 'all' || value === 'couple' || value === 'woman' || value === 'man'
+}
+
+function isDirectoryOrientation(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['orientation']> {
+  return value === 'all' || value === 'hetero' || value === 'bi' || value === 'bisexual' || value === 'homo' || value === 'gay' || value === 'lesbian' || value === 'pansexual'
+}
+
+function isDirectoryMeetingCriterion(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['meetingCriterion']> {
+  return value === 'all' || value === 'open_couples' || value === 'open_curtains' || value === 'libertine'
+}
+
+function filtersFromSearchParams(searchParams: URLSearchParams) {
+  const pageValue = Number(searchParams.get('page') || 1)
+  const profileType = searchParams.get('profileType')
+  const orientation = searchParams.get('orientation')
+  const meetingCriterion = searchParams.get('meetingCriterion')
+
+  return {
+    page: Number.isFinite(pageValue) ? Math.max(1, Math.floor(pageValue)) : 1,
+    filters: {
+      ...initialFilters,
+      search: searchParams.get('search') || '',
+      profileType: isDirectoryProfileType(profileType) ? profileType : initialFilters.profileType,
+      orientation: isDirectoryOrientation(orientation) ? orientation : initialFilters.orientation,
+      meetingCriterion: isDirectoryMeetingCriterion(meetingCriterion) ? meetingCriterion : initialFilters.meetingCriterion,
+      onlineOnly: searchParams.get('onlineOnly') === 'true'
+    }
+  }
+}
+
+function writeMemberDirectoryUrlState(
+  router: ReturnType<typeof useRouter>,
+  filters: CommunityMemberDirectoryFilters,
+  page: number
+) {
+  const params = new URLSearchParams()
+  const search = filters.search?.trim()
+
+  if (search) params.set('search', search)
+  if (filters.profileType && filters.profileType !== initialFilters.profileType) params.set('profileType', filters.profileType)
+  if (filters.orientation && filters.orientation !== initialFilters.orientation) params.set('orientation', filters.orientation)
+  if (filters.meetingCriterion && filters.meetingCriterion !== initialFilters.meetingCriterion) params.set('meetingCriterion', filters.meetingCriterion)
+  if (filters.onlineOnly) params.set('onlineOnly', 'true')
+  if (page > 1) params.set('page', String(page))
+
+  const query = params.toString()
+  router.replace(query ? `/members?${query}` : '/members', { scroll: false })
+}
+
 function formatCount(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
@@ -81,6 +131,8 @@ function orientationLabel(value?: string | null) {
 export default function MembersPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchParamString = searchParams.toString()
   const [members, setMembers] = useState<CommunityMember[]>([])
   const [stats, setStats] = useState<CommunityStats>({ totalMembers: 0, newMembersLast24h: 0 })
   const [filters, setFilters] = useState<CommunityMemberDirectoryFilters>(initialFilters)
@@ -122,18 +174,23 @@ export default function MembersPage() {
       router.push('/login')
       return
     }
-    void fetchMembers(1, initialFilters)
+    const restoredState = filtersFromSearchParams(new URLSearchParams(searchParamString))
+    setFilters(restoredState.filters)
+    setAppliedFilters(restoredState.filters)
+    void fetchMembers(restoredState.page, restoredState.filters)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, searchParamString])
 
   const applyFilters = (nextFilters: CommunityMemberDirectoryFilters) => {
     setFilters(nextFilters)
     setAppliedFilters(nextFilters)
-    void fetchMembers(1, nextFilters)
+    writeMemberDirectoryUrlState(router, nextFilters, 1)
   }
 
   const resetFilters = () => {
-    applyFilters({ ...initialFilters })
+    setFilters({ ...initialFilters })
+    setAppliedFilters({ ...initialFilters })
+    writeMemberDirectoryUrlState(router, { ...initialFilters }, 1)
   }
 
   const activeFilterCount = [
@@ -385,8 +442,17 @@ export default function MembersPage() {
                       <Button asChild size='sm' className='flex-1 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
                         <Link href={`/profile/${member.id}`}>Voir le profil</Link>
                       </Button>
-                      <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]' title='Ouvrir la messagerie'>
-                        <Link href={`/messages?user=${member.id}`}><MessageCircle className='h-4 w-4' /></Link>
+                      <Button
+                        asChild
+                        size='sm'
+                        variant='outline'
+                        className='border-white/12 bg-white/[0.04]'
+                        title='Voir le profil pour matcher ou écrire'
+                      >
+                        <Link href={`/profile/${member.id}`}>
+                          <MessageCircle className='h-4 w-4' />
+                          <span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span>
+                        </Link>
                       </Button>
                     </div>
                   </div>
@@ -399,11 +465,11 @@ export default function MembersPage() {
             <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
               <p className='text-sm text-white/55'>Page {page} sur {totalPages} · {formatCount(totalCount)} membres trouvés</p>
               <div className='flex gap-2'>
-                <Button type='button' variant='outline' disabled={page <= 1 || loading} onClick={() => void fetchMembers(page - 1, appliedFilters)} className='border-white/12 bg-white/[0.04]'>
+                <Button type='button' variant='outline' disabled={page <= 1 || loading} onClick={() => writeMemberDirectoryUrlState(router, appliedFilters, page - 1)} className='border-white/12 bg-white/[0.04]'>
                   <ChevronLeft className='mr-2 h-4 w-4' />
                   Précédente
                 </Button>
-                <Button type='button' variant='outline' disabled={page >= totalPages || loading} onClick={() => void fetchMembers(page + 1, appliedFilters)} className='border-white/12 bg-white/[0.04]'>
+                <Button type='button' variant='outline' disabled={page >= totalPages || loading} onClick={() => writeMemberDirectoryUrlState(router, appliedFilters, page + 1)} className='border-white/12 bg-white/[0.04]'>
                   Suivante
                   <ChevronRight className='ml-2 h-4 w-4' />
                 </Button>

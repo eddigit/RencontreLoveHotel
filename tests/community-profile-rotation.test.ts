@@ -17,6 +17,21 @@ describe('community profile rotation', () => {
     expect(source).toContain('profileBatch')
   })
 
+  it('prepares another profile batch without replacing visible cards immediately', () => {
+    const source = readFileSync('app/discover/page.tsx', 'utf8')
+    const showAnotherBatch = source.slice(
+      source.indexOf('const showAnotherBatch'),
+      source.indexOf('const applyPreparedProfiles')
+    )
+
+    expect(source).toContain('preparedProfiles')
+    expect(source).toContain('setPreparedProfiles')
+    expect(source).toContain('applyPreparedProfiles')
+    expect(source).toContain('Afficher ces profils')
+    expect(showAnotherBatch).not.toContain('setProfiles(')
+    expect(showAnotherBatch).not.toContain('writeDiscoverUrlState')
+  })
+
   it('keeps schema changes out of runtime presence checks', () => {
     const source = readFileSync('lib/presence.ts', 'utf8')
     expect(source).not.toContain('ALTER TABLE')

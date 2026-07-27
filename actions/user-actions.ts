@@ -271,8 +271,22 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   )
   const totalCount = Number(countResult[0]?.total || 0)
 
-  const limitPlaceholder = addParam(pageSize)
-  const offsetPlaceholder = addParam((page - 1) * pageSize)
+  const memberParams = [...params]
+  const addMemberParam = (value: unknown) => {
+    memberParams.push(value)
+    return `$${memberParams.length}`
+  }
+  const nameSearchRankSql = search
+    ? `CASE
+          WHEN LOWER(COALESCE(u.name, '')) = ${addMemberParam(search)} THEN 0
+          WHEN LOWER(COALESCE(u.name, '')) LIKE ${addMemberParam(`${search}%`)} THEN 1
+          WHEN LOWER(COALESCE(u.name, '')) LIKE ${addMemberParam(`%${search}%`)} THEN 2
+          WHEN LOWER(COALESCE(up.location, '')) LIKE ${addMemberParam(`${search}%`)} THEN 3
+          ELSE 4
+        END`
+    : '0'
+  const limitPlaceholder = addMemberParam(pageSize)
+  const offsetPlaceholder = addMemberParam((page - 1) * pageSize)
   const members = await sql.query<any[]>(
     `
       SELECT
@@ -299,6 +313,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
           THEN 1
           ELSE 0
         END AS has_personal_photo,
+        ${nameSearchRankSql} AS name_search_rank,
         (${onlinePresenceCondition('u.updated_at')}) AS online
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id
@@ -311,11 +326,11 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         WHERE user_id = u.id
       ) umt ON TRUE
       ${whereCondition}
-      ORDER BY has_personal_photo DESC, u.created_at DESC
+      ORDER BY name_search_rank ASC, has_personal_photo DESC, u.created_at DESC, u.id ASC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
     `,
-    params
+    memberParams
   )
 
   return {

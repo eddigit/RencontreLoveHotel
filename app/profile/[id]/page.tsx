@@ -35,16 +35,24 @@ function compatibilityFromProfile (profile: any) {
   return Math.min(96, 86 + interests)
 }
 
+function normalizeProfileRouteId(id: string) {
+  try {
+    return decodeURIComponent(id || '').trim()
+  } catch {
+    return ''
+  }
+}
+
 export default async function ProfilePage ({
   params
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  if (!id || !uuidRegex.test(id)) notFound()
+  const profileId = normalizeProfileRouteId(id)
+  if (!profileId || profileId.length > 128) notFound()
 
-  const userProfileData = await getUserProfile(id)
+  const userProfileData = await getUserProfile(profileId)
   if (!userProfileData || !userProfileData.user) notFound()
 
   const profile = userProfileData.user

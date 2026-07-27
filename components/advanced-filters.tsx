@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -48,11 +48,16 @@ export const defaultFilters: FilterOptions = {
 
 interface AdvancedFiltersProps {
   onFilterChange: (filters: FilterOptions) => void
+  value?: FilterOptions
 }
 
-export function AdvancedFilters ({ onFilterChange }: AdvancedFiltersProps) {
-  const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
+export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps) {
+  const [filters, setFilters] = useState<FilterOptions>(value || defaultFilters)
   const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    if (value) setFilters(value)
+  }, [value])
 
   const updateFilters = (key: keyof FilterOptions, value: any) => {
     const newFilters = { ...filters, [key]: value }

@@ -20,4 +20,14 @@ describe('matches V2 page', () => {
     expect(page).toContain('Demandes envoyées')
     expect(page).toContain('Matchs actifs')
   })
+
+  it('guards match acceptance against duplicate submits and bad API payloads', () => {
+    const page = readFileSync(join(root, 'app/matches/page.tsx'), 'utf8')
+
+    expect(page).toContain('acceptingId')
+    expect(page).toContain('if (acceptingId) return')
+    expect(page).toContain('response.headers.get')
+    expect(page).toContain('disabled={acceptingId === profile.id}')
+    expect(page).toContain('Acceptation...')
+  })
 })

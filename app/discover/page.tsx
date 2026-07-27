@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowUpRight,
   CalendarHeart,
@@ -87,6 +87,85 @@ const jacuzziMeetupImageUrl = '/apero-jacuzzi-rencontre.jpg'
 const openCurtainsImageUrl = '/rideaux-ouverts-rencontre.jpg'
 const conciergerieImageUrl = '/conciergerie-service.jpg'
 
+function isDiscoverStatus(value: string | null): value is FilterOptions['status'] {
+  return value === 'all' || value === 'single' || value === 'couple'
+}
+
+function isDiscoverOrientation(value: string | null): value is FilterOptions['orientation'] {
+  return value === 'all' || value === 'hetero' || value === 'homo' || value === 'bi'
+}
+
+function isDiscoverCurtainPreference(value: string | null): value is FilterOptions['curtainPreference'] {
+  return value === 'all' || value === 'open' || value === 'closed'
+}
+
+function discoverFiltersFromSearchParams(searchParams: URLSearchParams): FilterOptions {
+  const ageMin = Number(searchParams.get('ageMin') || defaultFilters.ageRange[0])
+  const ageMax = Number(searchParams.get('ageMax') || defaultFilters.ageRange[1])
+  const distance = Number(searchParams.get('distance') || defaultFilters.distance)
+  const status = searchParams.get('status')
+  const orientation = searchParams.get('orientation')
+  const curtainPreference = searchParams.get('curtainPreference')
+  const meetingTypes = new Set((searchParams.get('meetingTypes') || '').split(',').filter(Boolean))
+
+  return {
+    ageRange: [
+      Number.isFinite(ageMin) ? Math.max(18, Math.min(80, Math.floor(ageMin))) : defaultFilters.ageRange[0],
+      Number.isFinite(ageMax) ? Math.max(18, Math.min(80, Math.floor(ageMax))) : defaultFilters.ageRange[1]
+    ],
+    distance: Number.isFinite(distance) ? Math.max(5, Math.min(100, Math.floor(distance))) : defaultFilters.distance,
+    onlineOnly: searchParams.get('onlineOnly') === 'true',
+    status: isDiscoverStatus(status) ? status : defaultFilters.status,
+    orientation: isDiscoverOrientation(orientation) ? orientation : defaultFilters.orientation,
+    meetingTypes: {
+      friendly: meetingTypes.has('friendly'),
+      romantic: meetingTypes.has('romantic'),
+      playful: meetingTypes.has('playful'),
+      openCurtains: meetingTypes.has('openCurtains'),
+      libertine: meetingTypes.has('libertine')
+    },
+    curtainPreference: isDiscoverCurtainPreference(curtainPreference)
+      ? curtainPreference
+      : defaultFilters.curtainPreference
+  }
+}
+
+function discoverBatchFromSearchParams(searchParams: URLSearchParams) {
+  const batch = Number(searchParams.get('batch') || 0)
+  return Number.isFinite(batch) ? Math.max(0, Math.floor(batch)) : 0
+}
+
+function discoverSearchFromSearchParams(searchParams: URLSearchParams) {
+  return searchParams.get('q') || ''
+}
+
+function writeDiscoverUrlState(
+  router: ReturnType<typeof useRouter>,
+  filters: FilterOptions,
+  search: string,
+  batch: number
+) {
+  const params = new URLSearchParams()
+  const activeMeetingTypes = Object.entries(filters.meetingTypes)
+    .filter(([, active]) => active)
+    .map(([key]) => key)
+  const trimmedSearch = search.trim()
+
+  if (trimmedSearch) params.set('q', trimmedSearch)
+  if (batch > 0) params.set('batch', String(batch))
+  if (filters.onlineOnly) params.set('onlineOnly', 'true')
+  if (filters.status !== defaultFilters.status) params.set('status', filters.status)
+  if (filters.orientation !== defaultFilters.orientation) params.set('orientation', filters.orientation)
+  if (filters.curtainPreference !== defaultFilters.curtainPreference) params.set('curtainPreference', filters.curtainPreference)
+  if (filters.ageRange[0] !== defaultFilters.ageRange[0]) params.set('ageMin', String(filters.ageRange[0]))
+  if (filters.ageRange[1] !== defaultFilters.ageRange[1]) params.set('ageMax', String(filters.ageRange[1]))
+  if (filters.distance !== defaultFilters.distance) params.set('distance', String(filters.distance))
+  if (activeMeetingTypes.length > 0) params.set('meetingTypes', activeMeetingTypes.join(','))
+
+  const query = params.toString()
+  router.replace(query ? `/discover?${query}` : '/discover', { scroll: false })
+}
+
 function profileImage (profile?: DiscoverProfile) {
   return defaultMemberImage(profile || {})
 }
@@ -120,7 +199,10 @@ function formatCount (value: number) {
 export default function DiscoverPage () {
   const { user, isLoading } = useAuth()
   const router = useRouter()
-  const [filters, setFilters] = useState<FilterOptions>(defaultFilters)
+  const searchParams = useSearchParams()
+  const searchParamString = searchParams.toString()
+  const initialSearchParams = new URLSearchParams(searchParamString)
+  const [filters, setFilters] = useState<FilterOptions>(() => discoverFiltersFromSearchParams(initialSearchParams))
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([])
   const [onlineMembers, setOnlineMembers] = useState<DiscoverProfile[]>([])
   const [matches, setMatches] = useState<MatchRow[]>([])
@@ -130,8 +212,11 @@ export default function DiscoverPage () {
     newMembersLast24h: 0
   })
   const [loading, setLoading] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [profileBatch, setProfileBatch] = useState(0)
+  const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
+  const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
+  const [preparedProfiles, setPreparedProfiles] = useState<DiscoverProfile[]>([])
+  const [preparedBatch, setPreparedBatch] = useState<number | null>(null)
+  const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchCommunity = useCallback(
@@ -175,9 +260,16 @@ export default function DiscoverPage () {
       router.push('/login')
       return
     }
-    fetchCommunity(filters)
+    const restoredSearchParams = new URLSearchParams(searchParamString)
+    const restoredFilters = discoverFiltersFromSearchParams(restoredSearchParams)
+    const restoredSearch = discoverSearchFromSearchParams(restoredSearchParams)
+    const restoredBatch = discoverBatchFromSearchParams(restoredSearchParams)
+    setFilters(restoredFilters)
+    setSearchQuery(restoredSearch)
+    setProfileBatch(restoredBatch)
+    fetchCommunity(restoredFilters, restoredBatch)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, isLoading, router])
+  }, [user, isLoading, router, searchParamString])
 
   useEffect(() => {
     if (!user?.id) return
@@ -194,13 +286,47 @@ export default function DiscoverPage () {
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     setProfileBatch(0)
-    fetchCommunity(newFilters, 0)
+    setPreparedProfiles([])
+    setPreparedBatch(null)
+    writeDiscoverUrlState(router, newFilters, searchQuery, 0)
   }
 
-  const showAnotherBatch = () => {
+  const showAnotherBatch = async () => {
+    if (!user?.id || preparingProfiles) return
     const nextBatch = profileBatch + 1
-    setProfileBatch(nextBatch)
-    fetchCommunity(filters, nextBatch)
+    setPreparingProfiles(true)
+    setError(null)
+    try {
+      const profileResult = await getDiscoverProfiles(user.id, 1, 240, filters, nextBatch)
+      setPreparedProfiles(profileResult.profiles || [])
+      setPreparedBatch(nextBatch)
+    } catch (error) {
+      console.error('Error preparing another profile batch:', error)
+      setError("Impossible de préparer d'autres profils pour le moment.")
+    } finally {
+      setPreparingProfiles(false)
+    }
+  }
+
+  const applyPreparedProfiles = () => {
+    if (!user?.id || preparedBatch === null) return
+    setProfiles(preparedProfiles)
+    setProfileBatch(preparedBatch)
+    setPreparedProfiles([])
+    setPreparedBatch(null)
+    void recordProfileImpressions(
+      user.id,
+      preparedProfiles.slice(0, 12).map(profile => profile.id),
+      preparedBatch
+    )
+    writeDiscoverUrlState(router, filters, searchQuery, preparedBatch)
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+    setPreparedProfiles([])
+    setPreparedBatch(null)
+    writeDiscoverUrlState(router, filters, value, profileBatch)
   }
 
   const filteredProfiles = useMemo(() => {
@@ -264,7 +390,7 @@ export default function DiscoverPage () {
         subtitle='Les profils actifs, les matchs, les événements et les expériences Love Rooms au même endroit.'
         action={
           <div className='flex flex-wrap items-center gap-2'>
-            <AdvancedFilters onFilterChange={handleFilterChange} />
+            <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
             <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
               <Link href='/love-rooms'>
                 <Sparkles className='mr-2 h-4 w-4' />
@@ -353,7 +479,7 @@ export default function DiscoverPage () {
                 type='text'
                 placeholder='Rechercher un profil, une ville, une ambiance...'
                 value={searchQuery}
-                onChange={event => setSearchQuery(event.target.value)}
+                onChange={event => handleSearchChange(event.target.value)}
                 className='h-12 rounded-2xl border-white/10 bg-white/[0.06] pl-11 text-white placeholder:text-white/38 focus:border-[#ff62a8]'
               />
             </div>
@@ -374,10 +500,15 @@ export default function DiscoverPage () {
                   <span className='text-right text-sm text-white/52'>
                     {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
                   </span>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading} className='border-white/12 bg-white/[0.04]'>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles} className='border-white/12 bg-white/[0.04]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
-                    Découvrir d’autres profils
+                    {preparingProfiles ? 'Préparation...' : 'Découvrir d’autres profils'}
                   </Button>
+                  {preparedProfiles.length > 0 && (
+                    <Button type='button' size='sm' onClick={applyPreparedProfiles} className='bg-[#94ffc9] text-[#12031c] hover:bg-[#b8ffdb]'>
+                      Afficher ces profils
+                    </Button>
+                  )}
                 </div>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>

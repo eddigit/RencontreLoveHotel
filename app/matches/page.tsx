@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CalendarHeart, Check, Clock, Heart, MessageCircle, Search, Send, Sparkles, X } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,21 @@ type MatchProfile = {
   location?: string
   image: string
   matchScore?: number | null
+}
+
+type MatchesTab = 'active' | 'incoming' | 'outgoing'
+
+function tabFromSearchParams(searchParams: URLSearchParams): MatchesTab {
+  const tab = searchParams.get('tab')
+  if (tab === 'incoming' || tab === 'outgoing') return tab
+  return 'active'
+}
+
+function writeMatchesUrlState(router: ReturnType<typeof useRouter>, tab: MatchesTab) {
+  const params = new URLSearchParams()
+  if (tab !== 'active') params.set('tab', tab)
+  const query = params.toString()
+  router.replace(query ? `/matches?${query}` : '/matches', { scroll: false })
 }
 
 function toProfile (relationship: any): MatchProfile {
@@ -51,12 +66,15 @@ function scoreLabel (score?: number | null) {
 export default function MatchesPage () {
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState('active')
+  const searchParams = useSearchParams()
+  const searchParamString = searchParams.toString()
+  const [activeTab, setActiveTab] = useState<MatchesTab>(() => tabFromSearchParams(new URLSearchParams(searchParamString)))
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [matches, setMatches] = useState<MatchProfile[]>([])
   const [incoming, setIncoming] = useState<MatchProfile[]>([])
   const [outgoing, setOutgoing] = useState<MatchProfile[]>([])
+  const [acceptingId, setAcceptingId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!authLoading && !user?.id) {
@@ -87,21 +105,38 @@ export default function MatchesPage () {
     fetchMatches()
   }, [authLoading, user?.id, router])
 
+  useEffect(() => {
+    setActiveTab(tabFromSearchParams(new URLSearchParams(searchParamString)))
+  }, [searchParamString])
+
   async function acceptIncoming (profile: MatchProfile) {
+    if (acceptingId) return
     if (!user?.id) return
-    const response = await fetch('/api/accept-match', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requesterId: profile.id, receiverId: user.id })
-    })
-    const data = await response.json()
-    if (data.success) {
-      setIncoming(items => items.filter(item => item.id !== profile.id))
-      setMatches(items => [profile, ...items])
-      if (data.conversationId) router.push(`/messages/${data.conversationId}`)
-      return
+    setAcceptingId(profile.id)
+    setError(null)
+    try {
+      const response = await fetch('/api/accept-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requesterId: profile.id, receiverId: user.id })
+      })
+      const contentType = response.headers.get('content-type') || ''
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { success: false, error: "La demande n'a pas pu être acceptée." }
+
+      if (response.ok && data.success) {
+        setIncoming(items => items.filter(item => item.id !== profile.id))
+        setMatches(items => [profile, ...items])
+        if (data.conversationId) router.push(`/messages/${data.conversationId}`)
+        return
+      }
+      setError(data.error || "La demande n'a pas pu être acceptée.")
+    } catch {
+      setError("La demande n'a pas pu être acceptée. Vérifiez votre connexion puis réessayez.")
+    } finally {
+      setAcceptingId(null)
     }
-    setError(data.error || "La demande n'a pas pu être acceptée.")
   }
 
   async function rejectIncoming (profile: MatchProfile) {
@@ -161,7 +196,7 @@ export default function MatchesPage () {
                 Chargement des relations...
               </div>
             ) : (
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <Tabs value={activeTab} onValueChange={value => writeMatchesUrlState(router, value as MatchesTab)}>
                 <TabsList className='grid h-auto w-full grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
                   <TabsTrigger value='active' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
                     Matchs actifs
@@ -203,9 +238,13 @@ export default function MatchesPage () {
                     badge='Demande reçue'
                     renderActions={profile => (
                       <>
-                        <Button onClick={() => acceptIncoming(profile)} className='flex-1 bg-[#21b56f] text-white hover:bg-[#27c87c]'>
+                        <Button
+                          onClick={() => acceptIncoming(profile)}
+                          disabled={acceptingId === profile.id}
+                          className='flex-1 bg-[#21b56f] text-white hover:bg-[#27c87c]'
+                        >
                           <Check className='mr-2 h-4 w-4' />
-                          Accepter
+                          {acceptingId === profile.id ? 'Acceptation...' : 'Accepter'}
                         </Button>
                         <Button onClick={() => rejectIncoming(profile)} variant='outline' className='flex-1 border-white/12 bg-white/[0.04]'>
                           <X className='mr-2 h-4 w-4' />
