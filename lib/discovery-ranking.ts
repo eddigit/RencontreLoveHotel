@@ -108,3 +108,19 @@ export function rotateDiscoveryBatch<T>(
   if (offset === 0) return candidates
   return [...candidates.slice(offset), ...candidates.slice(0, offset)]
 }
+
+export function rotateDiscoveryBatchWithPhotoPriority<T extends DiscoveryCandidate>(
+  candidates: T[],
+  batch: number,
+  windowSize = 12
+): T[] {
+  const uploadedPhotos = candidates.filter(candidate => photoPriority(candidate) === 2)
+  const otherPersonalPhotos = candidates.filter(candidate => photoPriority(candidate) === 1)
+  const nativeAvatars = candidates.filter(candidate => photoPriority(candidate) === 0)
+
+  return [
+    ...rotateDiscoveryBatch(uploadedPhotos, batch, windowSize),
+    ...rotateDiscoveryBatch(otherPersonalPhotos, batch, windowSize),
+    ...rotateDiscoveryBatch(nativeAvatars, batch, windowSize)
+  ]
+}

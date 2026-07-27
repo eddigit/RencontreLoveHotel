@@ -24,8 +24,8 @@ describe('community profile rotation', () => {
       source.indexOf('const handleSearchChange')
     )
 
-    expect(source).toContain("import { rotateDiscoveryBatch } from '@/lib/discovery-ranking'")
-    expect(showAnotherBatch).toContain('rotateDiscoveryBatch(profiles, 1, 12)')
+    expect(source).toContain("import { rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'")
+    expect(showAnotherBatch).toContain('rotateDiscoveryBatchWithPhotoPriority(profiles, 1, 12)')
     expect(showAnotherBatch).toContain('setProfiles(nextProfiles)')
     expect(showAnotherBatch).toContain('void recordProfileImpressions')
     expect(showAnotherBatch).not.toContain('await recordProfileImpressions')

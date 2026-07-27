@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { rankDiscoveryCandidates, rotateDiscoveryBatch } from '@/lib/discovery-ranking'
+import {
+  rankDiscoveryCandidates,
+  rotateDiscoveryBatch,
+  rotateDiscoveryBatchWithPhotoPriority
+} from '@/lib/discovery-ranking'
 
 const candidates = [
   { id: 'popular', matchScore: 80, impressions14d: 30, profileQuality: 90, lastSeenAt: '2026-07-15T10:00:00Z' },
@@ -105,5 +109,46 @@ describe('fair discovery ranking', () => {
     }
 
     expect(displayed.size).toBe(60)
+  })
+
+  it('keeps uploaded-photo profiles visible across every rotation', () => {
+    let ranked = [
+      ...Array.from({ length: 42 }, (_, index) => ({
+        id: `photo-${index + 1}`,
+        image: `https://member.public.blob.vercel-storage.com/photo-${index + 1}.jpg`
+      })),
+      ...Array.from({ length: 60 }, (_, index) => ({
+        id: `native-${index + 1}`,
+        image: '/default-member-woman.jpg'
+      }))
+    ]
+
+    for (let batch = 0; batch < 10; batch += 1) {
+      expect(ranked.slice(0, 12).every(profile => profile.id.startsWith('photo-'))).toBe(true)
+      ranked = rotateDiscoveryBatchWithPhotoPriority(ranked, 1, 12)
+    }
+  })
+
+  it('rotates fallback profiles while keeping a smaller photo group first', () => {
+    const ranked = [
+      ...Array.from({ length: 4 }, (_, index) => ({
+        id: `photo-${index + 1}`,
+        image: `https://member.public.blob.vercel-storage.com/photo-${index + 1}.jpg`
+      })),
+      ...Array.from({ length: 24 }, (_, index) => ({
+        id: `native-${index + 1}`,
+        image: '/default-member-man.jpg'
+      }))
+    ]
+
+    const rotated = rotateDiscoveryBatchWithPhotoPriority(ranked, 1, 12)
+
+    expect(rotated.slice(0, 4).map(profile => profile.id)).toEqual([
+      'photo-1',
+      'photo-2',
+      'photo-3',
+      'photo-4'
+    ])
+    expect(rotated[4].id).toBe('native-13')
   })
 })

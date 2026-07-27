@@ -41,7 +41,7 @@ import {
   discoverySnapshotKey,
   orderProfilesFromSnapshot
 } from '@/lib/discovery-session-state'
-import { rotateDiscoveryBatch } from '@/lib/discovery-ranking'
+import { rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'
 
 type DiscoverProfile = {
   id: string
@@ -399,7 +399,7 @@ export default function DiscoverPage () {
     ) return
 
     const nextBatch = profileBatch + 1
-    const nextProfiles = rotateDiscoveryBatch(profiles, 1, 12)
+    const nextProfiles = rotateDiscoveryBatchWithPhotoPriority(profiles, 1, 12)
     setPreparingProfiles(true)
     setError(null)
     try {
