@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Activity,
   HeartHandshake,
@@ -30,6 +30,7 @@ import {
   type MessagingRecoveryStats
 } from '@/actions/messaging-recovery-actions'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 const scaleOptions: Array<{ label: string; value: MessagingRecoveryScale }> = [
   { label: 'Jour', value: 'day' },
@@ -43,6 +44,13 @@ function formatPeriod(value: string) {
     month: 'short',
     year: 'numeric'
   }).format(new Date(`${value}T00:00:00`))
+}
+
+function formatParisTime(value: string) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeStyle: 'medium',
+    timeZone: 'Europe/Paris'
+  }).format(new Date(value))
 }
 
 function trendPresentation(history: MessagingRecoveryHistory) {
@@ -149,6 +157,7 @@ export function AdminMessagingRecovery() {
   const [error, setError] = useState<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(true)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const requestId = useRef(0)
   const selectedPeriodLabel = {
     day: 'Aujourd’hui',
     week: 'Cette semaine',
@@ -160,47 +169,54 @@ export function AdminMessagingRecovery() {
     month: 'le mois précédent'
   }[scale]
 
-  useEffect(() => {
-    let active = true
+  const loadStats = useCallback(async () => {
+    const currentRequest = ++requestId.current
+    setLoading(true)
+    setHistoryLoading(true)
 
-    async function loadStats() {
-      setLoading(true)
-      setHistoryLoading(true)
+    const [statsResult, historyResult] = await Promise.allSettled([
+      getMessagingRecoveryStats({ scale, days: 30 }),
+      getMessagingRecoveryHistory({ scale })
+    ])
+    if (currentRequest !== requestId.current) return
 
-      const [statsResult, historyResult] = await Promise.allSettled([
-        getMessagingRecoveryStats({ scale, days: 30 }),
-        getMessagingRecoveryHistory({ scale })
-      ])
-      if (!active) return
-
-      if (statsResult.status === 'fulfilled') {
-        setStats(statsResult.value)
-        setError(null)
-      } else {
-        console.error(statsResult.reason)
-        setError('Impossible de charger les KPI de messagerie')
-      }
-
-      if (historyResult.status === 'fulfilled') {
-        setHistory(historyResult.value)
-        setHistoryError(null)
-      } else {
-        console.error(historyResult.reason)
-        setHistoryError('Impossible de charger l’historique')
-      }
-
-      setLoading(false)
-      setHistoryLoading(false)
+    if (statsResult.status === 'fulfilled') {
+      setStats(statsResult.value)
+      setError(null)
+    } else {
+      console.error(statsResult.reason)
+      setError('Impossible de charger les KPI de messagerie')
     }
 
-    loadStats()
-    return () => {
-      active = false
+    if (historyResult.status === 'fulfilled') {
+      setHistory(historyResult.value)
+      setHistoryError(null)
+    } else {
+      console.error(historyResult.reason)
+      setHistoryError('Impossible de charger l’historique')
     }
+
+    setLoading(false)
+    setHistoryLoading(false)
   }, [scale])
 
+  useEffect(() => {
+    setStats(null)
+    setHistory(null)
+    loadStats()
+    const interval = window.setInterval(loadStats, 300_000)
+    return () => {
+      window.clearInterval(interval)
+      requestId.current += 1
+    }
+  }, [loadStats])
+
   return (
-    <section className='mb-10 space-y-5' aria-labelledby='messaging-recovery-title'>
+    <section
+      className='mb-10 space-y-5'
+      aria-labelledby='messaging-recovery-title'
+      data-testid='admin-messaging-recovery'
+    >
       <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div>
           <div className='mb-1 flex items-center gap-2 text-pink-500'>
@@ -215,26 +231,43 @@ export function AdminMessagingRecovery() {
           <p className='mt-1 text-sm text-muted-foreground'>
             Activité entre membres — {selectedPeriodLabel.toLocaleLowerCase('fr-FR')} — et évolution depuis le lancement.
           </p>
+          <p className='mt-1 text-xs text-muted-foreground'>
+            Période civile, heure de Paris
+            {stats ? ` · mise à jour ${formatParisTime(stats.generatedAt)}` : ''}
+          </p>
         </div>
-        <div className='flex w-fit gap-1 rounded-xl border bg-card p-1'>
-          {scaleOptions.map(option => (
-            <button
-              key={option.value}
-              type='button'
-              onClick={() => setScale(option.value)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                scale === option.value
-                  ? 'bg-pink-500 text-white'
-                  : 'text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className='flex flex-wrap items-center gap-2'>
+          <div className='flex w-fit gap-1 rounded-lg border bg-card p-1'>
+            {scaleOptions.map(option => (
+              <button
+                key={option.value}
+                type='button'
+                onClick={() => setScale(option.value)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  scale === option.value
+                    ? 'bg-pink-500 text-white'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            onClick={loadStats}
+            disabled={loading}
+            aria-label='Actualiser les statistiques'
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Actualiser
+          </Button>
         </div>
       </div>
 
-      {loading ? <LoadingCards /> : null}
+      {loading && !stats ? <LoadingCards /> : null}
 
       {!loading && error ? (
         <Card className='border-red-500/30 bg-red-500/10'>
@@ -245,7 +278,7 @@ export function AdminMessagingRecovery() {
         </Card>
       ) : null}
 
-      {!loading && stats ? (
+      {stats ? (
         <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'>
             <KpiCard
               title='Conversations créées'
@@ -278,13 +311,13 @@ export function AdminMessagingRecovery() {
               icon={<Activity className='h-4 w-4' />}
             />
             <KpiCard
-              title='Conversations avec réponse'
+              title='Conversations avec échange'
               {...metric(stats, 'respondedConversations')}
               previousPeriodLabel={previousPeriodLabel}
               icon={<UsersRound className='h-4 w-4' />}
             />
             <KpiCard
-              title='Taux de réponse'
+              title='Taux d’échange'
               {...metric(stats, 'responseRate')}
               previousPeriodLabel={previousPeriodLabel}
               suffix='%'
@@ -307,7 +340,7 @@ export function AdminMessagingRecovery() {
         </div>
       ) : null}
 
-      {historyLoading ? (
+      {historyLoading && !history ? (
         <Card className='animate-pulse border-pink-500/10'>
           <CardContent className='h-[390px] pt-6' />
         </Card>
@@ -322,7 +355,7 @@ export function AdminMessagingRecovery() {
         </Card>
       ) : null}
 
-      {!historyLoading && history ? (
+      {history ? (
         <Card className='border-pink-500/20'>
           <CardHeader className='gap-4 lg:flex-row lg:items-start lg:justify-between'>
             <div>

@@ -15,7 +15,14 @@ describe('admin login status UI', () => {
     expect(source).toContain('En ligne')
     expect(source).toContain('Connexions 24 h')
     expect(source).toContain('Échecs 24 h')
-    expect(source).toContain('Dernières connexions')
+    expect(source).toContain('Dernière activité')
+    expect(source).toContain('Dernières authentifications')
+    expect(source).toContain('Actualiser les connexions')
+    expect(source).toContain('setLoading(true)')
+    expect(source).toContain('presenceAvailable')
+    expect(source).toContain('activityAvailable')
+    expect(source).toContain("timeZone: 'Europe/Paris'")
+    expect(source).toContain('requestId')
   })
 
   it('renders the connection status on the admin dashboard', () => {

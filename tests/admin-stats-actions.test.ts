@@ -16,6 +16,7 @@ vi.mock('@/lib/server-auth', () => ({
 import {
   getAdminDashboardStats,
   getAdminLoginStatus,
+  getAdminOverviewCounts,
   getRealTimeMetrics
 } from '../actions/admin-stats-actions'
 import { sql } from '@/lib/db'
@@ -125,6 +126,26 @@ describe('Admin Stats Actions', () => {
     })
   })
 
+  describe('getAdminOverviewCounts', () => {
+    it('loads the user and upcoming event counts in one protected query', async () => {
+      ;(sql.query as any).mockResolvedValueOnce([
+        { user_count: '1368', upcoming_event_count: '2' }
+      ])
+
+      await expect(getAdminOverviewCounts()).resolves.toEqual({
+        users: 1368,
+        upcomingEvents: 2
+      })
+      expect(sql.query).toHaveBeenCalledTimes(1)
+      expect((sql.query as any).mock.calls[0][0]).toContain(
+        "e.event_date + COALESCE(e.event_time, TIME '23:59:59')"
+      )
+      expect((sql.query as any).mock.calls[0][0]).toContain(
+        "e.publication_status = 'published'"
+      )
+    })
+  })
+
   describe('getRealTimeMetrics', () => {
     it('requires admin access before loading real-time metrics', async () => {
       requireAdminMock.mockRejectedValue(new Error('Accès administrateur requis'))
@@ -212,6 +233,16 @@ describe('Admin Stats Actions', () => {
             created_at: '2026-07-14T19:00:00.000Z'
           }
         ])
+        .mockResolvedValueOnce([
+          {
+            user_id: 'user-1',
+            name: 'Ines',
+            email: 'ines@example.com',
+            role: 'user',
+            last_seen_at: '2026-07-14T19:05:00.000Z',
+            online: true
+          }
+        ])
 
       const status = await getAdminLoginStatus()
 
@@ -234,6 +265,13 @@ describe('Admin Stats Actions', () => {
         role: 'admin',
         provider: 'credentials'
       })
+      expect(status.recentActivity[0]).toMatchObject({
+        userId: 'user-1',
+        name: 'Ines',
+        online: true
+      })
+      expect(status.presenceAvailable).toBe(true)
+      expect(status.activityAvailable).toBe(true)
       expect(status.auditAvailable).toBe(true)
     })
 
@@ -244,13 +282,39 @@ describe('Admin Stats Actions', () => {
         ])
         .mockRejectedValueOnce(new Error('auth_logs missing'))
         .mockRejectedValueOnce(new Error('auth_logs missing'))
+        .mockResolvedValueOnce([
+          {
+            user_id: 'user-2',
+            name: 'Xena',
+            email: 'xena@example.com',
+            role: 'user',
+            last_seen_at: '2026-07-14T18:05:00.000Z',
+            online: false
+          }
+        ])
 
       const status = await getAdminLoginStatus()
 
       expect(status.users.online).toBe(2)
       expect(status.users.logins24h).toBe(0)
       expect(status.recentLogins).toEqual([])
+      expect(status.recentActivity).toHaveLength(1)
+      expect(status.presenceAvailable).toBe(true)
+      expect(status.activityAvailable).toBe(true)
       expect(status.auditAvailable).toBe(false)
+    })
+
+    it('does not present unavailable presence data as real zero activity', async () => {
+      ;(sql.query as any)
+        .mockRejectedValueOnce(new Error('presence unavailable'))
+        .mockResolvedValueOnce([{}])
+        .mockResolvedValueOnce([])
+        .mockRejectedValueOnce(new Error('activity unavailable'))
+
+      const status = await getAdminLoginStatus()
+
+      expect(status.presenceAvailable).toBe(false)
+      expect(status.activityAvailable).toBe(false)
     })
   })
 })

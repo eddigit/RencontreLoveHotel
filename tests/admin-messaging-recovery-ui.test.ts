@@ -13,24 +13,30 @@ describe('admin messaging recovery dashboard', () => {
     expect(component).toContain('Conversations démarrées')
     expect(component).toContain('Messages envoyés')
     expect(component).toContain('Conversations actives')
-    expect(component).toContain('Conversations avec réponse')
-    expect(component).toContain('Taux de réponse')
+    expect(component).toContain('Conversations avec échange')
+    expect(component).toContain('Taux d’échange')
     expect(component).toContain('Matchs acceptés')
     expect(component).toContain('Admin / conciergerie')
     expect(component).toContain('Jour')
     expect(component).toContain('Semaine')
     expect(component).toContain('Mois')
     expect(component).toContain('selectedPeriodLabel')
+    expect(component).toContain('Période civile, heure de Paris')
+    expect(component).toContain('Actualiser les statistiques')
+    expect(component).toContain("timeZone: 'Europe/Paris'")
   })
 
-  it('places recovery visibility before the generic real-time dashboard', () => {
+  it('uses one messaging dashboard instead of rendering conflicting duplicates', () => {
     const page = readFileSync('app/admin/page.tsx', 'utf8')
 
     expect(page).toContain('AdminMessagingRecovery')
     expect(page.indexOf('<AdminMessagingRecovery')).toBeGreaterThan(-1)
-    expect(page.indexOf('<AdminMessagingRecovery')).toBeLessThan(
-      page.indexOf('<AdminRealTimeStats')
-    )
+    expect(page).not.toContain('<AdminRealTimeStats')
+    expect(page).not.toContain('<AdminStats')
+    expect(page).toContain('getAdminOverviewCounts')
+    expect(page).not.toContain('getUpcomingEvents')
+    expect(page).toContain('Chargement…')
+    expect(page).toContain('Indisponible')
   })
 
   it('renders a continuous trend chart and a visible error state', () => {

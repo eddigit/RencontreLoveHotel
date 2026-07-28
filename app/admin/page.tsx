@@ -9,36 +9,46 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { ProtectedRoute } from '@/components/protected-route'
-import { Users, Calendar, Settings, MessageSquare, BarChart3, TrendingUp, ListChecks } from 'lucide-react'
+import { Users, Calendar, MessageSquare, BarChart3, ListChecks } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import MainLayout from '@/components/layout/main-layout'
 import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
-import { getAllUsers } from '@/actions/user-actions'
-import { getUpcomingEvents } from '@/actions/event-actions'
 import { useEffect, useState } from 'react'
-import { AdminStats } from '@/components/admin-stats'
-import { AdminRealTimeStats } from '@/components/admin-real-time-stats'
 import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
 import { AdminLoginStatus } from '@/components/admin-login-status'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
 import { ComplianceReadiness } from '@/components/admin/compliance-readiness'
+import { getAdminOverviewCounts } from '@/actions/admin-stats-actions'
 
 export default function AdminPage () {
   const { user } = useAuth()
-  const [userCount, setUserCount] = useState(0)
-  const [eventCount, setEventCount] = useState(0)
+  const [overview, setOverview] = useState<{
+    users: number
+    upcomingEvents: number
+  } | null>(null)
+  const [overviewError, setOverviewError] = useState(false)
   const roadmapSummary = getRoadmapSummary(roadmapItems)
 
   useEffect(() => {
+    let active = true
+
     async function fetchDashboardData () {
-      const users = await getAllUsers()
-      setUserCount(users.length)
-      const events = await getUpcomingEvents()
-      setEventCount(events.length)
+      try {
+        const counts = await getAdminOverviewCounts()
+        if (!active) return
+        setOverview(counts)
+        setOverviewError(false)
+      } catch (error) {
+        console.error('Compteurs administrateur indisponibles:', error)
+        if (active) setOverviewError(true)
+      }
     }
     fetchDashboardData()
+    return () => {
+      active = false
+    }
   }, [])
 
   return (
@@ -53,16 +63,6 @@ export default function AdminPage () {
           <AdminMessagingRecovery />
 
           <AdminLoginStatus />
-          
-          {/* Nouvelles statistiques temps réel */}
-          <div className="mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="h-6 w-6 text-blue-500" />
-              <h2 className="text-2xl font-bold">Tableau de Bord en Temps Réel</h2>
-            </div>
-            <AdminRealTimeStats />
-          </div>
-
           {/* Actions rapides */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4 flex items-center">
@@ -82,8 +82,11 @@ export default function AdminPage () {
                 </CardHeader>
                 <CardContent>
                   <p className='text-sm text-muted-foreground mb-4'>
-                    {userCount} utilisateurs enregistrés
-                    {/* , X actifs aujourd'hui */}
+                    {overview
+                      ? `${overview.users.toLocaleString('fr-FR')} utilisateurs enregistrés`
+                      : overviewError
+                        ? 'Indisponible'
+                        : 'Chargement…'}
                   </p>
                   <Button className='w-full' asChild>
                     <Link href='/admin/users'>Voir les utilisateurs</Link>
@@ -101,8 +104,11 @@ export default function AdminPage () {
                 </CardHeader>
                 <CardContent>
                   <p className='text-sm text-muted-foreground mb-4'>
-                    {eventCount} événements à venir
-                    {/* , X nécessitent votre attention */}
+                    {overview
+                      ? `${overview.upcomingEvents.toLocaleString('fr-FR')} événements à venir`
+                      : overviewError
+                        ? 'Indisponible'
+                        : 'Chargement…'}
                   </p>
                   <Button className='w-full' asChild>
                     <Link href='/admin/events'>Gérer les événements</Link>
@@ -166,9 +172,6 @@ export default function AdminPage () {
               </Card>
             </div>
           </div>
-
-          {/* Statistiques détaillées (graphiques existants) */}
-          <AdminStats />
         </div>
       </MainLayout>
     </ProtectedRoute>

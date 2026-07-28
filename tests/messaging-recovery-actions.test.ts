@@ -82,10 +82,10 @@ describe('messaging recovery admin KPIs', () => {
       messages: 28,
       activeConversations: 9,
       respondedConversations: 3,
-      responseRate: 60,
+      responseRate: 33.3,
       acceptedMatches: 4
     })
-    expect(result.previous.responseRate).toBe(50)
+    expect(result.previous.responseRate).toBe(14.3)
     expect(result.service).toEqual({ messages: 8, activeConversations: 2 })
     expect(result.series[0]).toEqual({
       period: '2026-07-13',
@@ -94,20 +94,23 @@ describe('messaging recovery admin KPIs', () => {
       messages: 10,
       activeConversations: 3,
       respondedConversations: 1,
-      responseRate: 50,
+      responseRate: 33.3,
       acceptedMatches: 1
     })
 
     expect(sql.query).toHaveBeenCalledTimes(2)
     const summarySql = (sql.query as any).mock.calls[0][0]
     const seriesSql = (sql.query as any).mock.calls[1][0]
-    expect(summarySql).toContain('COUNT(cp.user_id)::int AS participant_count')
+    expect(summarySql).toContain('COUNT(DISTINCT cp.user_id)::int AS participant_count')
     expect(summarySql).toContain("BOOL_OR(u.role = 'admin')")
-    expect(summarySql).toContain('MIN(m.created_at) AS first_message_at')
-    expect(summarySql).toContain('COUNT(DISTINCT m.sender_id) AS distinct_senders')
+    expect(summarySql).toContain('AS conversation_key')
+    expect(summarySql).toContain('GROUP BY ct.conversation_key')
+    expect(summarySql).toContain('MIN(mm.created_at) AS first_message_at')
+    expect(summarySql).toContain('HAVING COUNT(DISTINCT mm.sender_id) >= 2')
     expect(summarySql).toContain('um.accepted_at')
     expect(seriesSql).toContain('generate_series')
     expect(seriesSql).toContain('COALESCE')
+    expect(seriesSql).toContain('COUNT(DISTINCT mm.sender_id) AS sender_count')
     expect((sql.query as any).mock.calls[1][1]).toEqual([30])
   })
 
@@ -216,7 +219,7 @@ describe('messaging recovery admin KPIs', () => {
     expect(historySql).toContain('generate_series')
     expect(historySql).toContain('MIN(activity_at)')
     expect(historySql).toContain("BOOL_OR(u.role = 'admin')")
-    expect(historySql).toContain('COUNT(DISTINCT m.conversation_id)')
+    expect(historySql).toContain('COUNT(DISTINCT mm.conversation_key)')
     expect((historySql.match(/WITH\s+conversation_base AS/g) || []).length).toBe(1)
     expect(comparisonSql).toContain("INTERVAL '60 days'")
     expect(comparisonSql).toContain("timezone('Europe/Paris', m.created_at)")

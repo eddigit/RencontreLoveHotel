@@ -61,11 +61,23 @@ export interface AdminRecentLogin {
   createdAt: string
 }
 
+export interface AdminRecentActivity {
+  userId: string
+  name: string | null
+  email: string
+  role: 'admin' | 'user'
+  lastSeenAt: string
+  online: boolean
+}
+
 export interface AdminLoginStatusData {
   admins: AdminLoginRoleStatus
   users: AdminLoginRoleStatus
   unknownFailures24h: number
   recentLogins: AdminRecentLogin[]
+  recentActivity: AdminRecentActivity[]
+  presenceAvailable: boolean
+  activityAvailable: boolean
   auditAvailable: boolean
   timestamp: string
 }
@@ -77,6 +89,29 @@ function emptyRoleStatus(): AdminLoginRoleStatus {
 function asNumber(value: unknown): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+export async function getAdminOverviewCounts() {
+  await requireAdmin()
+
+  const rows = await sql.query<any[]>(`
+    SELECT
+      (SELECT COUNT(*) FROM users)::int AS user_count,
+      (
+        SELECT COUNT(*)
+        FROM events e
+        WHERE e.publication_status = 'published'
+          AND (
+            e.event_date + COALESCE(e.event_time, TIME '23:59:59')
+          ) >= timezone('Europe/Paris', CURRENT_TIMESTAMP)
+      )::int AS upcoming_event_count
+  `)
+  const row = rows[0] || {}
+
+  return {
+    users: asNumber(row.user_count),
+    upcomingEvents: asNumber(row.upcoming_event_count)
+  }
 }
 
 export async function getAdminDashboardStats(): Promise<AdminStatsData> {
@@ -304,6 +339,9 @@ export async function getAdminLoginStatus(): Promise<AdminLoginStatusData> {
   const users = emptyRoleStatus()
   let unknownFailures24h = 0
   let recentLogins: AdminRecentLogin[] = []
+  let recentActivity: AdminRecentActivity[] = []
+  let presenceAvailable = true
+  let activityAvailable = true
   let auditAvailable = true
 
   try {
@@ -328,6 +366,7 @@ export async function getAdminLoginStatus(): Promise<AdminLoginStatusData> {
       target.active24h = asNumber(row.active_24h_count)
     }
   } catch (error) {
+    presenceAvailable = false
     console.warn('État de présence indisponible:', error)
   }
 
@@ -406,7 +445,35 @@ export async function getAdminLoginStatus(): Promise<AdminLoginStatusData> {
     }))
   } catch (error) {
     auditAvailable = false
-    console.warn('Dernières connexions indisponibles:', error)
+    console.warn('Dernières authentifications indisponibles:', error)
+  }
+
+  try {
+    const activityRows = await sql.query<any[]>(`
+      SELECT
+        id AS user_id,
+        name,
+        email,
+        CASE WHEN role = 'admin' THEN 'admin' ELSE 'user' END AS role,
+        last_seen_at,
+        (last_seen_at >= NOW() - INTERVAL '10 minutes') AS online
+      FROM users
+      WHERE last_seen_at IS NOT NULL
+      ORDER BY last_seen_at DESC
+      LIMIT 12
+    `)
+
+    recentActivity = activityRows.map(row => ({
+      userId: String(row.user_id),
+      name: row.name ? String(row.name) : null,
+      email: String(row.email),
+      role: row.role === 'admin' ? 'admin' : 'user',
+      lastSeenAt: new Date(row.last_seen_at).toISOString(),
+      online: Boolean(row.online)
+    }))
+  } catch (error) {
+    activityAvailable = false
+    console.warn('Dernière activité indisponible:', error)
   }
 
   return {
@@ -414,6 +481,9 @@ export async function getAdminLoginStatus(): Promise<AdminLoginStatusData> {
     users,
     unknownFailures24h,
     recentLogins,
+    recentActivity,
+    presenceAvailable,
+    activityAvailable,
     auditAvailable,
     timestamp: new Date().toISOString()
   }

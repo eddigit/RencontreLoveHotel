@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -75,7 +75,15 @@ function Metric({ label, value, accent }: { label: string; value: number; accent
 function formatLoginDate(value: string) {
   return new Intl.DateTimeFormat('fr-FR', {
     dateStyle: 'short',
-    timeStyle: 'short'
+    timeStyle: 'short',
+    timeZone: 'Europe/Paris'
+  }).format(new Date(value))
+}
+
+function formatParisTime(value: string) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    timeStyle: 'medium',
+    timeZone: 'Europe/Paris'
   }).format(new Date(value))
 }
 
@@ -83,28 +91,39 @@ export function AdminLoginStatus() {
   const [data, setData] = useState<AdminLoginStatusData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const requestId = useRef(0)
 
   const refresh = useCallback(async () => {
+    const currentRequest = ++requestId.current
+    setLoading(true)
     try {
       const nextData = await getAdminLoginStatus()
+      if (currentRequest !== requestId.current) return
       setData(nextData)
       setError(null)
     } catch (refreshError) {
+      if (currentRequest !== requestId.current) return
       console.error('Erreur état des connexions:', refreshError)
       setError("L'état des connexions est momentanément indisponible.")
     } finally {
-      setLoading(false)
+      if (currentRequest === requestId.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
     refresh()
     const interval = window.setInterval(refresh, 60_000)
-    return () => window.clearInterval(interval)
+    return () => {
+      window.clearInterval(interval)
+      requestId.current += 1
+    }
   }, [refresh])
 
   return (
-    <Card className='mb-8 overflow-hidden border-primary/20 bg-gradient-to-br from-card via-card to-primary/5'>
+    <Card
+      className='mb-8 overflow-hidden border-primary/20 bg-gradient-to-br from-card via-card to-primary/5'
+      data-testid='admin-login-status'
+    >
       <CardHeader className='border-b border-border/60'>
         <div className='flex flex-col justify-between gap-4 sm:flex-row sm:items-start'>
           <div>
@@ -117,7 +136,13 @@ export function AdminLoginStatus() {
               Présence en ligne et authentifications des administrateurs et utilisateurs.
             </CardDescription>
           </div>
-          <Button variant='outline' size='sm' onClick={refresh} disabled={loading}>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={refresh}
+            disabled={loading}
+            aria-label='Actualiser les connexions'
+          >
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
           </Button>
@@ -137,10 +162,17 @@ export function AdminLoginStatus() {
           </div>
         ) : (
           <>
-            <div className='grid gap-4 lg:grid-cols-2'>
-              <RolePanel title='Administrateurs' status={data.admins} admin />
-              <RolePanel title='Utilisateurs' status={data.users} />
-            </div>
+            {data.presenceAvailable ? (
+              <div className='grid gap-4 lg:grid-cols-2'>
+                <RolePanel title='Administrateurs' status={data.admins} admin />
+                <RolePanel title='Utilisateurs' status={data.users} />
+              </div>
+            ) : (
+              <div className='flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-amber-600'>
+                <AlertTriangle className='h-5 w-5' />
+                Les données de présence sont momentanément indisponibles.
+              </div>
+            )}
 
             {data.unknownFailures24h > 0 && (
               <div className='flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-600'>
@@ -152,19 +184,58 @@ export function AdminLoginStatus() {
             <div>
               <div className='mb-3 flex items-center justify-between gap-3'>
                 <h3 className='flex items-center gap-2 font-semibold'>
-                  <Clock3 className='h-4 w-4 text-violet-500' />
-                  Dernières connexions
+                  <Activity className='h-4 w-4 text-emerald-500' />
+                  Dernière activité
                 </h3>
-                <span className='text-xs text-muted-foreground'>Mise à jour {new Date(data.timestamp).toLocaleTimeString('fr-FR')}</span>
+                <span className='text-xs text-muted-foreground'>Mise à jour {formatParisTime(data.timestamp)}</span>
               </div>
+
+              {!data.activityAvailable ? (
+                <div className='rounded-lg border border-dashed border-amber-500/30 p-4 text-sm text-amber-600'>
+                  La dernière activité est momentanément indisponible.
+                </div>
+              ) : data.recentActivity.length === 0 ? (
+                <div className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>
+                  Aucune activité récente enregistrée.
+                </div>
+              ) : (
+                <div className='divide-y divide-border/60 rounded-lg border border-border/70'>
+                  {data.recentActivity.map(activity => (
+                    <div key={activity.userId} className='flex flex-col justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center'>
+                      <div className='flex min-w-0 items-center gap-3'>
+                        <div className={activity.online ? 'rounded-full bg-emerald-500/10 p-2 text-emerald-500' : 'rounded-full bg-sky-500/10 p-2 text-sky-500'}>
+                          {activity.role === 'admin' ? <ShieldCheck className='h-4 w-4' /> : <UserCheck className='h-4 w-4' />}
+                        </div>
+                        <div className='min-w-0'>
+                          <div className='truncate text-sm font-medium'>{activity.name || activity.email}</div>
+                          {activity.name && <div className='truncate text-xs text-muted-foreground'>{activity.email}</div>}
+                        </div>
+                      </div>
+                      <div className='flex items-center gap-2 pl-11 text-xs sm:pl-0'>
+                        <Badge variant={activity.online ? 'default' : 'secondary'}>
+                          {activity.online ? 'En ligne' : activity.role === 'admin' ? 'Admin' : 'Utilisateur'}
+                        </Badge>
+                        <span className='whitespace-nowrap text-muted-foreground'>{formatLoginDate(activity.lastSeenAt)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className='mb-3 flex items-center gap-2 font-semibold'>
+                <Clock3 className='h-4 w-4 text-violet-500' />
+                Dernières authentifications
+              </h3>
 
               {!data.auditAvailable ? (
                 <div className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>
-                  L'historique démarre avec cette mise en service. La présence en ligne reste disponible.
+                  L'historique d'authentification démarre avec sa mise en service. La présence en ligne reste disponible.
                 </div>
               ) : data.recentLogins.length === 0 ? (
                 <div className='rounded-lg border border-dashed p-4 text-sm text-muted-foreground'>
-                  Aucune connexion encore enregistrée depuis l'activation du suivi.
+                  Aucune authentification encore enregistrée depuis l'activation du suivi.
                 </div>
               ) : (
                 <div className='divide-y divide-border/60 rounded-lg border border-border/70'>
