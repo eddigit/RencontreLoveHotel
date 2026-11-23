@@ -7,6 +7,7 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   CalendarHeart,
+  Flag,
   ImageIcon,
   Mic,
   Paperclip,
@@ -29,6 +30,7 @@ import {
   sendMessage
 } from '@/actions/conversation-actions'
 import { markResourceNotificationsAsRead } from '@/app/actions'
+import { reportMember } from '@/actions/member-safety-actions'
 
 interface MessageAttachment {
   id?: string
@@ -146,6 +148,8 @@ export default function ConversationPage ({
   const [sendError, setSendError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [recording, setRecording] = useState(false)
+  const [reportingMessageId, setReportingMessageId] = useState<string | null>(null)
+  const [reportFeedback, setReportFeedback] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
@@ -450,6 +454,26 @@ export default function ConversationPage ({
     }
   }
 
+  const reportSelectedMessage = async (selectedMessage: Message) => {
+    if (!session?.user?.id || selectedMessage.sender_id === session.user.id) return
+    if (!window.confirm("Transmettre un extrait de ce message à la modération pour une possible sollicitation avec contrepartie ?")) return
+    setReportingMessageId(selectedMessage.id)
+    setReportFeedback(null)
+    try {
+      await reportMember({
+        targetUserId: selectedMessage.sender_id,
+        reason: 'paid_sexual_solicitation',
+        conversationId: id,
+        messageId: selectedMessage.id
+      })
+      setReportFeedback('Signalement transmis. Le message sélectionné est référencé pour examen humain.')
+    } catch (error) {
+      setReportFeedback(memberFacingError(error, 'Le signalement n’a pas pu être transmis. Réessayez dans un instant.'))
+    } finally {
+      setReportingMessageId(null)
+    }
+  }
+
   const currentUserId = session?.user?.id
   const canSend = (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
 
@@ -563,6 +587,19 @@ export default function ConversationPage ({
                                 </div>
                               )}
                               {msg.content && <div className='break-words'>{msg.content}</div>}
+                              {!mine && (
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='sm'
+                                  disabled={reportingMessageId === msg.id}
+                                  onClick={() => reportSelectedMessage(msg)}
+                                  className='mt-2 h-auto px-0 py-0 text-xs text-white/70 hover:bg-transparent hover:text-white'
+                                >
+                                  <Flag className='mr-1 h-3 w-3' />
+                                  {reportingMessageId === msg.id ? 'Signalement…' : 'Signaler une sollicitation'}
+                                </Button>
+                              )}
                               <div className={mine ? 'mt-1 text-right text-xs text-white/72' : 'mt-1 text-right text-xs text-white/42'}>
                                 {new Date(msg.created_at).toLocaleTimeString([], {
                                   hour: '2-digit',
@@ -582,6 +619,11 @@ export default function ConversationPage ({
                   {sendError && (
                     <p className='mb-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
                       {sendError}
+                    </p>
+                  )}
+                  {reportFeedback && (
+                    <p role='status' className='mb-3 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-sm text-white/82'>
+                      {reportFeedback}
                     </p>
                   )}
                   {pendingAttachments.length > 0 && (

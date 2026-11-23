@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react'
 import { AdminMessagingRecovery } from '@/components/admin-messaging-recovery'
 import { AdminLoginStatus } from '@/components/admin-login-status'
 import { getRoadmapSummary, roadmapItems } from '@/lib/admin-roadmap'
+import { JougPilotAdmin } from '@/components/admin/joug-pilot-admin'
 import { ComplianceReadiness } from '@/components/admin/compliance-readiness'
 import { getAdminOverviewCounts } from '@/actions/admin-stats-actions'
 
@@ -63,6 +64,8 @@ export default function AdminPage () {
           <AdminMessagingRecovery />
 
           <AdminLoginStatus />
+
+          <JougPilotAdmin />
           {/* Actions rapides */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4 flex items-center">

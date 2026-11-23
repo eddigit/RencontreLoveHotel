@@ -49,14 +49,59 @@ describe('member safety actions', () => {
       targetId,
       null,
       'inappropriate_content',
-      'Contenu déplacé dans le profil.'
+      'Contenu déplacé dans le profil.',
+      null
     ])
+  })
+
+  it('rejects a message reference without a server-authorized conversation scope', async () => {
+    await expect(reportMember({
+      targetUserId: targetId,
+      reason: 'paid_sexual_solicitation',
+      messageId: '550e8400-e29b-41d4-a716-446655440003'
+    })).rejects.toThrow('reference de message exige sa conversation')
+    expect(query).not.toHaveBeenCalled()
+  })
+
+  it('stores an optional member description as an unverified declaration, not as an excerpt', async () => {
+    query
+      .mockResolvedValueOnce([{ report_id: 'report-2', investigation_id: 'investigation-2' }])
+      .mockResolvedValueOnce([])
+
+    await reportMember({
+      targetUserId: targetId,
+      reason: 'paid_sexual_solicitation',
+      details: 'Contexte transmis de bonne foi.'
+    })
+
+    expect(query.mock.calls[0][0]).toContain('WITH report AS')
+    expect(query.mock.calls[0][0]).toContain("'member_declaration'")
+    expect(query.mock.calls[0][0]).toContain("'unverified'")
+    expect(query.mock.calls[0][1][4]).toBe('Contexte transmis de bonne foi.')
+  })
+
+  it('accepts a precise message reference only after SQL validates both participants and the message sender', async () => {
+    query
+      .mockResolvedValueOnce([{ report_id: 'report-3', investigation_id: 'investigation-3' }])
+      .mockResolvedValueOnce([])
+
+    await reportMember({
+      targetUserId: targetId,
+      reason: 'paid_sexual_solicitation',
+      conversationId: '550e8400-e29b-41d4-a716-446655440004',
+      messageId: '550e8400-e29b-41d4-a716-446655440005'
+    })
+
+    expect(query.mock.calls[0][0]).toContain('subject.user_id = $2')
+    expect(query.mock.calls[0][0]).toContain('m.sender_id = $2')
+    expect(query.mock.calls[0][0]).toContain("CASE WHEN $6::uuid IS NULL THEN 'user' ELSE 'message' END")
+    expect(query.mock.calls[0][0]).toContain('LEFT(content, 1000)')
+    expect(query.mock.calls[0][0]).toContain("'reference_authorized'")
   })
 
   it('accepts a dedicated paid sexual solicitation report reason', async () => {
     query
-      .mockResolvedValueOnce([{ id: 'report-2' }])
-      .mockResolvedValueOnce([{ id: 'case-2' }])
+      .mockResolvedValueOnce([{ report_id: 'report-2', investigation_id: 'investigation-2' }])
       .mockResolvedValueOnce([])
 
     await expect(reportMember({
@@ -65,7 +110,7 @@ describe('member safety actions', () => {
     })).resolves.toEqual({ success: true, reportId: 'report-2' })
 
     expect(query.mock.calls[0][1][3]).toBe('paid_sexual_solicitation')
-    expect(query.mock.calls[1][0]).toContain('INSERT INTO moderation_queue')
-    expect(query.mock.calls[2][0]).toContain("role IN ('admin', 'community_moderator')")
+    expect(query.mock.calls[0][0]).toContain('INSERT INTO moderation_queue')
+    expect(query.mock.calls[1][0]).toContain("role IN ('admin', 'community_moderator')")
   })
 })

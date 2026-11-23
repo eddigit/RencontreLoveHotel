@@ -112,7 +112,18 @@ export default function ModerationInvestigationPage () {
           {status && <p role='status' className='mt-4 rounded-xl border border-[#94ffc9]/25 bg-[#94ffc9]/10 p-3 text-sm text-[#baffe0]'>{status}</p>}
 
           {detail && tab === 'overview' && <div className='mt-5 grid gap-5 lg:grid-cols-[1.4fr_.8fr]'>
-            <section className='rounded-3xl border border-white/10 bg-white/[0.04] p-5'><h2 className='text-xl font-black'>Alertes regroupées ({detail.alerts.length})</h2><div className='mt-4 space-y-3'>{detail.alerts.map((alert: any) => <div key={alert.id} className='rounded-2xl border border-red-300/20 bg-red-500/[0.07] p-4'><div className='flex justify-between gap-3'><strong>{alert.reason}</strong><span className='text-xs'>{alert.severity}</span></div><p className='mt-2 whitespace-pre-wrap text-sm text-white/70'>{alert.excerpt || 'Aucun extrait disponible.'}</p><p className='mt-2 text-xs text-white/40'>{new Date(alert.createdAt).toLocaleString('fr-FR')}</p></div>)}</div></section>
+            <section className='rounded-3xl border border-white/10 bg-white/[0.04] p-5'><h2 className='text-xl font-black'>Alertes regroupées ({detail.alerts.length})</h2><div className='mt-4 space-y-3'>{detail.alerts.map((alert: any) => {
+              const evidence = alert.evidence || {}
+              const profileReport = alert.sourceType === 'user' && (evidence.kind === 'member_declaration' || alert.reason?.startsWith('Signalement membre'))
+              const declaration = evidence.description || (profileReport ? alert.excerpt : null)
+              const excerpt = profileReport ? null : alert.excerpt
+              return <div key={alert.id} className='rounded-2xl border border-red-300/20 bg-red-500/[0.07] p-4'>
+                <div className='flex justify-between gap-3'><strong>{alert.reason}</strong><span className='text-xs'>{alert.severity}</span></div>
+                {excerpt ? <p className='mt-2 whitespace-pre-wrap text-sm text-white/70'>Extrait enregistré · {excerpt}</p> : evidence.kind === 'authorized_message_reference' ? <p className='mt-2 text-sm text-white/70'>Référence de message autorisée. La lecture du fil reste journalisée.</p> : <p className='mt-2 text-sm text-white/70'>Déclaration de signalement sans extrait vérifiable.</p>}
+                {declaration && <p className='mt-2 whitespace-pre-wrap text-sm text-white/70'><span className='font-semibold'>Déclaration du signalant (non vérifiée) : </span>{declaration}</p>}
+                <p className='mt-2 text-xs text-white/40'>{new Date(alert.createdAt).toLocaleString('fr-FR')}</p>
+              </div>
+            })}</div></section>
             <aside className='space-y-4 rounded-3xl border border-white/10 bg-white/[0.04] p-5'><h2 className='text-xl font-black'>{user?.role === 'admin' ? 'Actions immédiates' : 'Recommandation à l’administrateur'}</h2><textarea value={reason} onChange={event => setReason(event.target.value)} className='min-h-28 w-full rounded-xl border border-white/10 bg-black/20 p-3 text-sm' /><Button className='w-full' onClick={() => user?.role === 'admin' ? act('warning') : recommend('warning')}><MessageSquareWarning className='mr-2 h-4 w-4' />{user?.role === 'admin' ? 'Avertissement' : 'Recommander un avertissement'}</Button>{user?.role === 'admin' && <><Button className='w-full' variant='outline' onClick={() => act('message_restriction')}>Restreindre la messagerie 30 jours</Button><Button className='w-full' variant='outline' onClick={() => act('suspension')}>Suspendre le compte</Button><Button className='w-full' variant='outline' onClick={() => act('restore_messaging')}>Rétablir la messagerie</Button></>}</aside>
           </div>}
 

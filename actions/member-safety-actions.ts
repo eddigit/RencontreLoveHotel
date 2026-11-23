@@ -65,6 +65,7 @@ export async function reportMember(input: {
   reason: MemberReportReason
   details?: string
   conversationId?: string
+  messageId?: string
 }) {
   const currentUser = await requireCurrentUser()
   validateTarget(currentUser.id, input.targetUserId)
@@ -74,55 +75,85 @@ export async function reportMember(input: {
   if (input.conversationId && !uuidPattern.test(input.conversationId)) {
     throw new Error('Conversation invalide')
   }
+  if (input.messageId && !uuidPattern.test(input.messageId)) {
+    throw new Error('Message invalide')
+  }
+  if (input.messageId && !input.conversationId) {
+    throw new Error('Une reference de message exige sa conversation')
+  }
 
   const details = input.details?.trim().slice(0, 1000) || null
-  const [report] = await sql.query<Array<{ id: string }>>(
-    `
-      INSERT INTO user_reports (
-        reporter_id, reported_id, conversation_id, reason, details
-      )
-      SELECT $1, $2, $3, $4, $5
-      WHERE $3::uuid IS NULL OR EXISTS (
-        SELECT 1 FROM conversation_participants
-        WHERE conversation_id = $3 AND user_id = $1
-      )
-      RETURNING id
-    `,
-    [currentUser.id, input.targetUserId, input.conversationId || null, input.reason, details]
-  )
-  if (!report) throw new Error('Signalement impossible')
-
+  let report: { id: string } | undefined
   let moderationCaseId: string | null = null
   if (input.reason === 'paid_sexual_solicitation') {
-    const [moderationCase] = await sql.query<Array<{ id: string }>>(
-      `WITH investigation AS (
+    const [created] = await sql.query<Array<{ report_id: string; investigation_id: string }>>(
+      `WITH report AS (
+         INSERT INTO user_reports (reporter_id, reported_id, conversation_id, reason, details)
+         SELECT $1, $2, $3, $4, $5
+         WHERE ($3::uuid IS NULL OR EXISTS (
+           SELECT 1 FROM conversation_participants reporter
+           JOIN conversation_participants subject ON subject.conversation_id = reporter.conversation_id
+           WHERE reporter.conversation_id = $3 AND reporter.user_id = $1 AND subject.user_id = $2
+         )) AND ($6::uuid IS NULL OR EXISTS (
+           SELECT 1 FROM messages m WHERE m.id = $6 AND m.conversation_id = $3 AND m.sender_id = $2
+         ))
+         RETURNING id
+       ), investigation AS (
          INSERT INTO moderation_investigations (subject_user_id, category, priority)
-         VALUES ($1, 'paid_solicitation', 100)
+         SELECT $2, 'paid_solicitation', 100 FROM report
          ON CONFLICT (subject_user_id) DO UPDATE SET
            category = 'paid_solicitation', priority = GREATEST(moderation_investigations.priority, 100), updated_at = NOW()
          RETURNING id
-       )
+       ), queued AS (
        INSERT INTO moderation_queue (
          source_type, source_id, user_id, reporter_id, conversation_id,
          severity, status, reason, excerpt, metadata, score, outcome,
          policy_version, subject_pseudonym, retention_until, investigation_id
        ) SELECT
-         'user', $1, $1, $2, $3, 'high', 'new',
+         CASE WHEN $6::uuid IS NULL THEN 'user' ELSE 'message' END,
+         COALESCE($6::uuid, $2), $2, $1, $3, 'high', 'new',
          'Signalement membre : sollicitation sexuelle rémunérée ou contre avantage',
-         $4, $5::jsonb, 0, 'hold', 'member-report-2026-07-15', $6,
+         CASE WHEN $6::uuid IS NULL THEN NULL ELSE (SELECT LEFT(content, 1000) FROM messages WHERE id = $6) END,
+         JSONB_BUILD_OBJECT('reportId', report.id, 'automationContributed', false,
+           'evidence', JSONB_BUILD_OBJECT(
+             'kind', CASE WHEN $6::uuid IS NULL THEN 'member_declaration' ELSE 'authorized_message_reference' END,
+             'status', CASE WHEN $6::uuid IS NULL THEN 'unverified' ELSE 'reference_authorized' END,
+             'description', $5::text
+           )), 0, 'hold', 'member-report-2026-07-15', $7,
          NOW() + INTERVAL '365 days', investigation.id
-       FROM investigation
-       RETURNING id`,
+       FROM report CROSS JOIN investigation
+       RETURNING id
+       )
+       SELECT report.id AS report_id, investigation.id AS investigation_id
+       FROM report CROSS JOIN investigation CROSS JOIN queued`,
       [
-        input.targetUserId,
         currentUser.id,
+        input.targetUserId,
         input.conversationId || null,
+        input.reason,
         details,
-        JSON.stringify({ reportId: report.id, automationContributed: false }),
+        input.messageId || null,
         `Membre-${input.targetUserId.slice(0, 8)}`
       ]
     )
-    moderationCaseId = moderationCase?.id || null
+    if (!created) throw new Error('Signalement impossible')
+    report = { id: created.report_id }
+    moderationCaseId = created.investigation_id
+  } else {
+    [report] = await sql.query<Array<{ id: string }>>(
+      `INSERT INTO user_reports (reporter_id, reported_id, conversation_id, reason, details)
+       SELECT $1, $2, $3, $4, $5
+       WHERE ($3::uuid IS NULL OR EXISTS (
+         SELECT 1 FROM conversation_participants reporter
+         JOIN conversation_participants subject ON subject.conversation_id = reporter.conversation_id
+         WHERE reporter.conversation_id = $3 AND reporter.user_id = $1 AND subject.user_id = $2
+       )) AND ($6::uuid IS NULL OR EXISTS (
+         SELECT 1 FROM messages m WHERE m.id = $6 AND m.conversation_id = $3 AND m.sender_id = $2
+       ))
+       RETURNING id`,
+      [currentUser.id, input.targetUserId, input.conversationId || null, input.reason, details, input.messageId || null]
+    )
+    if (!report) throw new Error('Signalement impossible')
   }
 
   const reviewers = await sql.query<Array<{ id: string; role: string }>>(

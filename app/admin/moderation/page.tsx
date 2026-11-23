@@ -189,7 +189,7 @@ export default function AdminModerationPage () {
 
             <Card className='border-white/10 bg-black/20'>
               <CardHeader>
-                <CardTitle>Alertes récentes</CardTitle>
+                <CardTitle>20 dernières alertes</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className='space-y-3'>
@@ -201,7 +201,7 @@ export default function AdminModerationPage () {
                       >
                         <div className='flex flex-wrap items-center justify-between gap-2'>
                           <div className='font-semibold'>
-                            {item.source_type} · {item.reason}
+                            {item.reason}
                           </div>
                           <div className='flex gap-2 text-xs'>
                             <span className='rounded-full bg-[#ff3b8b]/20 px-2 py-1 text-[#ffb3d7]'>
@@ -212,9 +212,16 @@ export default function AdminModerationPage () {
                             </span>
                           </div>
                         </div>
+                        <p className='mt-2 text-sm'>
+                          {item.subject_name && <span>Profil concerné · {item.subject_name} </span>}
+                          {item.created_at && <time dateTime={new Date(item.created_at).toISOString()}>{new Date(item.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}</time>}
+                        </p>
+                        {item.investigation_id && (
+                          <Link href={`/moderation/${item.investigation_id}`} className='mt-2 inline-block text-sm text-[#94ffc9] underline'>Examiner le dossier</Link>
+                        )}
                         {item.excerpt && (
                           <p className='mt-2 line-clamp-3 text-sm text-muted-foreground'>
-                            {item.excerpt}
+                            {item.source_type === 'user' && item.reason.startsWith('Signalement membre') ? 'Déclaration du membre · ' : ''}{item.excerpt}
                           </p>
                         )}
                         {item.matched_keywords?.length > 0 && (

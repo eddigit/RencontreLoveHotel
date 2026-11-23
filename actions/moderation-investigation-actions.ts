@@ -108,7 +108,8 @@ export async function getModerationInvestigation(investigationId: string) {
               'id', mq.id, 'reason', mq.reason, 'excerpt', mq.excerpt,
               'severity', mq.severity, 'status', mq.status, 'sourceType', mq.source_type,
               'sourceId', mq.source_id, 'conversationId', mq.conversation_id,
-              'createdAt', mq.created_at, 'matchedKeywords', mq.matched_keywords
+              'createdAt', mq.created_at, 'matchedKeywords', mq.matched_keywords,
+              'evidence', COALESCE(mq.metadata->'evidence', '{}'::jsonb)
             ) ORDER BY mq.created_at DESC) FILTER (WHERE mq.id IS NOT NULL), '[]'::jsonb) AS alerts,
             (SELECT TO_JSONB(up) - 'id' - 'user_id' FROM user_profiles up WHERE up.user_id = u.id LIMIT 1) AS profile
      FROM moderation_investigations mi

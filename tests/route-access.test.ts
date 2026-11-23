@@ -14,6 +14,7 @@ describe('route access policy', () => {
 
     expect(middlewareSource).toContain('token.authBlocked')
     expect(middlewareSource).toContain('token?.sub')
+    expect(middlewareSource).toContain('_vercel/insights(?:/|$)')
   })
 
   it('keeps the landing page public without making every route public', () => {

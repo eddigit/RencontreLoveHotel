@@ -38,7 +38,7 @@ export default function ModerationQueuePage () {
 
           <div className='mt-5 flex flex-wrap gap-2' aria-label='Filtres de priorité'>
             {([
-              ['all', 'Tous les dossiers'], ['paid_solicitation', 'Priorité prostitution'], ['safety', 'Danger / mineur'],
+              ['all', 'Tous les dossiers'], ['paid_solicitation', 'Sollicitation signalée'], ['safety', 'Danger / mineur'],
               ['harassment', 'Harcèlement'], ['fraud', 'Fraude'], ['other', 'Autres']
             ] as const).map(([value, label]) => (
               <button key={value} onClick={() => setCategory(value)} className={`rounded-full border px-4 py-2 text-xs font-bold ${category === value ? 'border-[#ff77b7] bg-[#ff3b8b]/20' : 'border-white/10 bg-black/15 text-white/65'}`}>{label}</button>

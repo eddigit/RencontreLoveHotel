@@ -21,7 +21,7 @@ export function getInitials(name?: string | null): string {
 }
 
 export const investigationCategoryLabels: Record<InvestigationCategory, string> = {
-  paid_solicitation: 'Priorité prostitution / contrepartie',
+  paid_solicitation: 'Sollicitation avec contrepartie à examiner',
   safety: 'Danger ou mineur présumé',
   harassment: 'Menace ou harcèlement',
   fraud: 'Fraude ou escroquerie',

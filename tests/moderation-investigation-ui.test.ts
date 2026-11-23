@@ -9,7 +9,7 @@ describe('moderation investigation cockpit UI', () => {
     expect(queue).toContain('getModerationInvestigations')
     expect(queue).toContain('ModerationAvatar')
     expect(queue).toContain('Voir le dossier complet')
-    expect(queue).toContain('Priorité prostitution')
+    expect(queue).toContain('Sollicitation signalée')
   })
 
   it('shows a chronological conversation thread and immediate admin actions', () => {

@@ -183,7 +183,7 @@ describe('messaging recovery admin KPIs', () => {
         }
       ])
       .mockResolvedValueOnce([
-        { recent_messages: '100', previous_messages: '80' }
+        { recent_messages: '100', previous_messages: '80', recent_senders: '12', previous_senders: '9', recent_reciprocal_threads: '6', previous_reciprocal_threads: '4', recent_daily_median: '3', previous_daily_median: '2' }
       ])
 
     const result = await getMessagingRecoveryHistory({ scale: 'week' })
@@ -196,6 +196,7 @@ describe('messaging recovery admin KPIs', () => {
         recentMessages: 100,
         previousMessages: 80
       },
+      engagement: { recentSenders: 12, previousSenders: 9, recentReciprocalThreads: 6, previousReciprocalThreads: 4, recentDailyMedian: 3, previousDailyMedian: 2 },
       series: [
         {
           period: '2025-01-01',
@@ -221,8 +222,8 @@ describe('messaging recovery admin KPIs', () => {
     expect(historySql).toContain("BOOL_OR(u.role = 'admin')")
     expect(historySql).toContain('COUNT(DISTINCT mm.conversation_key)')
     expect((historySql.match(/WITH\s+conversation_base AS/g) || []).length).toBe(1)
-    expect(comparisonSql).toContain("INTERVAL '60 days'")
-    expect(comparisonSql).toContain("timezone('Europe/Paris', m.created_at)")
+    expect(comparisonSql).toContain('generate_series(1, 60)')
+    expect(comparisonSql).toContain('FROM member_messages m CROSS JOIN bounds')
     expect(comparisonSql).toContain("timezone('Europe/Paris', CURRENT_TIMESTAMP)")
   })
 

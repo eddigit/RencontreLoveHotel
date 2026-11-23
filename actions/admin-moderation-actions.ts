@@ -25,6 +25,8 @@ export type ModerationQueueItem = {
   id: string
   source_type: 'message' | 'profile' | 'event' | 'user'
   source_id?: string | null
+  investigation_id?: string | null
+  subject_name?: string | null
   user_id?: string | null
   conversation_id?: string | null
   severity: ModerationSeverity
@@ -112,10 +114,12 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
       LIMIT 20
     `),
     safeRows<ModerationQueueItem>(`
-      SELECT id, source_type, source_id, user_id, conversation_id, severity, status,
-             reason, matched_keywords, excerpt, created_at
-      FROM moderation_queue
-      ORDER BY created_at DESC
+      SELECT q.id, q.source_type, q.source_id, q.user_id, q.conversation_id, q.severity, q.status,
+             q.reason, q.matched_keywords, q.excerpt, q.created_at, q.investigation_id,
+             COALESCE(NULLIF(u.name, ''), q.subject_pseudonym) AS subject_name
+      FROM moderation_queue q
+      LEFT JOIN users u ON u.id = q.user_id
+      ORDER BY q.created_at DESC
       LIMIT 20
     `)
   ])

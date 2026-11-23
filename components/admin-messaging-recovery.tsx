@@ -379,6 +379,7 @@ export function AdminMessagingRecovery() {
                     {history.trend.recentMessages.toLocaleString('fr-FR')} messages contre{' '}
                     {history.trend.previousMessages.toLocaleString('fr-FR')}
                   </p>
+                  <p className='mt-2 text-xs opacity-80'>30 jours complets Paris : {history.engagement.recentSenders.toLocaleString('fr-FR')} émetteurs distincts · {history.engagement.recentReciprocalThreads.toLocaleString('fr-FR')} fils à 2 émetteurs · médiane {history.engagement.recentDailyMedian.toLocaleString('fr-FR')} msg/jour, zéros inclus (précédents : {history.engagement.previousSenders.toLocaleString('fr-FR')} · {history.engagement.previousReciprocalThreads.toLocaleString('fr-FR')} · {history.engagement.previousDailyMedian.toLocaleString('fr-FR')})</p>
                 </div>
               )
             })()}

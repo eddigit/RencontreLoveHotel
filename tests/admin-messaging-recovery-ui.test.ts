@@ -60,6 +60,8 @@ describe('admin messaging recovery dashboard', () => {
     expect(component).toContain('getMessagingRecoveryHistory')
     expect(component).toContain('Activité depuis le lancement')
     expect(component).toContain('30 derniers jours complets')
+    expect(component).toContain('émetteurs distincts')
+    expect(component).toContain('médiane')
     expect(component).toContain("yAxisId='messages'")
     expect(component).toContain("yAxisId='activity'")
     expect(component).toContain("dataKey='createdConversations'")

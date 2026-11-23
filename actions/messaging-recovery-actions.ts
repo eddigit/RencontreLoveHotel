@@ -50,6 +50,7 @@ export interface MessagingRecoveryTrend {
 export interface MessagingRecoveryHistory {
   startsAt: string | null
   trend: MessagingRecoveryTrend
+  engagement: { recentSenders: number; previousSenders: number; recentReciprocalThreads: number; previousReciprocalThreads: number; recentDailyMedian: number; previousDailyMedian: number }
   series: MessagingRecoveryHistoryPoint[]
 }
 
@@ -416,17 +417,34 @@ export async function getMessagingRecoveryHistory({
     `
 
     const comparisonQuery = `
-      WITH ${conversationCtes}
-      SELECT
-        COUNT(*) FILTER (
-          WHERE timezone('Europe/Paris', m.created_at) >= timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '30 days'
-            AND timezone('Europe/Paris', m.created_at) < timezone('Europe/Paris', CURRENT_TIMESTAMP)
-        ) AS recent_messages,
-        COUNT(*) FILTER (
-          WHERE timezone('Europe/Paris', m.created_at) >= timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '60 days'
-            AND timezone('Europe/Paris', m.created_at) < timezone('Europe/Paris', CURRENT_TIMESTAMP) - INTERVAL '30 days'
-        ) AS previous_messages
-      FROM member_messages m
+      WITH ${conversationCtes},
+      bounds AS (SELECT timezone('Europe/Paris', CURRENT_TIMESTAMP)::date AS today),
+      activity AS (
+        SELECT timezone('Europe/Paris', m.created_at)::date AS day, m.sender_id, m.conversation_key,
+               m.created_at >= ((b.today - 30)::timestamp AT TIME ZONE 'Europe/Paris') AS recent
+        FROM member_messages m CROSS JOIN bounds b
+        WHERE m.created_at >= ((b.today - 60)::timestamp AT TIME ZONE 'Europe/Paris')
+          AND m.created_at < (b.today::timestamp AT TIME ZONE 'Europe/Paris')
+      ),
+      daily_totals AS (SELECT day, COUNT(*) AS messages FROM activity GROUP BY day),
+      calendar AS (
+        SELECT days_ago <= 30 AS recent, COALESCE(d.messages, 0) AS messages
+        FROM bounds b CROSS JOIN generate_series(1, 60) days_ago
+        LEFT JOIN daily_totals d ON d.day = b.today - days_ago
+      ),
+      reciprocal AS (
+        SELECT recent, conversation_key FROM activity
+        GROUP BY recent, conversation_key HAVING COUNT(DISTINCT sender_id) >= 2
+      )
+      SELECT COUNT(*) FILTER (WHERE recent) AS recent_messages,
+             COUNT(*) FILTER (WHERE NOT recent) AS previous_messages,
+             COUNT(DISTINCT sender_id) FILTER (WHERE recent) AS recent_senders,
+             COUNT(DISTINCT sender_id) FILTER (WHERE NOT recent) AS previous_senders,
+             (SELECT COUNT(*) FROM reciprocal WHERE recent) AS recent_reciprocal_threads,
+             (SELECT COUNT(*) FROM reciprocal WHERE NOT recent) AS previous_reciprocal_threads,
+             (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY messages) FROM calendar WHERE recent) AS recent_daily_median,
+             (SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY messages) FROM calendar WHERE NOT recent) AS previous_daily_median
+      FROM activity
     `
 
     const [historyRows, comparisonRows] = await Promise.all([
@@ -442,6 +460,7 @@ export async function getMessagingRecoveryHistory({
         ? String(historyRows[0].starts_at)
         : null,
       trend: trendFromMessages(recentMessages, previousMessages),
+      engagement: { recentSenders: toNumber(comparison.recent_senders), previousSenders: toNumber(comparison.previous_senders), recentReciprocalThreads: toNumber(comparison.recent_reciprocal_threads), previousReciprocalThreads: toNumber(comparison.previous_reciprocal_threads), recentDailyMedian: toNumber(comparison.recent_daily_median), previousDailyMedian: toNumber(comparison.previous_daily_median) },
       series: historyRows.map(row => ({
         period: row.period instanceof Date
           ? row.period.toISOString().slice(0, 10)

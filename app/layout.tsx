@@ -5,11 +5,13 @@ import './globals.css'
 import { Providers } from '@/components/providers'
 import PwaUpdateNotification from '@/components/PwaUpdateNotification'
 import { SiteShell } from '@/components/site-shell'
+import { PublicAnalytics } from '@/components/public-analytics'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://rencontrelovehotel.com'),
+  referrer: 'origin',
   title: 'Love Hotel Rencontre',
   description:
     'Rencontrez la communauté Love Hotel à Paris, découvrez les événements, Love Rooms et services de conciergerie.'
@@ -33,6 +35,7 @@ export default function RootLayout ({
         <Providers>
           <SiteShell>{children}</SiteShell>
           <PwaUpdateNotification />
+          <PublicAnalytics />
         </Providers>
       </body>
     </html>
