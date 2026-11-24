@@ -6,7 +6,10 @@ import { createNotificationInternal as createNotification } from '@/lib/notifica
 import { messageSchema, getMessagesSchema, createConversationSchema, validateSchema, type MessageAttachmentInput } from "@/lib/validation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
-import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
+import {
+  getMemberConversationSummaries,
+  getMemberConversationSummary
+} from '@/lib/member-relationship-service'
 import { trackProductEvents, type ProductEventInput } from '@/lib/product-events'
 import { requireAdmin } from '@/lib/server-auth'
 import {
@@ -47,6 +50,27 @@ export async function getUserConversations(userId?: string) {
     throw new Error('Accès non autorisé aux conversations')
   }
   return getMemberConversationSummaries(targetUserId)
+}
+
+export async function getConversationSummary(conversationId: string, userId?: string) {
+  const validation = validateSchema(getMessagesSchema, { conversationId, userId })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
+
+  const currentUser = await requireAuth()
+  const targetUserId = userId || String(currentUser.id)
+
+  if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative d’accès au résumé d’une autre conversation', {
+      currentUserId: currentUser.id,
+      targetUserId,
+      conversationId
+    })
+    throw new Error('Accès non autorisé aux conversations')
+  }
+
+  return getMemberConversationSummary(targetUserId, conversationId)
 }
 
 export async function getConversationMessages(conversationId: string, userId?: string) {
@@ -183,6 +207,85 @@ export async function getConversationMessagesAfter(conversationId: string, after
     GROUP BY m.id, u.name, u.avatar
     ORDER BY m.created_at ASC`,
     [conversationId, afterDate.toISOString()]
+  )
+
+  return messages || []
+}
+
+export async function getConversationMessagesBefore(
+  conversationId: string,
+  beforeMessageId: string,
+  userId?: string
+) {
+  const validation = validateSchema(getMessagesSchema, { conversationId, userId })
+  if (!validation.success || !beforeMessageId.trim()) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ') || 'curseur manquant'}`)
+  }
+
+  const currentUser = await requireAuth()
+  const targetUserId = userId || currentUser.id
+
+  if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+    log('warn', 'Tentative d’accès à l’historique d’une autre conversation', {
+      currentUserId: currentUser.id,
+      targetUserId,
+      conversationId
+    })
+    throw new Error('Accès non autorisé aux messages')
+  }
+
+  const [participant] = await sql.query(
+    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    [conversationId, targetUserId]
+  )
+  if (!participant) {
+    log('warn', 'Access denied loading older conversation messages', { conversationId, userId: targetUserId })
+    throw new Error('Access denied: You are not a participant in this conversation')
+  }
+
+  const messages = await sql.query(
+    `WITH cursor AS (
+      SELECT created_at, id
+      FROM messages
+      WHERE conversation_id = $1 AND id = $2
+    )
+    SELECT m.*,
+      u.name as sender_name,
+      u.avatar as sender_avatar,
+      COALESCE(ma.attachments, '[]'::json) as attachments
+    FROM (
+      SELECT m.*
+      FROM messages m
+      CROSS JOIN cursor
+      WHERE m.conversation_id = $1
+        AND (
+          m.created_at < cursor.created_at
+          OR (m.created_at = cursor.created_at AND m.id < cursor.id)
+        )
+      ORDER BY m.created_at DESC, m.id DESC
+      LIMIT $3
+    ) m
+    JOIN users u ON m.sender_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT json_agg(
+          json_build_object(
+            'id', ma.id,
+            'url', ma.url,
+            'media_type', ma.media_type,
+            'file_name', ma.file_name,
+            'mime_type', ma.mime_type,
+            'size_bytes', ma.size_bytes,
+            'duration_seconds', ma.duration_seconds,
+            'width', ma.width,
+            'height', ma.height
+          )
+          ORDER BY ma.sort_order, ma.created_at
+      ) FILTER (WHERE ma.id IS NOT NULL) as attachments
+      FROM message_attachments ma
+      WHERE ma.message_id = m.id
+    ) ma ON TRUE
+    ORDER BY m.created_at ASC, m.id ASC`,
+    [conversationId, beforeMessageId, INITIAL_CONVERSATION_MESSAGE_LIMIT]
   )
 
   return messages || []

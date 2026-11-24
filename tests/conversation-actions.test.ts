@@ -30,7 +30,9 @@ vi.mock('next-auth/next', () => ({
 
 import {
   getUserConversations,
+  getConversationSummary,
   getConversationMessagesAfter,
+  getConversationMessagesBefore,
   getConversationMessages,
   markConversationMessagesAsRead,
   sendMessage
@@ -86,6 +88,23 @@ describe('conversation-actions', () => {
     expect(query).not.toContain('JOIN users current_user')
     expect(query).not.toContain('current_user.role')
     expect(query).toContain('viewer_user.role')
+  })
+
+  it('keeps the single-conversation summary scoped to the authenticated member', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'user' }
+    })
+    ;(sql.query as any).mockResolvedValueOnce([])
+
+    await getConversationSummary(
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440099'
+    )
+
+    expect(sql.query).toHaveBeenCalledWith(
+      expect.stringContaining('AND c.id = $2'),
+      ['550e8400-e29b-41d4-a716-446655440099', '550e8400-e29b-41d4-a716-446655440001']
+    )
   })
 
   it('denies sending message when participants are neither accepted match nor admin conversation', async () => {
@@ -173,6 +192,30 @@ describe('conversation-actions', () => {
       [
         '550e8400-e29b-41d4-a716-446655440001',
         '2026-06-22T15:50:00.000Z'
+      ]
+    )
+  })
+
+  it('loads older messages with a stable timestamp-and-id cursor', async () => {
+    ;(getServerSession as any).mockResolvedValue({
+      user: { id: '550e8400-e29b-41d4-a716-446655440099' }
+    })
+    ;(sql.query as any)
+      .mockResolvedValueOnce([{ ok: true }])
+      .mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440220', content: 'Ancien message' }])
+
+    await expect(getConversationMessagesBefore(
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440222',
+      '550e8400-e29b-41d4-a716-446655440099'
+    )).resolves.toHaveLength(1)
+
+    expect(sql.query).toHaveBeenLastCalledWith(
+      expect.stringContaining('m.created_at = cursor.created_at AND m.id < cursor.id'),
+      [
+        '550e8400-e29b-41d4-a716-446655440001',
+        '550e8400-e29b-41d4-a716-446655440222',
+        80
       ]
     )
   })

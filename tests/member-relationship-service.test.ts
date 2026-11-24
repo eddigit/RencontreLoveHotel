@@ -9,6 +9,7 @@ vi.mock('@/lib/presence', () => ({
 }))
 
 import {
+  getMemberConversationSummary,
   getMemberConversationSummaries,
   getMemberRelationshipOverview
 } from '@/lib/member-relationship-service'
@@ -46,6 +47,34 @@ describe('member relationship service', () => {
 
     expect(query.mock.calls[0][0]).toContain('AS other_user_online')
     expect(query.mock.calls[0][0]).toContain('other_user.last_seen_at')
+  })
+
+  it('looks up one conversation with an indexed latest-message join instead of scanning all history', async () => {
+    query.mockResolvedValueOnce([{ id: 'conversation-1', last_message: 'Bonjour' }])
+
+    await expect(getMemberConversationSummary('member-1', 'conversation-1')).resolves.toEqual(
+      expect.objectContaining({ id: 'conversation-1', last_message: 'Bonjour' })
+    )
+
+    const [statement, params] = query.mock.calls[0]
+    expect(params).toEqual(['member-1', 'conversation-1'])
+    expect(statement).toContain('AND c.id = $2')
+    expect(statement).toContain("WHERE (\n        um.id IS NOT NULL")
+    expect(statement).toContain('LEFT JOIN LATERAL')
+    expect(statement).toContain('ORDER BY m.created_at DESC, m.id DESC')
+    expect(statement).not.toContain('ROW_NUMBER() OVER')
+  })
+
+  it('preserves audio, video, then image preview priority for mixed attachments', async () => {
+    query.mockResolvedValueOnce([])
+
+    await getMemberConversationSummaries('member-1')
+
+    const [statement] = query.mock.calls[0]
+    expect(statement).toContain("WHEN latest_attachment.has_audio THEN 'Message vocal'")
+    expect(statement).toContain("WHEN latest_attachment.has_video THEN 'Vidéo partagée'")
+    expect(statement).toContain("WHEN latest_attachment.has_image THEN 'Image partagée'")
+    expect(statement).toContain("BOOL_OR(ma.media_type = 'audio') AS has_audio")
   })
 
   it('groups accepted, incoming and outgoing relationship rows', async () => {

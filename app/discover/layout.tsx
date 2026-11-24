@@ -14,12 +14,12 @@ export default async function DiscoverLayout({ children }: { children: ReactNode
 
   return (
     <>
+      {children}
       {canSeePilot && (
-        <div className='mx-auto w-full max-w-[1680px] px-4 pt-4 sm:px-6 lg:px-8'>
+        <div className='mx-auto w-full max-w-[1680px] px-4 pb-6 pt-2 sm:px-6 lg:px-8'>
           <JougPilotInvitation pilot={await getJougPilotConfig()} />
         </div>
       )}
-      {children}
     </>
   )
 }

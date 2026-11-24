@@ -27,14 +27,8 @@ import { NotificationsButton } from '@/components/notifications-button'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useNotifications } from '@/contexts/notification-context'
-import {
-  getCommunityMemberStats,
-  getDiscoverProfiles,
-  getOnlineCommunityMembers,
-  recordProfileImpressions,
-  getUserMatches
-} from '@/actions/user-actions'
-import { getUpcomingEvents } from '@/actions/event-actions'
+import { getOnlineCommunityMembers, recordProfileImpressions } from '@/actions/user-actions'
+import { getCommunityHome } from '@/actions/community-home'
 import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
 import { defaultMemberImage } from '@/lib/default-member-image'
 import {
@@ -257,6 +251,7 @@ export default function DiscoverPage () {
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const communityRequest = useRef(0)
   const localBatchNavigationRef = useRef<number | null>(null)
 
   const saveProfileOrder = (
@@ -309,17 +304,13 @@ export default function DiscoverPage () {
     async (currentFilters?: FilterOptions, batch = 0, currentSearch = '') => {
       if (!user?.id) return
 
+      const request = ++communityRequest.current
       setLoading(true)
       setError(null)
       try {
         const resolvedFilters = currentFilters || filters
-        const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await Promise.all([
-          getDiscoverProfiles(user.id, 1, 240, resolvedFilters, batch),
-          getOnlineCommunityMembers(),
-          getUserMatches(user.id),
-          getUpcomingEvents(user.id),
-          getCommunityMemberStats()
-        ])
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await getCommunityHome(resolvedFilters, batch)
+        if (request !== communityRequest.current) return
 
         const restoredProfiles = restoreProfileOrder(
           profileResult.profiles || [],
@@ -338,11 +329,14 @@ export default function DiscoverPage () {
         setEvents((eventResult || []) as EventRow[])
         setMemberStats(statsResult)
       } catch (error) {
+        if (request !== communityRequest.current) return
         console.error('Error fetching community home:', error)
         setError('Impossible de charger la communauté pour le moment.')
       } finally {
-        setLoading(false)
-        setPreparingProfiles(false)
+        if (request === communityRequest.current) {
+          setLoading(false)
+          setPreparingProfiles(false)
+        }
       }
     },
     [user?.id, filters]
@@ -368,7 +362,8 @@ export default function DiscoverPage () {
     setFilters(restoredFilters)
     setSearchQuery(restoredSearch)
     setProfileBatch(restoredBatch)
-    fetchCommunity(restoredFilters, restoredBatch, restoredSearch)
+    void fetchCommunity(restoredFilters, restoredBatch, restoredSearch)
+    return () => { communityRequest.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router, searchParamString])
 
@@ -484,34 +479,63 @@ export default function DiscoverPage () {
       <LhrV2Shell
         user={user}
         eyebrow='Accueil connecté'
-        title='Communauté'
-        subtitle='Retrouvez les personnes, les échanges et les rendez-vous qui font vivre votre espace membre.'
+        title='Mon espace membre'
         action={
           <div className='flex flex-wrap items-center gap-2'>
             <div className='hidden lg:block'>
               <NotificationsButton />
             </div>
-            <Button asChild size='sm' className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
-              <Link href='#new-profiles'>Profils</Link>
-            </Button>
-            <Button asChild size='sm' variant='outline' className='border-white/15 bg-white/[0.04]'>
-              <Link href='/events'>Agenda</Link>
-            </Button>
             <Button asChild size='sm' variant='ghost' className='text-[#94ffc9] hover:bg-[#94ffc9]/10 hover:text-[#94ffc9]'>
               <Link href='#boite-a-idees'>Boîte à idées</Link>
-            </Button>
-            <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
-            <Button asChild size='sm' variant='outline' className='border-white/15 bg-white/[0.04]'>
-              <Link href='/love-rooms'>
-                <Sparkles className='mr-2 h-4 w-4' />
-                Love Rooms
-              </Link>
             </Button>
           </div>
         }
       >
+        <section aria-label='Accès rapides' className='mb-5 grid gap-3 md:grid-cols-3'>
+          <Link
+            href='/messages'
+            className='group relative overflow-hidden rounded-2xl border border-[#94ffc9]/30 bg-[linear-gradient(135deg,rgba(148,255,201,0.16),rgba(31,8,42,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/65'
+          >
+            <MessageCircle className='h-6 w-6 text-[#94ffc9]' />
+            <div className='mt-6 flex items-end justify-between gap-3'>
+              <div>
+                <p className='text-lg font-black'>Ma messagerie</p>
+                <p className='mt-1 text-sm text-white/65'>Reprendre une conversation ou répondre.</p>
+              </div>
+              <span className='flex h-9 min-w-9 items-center justify-center rounded-full bg-[#94ffc9] px-2 text-sm font-black text-[#210018]'>
+                {counts.messages}
+              </span>
+            </div>
+            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#94ffc9]'>Ouvrir <ArrowUpRight className='h-4 w-4' /></span>
+          </Link>
+
+          <Link
+            href='/members'
+            className='group relative overflow-hidden rounded-2xl border border-[#ff8cc8]/30 bg-[linear-gradient(135deg,rgba(255,59,139,0.20),rgba(54,9,57,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/70'
+          >
+            <UsersRound className='h-6 w-6 text-[#ffb2d8]' />
+            <div className='mt-6'>
+              <p className='text-lg font-black'>Découvrir quelqu’un</p>
+              <p className='mt-1 text-sm text-white/65'>Des profils selon vos envies et le type de rencontre recherché.</p>
+            </div>
+            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#ffb2d8]'>Explorer <ArrowUpRight className='h-4 w-4' /></span>
+          </Link>
+
+          <Link
+            href='/events/new'
+            className='group relative overflow-hidden rounded-2xl border border-[#ffd166]/35 bg-[linear-gradient(135deg,rgba(255,209,102,0.17),rgba(49,19,51,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#ffd166]/70'
+          >
+            <CalendarHeart className='h-6 w-6 text-[#ffd166]' />
+            <div className='mt-6'>
+              <p className='text-lg font-black'>Proposer une sortie</p>
+              <p className='mt-1 text-sm text-white/65'>Créer un apéro jacuzzi ou une session rideaux ouverts.</p>
+            </div>
+            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#ffd166]'>Commencer <ArrowUpRight className='h-4 w-4' /></span>
+          </Link>
+        </section>
+
         <div className='grid gap-5 xl:grid-cols-[240px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)_360px]'>
-          <aside className='order-1 space-y-4 xl:sticky xl:top-24 xl:self-start'>
+          <aside className='order-2 space-y-4 xl:order-1 xl:sticky xl:top-24 xl:self-start'>
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
               <div className='flex items-center gap-3'>
                 <div className='relative h-14 w-14 overflow-hidden rounded-2xl bg-white/10'>
@@ -560,12 +584,13 @@ export default function DiscoverPage () {
               <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
             </Link>
 
+          </aside>
+
+          <section className='order-1 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
             <div id='boite-a-idees' className='scroll-mt-24'>
               <CommunityFeedbackWidget />
             </div>
-          </aside>
 
-          <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
             <section
               aria-label='Activité à suivre'
               className='border-y border-white/10 bg-white/[0.025] px-3 py-3'
@@ -643,18 +668,26 @@ export default function DiscoverPage () {
             <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <h2 className='text-xl font-black'>Nouveaux profils visibles</h2>
+                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#94ffc9]'>Profils à découvrir</p>
+                  <h2 className='mt-1 text-xl font-black'>Nouveaux profils visibles</h2>
                   <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
                 </div>
                 <div className='flex shrink-0 flex-col items-end gap-2'>
-                  <span className='text-right text-sm text-white/52'>
-                    {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
-                  </span>
+                  <div className='flex items-center gap-2'>
+                    <span className='hidden text-right text-xs text-white/52 sm:block'>
+                      {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
+                    </span>
+                    <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
+                  </div>
                   <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-white/12 bg-white/[0.04]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
                     {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>
                 </div>
+              </div>
+              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#94ffc9]/16 bg-[#94ffc9]/[0.06] px-3 py-2 text-sm'>
+                <span className='font-medium text-white/75'>Affinez par type de profil, envies et critères de rencontre.</span>
+                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#94ffc9] hover:text-white'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map((profile, index) => (

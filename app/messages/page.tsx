@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MessageCircle, Plus, Search } from 'lucide-react'
+import { ChevronRight, MessageCircle, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -53,15 +53,17 @@ export default function MessagesPage () {
   useEffect(() => {
     let cancelled = false
     let pollingStopped = false
+    let fetching = false
 
     async function fetchConversations (showLoader = false) {
-      if (!authUser?.id) return
+      if (!authUser?.id || fetching) return
+      fetching = true
 
       try {
         if (showLoader) setLoading(true)
-        setError(null)
         const fetchedConversations = await getUserConversations(authUser.id)
         if (cancelled) return
+        setError(null)
         setConversations(
           fetchedConversations.map((conv: any) => ({
             id: conv.id,
@@ -75,11 +77,13 @@ export default function MessagesPage () {
           }))
         )
       } catch (error) {
-        pollingStopped = true
-        if (!cancelled && !recoverFromStaleServerAction(error)) {
+        if (cancelled) return
+        pollingStopped = recoverFromStaleServerAction(error)
+        if (!pollingStopped && showLoader) {
           setError('Impossible de charger vos conversations pour le moment. Rechargez la page pour réessayer.')
         }
       } finally {
+        fetching = false
         if (!cancelled) setLoading(false)
       }
     }
@@ -116,16 +120,25 @@ export default function MessagesPage () {
         user={authUser}
         eyebrow='Vos échanges'
         title='Messages'
-        subtitle='Retrouvez vos conversations et poursuivez les échanges avec vos matchs.'
+        subtitle='Vos conversations privées avec les membres avec qui vous avez un match accepté.'
         action={
-          <Button className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
-            <Plus className='mr-2 h-4 w-4' />
-            Nouveau message
+          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
+            <Link href='/members'>
+              <Plus className='mr-2 h-4 w-4' />
+              Trouver un membre
+            </Link>
           </Button>
         }
       >
-        <div className='grid min-h-[680px] overflow-hidden rounded-2xl border border-white/10 bg-black/16 lg:grid-cols-[360px_minmax(0,1fr)_300px]'>
-          <section className='border-b border-white/10 p-4 lg:border-b-0 lg:border-r'>
+        <div className='grid min-h-[620px] overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.22))] shadow-2xl shadow-black/20 lg:grid-cols-[380px_minmax(0,1fr)]'>
+          <section aria-label='Liste des conversations' className='min-w-0 border-b border-white/10 p-3 sm:p-4 lg:border-b-0 lg:border-r'>
+            <div className='mb-4 flex items-center justify-between gap-3 px-1'>
+              <div>
+                <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ff8cc8]'>Boîte de réception</p>
+                <h2 className='mt-1 text-lg font-black'>Vos conversations</h2>
+              </div>
+              <span className='rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black text-white/70'>{conversations.length}</span>
+            </div>
             <div className='relative mb-4'>
               <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/38' />
               <Input
@@ -137,8 +150,13 @@ export default function MessagesPage () {
             </div>
 
             {loading && (
-              <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm text-white/62'>
-                Chargement des conversations...
+              <div className='space-y-2' aria-label='Chargement des conversations'>
+                {[0, 1, 2, 3].map(item => (
+                  <div key={item} className='flex animate-pulse items-center gap-3 rounded-2xl bg-white/[0.04] p-3'>
+                    <div className='h-12 w-12 rounded-full bg-white/10' />
+                    <div className='flex-1 space-y-2'><div className='h-3 w-2/5 rounded bg-white/10' /><div className='h-3 w-4/5 rounded bg-white/[0.07]' /></div>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -158,14 +176,14 @@ export default function MessagesPage () {
               </div>
             )}
 
-            <div className='space-y-2'>
+            <div className='space-y-1.5'>
               {filteredConversations.map((conversation, index) => (
                 <Link
                   href={`/messages/${conversation.id}`}
                   key={conversation.id}
                   className={[
-                    'flex items-center gap-3 rounded-2xl p-3 transition hover:bg-white/8',
-                    index === 0 ? 'bg-white/10' : 'bg-transparent'
+                    'group flex items-center gap-3 rounded-2xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-[#94ffc9]',
+                    index === 0 ? 'border-[#ff8cc8]/25 bg-[#ff3b8b]/12 hover:bg-[#ff3b8b]/18' : 'border-transparent hover:border-white/10 hover:bg-white/[0.055]'
                   ].join(' ')}
                 >
                   <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10'>
@@ -193,12 +211,13 @@ export default function MessagesPage () {
                       {conversation.last_message || 'Conversation ouverte'}
                     </p>
                   </div>
+                  <ChevronRight className='h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-[#ff8cc8]' />
                 </Link>
               ))}
             </div>
           </section>
 
-          <section className='flex min-h-[520px] flex-col justify-between p-5'>
+          <section className='hidden min-h-[620px] flex-col justify-between border-r border-white/10 p-6 lg:flex'>
             {activeConversation ? (
               <>
                 <div className='flex items-center justify-between border-b border-white/10 pb-4'>
@@ -226,13 +245,12 @@ export default function MessagesPage () {
                 </div>
 
                 <div className='mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 py-8'>
-                  <div className='max-w-[78%] rounded-2xl rounded-bl-md bg-white/10 p-4 text-sm leading-6'>
+                  <p className='mb-2 text-center text-xs font-bold uppercase tracking-[0.16em] text-white/38'>Dernier message</p>
+                  <div className='max-w-[78%] rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.075] p-4 text-sm leading-6'>
                     {activeConversation.last_message ||
-                      'Ouvrez cette conversation pour reprendre l’échange.'}
+                      'Aucun message pour le moment.'}
                   </div>
-                  <div className='ml-auto max-w-[78%] rounded-2xl rounded-br-md bg-[#ff4fa3] p-4 text-sm leading-6'>
-                    La conversation complète est prête dans l’écran dédié.
-                  </div>
+
                 </div>
               </>
             ) : (
@@ -246,31 +264,7 @@ export default function MessagesPage () {
             )}
           </section>
 
-          <aside className='border-t border-white/10 p-5 lg:border-l lg:border-t-0'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='font-black'>Contexte relation</h3>
-              <dl className='mt-4 space-y-3 text-sm'>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Conversations</dt>
-                  <dd className='font-bold'>{conversations.length}</dd>
-                </div>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                   <dt className='text-white/58'>Accès</dt>
-                   <dd className='font-bold'>Match accepté</dd>
-                </div>
-                <div className='flex justify-between'>
-                   <dt className='text-white/58'>Confidentialité</dt>
-                   <dd className='font-bold'>Privée</dd>
-                </div>
-              </dl>
-            </div>
-            <div className='mt-4 rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-               <h3 className='font-black'>Un échange à votre rythme</h3>
-               <p className='mt-3 text-sm leading-6 text-white/62'>
-                 Prenez le temps de faire connaissance avant de proposer une rencontre ou un événement.
-               </p>
-            </div>
-          </aside>
+
         </div>
       </LhrV2Shell>
     </MainLayout>

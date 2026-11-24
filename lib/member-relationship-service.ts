@@ -33,25 +33,31 @@ export type RelationshipOverview = {
   outgoing: RelationshipRow[]
 }
 
-function conversationSummaryQuery(includeAttachments: boolean, presenceColumn: string) {
+function conversationSummaryQuery(
+  includeAttachments: boolean,
+  presenceColumn: string,
+  conversationId?: string
+) {
   const attachmentFallback = includeAttachments
-    ? `WHEN EXISTS (
-          SELECT 1 FROM message_attachments ma
-          WHERE ma.message_id = m.id AND ma.media_type = 'audio'
-        ) THEN 'Message vocal'
-        WHEN EXISTS (
-          SELECT 1 FROM message_attachments ma
-          WHERE ma.message_id = m.id AND ma.media_type = 'video'
-        ) THEN 'Vidéo partagée'
-        WHEN EXISTS (
-          SELECT 1 FROM message_attachments ma
-          WHERE ma.message_id = m.id AND ma.media_type = 'image'
-        ) THEN 'Image partagée'`
+    ? `WHEN latest_attachment.has_audio THEN 'Message vocal'
+        WHEN latest_attachment.has_video THEN 'Vidéo partagée'
+        WHEN latest_attachment.has_image THEN 'Image partagée'`
     : ''
+  const attachmentJoin = includeAttachments
+    ? `LEFT JOIN LATERAL (
+        SELECT
+          BOOL_OR(ma.media_type = 'audio') AS has_audio,
+          BOOL_OR(ma.media_type = 'video') AS has_video,
+          BOOL_OR(ma.media_type = 'image') AS has_image
+        FROM message_attachments ma
+        WHERE ma.message_id = lm.id
+      ) latest_attachment ON TRUE`
+    : ''
+  const conversationFilter = conversationId ? 'AND c.id = $2' : ''
 
   return `
     WITH valid_conversations AS (
-      SELECT DISTINCT c.id, c.created_at, c.updated_at
+      SELECT DISTINCT c.id, c.updated_at
       FROM conversations c
       JOIN conversation_participants viewer
         ON viewer.conversation_id = c.id AND viewer.user_id = $1
@@ -63,24 +69,12 @@ function conversationSummaryQuery(includeAttachments: boolean, presenceColumn: s
         ((um.user_id_1 = $1 AND um.user_id_2 = other.user_id) OR
          (um.user_id_1 = other.user_id AND um.user_id_2 = $1))
         AND um.status = 'accepted'
-      WHERE um.id IS NOT NULL
+      WHERE (
+        um.id IS NOT NULL
         OR viewer_user.role = 'admin'
         OR other_user.role = 'admin'
-    ),
-    last_messages AS (
-      SELECT
-        m.conversation_id,
-        CASE
-          WHEN NULLIF(TRIM(m.content), '') IS NOT NULL THEN m.content
-          ${attachmentFallback}
-          ELSE m.content
-        END AS content,
-        m.created_at,
-        ROW_NUMBER() OVER (
-          PARTITION BY m.conversation_id ORDER BY m.created_at DESC
-        ) AS row_number
-      FROM messages m
-      JOIN valid_conversations vc ON vc.id = m.conversation_id
+      )
+        ${conversationFilter}
     )
     SELECT
       vc.id,
@@ -88,14 +82,24 @@ function conversationSummaryQuery(includeAttachments: boolean, presenceColumn: s
       COALESCE(other_user.name, 'Membre') AS other_user_name,
       other_user.avatar AS other_user_avatar,
       ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
-      lm.content AS last_message,
+      CASE
+        WHEN NULLIF(TRIM(lm.content), '') IS NOT NULL THEN lm.content
+        ${attachmentFallback}
+        ELSE lm.content
+      END AS last_message,
       lm.created_at AS last_message_date
     FROM valid_conversations vc
     JOIN conversation_participants other
       ON other.conversation_id = vc.id AND other.user_id != $1
     JOIN users other_user ON other_user.id = other.user_id
-    LEFT JOIN last_messages lm
-      ON lm.conversation_id = vc.id AND lm.row_number = 1
+    LEFT JOIN LATERAL (
+      SELECT m.id, m.content, m.created_at
+      FROM messages m
+      WHERE m.conversation_id = vc.id
+      ORDER BY m.created_at DESC, m.id DESC
+      LIMIT 1
+    ) lm ON TRUE
+    ${attachmentJoin}
     ORDER BY lm.created_at DESC NULLS LAST, vc.updated_at DESC
   `
 }
@@ -120,6 +124,26 @@ export async function getMemberConversationSummaries(userId: string) {
       conversationSummaryQuery(false, presenceColumn),
       [userId]
     )
+  }
+}
+
+export async function getMemberConversationSummary(userId: string, conversationId: string) {
+  const hasPresenceColumn = await ensurePresenceSchema()
+  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'other_user.updated_at'
+
+  try {
+    const rows = await sql.query<ConversationSummary[]>(
+      conversationSummaryQuery(true, presenceColumn, conversationId),
+      [userId, conversationId]
+    )
+    return rows[0] || null
+  } catch (error) {
+    if (!isMissingAttachmentSchema(error)) throw error
+    const rows = await sql.query<ConversationSummary[]>(
+      conversationSummaryQuery(false, presenceColumn, conversationId),
+      [userId, conversationId]
+    )
+    return rows[0] || null
   }
 }
 

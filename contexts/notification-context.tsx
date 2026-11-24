@@ -41,15 +41,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const currentUserId = userId
     let isMounted = true;
     let pollingStopped = false;
+    let loading = false;
     let interval: NodeJS.Timeout;
     async function loadNotifications() {
-      if (pollingStopped || document.visibilityState === 'hidden') return
+      if (loading || pollingStopped || document.visibilityState === 'hidden') return
+      loading = true
       try {
         const { notifications } = await getNotifications(currentUserId)
         if (isMounted) setNotifications(notifications)
       } catch (error) {
-        pollingStopped = true
-        if (isMounted) recoverFromStaleServerAction(error)
+        if (isMounted) pollingStopped = recoverFromStaleServerAction(error)
+      } finally {
+        loading = false
       }
     }
     function handleVisibilityChange() {

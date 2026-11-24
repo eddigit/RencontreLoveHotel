@@ -6,13 +6,14 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
-  CalendarHeart,
+  ChevronUp,
+  Clock3,
   Flag,
   ImageIcon,
   Mic,
   Paperclip,
   Send,
-  Sparkles,
+  ShieldCheck,
   Square,
   Video,
   X
@@ -21,11 +22,11 @@ import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { getConversationThread } from '@/actions/conversation-thread'
 import MainLayout from '@/components/layout/main-layout'
 import {
   getConversationMessagesAfter,
-  getConversationMessages,
-  getUserConversations,
+  getConversationMessagesBefore,
   markConversationMessagesAsRead,
   sendMessage
 } from '@/actions/conversation-actions'
@@ -78,6 +79,17 @@ function formatBytes (bytes?: number | null) {
   if (!bytes) return ''
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} Ko`
   return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`
+}
+
+function messageDayLabel (value: string) {
+  const date = new Date(value)
+  const today = new Date()
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const yesterdayStart = new Date(todayStart)
+  yesterdayStart.setDate(yesterdayStart.getDate() - 1)
+  if (date >= todayStart) return 'Aujourd’hui'
+  if (date >= yesterdayStart) return 'Hier'
+  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
 function renderAttachment (attachment: MessageAttachment) {
@@ -152,18 +164,32 @@ export default function ConversationPage ({
   const [reportFeedback, setReportFeedback] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
+  const [hasEarlierMessages, setHasEarlierMessages] = useState(false)
+  const [loadingEarlierMessages, setLoadingEarlierMessages] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
+  const messageScrollRef = useRef<null | HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioStreamRef = useRef<MediaStream | null>(null)
   const messagesRef = useRef<Message[]>([])
+  const preservedScrollRef = useRef<{ height: number; top: number } | null>(null)
 
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
 
   useEffect(() => {
+    const preservedScroll = preservedScrollRef.current
+    const scrollContainer = messageScrollRef.current
+    if (preservedScroll && scrollContainer) {
+      requestAnimationFrame(() => {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight - preservedScroll.height + preservedScroll.top
+        preservedScrollRef.current = null
+      })
+      return
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -175,20 +201,19 @@ export default function ConversationPage ({
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
     async function fetchData () {
       if (!session?.user?.id || !id) return
 
       setLoading(true)
       setError(null)
       try {
-        const fetchedMessages = await getConversationMessages(id, session.user.id)
+        const { messages: fetchedMessages, summary: currentConv } = await getConversationThread(id)
+        if (cancelled) return
         setMessages(fetchedMessages as Message[])
-        await markConversationMessagesAsRead(id, session.user.id)
-        await markResourceNotificationsAsRead(session.user.id, `/messages/${id}`)
+        setHasEarlierMessages(fetchedMessages.length === 80)
         setLastSyncedAt(new Date())
-
-        const userConversations = await getUserConversations(session.user.id)
-        const currentConv = userConversations.find((conv: any) => conv.id === id)
         if (currentConv) {
           setConversationDetails({
             id: currentConv.id,
@@ -199,6 +224,12 @@ export default function ConversationPage ({
         } else {
           setError('Conversation introuvable ou non autorisée.')
         }
+
+        // Les accusés n'empêchent jamais l'ouverture du fil : ils peuvent être rejoués au prochain passage.
+        void Promise.allSettled([
+          markConversationMessagesAsRead(id, session.user.id),
+          markResourceNotificationsAsRead(session.user.id, `/messages/${id}`)
+        ])
       } catch (error) {
         console.error('Failed to fetch conversation data:', error)
         if (error instanceof Error && error.message.includes('Access denied')) {
@@ -207,15 +238,18 @@ export default function ConversationPage ({
           setError('Une erreur est survenue lors du chargement de la conversation.')
         }
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchData()
+    return () => {
+      cancelled = true
+    }
   }, [session?.user?.id, id])
 
   useEffect(() => {
-    if (!session?.user?.id || !id || loading || error) return
+    if (!session?.user?.id || !id || loading || error || loadingEarlierMessages) return
 
     const authenticatedUserId = session.user.id
     let cancelled = false
@@ -274,7 +308,40 @@ export default function ConversationPage ({
       cancelled = true
       clearInterval(interval)
     }
-  }, [session?.user?.id, id, loading, error])
+  }, [session?.user?.id, id, loading, error, loadingEarlierMessages])
+
+  const loadEarlierMessages = async () => {
+    const oldestMessage = messagesRef.current[0]
+    const scrollContainer = messageScrollRef.current
+    if (!session?.user?.id || !id || !oldestMessage || loadingEarlierMessages) return
+
+    setLoadingEarlierMessages(true)
+    setHistoryError(null)
+    if (scrollContainer) {
+      preservedScrollRef.current = { height: scrollContainer.scrollHeight, top: scrollContainer.scrollTop }
+    }
+
+    try {
+      const earlierMessages = await getConversationMessagesBefore(id, oldestMessage.id, session.user.id) as Message[]
+      if (earlierMessages.length === 0) {
+        setHasEarlierMessages(false)
+        preservedScrollRef.current = null
+        return
+      }
+
+      setMessages(previousMessages => {
+        const knownIds = new Set(previousMessages.map(item => item.id))
+        return [...earlierMessages.filter(item => !knownIds.has(item.id)), ...previousMessages]
+      })
+      setHasEarlierMessages(earlierMessages.length === 80)
+    } catch (loadError) {
+      console.error('Failed to load earlier messages:', loadError)
+      preservedScrollRef.current = null
+      setHistoryError('Impossible de charger les messages précédents. Réessayez dans un instant.')
+    } finally {
+      setLoadingEarlierMessages(false)
+    }
+  }
 
   const uploadFile = async (file: File): Promise<PendingAttachment> => {
     const formData = new FormData()
@@ -476,6 +543,15 @@ export default function ConversationPage ({
 
   const currentUserId = session?.user?.id
   const canSend = (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
+  const conversationStatus = loading
+    ? 'Chargement…'
+    : error
+      ? 'Action requise'
+      : syncing
+        ? 'Synchronisation…'
+        : lastSyncedAt
+          ? `Synchronisé à ${lastSyncedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+          : 'Disponible pour échanger'
 
   return (
     <MainLayout user={session?.user}>
@@ -483,7 +559,7 @@ export default function ConversationPage ({
         user={session?.user}
         eyebrow='Conversation privée'
         title={conversationDetails?.other_user_name || 'Messages'}
-        subtitle='Texte, vocaux, images et vidéos pour transformer une affinité en vraie rencontre.'
+        subtitle='Un espace privé pour échanger à votre rythme.'
         action={
           <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
             <Link href='/messages'>
@@ -493,9 +569,9 @@ export default function ConversationPage ({
           </Button>
         }
       >
-        <div className='grid min-h-[720px] overflow-hidden rounded-2xl border border-white/10 bg-black/16 lg:grid-cols-[minmax(0,1fr)_330px]'>
-          <section className='flex min-h-[680px] flex-col'>
-            <div className='flex items-center justify-between gap-3 border-b border-white/10 p-4'>
+        <div className='grid min-h-[calc(100dvh-14rem)] overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.24))] shadow-2xl shadow-black/20 lg:grid-cols-[minmax(0,1fr)_300px]'>
+          <section className='flex min-h-[620px] flex-col'>
+            <div className='sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#1c0b2a]/95 p-3 backdrop-blur sm:p-4'>
               <div className='flex min-w-0 items-center gap-3'>
                 <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
                   <Image
@@ -513,16 +589,9 @@ export default function ConversationPage ({
                   <h2 className='truncate font-black'>
                     {conversationDetails?.other_user_name || 'Conversation'}
                   </h2>
-                  <p className='text-xs text-[#94ffc9]'>
-                    {loading
-                      ? 'Chargement...'
-                      : error
-                        ? 'Action requise'
-                        : syncing
-                          ? 'Synchronisation...'
-                          : lastSyncedAt
-                            ? 'Synchronisé'
-                            : 'Disponible pour échanger'}
+                  <p className='flex items-center gap-1.5 text-xs text-[#94ffc9]'>
+                    <span className={conversationDetails?.other_user_online ? 'h-1.5 w-1.5 rounded-full bg-[#35e48d]' : 'h-1.5 w-1.5 rounded-full bg-white/35'} />
+                    {conversationStatus}
                   </p>
                 </div>
               </div>
@@ -534,8 +603,12 @@ export default function ConversationPage ({
             </div>
 
             {loading && (
-              <div className='flex flex-1 items-center justify-center p-8 text-white/62'>
-                Chargement de la conversation...
+              <div className='flex flex-1 items-center justify-center p-6' aria-label='Chargement de la conversation'>
+                <div className='w-full max-w-2xl space-y-4 animate-pulse'>
+                  <div className='h-16 w-3/5 rounded-3xl rounded-bl-md bg-white/[0.08]' />
+                  <div className='ml-auto h-20 w-2/5 rounded-3xl rounded-br-md bg-[#ff3b8b]/20' />
+                  <div className='h-14 w-1/2 rounded-3xl rounded-bl-md bg-white/[0.08]' />
+                </div>
               </div>
             )}
 
@@ -549,7 +622,7 @@ export default function ConversationPage ({
 
             {!loading && !error && (
               <>
-                <div className='flex-1 overflow-y-auto bg-[radial-gradient(circle_at_20%_10%,rgba(255,59,139,0.14),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(148,255,201,0.08),transparent_24%)] p-4 sm:p-6'>
+                <div ref={messageScrollRef} className='flex-1 overflow-y-auto bg-[radial-gradient(circle_at_20%_10%,rgba(255,59,139,0.14),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(148,255,201,0.08),transparent_24%)] p-4 sm:p-6'>
                   {messages.length === 0 ? (
                     <div className='flex h-full items-center justify-center text-center'>
                       <div>
@@ -561,26 +634,53 @@ export default function ConversationPage ({
                     </div>
                   ) : (
                     <div className='mx-auto flex max-w-3xl flex-col gap-3'>
-                      {messages.map(msg => {
+                      {hasEarlierMessages && (
+                        <div className='flex flex-col items-center gap-2 pb-2'>
+                          <Button
+                            type='button'
+                            variant='outline'
+                            size='sm'
+                            onClick={loadEarlierMessages}
+                            disabled={loadingEarlierMessages}
+                            className='border-white/12 bg-white/[0.05] text-white hover:bg-white/10'
+                          >
+                            <ChevronUp className='mr-2 h-4 w-4' />
+                            {loadingEarlierMessages ? 'Chargement…' : 'Afficher les messages précédents'}
+                          </Button>
+                          <p className='text-xs text-white/42'>Les messages déjà lus restent à leur position.</p>
+                        </div>
+                      )}
+                      {historyError && (
+                        <p role='status' className='rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-center text-sm text-red-100'>
+                          {historyError}
+                        </p>
+                      )}
+                      {messages.map((msg, index) => {
                         const mine = msg.sender_id === currentUserId
                         const attachments = msg.attachments || []
+                        const showDay = index === 0 || messageDayLabel(messages[index - 1].created_at) !== messageDayLabel(msg.created_at)
                         return (
-                          <div
-                            key={msg.id}
-                            className={mine ? 'flex justify-end' : 'flex justify-start'}
-                          >
-                            <div
-                              className={[
-                                'max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-lg sm:max-w-[70%]',
-                                mine
-                                  ? 'rounded-br-md bg-[#ff4fa3] text-white shadow-[#ff4fa3]/10'
-                                  : 'rounded-bl-md border border-white/10 bg-white/10 text-white shadow-black/10'
-                              ].join(' ')}
-                            >
+                          <div key={msg.id} className='contents'>
+                            {showDay && (
+                              <div className='my-3 flex items-center gap-3 text-xs font-bold text-white/42'>
+                                <span className='h-px flex-1 bg-white/10' />
+                                <time dateTime={msg.created_at}>{messageDayLabel(msg.created_at)}</time>
+                                <span className='h-px flex-1 bg-white/10' />
+                              </div>
+                            )}
+                            <div className={mine ? 'flex justify-end' : 'flex justify-start'}>
+                              <div
+                                className={[
+                                  'max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-lg sm:max-w-[70%]',
+                                  mine
+                                    ? 'rounded-br-md bg-[#ff4fa3] text-white shadow-[#ff4fa3]/10'
+                                    : 'rounded-bl-md border border-white/10 bg-white/10 text-white shadow-black/10'
+                                ].join(' ')}
+                              >
                               {attachments.length > 0 && (
                                 <div className='mb-3 space-y-2'>
-                                  {attachments.map((attachment, index) => (
-                                    <div key={attachment.id || `${attachment.url}-${index}`}>
+                                  {attachments.map((attachment, attachmentIndex) => (
+                                    <div key={attachment.id || `${attachment.url}-${attachmentIndex}`}>
                                       {renderAttachment(attachment)}
                                     </div>
                                   ))}
@@ -600,13 +700,12 @@ export default function ConversationPage ({
                                   {reportingMessageId === msg.id ? 'Signalement…' : 'Signaler une sollicitation'}
                                 </Button>
                               )}
-                              <div className={mine ? 'mt-1 text-right text-xs text-white/72' : 'mt-1 text-right text-xs text-white/42'}>
-                                {new Date(msg.created_at).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
+                              <div className={mine ? 'mt-1 flex items-center justify-end gap-1 text-xs text-white/72' : 'mt-1 flex items-center justify-end gap-1 text-xs text-white/42'}>
+                                <Clock3 className='h-3 w-3' aria-hidden='true' />
+                                <time dateTime={msg.created_at}>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
                               </div>
                             </div>
+                          </div>
                           </div>
                         )
                       })}
@@ -615,7 +714,7 @@ export default function ConversationPage ({
                   )}
                 </div>
 
-                <div className='border-t border-white/10 bg-black/20 p-4'>
+                <div className='border-t border-white/10 bg-[#16051f]/92 p-3 backdrop-blur sm:p-4'>
                   {sendError && (
                     <p className='mb-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
                       {sendError}
@@ -646,7 +745,7 @@ export default function ConversationPage ({
                       ))}
                     </div>
                   )}
-                  <form onSubmit={handleSendMessage} className='flex items-center gap-2'>
+                  <form onSubmit={handleSendMessage} className='flex flex-wrap items-center gap-2'>
                     <input
                       ref={fileInputRef}
                       type='file'
@@ -661,6 +760,7 @@ export default function ConversationPage ({
                       onClick={() => fileInputRef.current?.click()}
                       className='h-12 rounded-2xl border-white/12 bg-white/[0.04] px-4'
                       disabled={uploading || sending || recording || pendingAttachments.length >= 4}
+                      aria-label='Ajouter une pièce jointe'
                     >
                       <Paperclip className='h-4 w-4' />
                     </Button>
@@ -683,16 +783,16 @@ export default function ConversationPage ({
                       value={message}
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
-                      className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
+                      className='h-12 min-w-[10rem] flex-1 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
                       disabled={sending || recording}
                     />
                     <Button
                       type='submit'
-                      className='h-12 rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-5 text-white hover:opacity-90'
+                      className='h-12 rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-4 text-white hover:opacity-90 sm:px-5'
                       disabled={!canSend}
                     >
-                      <Send className='mr-2 h-4 w-4' />
-                      Envoyer
+                      <Send className='h-4 w-4 sm:mr-2' />
+                      <span className='hidden sm:inline'>Envoyer</span>
                     </Button>
                   </form>
                 </div>
@@ -700,32 +800,14 @@ export default function ConversationPage ({
             )}
           </section>
 
-          <aside className='border-t border-white/10 p-5 lg:border-l lg:border-t-0'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='font-black'>Passer au réel</h3>
+          <aside className='hidden p-5 lg:block'>
+            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/[0.055] p-5'>
+              <ShieldCheck className='h-6 w-6 text-[#94ffc9]' />
+              <h3 className='mt-3 font-black'>Échange privé</h3>
               <p className='mt-3 text-sm leading-6 text-white/62'>
-                La rencontre se prolonge dans les Love Rooms, les apéros jacuzzi et les événements rideaux ouverts.
+                Prenez votre temps. Gardez vos échanges et vos médias dans la messagerie du site.
               </p>
-              <div className='mt-4 space-y-3'>
-                <Link href='/love-rooms/1' className='block rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-4 transition hover:bg-[#ff3b8b]/18'>
-                  <div className='flex items-center gap-2 text-sm font-black'>
-                    <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
-                    Love Room champagne
-                  </div>
-                  <p className='mt-2 text-xs leading-5 text-white/58'>
-                    Suite intime, bouteille, trois coupes et ambiance tamisée.
-                  </p>
-                </Link>
-                <Link href='/events' className='block rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-4 transition hover:bg-[#94ffc9]/14'>
-                  <div className='flex items-center gap-2 text-sm font-black'>
-                    <CalendarHeart className='h-4 w-4 text-[#94ffc9]' />
-                    Apero jacuzzi
-                  </div>
-                  <p className='mt-2 text-xs leading-5 text-white/58'>
-                    Un format coquin mais élégant pour couples et affinités confirmées.
-                  </p>
-                </Link>
-              </div>
+              <Link href='/community-safety' className='mt-4 inline-flex text-sm font-bold text-[#94ffc9] hover:text-white'>Conseils de sécurité</Link>
             </div>
 
             <div className='mt-4 rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
@@ -737,7 +819,7 @@ export default function ConversationPage ({
                 </div>
                 <div className='flex justify-between border-b border-white/8 pb-3'>
                   <dt className='text-white/58'>Médias</dt>
-                  <dd className='font-bold'>image/audio/video</dd>
+                  <dd className='font-bold'>images · audio · vidéo</dd>
                 </div>
                 <div className='flex justify-between'>
                   <dt className='text-white/58'>Envoi</dt>
