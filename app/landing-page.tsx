@@ -13,39 +13,15 @@ import {
   Waves
 } from 'lucide-react'
 
-const heroExperiences = [
-  {
-    title: 'APÉROS JACUZZI',
-    subtitle: 'Des rencontres en petit groupe',
-    image: '/apero-jacuzzi-rencontre.jpg',
-    alt: 'Apéro jacuzzi entre membres de la communauté'
-  },
-  {
-    title: 'VOS ÉVÉNEMENTS',
-    subtitle: 'Imaginez votre propre format',
-    image: '/paris-event-masquerade.png',
-    alt: 'Soirée parisienne avec masque, champagne et escarpin rouge'
-  },
-  {
-    title: 'RIDEAUX OUVERTS',
-    subtitle: 'Voir ou être vu, toujours consenti',
-    image: '/rideaux-ouverts-rencontre.jpg',
-    alt: 'Expérience Rideaux Ouverts au Love Hôtel'
-  }
-]
-
 export default function LandingPage() {
   return (
-    <div className='overflow-hidden bg-[#120821] text-white'>
+    <div className='overflow-hidden bg-[#21151d] text-[#f8f1eb]'>
       <section id='concept' className='relative isolate overflow-hidden'>
-        <div className='absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_12%,rgba(255,59,139,0.25),transparent_34%),radial-gradient(circle_at_82%_28%,rgba(124,58,237,0.28),transparent_38%),linear-gradient(135deg,#120821_0%,#2d0a43_52%,#14051f_100%)]' />
-        <div className='absolute inset-0 -z-10 bg-[url("/purple-glow-pattern.png")] opacity-15 mix-blend-overlay' />
-
-        <div className='mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-[1440px] items-center gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[0.95fr_1.05fr] lg:gap-12 lg:px-10 lg:py-16'>
+        <div className='mx-auto grid w-full max-w-[1440px] items-center gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:px-12 lg:py-16'>
           <div className='max-w-xl lg:py-6'>
             <h1 className='max-w-[13ch] text-[clamp(2.8rem,6vw,5.6rem)] font-bold leading-[1.02] tracking-[-0.055em]'>
               Rencontres et sorties{' '}
-              <span className='text-[#ff8cc8]'>à Paris</span>
+              <span className='font-serif italic font-normal'>à Paris</span>
             </h1>
             <p className='mt-5 max-w-md text-base leading-7 text-white/75 sm:text-lg'>
               Faites connaissance, proposez un verre ou un apéro jacuzzi et choisissez ensemble la suite.
@@ -54,43 +30,22 @@ export default function LandingPage() {
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link
                 href='/register'
-                className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-6 py-3.5 text-sm font-black shadow-xl shadow-[#ff3b8b]/20 transition hover:-translate-y-0.5'
+                className='inline-flex items-center gap-2 rounded-full bg-[#ff8cc8] text-[#21151d] px-6 py-3.5 text-sm font-black hover:bg-[#ffacd6] transition hover:-translate-y-0.5'
               >
                 Rejoindre la communauté
                 <ArrowRight className='h-4 w-4' />
               </Link>
               <Link
                 href='#experiences'
-                className='inline-flex items-center rounded-full border border-white/18 bg-white/[0.045] px-6 py-3.5 text-sm font-black transition hover:bg-white/[0.09]'
+                className='inline-flex items-center underline underline-offset-4 px-2 py-3.5 text-sm font-black transition hover:bg-white/[0.09]'
               >
                 Découvrir les expériences
               </Link>
             </div>
           </div>
 
-          <div className='grid grid-cols-2 gap-2.5 sm:gap-3 lg:pl-2'>
-            {heroExperiences.map((experience, index) => (
-              <article
-                key={experience.title}
-                className={`group relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/30 ${
-                  index === 0 ? 'col-span-2 aspect-[16/9] rounded-t-[2rem]' : 'aspect-[3/2]'
-                }`}
-              >
-                <Image
-                  src={experience.image}
-                  alt={experience.alt}
-                  fill
-                  priority={index === 0}
-                  className={`object-cover transition duration-700 group-hover:scale-105 ${index === 0 ? 'object-[center_58%]' : ''}`}
-                  sizes={index === 0 ? '(max-width: 1023px) 100vw, 52vw' : '(max-width: 1023px) 50vw, 26vw'}
-                />
-                <div className='absolute inset-0 bg-gradient-to-t from-[#12051c] via-[#12051c]/12 to-transparent' />
-                <div className='absolute inset-x-0 bottom-0 p-3 sm:p-5'>
-                  <h2 className='text-sm font-black sm:text-lg'>{experience.title}</h2>
-                  <p className='mt-1 text-xs text-white/70 sm:text-sm'>{experience.subtitle}</p>
-                </div>
-              </article>
-            ))}
+          <div className='relative aspect-[3/2] overflow-hidden rounded-2xl bg-[#34232c]'>
+            <Image src='/soiree-brasserie-paris.webp' alt='Illustration de trois adultes discutant dans une brasserie parisienne au crépuscule' fill priority className='object-cover' sizes='(max-width: 1023px) 100vw, 56vw' />
           </div>
         </div>
       </section>
@@ -156,7 +111,7 @@ export default function LandingPage() {
           </div>
 
           <div className='mt-10 grid gap-5 lg:grid-cols-3'>
-            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#1b0926]'>
+            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#30212a]'>
               <div className='relative aspect-[16/10]'>
                 <Image src='/apero-jacuzzi-rencontre.jpg' alt='Apéros jacuzzi entre membres' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
               </div>
@@ -170,7 +125,7 @@ export default function LandingPage() {
               </div>
             </article>
 
-            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#1b0926]'>
+            <article className='overflow-hidden rounded-3xl border border-white/10 bg-[#30212a]'>
               <div className='relative aspect-[16/10]'>
                  <Image src='/paris-event-limousine.png' alt='Soirée parisienne en limousine avec vue sur la tour Eiffel' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
               </div>
@@ -184,7 +139,7 @@ export default function LandingPage() {
               </div>
             </article>
 
-            <article className='overflow-hidden rounded-3xl border border-[#ff72b5]/18 bg-[#1b0926]'>
+            <article className='overflow-hidden rounded-3xl border border-[#ff72b5]/18 bg-[#30212a]'>
               <div className='relative aspect-[16/10]'>
                 <Image src='/rideaux-ouverts-rencontre.jpg' alt='Expérience Rideaux Ouverts' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' />
               </div>

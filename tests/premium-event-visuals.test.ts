@@ -10,7 +10,7 @@ describe('premium event visuals', () => {
     expect(existsSync('public/paris-event-limousine.png')).toBe(true)
     expect(existsSync('public/paris-event-masquerade.png')).toBe(true)
     expect(landing).toContain('/paris-event-limousine.png')
-    expect(landing).toContain('/paris-event-masquerade.png')
+    expect(landing).toContain('/soiree-brasserie-paris.webp')
     expect(eventsPage).toContain('/paris-event-limousine.png')
     expect(presentation).toContain("default: '/paris-event-masquerade.png'")
   })

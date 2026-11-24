@@ -15,7 +15,7 @@ describe('public event acquisition', () => {
     const events = readFileSync('app/events/page.tsx', 'utf8')
     const landing = readFileSync('app/landing-page.tsx', 'utf8')
     expect(events).toContain('/paris-event-limousine.png')
-    expect(landing).toContain('/paris-event-masquerade.png')
+    expect(landing).toContain('/paris-event-limousine.png')
   })
 
   it('does not present an illustrative portrait as a real named member', () => {
