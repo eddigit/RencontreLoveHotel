@@ -94,8 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   // Logout with NextAuth.js
-  const logout = () => {
-    signOut({ callbackUrl: "/login" })
+  const logout = async () => {
+    await signOut({ redirect: false, callbackUrl: "/login" })
+    window.location.replace("/login")
   }
 
   // Onboarding completion (optional, can be handled via API)
