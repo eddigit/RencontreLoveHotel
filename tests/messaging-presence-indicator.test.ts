@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 describe('messaging presence indicators', () => {
   it('carries member online status into message list and conversation header avatars', () => {
-    const listPage = readFileSync('app/messages/page.tsx', 'utf8')
+    const listPage = readFileSync('components/messages-inbox.tsx', 'utf8')
     const threadPage = readFileSync('app/messages/[id]/page.tsx', 'utf8')
 
     expect(listPage).toContain('other_user_online')

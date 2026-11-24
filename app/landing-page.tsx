@@ -1,3 +1,5 @@
+import { Suspense } from 'react'
+import { PublicCommunityActivity } from '@/components/public-community-activity'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -48,6 +50,7 @@ export default function LandingPage() {
             <p className='mt-5 max-w-md text-base leading-7 text-white/75 sm:text-lg'>
               Faites connaissance, proposez un verre ou un apéro jacuzzi et choisissez ensemble la suite.
             </p>
+            <Suspense fallback={null}><PublicCommunityActivity /></Suspense>
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link
                 href='/register'

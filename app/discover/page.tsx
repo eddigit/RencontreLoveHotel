@@ -181,12 +181,6 @@ function mediaImage (src: string, alt: string, className = 'h-full w-full object
   return <Image src={src} alt={alt} fill className='object-cover' sizes='160px' />
 }
 
-function compatibility (profile: DiscoverProfile, index = 0) {
-  if (typeof profile.matchScore === 'number') return Math.round(profile.matchScore)
-  const popularity = Number(profile.popularity || 0)
-  return Math.min(98, 80 + ((popularity + index * 5) % 18))
-}
-
 function eventDateLabel (value?: string) {
   if (!value) return 'Prochainement'
   return new Date(value).toLocaleDateString('fr-FR', {
@@ -690,7 +684,7 @@ export default function DiscoverPage () {
                 <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#94ffc9] hover:text-white'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
-                {newProfiles.map((profile, index) => (
+                {newProfiles.map(profile => (
                   <Link
                     key={profile.id}
                     href={`/profile/${profile.id}`}
@@ -709,7 +703,7 @@ export default function DiscoverPage () {
                         <div className='text-lg font-black'>
                           {profile.name}{profile.age ? `, ${profile.age}` : ''}
                         </div>
-                        <div className='text-xs text-white/66'>{compatibility(profile, index)}% compatible</div>
+                        {typeof profile.matchScore === 'number' && <div className='text-xs text-white/66'>{Math.round(profile.matchScore)}% compatible</div>}
                       </div>
                     </div>
                     {profile.bio && (
@@ -999,11 +993,11 @@ export default function DiscoverPage () {
             <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
               <h2 className='font-black'>Suggestions compatibles</h2>
               <div className='mt-4 space-y-2'>
-                {featuredProfiles.map((profile, index) => (
+                {featuredProfiles.map(profile => (
                   <Link key={profile.id} href={`/profile/${profile.id}`} className='flex items-center justify-between gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
                     <div className='min-w-0'>
                       <div className='truncate font-bold'>{profile.name}</div>
-                      <div className='text-xs text-white/50'>{compatibility(profile, index)}% compatible</div>
+                      {typeof profile.matchScore === 'number' && <div className='text-xs text-white/50'>{Math.round(profile.matchScore)}% compatible</div>}
                     </div>
                     <ArrowUpRight className='h-4 w-4 text-white/50' />
                   </Link>

@@ -41,7 +41,7 @@ function freshnessScore(value: string | Date | null | undefined, now: Date) {
   return 20
 }
 
-function photoPriority(candidate: DiscoveryCandidate) {
+export function photoPriority(candidate: DiscoveryCandidate) {
   const nativeAvatarMarkers = [
     '/default-member-',
     '/mystical-forest-spirit',

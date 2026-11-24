@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest'
 
 describe('member page action recovery', () => {
   it('recovers stale deployments and stops failed polling', () => {
-    const messages = readFileSync('app/messages/page.tsx', 'utf8')
+    const messages = readFileSync('components/messages-inbox.tsx', 'utf8')
     const matches = readFileSync('app/matches/page.tsx', 'utf8')
     const notifications = readFileSync('contexts/notification-context.tsx', 'utf8')
 
     expect(messages).toContain('recoverFromStaleServerAction')
     expect(messages).toContain('pollingStopped')
     expect(messages).toContain('isLoading: authLoading')
-    expect(messages).toContain('if (!authLoading && !authUser?.id)')
+    expect(messages).toContain('authUser?.id !== initialUserId')
     expect(matches).toContain('recoverFromStaleServerAction')
     expect(matches).toContain('getMemberRelationships')
     expect(matches).toContain('isLoading: authLoading')
