@@ -111,10 +111,9 @@ export default function LandingPage() {
         <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
           <div className='mx-auto max-w-3xl text-center'>
             <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff72b5]'>Deux adresses parisiennes</p>
-            <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Le virtuel prend rendez-vous à l’hôtel</h2>
+            <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Où se retrouver à Paris ?</h2>
             <p className='mt-5 text-base leading-7 text-white/62 sm:text-lg'>
-              Les conversations ne restent pas derrière un écran. Pigalle et Châtelet deviennent les points de rencontre
-              où les membres donnent vie à leurs envies, à leur rythme.
+              Pigalle et Châtelet font partie des lieux que vous pouvez proposer. Pour une chambre ou un jacuzzi, vérifiez les disponibilités directement auprès de l’établissement.
             </p>
           </div>
 
@@ -206,8 +205,7 @@ export default function LandingPage() {
             <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff72b5]'>La communauté donne le rythme</p>
             <h2 className='mt-4 text-3xl font-black sm:text-4xl lg:text-5xl'>Créez vos propres événements</h2>
             <p className='mt-5 text-base leading-7 text-white/62 sm:text-lg'>
-              Love Hôtel fournit les lieux et la plateforme. Les membres imaginent les occasions de se rencontrer,
-              échangent avant le rendez-vous et construisent une expérience qui leur ressemble.
+              Proposez une date, précisez le lieu et échangez avec les membres intéressés avant de confirmer le rendez-vous.
             </p>
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-black text-[#20102b]'>
@@ -223,7 +221,7 @@ export default function LandingPage() {
               { icon: MessageCircleHeart, title: 'Échangez', text: 'Discutez, trouvez les bonnes affinités et posez vos envies clairement.' },
               { icon: CalendarPlus, title: 'Proposez', text: 'Créez un apéro jacuzzi, un speed dating ou votre propre idée.' },
               { icon: UsersRound, title: 'Invitez', text: 'Choisissez un petit groupe et réunissez des personnes réellement intéressées.' },
-              { icon: HeartHandshake, title: 'Rencontrez-vous', text: 'Passez du profil au réel à Pigalle ou à Châtelet, dans un cadre identifié.' }
+              { icon: HeartHandshake, title: 'Rencontrez-vous', text: 'Choisissez ensemble un lieu et un horaire qui conviennent à chacun.' }
             ].map(step => {
               const Icon = step.icon
               return (
@@ -242,7 +240,7 @@ export default function LandingPage() {
         <div className='mx-auto max-w-[1280px] overflow-hidden rounded-[2rem] border border-[#ff8cc8]/20 bg-[radial-gradient(circle_at_15%_20%,rgba(255,255,255,0.12),transparent_25%),linear-gradient(110deg,#7b1b66,#ff3b8b_58%,#ff8cc8)] px-6 py-10 text-center shadow-2xl shadow-[#ff3b8b]/15 sm:px-10 sm:py-14'>
           <h2 className='text-3xl font-black sm:text-4xl lg:text-5xl'>La prochaine rencontre peut commencer ici</h2>
           <p className='mx-auto mt-4 max-w-2xl text-base leading-7 text-white/82 sm:text-lg'>
-            Rejoignez la communauté, partagez vos envies et créez une vraie occasion de vous retrouver dans l’un des deux Love Hôtels.
+            Créez votre profil pour discuter avec les membres et proposer une sortie.
           </p>
           <Link href='/register' className='mt-7 inline-flex items-center gap-2 rounded-full bg-[#17051f] px-7 py-3.5 text-sm font-black text-white'>
             Devenir membre
