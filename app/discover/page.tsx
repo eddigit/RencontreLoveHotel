@@ -485,14 +485,23 @@ export default function DiscoverPage () {
         user={user}
         eyebrow='Accueil connecté'
         title='Communauté'
-        subtitle='Les profils actifs, les matchs, les événements et les expériences Love Rooms au même endroit.'
+        subtitle='Retrouvez les personnes, les échanges et les rendez-vous qui font vivre votre espace membre.'
         action={
           <div className='flex flex-wrap items-center gap-2'>
             <div className='hidden lg:block'>
               <NotificationsButton />
             </div>
+            <Button asChild size='sm' className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
+              <Link href='#new-profiles'>Profils</Link>
+            </Button>
+            <Button asChild size='sm' variant='outline' className='border-white/15 bg-white/[0.04]'>
+              <Link href='/events'>Agenda</Link>
+            </Button>
+            <Button asChild size='sm' variant='ghost' className='text-[#94ffc9] hover:bg-[#94ffc9]/10 hover:text-[#94ffc9]'>
+              <Link href='#boite-a-idees'>Boîte à idées</Link>
+            </Button>
             <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
-            <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
+            <Button asChild size='sm' variant='outline' className='border-white/15 bg-white/[0.04]'>
               <Link href='/love-rooms'>
                 <Sparkles className='mr-2 h-4 w-4' />
                 Love Rooms
@@ -551,7 +560,9 @@ export default function DiscoverPage () {
               <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
             </Link>
 
-            <CommunityFeedbackWidget />
+            <div id='boite-a-idees' className='scroll-mt-24'>
+              <CommunityFeedbackWidget />
+            </div>
           </aside>
 
           <section className='order-3 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>

@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingIncludes: {
+    '/admin/idees': ['./migrations/20261124_community_feedback_canonical.sql'],
+    '/discover': ['./migrations/20261124_community_feedback_canonical.sql']
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

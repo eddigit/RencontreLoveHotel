@@ -17,6 +17,8 @@ describe('visitor landing redesign', () => {
     expect(header).toContain("href='/rencontres'")
     expect(header).toContain("href='/login'")
     expect(header).toContain("href='/register'")
+    expect(header).toContain('<span>Connexion</span>')
+    expect(header).toContain('Inscription')
   })
 
   it('presents the two hotels and community-created experiences', () => {
@@ -41,5 +43,7 @@ describe('visitor landing redesign', () => {
     expect(normalizedLanding).not.toContain('bars')
     expect(landing).not.toContain('LOOLYYB')
     expect(landing).not.toContain('AdvertisementBannerBottom')
+    expect(landing).toContain("priority={index === 0}")
+    expect(landing).toContain("index === 0 ? 'object-[center_58%]'")
   })
 })

@@ -34,7 +34,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
               className='inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/8 sm:px-4'
             >
               <LogIn className='h-4 w-4' />
-              <span className='hidden sm:inline'>Connexion</span>
+              <span>Connexion</span>
             </Link>
             <Link
               href='/register'

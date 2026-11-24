@@ -7,6 +7,9 @@ describe('community home UI', () => {
     const userActions = readFileSync('actions/user-actions.ts', 'utf8')
 
     expect(page).toContain('Communauté')
+    expect(page).toContain("href='#new-profiles'")
+    expect(page).toContain("href='/events'")
+    expect(page).toContain("href='#boite-a-idees'")
     expect(page).toContain('En ligne maintenant')
     expect(page).toContain('Nouveaux profils visibles')
     expect(page).not.toContain('Nouveaux membres')

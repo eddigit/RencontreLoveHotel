@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 
 const tabs = [
   { label: 'Vue d’ensemble', href: '/admin' },
+  { label: 'Boîte à idées', href: '/admin/idees' },
   { label: 'Utilisateurs', href: '/admin/users' },
   { label: 'Événements', href: '/admin/events' },
   { label: 'Messages', href: '/admin/messages' },
@@ -34,6 +35,7 @@ export function AdminTabs () {
           <Link
             key={tab.href}
             href={tab.href}
+            aria-current={isActive ? 'page' : undefined}
             className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition md:px-4 ${
               isActive
                 ? 'bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white shadow-md shadow-[#ff3b8b]/15'

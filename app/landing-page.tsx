@@ -7,7 +7,6 @@ import {
   HeartHandshake,
   MapPin,
   MessageCircleHeart,
-  Sparkles,
   UsersRound,
   Waves
 } from 'lucide-react'
@@ -18,12 +17,6 @@ const heroExperiences = [
     subtitle: 'Des rencontres en petit groupe',
     image: '/apero-jacuzzi-rencontre.jpg',
     alt: 'Apéro jacuzzi entre membres de la communauté'
-  },
-  {
-    title: 'PORTRAIT D’AMBIANCE',
-    subtitle: 'L’univers de la communauté',
-    image: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/attachments/gen-images/public/amethyst-glow-YU11au0rIIGAWH8iymdMmtFrC6ZFIb.png',
-    alt: 'Portrait illustratif de l’univers Love Hôtel'
   },
   {
     title: 'VOS ÉVÉNEMENTS',
@@ -46,21 +39,14 @@ export default function LandingPage() {
         <div className='absolute inset-0 -z-20 bg-[radial-gradient(circle_at_18%_12%,rgba(255,59,139,0.25),transparent_34%),radial-gradient(circle_at_82%_28%,rgba(124,58,237,0.28),transparent_38%),linear-gradient(135deg,#120821_0%,#2d0a43_52%,#14051f_100%)]' />
         <div className='absolute inset-0 -z-10 bg-[url("/purple-glow-pattern.png")] opacity-15 mix-blend-overlay' />
 
-        <div className='mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-[1440px] items-center gap-10 px-4 py-12 sm:px-6 md:py-16 lg:grid-cols-[0.9fr_1.1fr] lg:px-10 lg:py-20'>
-          <div className='max-w-2xl'>
-            <div className='mb-5 inline-flex items-center gap-2 rounded-full border border-[#ff8cc8]/25 bg-[#ff3b8b]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#ff9bce]'>
-              <Sparkles className='h-4 w-4' />
-              Deux hôtels, une communauté
-            </div>
-            <h1 className='text-4xl font-black uppercase leading-[0.98] tracking-[-0.045em] sm:text-5xl md:text-6xl xl:text-7xl'>
-              Les rencontres en ligne deviennent{' '}
-              <span className='bg-gradient-to-r from-[#ff3b8b] to-[#ff9bce] bg-clip-text text-transparent'>
-                des expériences réelles
-              </span>
+        <div className='mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-[1440px] items-center gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[0.95fr_1.05fr] lg:gap-12 lg:px-10 lg:py-16'>
+          <div className='max-w-xl lg:py-6'>
+            <h1 className='max-w-[13ch] text-[clamp(2.8rem,6vw,5.6rem)] font-bold leading-[1.02] tracking-[-0.055em]'>
+              Rencontres et sorties{' '}
+              <span className='text-[#ff8cc8]'>à Paris</span>
             </h1>
-            <p className='mt-6 max-w-xl text-base leading-7 text-white/68 sm:text-lg sm:leading-8'>
-              Love Hôtel relie une communauté libre et curieuse à deux lieux parisiens, Pigalle et Châtelet.
-              Échangez, créez un événement et retrouvez-vous autour d’un jacuzzi ou d’une expérience imaginée ensemble.
+            <p className='mt-5 max-w-md text-base leading-7 text-white/75 sm:text-lg'>
+              Faites connaissance, proposez un verre ou un apéro jacuzzi et choisissez ensemble la suite.
             </p>
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link
@@ -79,24 +65,24 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className='grid grid-cols-2 gap-3 sm:gap-4'>
+          <div className='grid grid-cols-2 gap-2.5 sm:gap-3 lg:pl-2'>
             {heroExperiences.map((experience, index) => (
               <article
                 key={experience.title}
-                className={`group relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/30 ${
-                  index % 2 === 1 ? 'translate-y-5' : ''
+                className={`group relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/30 ${
+                  index === 0 ? 'col-span-2 aspect-[16/9] rounded-t-[2rem]' : 'aspect-[3/2]'
                 }`}
               >
                 <Image
                   src={experience.image}
                   alt={experience.alt}
                   fill
-                  priority={index < 2}
-                  className='object-cover transition duration-700 group-hover:scale-105'
-                  sizes='(max-width: 1024px) 50vw, 25vw'
+                  priority={index === 0}
+                  className={`object-cover transition duration-700 group-hover:scale-105 ${index === 0 ? 'object-[center_58%]' : ''}`}
+                  sizes={index === 0 ? '(max-width: 1023px) 100vw, 52vw' : '(max-width: 1023px) 50vw, 26vw'}
                 />
                 <div className='absolute inset-0 bg-gradient-to-t from-[#12051c] via-[#12051c]/12 to-transparent' />
-                <div className='absolute inset-x-0 bottom-0 p-4 sm:p-5'>
+                <div className='absolute inset-x-0 bottom-0 p-3 sm:p-5'>
                   <h2 className='text-sm font-black sm:text-lg'>{experience.title}</h2>
                   <p className='mt-1 text-xs text-white/70 sm:text-sm'>{experience.subtitle}</p>
                 </div>

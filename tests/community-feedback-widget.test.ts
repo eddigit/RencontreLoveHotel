@@ -2,13 +2,25 @@ import { readFileSync } from 'fs'
 import { describe, expect, it } from 'vitest'
 
 describe('community feedback widget', () => {
-  it('adds a bug and suggestion widget to the community home', () => {
+  it('adds an accessible private idea box to the community home', () => {
     const discoverPage = readFileSync('app/discover/page.tsx', 'utf8')
     const widget = readFileSync('components/community-feedback-widget.tsx', 'utf8')
 
     expect(discoverPage).toContain('CommunityFeedbackWidget')
+    expect(widget).toContain('Boîte à idées')
+    expect(widget).toContain('organiser ou améliorer')
     expect(widget).toContain('Signaler un bug')
-    expect(widget).toContain('Proposer une amélioration')
+    expect(widget).toContain('Proposer une idée')
+    expect(widget).toContain("useState<FeedbackKind>('suggestion')")
+    expect(widget).toContain("type='radio'")
+    expect(widget).toContain("name='community-feedback-kind'")
+    expect(widget).toContain("aria-live='polite'")
+    expect(widget).toContain('uniquement par l’équipe du site')
+    expect(widget).toContain('Votre retour a bien été envoyé à l’équipe.')
+    expect(widget).toContain('} catch {')
+    expect(widget).toContain('} finally {')
+    expect(discoverPage).toContain("href='#boite-a-idees'")
+    expect(discoverPage).toContain("id='boite-a-idees'")
     expect(widget).toContain('submitCommunityFeedback')
   })
 

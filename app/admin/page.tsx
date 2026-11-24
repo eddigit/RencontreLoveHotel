@@ -9,7 +9,7 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { ProtectedRoute } from '@/components/protected-route'
-import { Users, Calendar, MessageSquare, BarChart3, ListChecks } from 'lucide-react'
+import { Users, Calendar, MessageSquare, BarChart3, ListChecks, Lightbulb, ShieldCheck, ArrowUpRight } from 'lucide-react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import MainLayout from '@/components/layout/main-layout'
@@ -59,13 +59,25 @@ export default function AdminPage () {
           <AdminHeader user={user} />
           <AdminTabs />
 
-          <ComplianceReadiness />
+          <section aria-label='Suivi de la communauté' className='mb-8 grid gap-3 md:grid-cols-2'>
+            <Link href='/admin/idees' className='group flex items-center gap-4 rounded-2xl border border-[#94ffc9]/30 bg-[#94ffc9]/[0.07] p-5 transition hover:border-[#94ffc9]/60 focus-visible:ring-2 focus-visible:ring-[#94ffc9]'>
+              <Lightbulb aria-hidden='true' className='h-6 w-6 shrink-0 text-[#94ffc9]' />
+              <div className='min-w-0 flex-1'><h2 className='text-xl font-bold text-white'>Boîte à idées</h2><p className='mt-1 text-sm text-white/70'>Lire et suivre les idées et les problèmes envoyés par les membres.</p></div>
+              <ArrowUpRight aria-hidden='true' className='h-5 w-5 shrink-0 text-[#94ffc9]' />
+            </Link>
+            <Link href='/admin/moderation' className='group flex items-center gap-4 rounded-2xl border border-[#ff8cc8]/25 bg-[#ff3b8b]/[0.06] p-5 transition hover:border-[#ff8cc8]/60 focus-visible:ring-2 focus-visible:ring-[#ff8cc8]'>
+              <ShieldCheck aria-hidden='true' className='h-6 w-6 shrink-0 text-[#ff8cc8]' />
+              <div className='min-w-0 flex-1'><h2 className='text-xl font-bold text-white'>Modération</h2><p className='mt-1 text-sm text-white/70'>Examiner les alertes et ouvrir les dossiers concernés.</p></div>
+              <ArrowUpRight aria-hidden='true' className='h-5 w-5 shrink-0 text-[#ff8cc8]' />
+            </Link>
+          </section>
 
           <AdminMessagingRecovery />
 
           <AdminLoginStatus />
 
           <JougPilotAdmin />
+          <ComplianceReadiness />
           {/* Actions rapides */}
           <div className="mb-8">
             <h3 className="text-xl font-semibold mb-4 flex items-center">
