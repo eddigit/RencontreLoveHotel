@@ -57,7 +57,7 @@ export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPor
                 <MemberAvatarImage src={member.image} gender={member.gender} profileStatus={member.profile_status}
                   alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
               </div>
-              <span className={`mt-1 text-[11px] font-semibold ${styles.portraitName}`}>{displayMemberName(member.name)}</span>
+              <span title={displayMemberName(member.name)} className={`mt-1 text-[11px] font-semibold ${styles.portraitName}`}>{displayMemberName(member.name)}</span>
               <span className={`flex min-h-3 items-center justify-center gap-1 text-[10px] ${styles.portraitMeta}`}>
                 {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
                 {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : ''}

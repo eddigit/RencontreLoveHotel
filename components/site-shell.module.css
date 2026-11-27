@@ -202,13 +202,11 @@
 }
 
 .portraitName {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
+  white-space: nowrap;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
   line-height: 0.875rem;
-  height: 1.75rem;
   color: var(--discover-ink);
 }
 
