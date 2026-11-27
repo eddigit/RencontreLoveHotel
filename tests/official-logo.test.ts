@@ -6,15 +6,16 @@ const root = process.cwd()
 
 describe('official LHR logo', () => {
   it('is stored locally and displayed without cropping in the global shell', () => {
-    expect(existsSync(join(root, 'public/joug-rencontre.webp'))).toBe(true)
+    expect(existsSync(join(root, 'public/joug-ornement-detoure.webp'))).toBe(true)
 
     const logo = readFileSync(join(root, 'components/brand-logo.tsx'), 'utf8')
     const shell = readFileSync(join(root, 'components/site-shell.tsx'), 'utf8')
 
-    expect(logo).toContain('/joug-rencontre.webp')
+    expect(logo).toContain('/joug-ornement-detoure.webp')
     expect(logo).toContain('object-contain')
     expect(logo).not.toContain('object-cover')
-    expect(logo).toContain('Joug Rencontre')
+    expect(logo).toContain("alt='Joug'")
+    expect(logo).toContain('Rencontre')
     expect(shell).toContain('<BrandLogo')
   })
 })
