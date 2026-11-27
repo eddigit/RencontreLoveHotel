@@ -53,8 +53,8 @@
 }
 
 .navigationLinkActive {
-  background: #c1121f;
-  box-shadow: 0 8px 20px rgb(7 31 74 / 0.28);
+  background: #302c24;
+  box-shadow: inset 2px 0 #d6bc87;
   color: white;
 }
 
@@ -71,14 +71,14 @@
 }
 
 .discoverHeader {
-  background: rgb(26 27 33 / 0.94);
+  background: rgb(24 25 26 / 0.95);
   border-color: var(--discover-line);
   backdrop-filter: blur(18px);
 }
 
 .searchForm {
   align-items: center;
-  background: #292a2f;
+  background: #252522;
   border: 1px solid transparent;
   border-radius: 0.75rem;
   color: var(--discover-muted);
@@ -91,7 +91,7 @@
 }
 
 .searchForm:focus-within {
-  background: #1a1b21;
+  background: #1b1c1e;
   border-color: var(--discover-accent);
 }
 
@@ -216,15 +216,15 @@
 
 .panel :global(.lhr-v2-content) > header { color: var(--discover-ink); background: var(--discover-canvas); border-color: var(--discover-line); }
 
-/* Stitch reference: deliberately scoped to /discover so the established member shell is unchanged. */
+/* Shared chrome for the community screens. */
 .stitchDiscoverShell {
-  --discover-canvas: #121318;
-  --discover-paper: #1a1b21;
-  --discover-ink: #e3e1e9;
-  --discover-muted: #e6bdbb;
-  --discover-charcoal: #0d0e13;
-  --discover-accent: #ff525d;
-  --discover-line: #5d3f3f;
+  --discover-canvas: #121315;
+  --discover-paper: #1b1c1e;
+  --discover-ink: #f0ece3;
+  --discover-muted: #bbb7ae;
+  --discover-charcoal: #101113;
+  --discover-accent: #d6bc87;
+  --discover-line: #494136;
   background: var(--discover-canvas) !important;
 }
 
@@ -236,6 +236,7 @@
 }
 
 .stitchRail {
+  border-right: 1px solid var(--discover-line);
   height: 100vh;
   padding: 1rem;
   position: sticky;
@@ -261,17 +262,17 @@
 }
 
 .stitchDiscoverShell .navigationLink:hover {
-  background: #292a2f;
+  background: #252522;
   color: var(--discover-ink);
 }
 
 .stitchDiscoverShell .navigationLinkActive {
-  background: #292a2f;
+  background: #252522;
   box-shadow: inset 3px 0 0 var(--discover-accent);
   color: var(--discover-ink);
 }
 
-.stitchDiscoverShell .profileLink { background: #1a1b21; }
+.stitchDiscoverShell .profileLink { background: #1b1c1e; }
 
 .stitchPanel { background: var(--discover-canvas) !important; }
 
@@ -287,14 +288,14 @@
   padding: 0.4rem 0.55rem;
 }
 
-.feedbackLink:hover { background: #292a2f; color: var(--discover-ink); }
+.feedbackLink:hover { background: #252522; color: var(--discover-ink); }
 
 .stitchCommunityStrip {
-  --discover-paper: #1a1b21;
-  --discover-line: #5d3f3f;
-  --discover-ink: #e3e1e9;
-  --discover-muted: #e6bdbb;
-  --discover-accent: #ff525d;
+  --discover-paper: #1b1c1e;
+  --discover-line: #494136;
+  --discover-ink: #f0ece3;
+  --discover-muted: #bbb7ae;
+  --discover-accent: #d6bc87;
 }
 
 .stitchCommunityStrip .stripTitle {
@@ -302,11 +303,11 @@
   font-weight: 700;
 }
 
-.stitchCommunityStrip .stripLink { color: var(--discover-muted); }
+.stitchCommunityStrip .stripLink { color: var(--discover-accent); }
 .stitchCommunityStrip .stripLink:hover { color: var(--discover-ink); }
 .stitchCommunityStrip .portraitItem { flex-basis: 4.25rem; }
 .stitchCommunityStrip .portraitCard { border-radius: 0.5rem; padding: 0.15rem; }
-.stitchCommunityStrip .portraitPhoto { background: #292a2f; }
+.stitchCommunityStrip .portraitPhoto { background: #252522; }
 .stitchCommunityStrip .onlineDot {
   background: #10b981;
   box-shadow: 0 0 10px rgb(16 185 129 / 0.55);

@@ -146,7 +146,7 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{notification.time}</span>
                         {(notification.priority === "high" || notification.priority === "critical") && (
-                          <span className="rounded-full bg-[#ff3b8b]/15 px-2 py-0.5 text-[#ff7db8]">
+                          <span className="rounded-full bg-[#d6bc87]/15 px-2 py-0.5 text-[#d6bc87]">
                             {notification.priority}
                           </span>
                         )}

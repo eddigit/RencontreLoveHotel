@@ -86,7 +86,7 @@ export default async function ProfilePage ({
         user={currentUser}
         eyebrow='Profil membre'
         title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
-        action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#c1121f] px-4 text-sm font-bold text-white xl:hidden'>Entrer en contact</a>}</>}
+        action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] xl:hidden'>Entrer en contact</a>}</>}
       >
         <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
           <section className='overflow-hidden rounded-3xl border border-[#111821] bg-[#0a0f15] text-[#ecebe7] shadow-2xl shadow-black/30'>
@@ -115,11 +115,11 @@ export default async function ProfilePage ({
 
             <div className='border-t border-[#111821] p-5 sm:p-8'>
               <div className='mb-4 flex flex-wrap gap-2'>
-                {profile.location && <Badge className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'>
+                {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
                   <MapPin className='mr-1 h-3.5 w-3.5' />
                   {profile.location}
                 </Badge>}
-                {profileOnline && <Badge className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
+                {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
               </div>
 
 
@@ -137,7 +137,7 @@ export default async function ProfilePage ({
                 {interests.map((interest: string) => (
                   <Badge
                     key={interest}
-                    className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'
+                    className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'
                   >
                     {interest}
                   </Badge>
@@ -146,7 +146,7 @@ export default async function ProfilePage ({
             </div>}
 
             {canShowActions && (
-              <div id='contact' className='order-first scroll-mt-20 rounded-2xl border border-[#c1121f]/45 bg-[#111821] p-5 text-[#ecebe7]'>
+              <div id='contact' className='order-first scroll-mt-20 rounded-2xl border border-[#d6bc87]/45 bg-[#111821] p-5 text-[#ecebe7]'>
                 <h3 className='font-black'>Entrer en contact</h3>
                 <div className='mt-4 space-y-3'>
                   {matchStatus === null && (
@@ -174,7 +174,7 @@ export default async function ProfilePage ({
                           if (accepted?.conversationId) redirect(`/messages/${accepted.conversationId}`)
                         }}
                       >
-                        <Button type='submit' className='w-full rounded-2xl bg-[#c1121f] text-[#ecebe7] hover:bg-[#e01b2a]'>
+                        <Button type='submit' className='w-full rounded-2xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
                           Accepter
                         </Button>
                       </form>

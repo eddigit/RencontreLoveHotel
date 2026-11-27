@@ -10,7 +10,7 @@ describe('member profile dark redesign', () => {
     expect(page).toContain("bg-[#111821]")
     expect(page).toContain("text-[#ecebe7]")
     expect(page).toContain("text-[#c9c7c2]")
-    expect(page).toContain("bg-[#c1121f]")
+    expect(page).toContain("bg-[#d6bc87]")
     expect(page).toContain("aspect-[4/5]")
     expect(page).toContain("className='object-contain'")
     expect(page.indexOf('Entrer en contact')).toBeLessThan(page.indexOf('Galerie'))

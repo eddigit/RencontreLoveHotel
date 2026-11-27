@@ -407,7 +407,7 @@ export default function DiscoverPage () {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Communauté' subtitle='Chargement de votre espace rencontre.' user={user}>
-          <div className='rounded-2xl border border-[#41454b] bg-[#04070b] p-8 text-[#c9c7c2]'>
+          <div className='rounded-2xl border border-[#494136] bg-[#191714] p-8 text-[#aaa69e]'>
             Chargement...
           </div>
         </LhrV2Shell>
@@ -419,11 +419,11 @@ export default function DiscoverPage () {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Complétez votre profil' subtitle='Votre profil doit être prêt avant d’entrer dans la communauté.' user={user}>
-          <div className='max-w-xl rounded-2xl border border-[#41454b] bg-[#04070b] p-6 text-[#ecebe7]'>
-            <p className='text-[#c9c7c2]'>
+          <div className='max-w-xl rounded-2xl border border-[#494136] bg-[#191714] p-6 text-[#f1eee8]'>
+            <p className='text-[#aaa69e]'>
               Quelques informations sont nécessaires pour proposer des rencontres compatibles.
             </p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#c1121f] text-white hover:bg-[#c1121f]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#d6bc87] text-white hover:bg-[#d6bc87]'>
               Compléter mon profil
             </Button>
           </div>
@@ -434,9 +434,9 @@ export default function DiscoverPage () {
 
   return (
     <MainLayout user={user}>
-      <div className='mx-auto min-h-screen w-full max-w-[1540px] bg-[#121318] px-3 pb-8 pt-3 text-[#e3e1e9] sm:px-5 lg:px-7'>
+      <div className='mx-auto min-h-screen w-full max-w-[1540px] bg-[#121318] px-3 pb-8 pt-3 text-[#f1eee8] sm:px-5 lg:px-7'>
           <h1 className='sr-only'>Mon cercle</h1>
-          <div className='mb-3 flex gap-4 text-sm text-[#ffb3b2] xl:hidden'>
+          <div className='mb-3 flex gap-4 text-sm text-[#d6bc87] xl:hidden'>
             <Link href='#agenda-du-cercle'>Présence et agenda ↓</Link>
             <Link href='#boite-a-idees'>Boîte à idées</Link>
           </div>
@@ -463,9 +463,9 @@ export default function DiscoverPage () {
               <section id='new-profiles' className='scroll-mt-24'>
                 <div className='mb-3 flex flex-wrap items-start justify-between gap-3'>
                   <div>
-                    <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Découvrir</p>
+                    <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#f1eee8]'>Découvrir</p>
                     <h2 className='mt-1 text-lg font-black'>Profils à découvrir</h2>
-                    <p className='mt-1 text-sm leading-5 text-[#c9c7c2]'>{newProfilesSummary}</p>
+                    <p className='mt-1 text-sm leading-5 text-[#aaa69e]'>{newProfilesSummary}</p>
                   </div>
                   <div className='flex items-center gap-2'>
                     <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
@@ -476,7 +476,7 @@ export default function DiscoverPage () {
                       aria-label='Découvrir d’autres profils'
                       onClick={showAnotherBatch}
                       disabled={loading || preparingProfiles || profiles.length <= 12}
-                      className='border-white/[0.07] bg-[#1a1b21] text-[#ecebe7] hover:bg-[#1a1b21]'
+                      className='border-white/[0.07] bg-[#191714] text-[#f1eee8] hover:bg-[#191714]'
                     >
                       <RefreshCw className='mr-1.5 h-3.5 w-3.5' />
                       {preparingProfiles ? 'Actualisation...' : 'Autres'}
@@ -484,13 +484,13 @@ export default function DiscoverPage () {
                   </div>
                 </div>
                 <div className='relative mb-3'>
-                  <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c9c7c2]' />
+                  <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#aaa69e]' />
                   <Input
                     type='text'
                     placeholder='Rechercher un profil, une ville, une ambiance...'
                     value={searchQuery}
                     onChange={(event) => handleSearchChange(event.target.value)}
-                    className='h-12 rounded-xl border-white/[0.07] bg-[#1a1b21] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#ffb3b2]'
+                    className='h-12 rounded-xl border-white/[0.07] bg-[#191714] pl-11 text-[#f1eee8] placeholder:text-[#aaa69e] focus:border-[#d6bc87]'
                   />
                 </div>
                 {error && (
@@ -499,10 +499,10 @@ export default function DiscoverPage () {
                   </div>
                 )}
                 <div className='mb-3 flex flex-wrap items-center justify-between gap-2 text-sm'>
-                  <span className='text-[#c9c7c2]'>{loading ? 'Actualisation...' : `${newProfiles.length} affichés`}</span>
+                  <span className='text-[#aaa69e]'>{loading ? 'Actualisation...' : `${newProfiles.length} affichés`}</span>
                   <Link
                     href='/members'
-                    className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#ffb3b2]'
+                    className='inline-flex items-center gap-1 font-bold text-[#f1eee8] hover:text-[#d6bc87]'
                   >
                     Recherche détaillée <ArrowUpRight className='h-4 w-4' />
                   </Link>
@@ -512,7 +512,7 @@ export default function DiscoverPage () {
                     <Link
                       key={profile.id}
                       href={`/profile/${profile.id}`}
-                      className='group flex min-w-0 flex-col items-center gap-2 overflow-hidden text-center rounded-xl border border-white/[0.07] bg-[#1a1b21] p-2 transition hover:border-[#ffb3b2]'
+                      className='group flex min-w-0 flex-col items-center gap-2 overflow-hidden text-center rounded-xl border border-white/[0.07] bg-[#191714] p-2 transition hover:border-[#d6bc87]'
                     >
                       <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10'>
                         {mediaImage(profileImage(profile), profile.name)}
@@ -528,11 +528,11 @@ export default function DiscoverPage () {
                           {profile.name}
                           {profile.age ? `, ${profile.age}` : ''}
                         </div>
-                        <div className='truncate text-xs text-[#c9c7c2]'>
+                        <div className='truncate text-xs text-[#aaa69e]'>
                           {profile.location || profile.bio || 'Voir le profil'}
                         </div>
                         {typeof profile.matchScore === 'number' && (
-                          <div className='mt-0.5 text-xs text-[#ffb3b2]'>{Math.round(profile.matchScore)}% compatible</div>
+                          <div className='mt-0.5 text-xs text-[#d6bc87]'>{Math.round(profile.matchScore)}% compatible</div>
                         )}
                       </div>
                     </Link>
@@ -541,7 +541,7 @@ export default function DiscoverPage () {
               </section>
 
               <MemberReferralLink />
-              <section id='boite-a-idees' className='scroll-mt-24 rounded-xl border border-white/[0.07] bg-[#1a1b21]'>
+              <section id='boite-a-idees' className='scroll-mt-24 rounded-xl border border-white/[0.07] bg-[#191714]'>
                 <button
                   type='button'
                   onClick={() => setFeedbackOpen((open) => !open)}
@@ -550,12 +550,12 @@ export default function DiscoverPage () {
                 >
                   <span>
                     <span className='block font-black'>Une idée ou un problème à signaler ?</span>
-                    <span className='mt-0.5 block text-sm text-[#c9c7c2]'>
+                    <span className='mt-0.5 block text-sm text-[#aaa69e]'>
                       Votre retour aide à améliorer la communauté.
                     </span>
                   </span>
                   <ChevronDown
-                    className={`h-5 w-5 shrink-0 text-[#ecebe7] transition ${feedbackOpen ? 'rotate-180' : ''}`}
+                    className={`h-5 w-5 shrink-0 text-[#f1eee8] transition ${feedbackOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {feedbackOpen && (
@@ -569,24 +569,24 @@ export default function DiscoverPage () {
             <aside id='agenda-du-cercle' aria-label='Agenda et présence' className='min-w-0 scroll-mt-20 space-y-5'>
               <section
                 aria-labelledby='online-members-title'
-                className='rounded-xl border border-white/[0.07] bg-[#1a1b21] p-4'
+                className='rounded-xl border border-white/[0.07] bg-[#191714] p-4'
               >
                 <div className='flex items-center justify-between gap-2'>
                   <h2 id='online-members-title' className='font-black'>
                     Présence en direct
                   </h2>
-                  <Link href='/members' className='text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'>
+                  <Link href='/members' className='text-sm font-bold text-[#f1eee8] hover:text-[#d6bc87]'>
                     Voir
                   </Link>
                 </div>
                 <dl className='my-3 grid grid-cols-2 gap-2 text-center'>
-                  <div className='flex flex-col-reverse rounded-lg bg-[#292a2f] py-2'>
-                    <dt className='text-xs text-[#c9c7c2]'>Membres du cercle</dt>
-                    <dd className='text-xl font-semibold text-[#ffb3b2]'>{loading || error ? '…' : formatCount(memberStats.totalMembers)}</dd>
+                  <div className='flex flex-col-reverse rounded-lg bg-[#24211d] py-2'>
+                    <dt className='text-xs text-[#aaa69e]'>Membres du cercle</dt>
+                    <dd className='text-xl font-semibold text-[#d6bc87]'>{loading || error ? '…' : formatCount(memberStats.totalMembers)}</dd>
                   </div>
-                  <div className='flex flex-col-reverse rounded-lg bg-[#292a2f] py-2'>
-                    <dt className='text-xs text-[#c9c7c2]'>Nouveaux en 24 h</dt>
-                    <dd className='text-xl font-semibold text-[#ffb3b2]'>{loading || error ? '…' : formatCount(memberStats.newMembersLast24h)}</dd>
+                  <div className='flex flex-col-reverse rounded-lg bg-[#24211d] py-2'>
+                    <dt className='text-xs text-[#aaa69e]'>Nouveaux en 24 h</dt>
+                    <dd className='text-xl font-semibold text-[#d6bc87]'>{loading || error ? '…' : formatCount(memberStats.newMembersLast24h)}</dd>
                   </div>
                 </dl>
                 {onlineMembers.length > 0 ? (
@@ -595,13 +595,13 @@ export default function DiscoverPage () {
                       <Link
                         key={member.id}
                         href={`/profile/${member.id}`}
-                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-2 hover:bg-[#0a0f15]'
+                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-2 hover:bg-[#191714]'
                       >
                         <div className='relative h-9 w-9 shrink-0 overflow-hidden rounded-full'>
                           {mediaImage(profileImage(member), member.name)}
                           <span
                             aria-label='En ligne'
-                            className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#04070b] bg-[#35e48d]'
+                            className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#191714] bg-[#35e48d]'
                           />
                         </div>
                         <span className='truncate text-sm font-bold'>{member.name}</span>
@@ -609,15 +609,15 @@ export default function DiscoverPage () {
                     ))}
                   </div>
                 ) : (
-                  <p className='mt-3 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de la présence…' : error ? 'Présence temporairement indisponible.' : 'Aucun membre en ligne pour le moment.'}</p>
+                  <p className='mt-3 text-sm text-[#aaa69e]'>{loading ? 'Chargement de la présence…' : error ? 'Présence temporairement indisponible.' : 'Aucun membre en ligne pour le moment.'}</p>
                 )}
               </section>
-              <section aria-labelledby='next-event-title' className='rounded-xl border border-white/[0.07] bg-[#1a1b21] p-4'>
+              <section aria-labelledby='next-event-title' className='rounded-xl border border-white/[0.07] bg-[#191714] p-4'>
                 <div className='flex items-center justify-between gap-2'>
                   <h2 id='next-event-title' className='flex items-center gap-2 font-black'>
-                    <CalendarHeart className='h-4 w-4 text-[#ffb3b2]' /> Agenda
+                    <CalendarHeart className='h-4 w-4 text-[#d6bc87]' /> Agenda
                   </h2>
-                  <Link href='/events' className='text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'>
+                  <Link href='/events' className='text-sm font-bold text-[#f1eee8] hover:text-[#d6bc87]'>
                     Tout voir
                   </Link>
                 </div>
@@ -628,19 +628,19 @@ export default function DiscoverPage () {
                       <Link
                         key={event.id}
                         href={`/events/${event.id}`}
-                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-3 hover:bg-[#0a0f15]'
+                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-3 hover:bg-[#191714]'
                       >
                         <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
                           {mediaImage(event.image || CIRCLE_EVENT_PHOTOS.gathering, '')}
                         </span>
                         <div className='min-w-0'>
                           <div className='text-sm font-bold'>{event.title}</div>
-                          <p className='mt-1 text-xs text-[#c9c7c2]'>
+                          <p className='mt-1 text-xs text-[#aaa69e]'>
                             {eventDateLabel(event.event_date)}
                             {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''} · {event.location}
                           </p>
                           {event.participant_count != null && (
-                            <span className='mt-1 block text-xs text-[#ffb3b2]'>
+                            <span className='mt-1 block text-xs text-[#d6bc87]'>
                               {Number(event.participant_count)} inscrit{Number(event.participant_count) > 1 ? 's' : ''} · Voir le rendez-vous →
                             </span>
                           )}
@@ -654,18 +654,18 @@ export default function DiscoverPage () {
                       <Image src={CIRCLE_EVENT_PHOTOS.gathering} alt='' fill sizes='(min-width: 1280px) 300px, 100vw' className='object-cover object-[center_35%]' />
                       <span className='absolute inset-0 flex items-end bg-gradient-to-t from-black/85 via-transparent to-transparent p-3 text-sm font-semibold text-white'>Événements à venir →</span>
                     </Link>
-                    <p className='mt-2 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de l’agenda…' : error ? 'Agenda temporairement indisponible.' : 'Aucune date annoncée pour le moment.'}</p>
+                    <p className='mt-2 text-sm text-[#aaa69e]'>{loading ? 'Chargement de l’agenda…' : error ? 'Agenda temporairement indisponible.' : 'Aucune date annoncée pour le moment.'}</p>
                   </div>
                 )}
                 <Link
                   href='/lieux'
-                  className='mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'
+                  className='mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#f1eee8] hover:text-[#d6bc87]'
                 >
                   Guide des lieux <ArrowUpRight className='h-4 w-4' />
                 </Link>
-                <Link href='/events/new' className='mt-4 block rounded-lg border border-white/10 py-2 text-center text-sm font-semibold hover:bg-[#292a2f]'>Proposer un événement</Link>
+                <Link href='/events/new' className='mt-4 block rounded-lg border border-white/10 py-2 text-center text-sm font-semibold hover:bg-[#24211d]'>Proposer un événement</Link>
               </section>
-              <Link href='/community-safety' className='block rounded-xl bg-[#1a1b21] p-4 text-sm text-[#e3e1e9] hover:bg-[#292a2f]'>Confidentialité et sécurité du cercle ↗</Link>
+              <Link href='/community-safety' className='block rounded-xl bg-[#191714] p-4 text-sm text-[#f1eee8] hover:bg-[#24211d]'>Confidentialité et sécurité du cercle ↗</Link>
             </aside>
           </div>
         </div>

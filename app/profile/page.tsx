@@ -351,7 +351,7 @@ export default async function ProfilePage ({
         title='Profil matching'
         subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations Love Hotel.'
         action={
-          <Button asChild className='bg-[#c1121f] text-[#ecebe7] hover:bg-[#e13b47]'>
+          <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
             <Link href='/discover'>
               <Sparkles className='mr-2 h-4 w-4' />
               Voir la communauté
@@ -365,11 +365,11 @@ export default async function ProfilePage ({
             <div className='rounded-2xl border border-[#111821] bg-[#0a0f15] p-5'>
               <div className='flex items-center gap-3'>
                 <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#04070b]'>
-                  <UserRound className='h-6 w-6 text-[#c1121f]' />
+                  <UserRound className='h-6 w-6 text-[#d6bc87]' />
                 </div>
                 <div>
                   <h2 className='font-black'>{dbUser.name}</h2>
-                  <p className='text-xs text-[#c1121f]'>Profil actif</p>
+                  <p className='text-xs text-[#d6bc87]'>Profil actif</p>
                 </div>
               </div>
               <div className='mt-5'>
@@ -379,7 +379,7 @@ export default async function ProfilePage ({
                 </div>
                 <div className='mt-3 h-2 rounded-full bg-[#111821]'>
                   <div
-                    className='h-full rounded-full bg-[#c1121f]'
+                    className='h-full rounded-full bg-[#d6bc87]'
                     style={{ width: `${profileScore}%` }}
                   />
                 </div>
@@ -410,13 +410,13 @@ export default async function ProfilePage ({
               className='w-full'
             >
               <TabsList className='mb-5 grid h-auto w-full grid-cols-3 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1'>
-                <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
+                <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Identité
                 </TabsTrigger>
-                <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
+                <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Matching
                 </TabsTrigger>
-                <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
+                <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Photos
                 </TabsTrigger>
               </TabsList>

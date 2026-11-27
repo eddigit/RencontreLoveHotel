@@ -14,9 +14,9 @@ export function NotificationBadge({ count, variant = "primary", size = "sm" }: N
 
   const badgeVariant =
     variant === "primary"
-      ? "bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white border-0"
+      ? "bg-[#d6bc87] text-[#191714] border-0"
       : variant === "secondary"
-        ? "bg-gradient-to-r from-[#ff8cc8] to-[#ff3b8b] text-white border-0"
+        ? "bg-[#302c24] text-[#e5d1aa] border-0"
         : "bg-destructive text-destructive-foreground"
 
   const badgeSize = size === "sm" ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"
@@ -31,7 +31,7 @@ export function NotificationBadge({ count, variant = "primary", size = "sm" }: N
         className="absolute -top-1 -right-1"
       >
         <Badge
-          className={`${badgeVariant} ${badgeSize} flex items-center justify-center p-0 rounded-full shadow-lg shadow-purple-900/20`}
+          className={`${badgeVariant} ${badgeSize} flex items-center justify-center p-0 rounded-full shadow-lg shadow-black/20`}
         >
           {count > 9 ? "9+" : count}
         </Badge>

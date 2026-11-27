@@ -194,7 +194,7 @@ export default function RegisterPage () {
                       </button>
                     </div>
                   </div>
-                  <div className='rounded-xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/8 p-4 text-sm leading-6'>
+                  <div className='rounded-xl border border-[#d6bc87]/20 bg-[#d6bc87]/8 p-4 text-sm leading-6'>
                     <strong>Aucune prestation sexuelle rémunérée.</strong>{' '}
                     LHR est une communauté adulte encadrée par des adhérents-modérateurs.
                     <Link href='/community-safety' className='ml-1 text-primary hover:underline'>Lire la charte</Link>

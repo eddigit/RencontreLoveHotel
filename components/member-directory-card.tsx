@@ -37,8 +37,8 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
   const typeLabel = directoryProfileTypeLabel(member)
 
   return (
-    <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff525d]' aria-label={`Voir le profil de ${name}`}>
-      <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#2b3040] bg-[#1a1b21] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#5d3f3f] group-hover:bg-[#1e1f25]'>
+    <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87]' aria-label={`Voir le profil de ${name}`}>
+      <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#494136] bg-[#191714] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#d6bc87]/60 group-hover:bg-[#24211d]'>
       <div className='relative aspect-[5/4] overflow-hidden bg-[#121318]'>
         {image.startsWith('http') ? (
           <img src={image} alt={`Photo de ${name}`} loading='lazy' className='h-full w-full object-cover transition duration-500 group-hover:scale-105' />
@@ -49,21 +49,21 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
         {member.online && <span className='absolute right-2.5 top-2.5 h-3 w-3 rounded-full border-2 border-[#121318] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
         <div className='absolute inset-x-3 bottom-3'>
           <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{name}{member.age ? `, ${member.age}` : ''}</h3>
-          <p className='mt-1 flex items-center gap-1 truncate text-xs text-[#c1c6da]'><MapPin className='h-3 w-3 shrink-0 text-[#ff525d]' />{member.location || 'Localisation non renseignée'}</p>
+          <p className='mt-1 flex items-center gap-1 truncate text-xs text-[#aaa69e]'><MapPin className='h-3 w-3 shrink-0 text-[#d6bc87]' />{member.location || 'Localisation non renseignée'}</p>
         </div>
       </div>
       <div className='flex flex-1 flex-col p-3'>
         <div className='flex flex-wrap gap-1.5 text-[11px] leading-4'>
-          <span className='rounded-full bg-[#ff334b]/15 px-2 py-1 font-medium text-[#ffb3b2]'>{typeLabel}</span>
-          {orientationLabel(member.orientation) && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
-          {member.open_to_other_couples && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
-          {member.open_curtains && <span className='rounded-full bg-[#ff334b]/15 px-2 py-1 text-[#ffb3b2]'>Rideaux ouverts</span>}
-          {member.libertine && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
+          <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 font-medium text-[#e5d1aa]'>{typeLabel}</span>
+          {orientationLabel(member.orientation) && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
+          {member.open_to_other_couples && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
+          {member.open_curtains && <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 text-[#e5d1aa]'>Rideaux ouverts</span>}
+          {member.libertine && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
         </div>
         {member.bio && <p className='mt-3 line-clamp-2 text-xs leading-5 text-[#94a3b8]'>{member.bio}</p>}
         <div className='mt-auto flex items-center justify-between pt-3 text-xs'>
-          <span className='font-medium text-[#ffb3b2] transition-colors group-hover:text-white'>Voir le profil</span>
-          <span className='flex h-8 w-8 items-center justify-center rounded-lg border border-[#2b3040] text-[#c1c6da] transition-colors group-hover:bg-[#292a2f] group-hover:text-white' title='Voir le profil pour matcher ou écrire'><MessageCircle className='h-4 w-4' /><span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span></span>
+          <span className='font-medium text-[#d6bc87] transition-colors group-hover:text-[#e5d1aa]'>Voir le profil</span>
+          <span className='flex h-8 w-8 items-center justify-center rounded-lg border border-[#494136] text-[#c1c6da] transition-colors group-hover:bg-[#24211d] group-hover:text-white' title='Voir le profil pour matcher ou écrire'><MessageCircle className='h-4 w-4' /><span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span></span>
         </div>
       </div>
       </article>

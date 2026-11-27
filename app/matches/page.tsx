@@ -173,7 +173,7 @@ export default function MatchesPage () {
         title='Matchs'
         subtitle='Demandes à traiter, matchs actifs, conversation ouverte et passage naturel vers une rencontre réelle.'
         action={
-          <Button asChild className='bg-gradient-to-r from-[#a7101c] to-[#c1121f] text-white'>
+          <Button asChild className='bg-gradient-to-r from-[#a7101c] to-[#d6bc87] text-white'>
             <Link href='/discover'>
               <Search className='mr-2 h-4 w-4' />
               Découvrir
@@ -202,13 +202,13 @@ export default function MatchesPage () {
             ) : (
               <Tabs value={activeTab} onValueChange={value => writeMatchesUrlState(router, value as MatchesTab)}>
                 <TabsList className='grid h-auto w-full grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
-                  <TabsTrigger value='active' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
+                  <TabsTrigger value='active' className='rounded-xl data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714]'>
                     Matchs actifs
                   </TabsTrigger>
-                  <TabsTrigger value='incoming' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
+                  <TabsTrigger value='incoming' className='rounded-xl data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714]'>
                     Demandes reçues
                   </TabsTrigger>
-                  <TabsTrigger value='outgoing' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
+                  <TabsTrigger value='outgoing' className='rounded-xl data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714]'>
                     Demandes envoyées
                   </TabsTrigger>
                 </TabsList>
@@ -220,7 +220,7 @@ export default function MatchesPage () {
                     profiles={matches}
                     renderActions={profile => (
                       <>
-                        <Button asChild className='flex-1 bg-[#c1121f] text-white hover:bg-[#c1121f]'>
+                        <Button asChild className='flex-1 bg-[#d6bc87] text-[#191714] hover:bg-[#d6bc87]'>
                           <Link href={`/profile/${profile.id}`}>
                             <MessageCircle className='mr-2 h-4 w-4' />
                             Écrire
@@ -283,7 +283,7 @@ export default function MatchesPage () {
                 Les demandes reçues sont isolées pour action rapide. Une fois acceptée, la relation passe en Conversation ouverte.
               </p>
             </div>
-            <div className='rounded-2xl border border-[#c9c7c2]/20 bg-[#c1121f]/12 p-5'>
+            <div className='rounded-2xl border border-[#c9c7c2]/20 bg-[#d6bc87]/12 p-5'>
               <h3 className='flex items-center gap-2 font-black'>
                 <Sparkles className='h-4 w-4 text-[#ecebe7]' />
                 Rencontre réelle

@@ -83,7 +83,7 @@ export function EventCard ({
     : `${attendees} participant${attendees > 1 ? 's' : ''}`
 
   return (
-    <Card className='group flex h-full flex-col overflow-hidden border border-[#2b3040] bg-[#1a1b21] text-[#e3e1e9] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] transition-colors hover:border-[#5d3f3f] hover:bg-[#1e1f25]'>
+    <Card className='group flex h-full flex-col overflow-hidden border border-[#494136] bg-[#191714] text-[#f4efe5] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] transition-colors hover:border-[#d6bc87]/70 hover:bg-[#211e1a]'>
       <div className='relative h-48 shrink-0 overflow-hidden sm:h-52'>
         <Image
           src={eventImage}
@@ -94,24 +94,24 @@ export function EventCard ({
         />
         <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-[#0d0e13]/20 to-transparent' />
         <div className='absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2'>
-          {experienceLabel && <span className='inline-flex items-center gap-1 rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffb3b2] backdrop-blur'><Sparkles className='h-3 w-3' />{experienceLabel}</span>}
-          {isPast && <span className='rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ad8887] backdrop-blur'>Terminé</span>}
-          {!isPast && isFull && <span className='rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffb3b2] backdrop-blur'>Complet</span>}
+          {experienceLabel && <span className='inline-flex items-center gap-1 rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'><Sparkles className='h-3 w-3' />{experienceLabel}</span>}
+          {isPast && <span className='rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#b8ad9e] backdrop-blur'>Terminé</span>}
+          {!isPast && isFull && <span className='rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'>Complet</span>}
         </div>
-        {venue && <span className='absolute bottom-3 left-3 rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#c1c6da] backdrop-blur'>{venueLabels[venue] || venue}</span>}
+        {venue && <span className='absolute bottom-3 left-3 rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#ded6ca] backdrop-blur'>{venueLabels[venue] || venue}</span>}
       </div>
       <CardContent className='flex flex-1 flex-col p-5'>
         <div className='flex items-center justify-between gap-3 text-xs text-[#ad8887]'>
-          <span className='flex min-w-0 items-center gap-1.5 truncate'><MapPin className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' />{location}</span>
+          <span className='flex min-w-0 items-center gap-1.5 truncate'><MapPin className='h-3.5 w-3.5 shrink-0 text-[#d6bc87]' />{location}</span>
           {createdByRole === 'member' && <span className='shrink-0 text-[#c1c6da]'>Communauté</span>}
         </div>
-        <h3 className='mt-3 text-base font-semibold leading-6 text-[#e3e1e9] transition-colors group-hover:text-[#ffb3b2]'>{title}</h3>
-        <div className='mt-4 space-y-2 border-y border-[#2b3040] py-3 text-xs'>
-          <div className='flex items-center gap-2 text-[#c1c6da]'><Calendar className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' /><span>{date}</span></div>
-          <div className='flex items-center justify-between gap-3'><span className='flex items-center gap-2 text-[#c1c6da]'><Users className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' />{attendanceLabel}</span>{isFull ? <span className='shrink-0 font-semibold text-[#ffb3b2]'>Complet</span> : null}</div>
+        <h3 className='mt-3 text-base font-semibold leading-6 text-[#f4efe5] transition-colors group-hover:text-[#e5d1aa]'>{title}</h3>
+        <div className='mt-4 space-y-2 border-y border-[#494136] py-3 text-xs'>
+          <div className='flex items-center gap-2 text-[#ded6ca]'><Calendar className='h-3.5 w-3.5 shrink-0 text-[#d6bc87]' /><span>{date}</span></div>
+          <div className='flex items-center justify-between gap-3'><span className='flex items-center gap-2 text-[#ded6ca]'><Users className='h-3.5 w-3.5 shrink-0 text-[#d6bc87]' />{attendanceLabel}</span>{isFull ? <span className='shrink-0 font-semibold text-[#e5d1aa]'>Complet</span> : null}</div>
         </div>
         {(singlePrice > 0 || couplePrice > 0 || Boolean(price)) && (
-          <div className='mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-[#ffb3b2]'>
+          <div className='mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-[#e5d1aa]'>
             {singlePrice > 0 && <span>Personne seule : {singlePrice} €</span>}
             {couplePrice > 0 && <span>Couple : {couplePrice} €</span>}
             {singlePrice === 0 && couplePrice === 0 && price ? <span>{price} €</span> : null}
@@ -119,7 +119,7 @@ export function EventCard ({
         )}
         <div className='mt-auto grid gap-2 pt-5'>
         <Button
-          className='w-full rounded-xl bg-[#ff334b] text-white shadow-[0_0_16px_rgba(255,51,75,0.22)] hover:bg-[#cc001a]'
+          className='w-full rounded-xl bg-[#d6bc87] text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-[#e5d1aa]'
           variant={isParticipating ? 'secondary' : 'default'}
           onClick={onSubscribeToggle}
           disabled={actionDisabled}
@@ -134,7 +134,7 @@ export function EventCard ({
         </Button>
 
         {id && (
-          <Button asChild variant='outline' className='w-full rounded-xl border-[#2b3040] bg-transparent text-[#e3e1e9] hover:bg-[#292a2f] hover:text-white'>
+          <Button asChild variant='outline' className='w-full rounded-xl border-[#494136] bg-transparent text-[#f4efe5] hover:bg-[#2a261f] hover:text-[#e5d1aa]'>
             <Link href={`/events/${id}`}>Voir les détails <ArrowRight className='h-4 w-4' /></Link>
           </Button>
         )}

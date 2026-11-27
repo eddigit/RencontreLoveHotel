@@ -45,7 +45,7 @@ function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: 
   const imageSize = size === 'large' ? '56px' : '44px'
 
   return (
-    <div className={`relative ${avatarSize} shrink-0 overflow-hidden rounded-full border border-[#2b3040] bg-[#1e222d]`}>
+    <div className={`relative ${avatarSize} shrink-0 overflow-hidden rounded-full border border-[#494136] bg-[#24211d]`}>
       <Image src={conversation.other_user_avatar || '/default-member-couple.jpg'} alt={conversation.other_user_name || 'Profil'} fill className='object-cover' sizes={imageSize} />
       {conversation.other_user_online && <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#16181f] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
     </div>
@@ -71,18 +71,18 @@ export function ConversationList ({ conversations, loading, activeConversationId
 
   return (
     <section aria-label='Liste des conversations' className='flex h-full min-h-0 min-w-0 flex-col bg-[#16181f]'>
-      <div className='border-b border-[#2b3040] px-4 pb-3 pt-4 sm:px-5'>
+      <div className='border-b border-[#494136] px-4 pb-3 pt-4 sm:px-5'>
         <div className='flex items-start justify-between gap-4'>
           <div>{showHeading && <h2 className='font-semibold tracking-tight text-[#f8fafc]'>Messagerie privée</h2>}<p className={showHeading ? 'mt-1 text-xs text-[#94a3b8]' : 'text-xs text-[#94a3b8]'}>Vos conversations les plus récentes.</p></div>
-          <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-[#2b3040] bg-[#1e222d] px-2.5 py-1 text-xs font-semibold tabular-nums text-[#e3e1e9]'>{conversations.length}</span>
+          <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-[#494136] bg-[#24211d] px-2.5 py-1 text-xs font-semibold tabular-nums text-[#f1eee8]'>{conversations.length}</span>
         </div>
         <div className='relative mt-4'>
           <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]' aria-hidden='true' />
-          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#2b3040] bg-[#1e222d] pl-9 text-sm text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#ff334b]' />
+          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#494136] bg-[#191714] pl-9 text-sm text-[#f8fafc] placeholder:text-[#aaa69e] focus-visible:ring-[#d6bc87]' />
         </div>
         <div className='mt-3 flex gap-2 overflow-x-auto pb-0.5' aria-label='Filtres de conversation'>
-          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#ff334b] text-white shadow-[0_0_14px_rgba(255,51,75,0.3)]' : 'border border-[#2b3040] bg-[#1e222d] text-[#94a3b8] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
-          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#ff334b] text-white shadow-[0_0_14px_rgba(255,51,75,0.3)]' : 'border border-[#2b3040] bg-[#1e222d] text-[#94a3b8] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
+          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#191714] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
+          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#191714] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
         </div>
       </div>
 
@@ -91,10 +91,10 @@ export function ConversationList ({ conversations, loading, activeConversationId
           <div className='space-y-1.5' aria-label='Chargement des conversations'>
             {[0, 1, 2, 3].map(item => (
               <div key={item} className='flex animate-pulse items-center gap-3 rounded-xl p-3'>
-                <div className='h-11 w-11 rounded-full bg-[#2b3040]' />
+                <div className='h-11 w-11 rounded-full bg-[#494136]' />
                 <div className='flex-1 space-y-2'>
-                  <div className='h-3 w-2/5 rounded bg-[#2b3040]' />
-                  <div className='h-3 w-4/5 rounded bg-[#1e222d]' />
+                  <div className='h-3 w-2/5 rounded bg-[#494136]' />
+                  <div className='h-3 w-4/5 rounded bg-[#24211d]' />
                 </div>
               </div>
             ))}
@@ -115,7 +115,7 @@ export function ConversationList ({ conversations, loading, activeConversationId
               href={`/messages/${conversation.id}`}
               key={conversation.id}
               aria-current={conversation.id === activeConversationId ? 'page' : undefined}
-              className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#1e222d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff334b] active:scale-[0.99]'
+              className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#24211d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87] active:scale-[0.99]'
               aria-label={`Ouvrir la conversation avec ${conversation.other_user_name || 'ce membre'}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
             >
               <ConversationAvatar conversation={conversation} />
@@ -123,11 +123,11 @@ export function ConversationList ({ conversations, loading, activeConversationId
                 <div className='flex items-baseline justify-between gap-2'>
                   <div className='flex min-w-0 items-center gap-1.5'>
                     <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{conversation.other_user_name}</h3>
-                    {conversation.has_unread_messages && <span className='h-2 w-2 shrink-0 rounded-full bg-[#ff334b] shadow-[0_0_8px_rgba(255,51,75,0.8)]'><span className='sr-only'>Messages non lus</span></span>}
+                    {conversation.has_unread_messages && <span className='h-2 w-2 shrink-0 rounded-full bg-[#d6bc87] shadow-[0_0_8px_rgba(214,188,135,0.5)]'><span className='sr-only'>Messages non lus</span></span>}
                   </div>
-                  <span className={`shrink-0 text-[11px] tabular-nums ${conversation.has_unread_messages ? 'font-semibold text-[#ffb3b2]' : 'text-[#94a3b8]'}`}>{conversation.last_message_date}</span>
+                  <span className={`shrink-0 text-[11px] tabular-nums ${conversation.has_unread_messages ? 'font-semibold text-[#d6bc87]' : 'text-[#94a3b8]'}`}>{conversation.last_message_date}</span>
                 </div>
-                <p className={`mt-1 truncate text-xs leading-5 ${conversation.has_unread_messages ? 'font-medium text-[#e3e1e9]' : 'text-[#94a3b8]'}`}>{conversation.last_message || 'Conversation ouverte'}</p>
+                <p className={`mt-1 truncate text-xs leading-5 ${conversation.has_unread_messages ? 'font-medium text-[#f1eee8]' : 'text-[#94a3b8]'}`}>{conversation.last_message || 'Conversation ouverte'}</p>
               </div>
               <ChevronRight aria-hidden='true' className='h-4 w-4 shrink-0 text-[#94a3b8] opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100 sm:opacity-100' />
             </Link>
@@ -190,9 +190,9 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
     <MainLayout user={authUser}>
       <LhrV2Shell
         title='Messagerie privée'
-        action={<Button asChild size='sm' className='h-9 rounded-xl bg-[#ff334b] px-3 text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] hover:bg-[#cc001a]'><Link href='/members'><Plus className='mr-1.5 h-4 w-4' />Découvrir</Link></Button>}
+        action={<Button asChild size='sm' className='h-9 rounded-xl bg-[#d6bc87] px-3 text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.2)] hover:bg-[#e5d1aa]'><Link href='/members'><Plus className='mr-1.5 h-4 w-4' />Découvrir</Link></Button>}
       >
-        <div className='overflow-hidden rounded-2xl border border-[#2b3040] bg-[#0d0e13] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] lg:grid lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]'>
+        <div className='overflow-hidden rounded-2xl border border-[#494136] bg-[#0d0e13] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] lg:grid lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]'>
           {error ? (
             <div className='p-4 lg:col-span-2'>
               <div className='rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-100'>
@@ -201,7 +201,7 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
               </div>
             </div>
           ) : <ConversationList conversations={conversations} loading={loading} activeConversationId={activeConversation?.id} showHeading={false} />}
-          {!error && <aside className='hidden min-h-0 flex-col border-l border-[#2b3040] bg-[#121318] p-8 lg:flex'>
+          {!error && <aside className='hidden min-h-0 flex-col border-l border-[#494136] bg-[#121318] p-8 lg:flex'>
              {activeConversation ? (
                <div className='m-auto w-full max-w-md text-center'>
                  <div className='mx-auto w-fit'><ConversationAvatar conversation={activeConversation} size='large' /></div>
@@ -209,7 +209,7 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
                  <h2 className='mt-2 text-xl font-semibold text-[#f8fafc]'>{activeConversation.other_user_name}</h2>
                  {activeConversation.other_user_online && <p className='mt-1 text-xs font-medium text-[#35e48d]'>En ligne</p>}
                  <p className='mt-3 line-clamp-3 text-sm leading-6 text-[#94a3b8]'>{activeConversation.last_message || 'Aucun message pour le moment.'}</p>
-                 <Button asChild className='mt-6 rounded-xl bg-[#ff334b] text-white hover:bg-[#cc001a]'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>
+                 <Button asChild className='mt-6 rounded-xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>
                </div>
              ) : (
                <div className='m-auto max-w-sm text-center'>

@@ -17,7 +17,7 @@ export function AuthPageShell({
       <header className='grid grid-cols-[1fr_auto_1fr] items-center gap-3'>
         <Link
           href={backHref}
-          className='inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm font-semibold text-white/78 transition hover:border-[#ff8cc8]/35 hover:bg-white/8 hover:text-white'
+          className='inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-2 text-sm font-semibold text-white/78 transition hover:border-[#d6bc87]/35 hover:bg-white/8 hover:text-white'
         >
           <ArrowLeft className='h-4 w-4' />
           <span className='hidden sm:inline'>{backLabel}</span>

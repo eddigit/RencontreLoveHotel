@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 const inputClass =
-  'w-full rounded-xl border border-[#2b3040] bg-[#121318] px-3.5 py-3 text-[#e3e1e9] placeholder:text-[#94a3b8] outline-none transition focus:border-[#ff525d] focus:ring-2 focus:ring-[#ff525d]/25'
+  'w-full rounded-xl border border-[#494136] bg-[#191714] px-3.5 py-3 text-[#f4efe5] placeholder:text-[#b8ad9e] outline-none transition focus:border-[#d6bc87] focus:ring-2 focus:ring-[#d6bc87]/25'
 
 const requestTypes = [
   {
@@ -125,12 +125,12 @@ export default function ConciergerieForm() {
 
   return (
     <section className='w-full py-6 sm:py-8'>
-      <form onSubmit={handleSubmit} className='mx-auto max-w-5xl rounded-2xl border border-[#2b3040] bg-[#1a1b21] p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] sm:p-6 lg:p-8'>
-        <div className='border-b border-[#2b3040] pb-5'>
-          <div className='flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#ffb3b2]'>
+      <form onSubmit={handleSubmit} className='mx-auto max-w-5xl rounded-2xl border border-[#494136] bg-[#191714] p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] sm:p-6 lg:p-8'>
+        <div className='border-b border-[#494136] pb-5'>
+          <div className='flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#d6bc87]'>
             <Sparkles className='h-4 w-4' /> Demande privée
           </div>
-          <h2 className='mt-2 text-2xl font-semibold text-[#e3e1e9] sm:text-3xl'>Parlez-nous de votre projet</h2>
+          <h2 className='mt-2 text-2xl font-semibold text-[#f4efe5] sm:text-3xl'>Parlez-nous de votre projet</h2>
           <p className='mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]'>Choisissez votre expérience et précisez vos souhaits. L’équipe vous répondra par e-mail.</p>
         </div>
 
@@ -142,10 +142,10 @@ export default function ConciergerieForm() {
                 <label
                   key={type.value}
                   className={[
-                    'relative cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#ff525d]',
+                    'relative cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#d6bc87]',
                     requestType === type.value
-                      ? 'border-[#ff525d] bg-[#ff334b]/15 text-[#e3e1e9]'
-                      : 'border-[#2b3040] bg-[#121318] text-[#c1c6da] hover:border-[#5d3f3f] hover:text-[#e3e1e9]'
+                      ? 'border-[#d6bc87] bg-[#d6bc87]/15 text-[#f4efe5]'
+                      : 'border-[#494136] bg-[#191714] text-[#ded6ca] hover:border-[#d6bc87]/60 hover:text-[#f4efe5]'
                   ].join(' ')}
                 >
                   <input className='sr-only' type='radio' name='concierge-experience' value={type.value}
@@ -188,7 +188,7 @@ export default function ConciergerieForm() {
           <div className='mt-4 grid gap-4 md:grid-cols-2'>
             <label className='space-y-2'>
               <span className='flex items-center gap-2 text-sm font-medium text-[#e3e1e9]'>
-                <Phone className='h-4 w-4 text-[#ff525d]' />
+                <Phone className='h-4 w-4 text-[#d6bc87]' />
                 Téléphone optionnel
               </span>
               <input
@@ -199,7 +199,7 @@ export default function ConciergerieForm() {
                 placeholder='Si vous voulez être rappelé'
               />
             </label>
-            <div className='rounded-xl border border-[#2b3040] bg-[#121318] p-3 text-sm leading-5 text-[#94a3b8]'><Mail className='mb-1 h-4 w-4 text-[#ff525d]' /> Vos coordonnées servent uniquement à répondre à cette demande.</div>
+            <div className='rounded-xl border border-[#494136] bg-[#191714] p-3 text-sm leading-5 text-[#b8ad9e]'><Mail className='mb-1 h-4 w-4 text-[#d6bc87]' /> Vos coordonnées servent uniquement à répondre à cette demande.</div>
           </div>
         </fieldset>
 
@@ -285,12 +285,12 @@ export default function ConciergerieForm() {
           </label>
         </fieldset>
 
-        <div className='mt-6 border-t border-[#2b3040] pt-5'>
+        <div className='mt-6 border-t border-[#494136] pt-5'>
           <p className='mb-3 text-xs leading-5 text-[#94a3b8]'>La demande est transmise par ce formulaire. Aucun détail n’est publié sur votre profil.</p>
           <button
             type='submit'
             disabled={isSubmitting}
-            className='w-full rounded-xl bg-[#ff334b] px-5 py-3.5 text-base font-semibold text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] transition hover:bg-[#cc001a] disabled:cursor-not-allowed disabled:opacity-60'
+            className='w-full rounded-xl bg-[#d6bc87] px-5 py-3.5 text-base font-semibold text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] transition hover:bg-[#e5d1aa] disabled:cursor-not-allowed disabled:opacity-60'
           >
             {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande privée'}
           </button>

@@ -55,7 +55,7 @@ export function ProfileMessageForm({ recipientId }: { recipientId: string }) {
         required
       />
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={sending || !message.trim()} className="rounded-2xl bg-[#c1121f] text-white hover:bg-[#a7101c] border-0">
+        <Button type="submit" disabled={sending || !message.trim()} className="rounded-2xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa] border-0">
           <Send className="mr-2 h-4 w-4" />
           {sending ? "Envoi..." : "Écrire"}
         </Button>

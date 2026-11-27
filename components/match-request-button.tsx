@@ -27,7 +27,7 @@ export function MatchRequestButton({ currentUserId, profileUserId }: { currentUs
 
   return (
     <div className="flex flex-col gap-2">
-      <Button type="button" onClick={handleSend} disabled={pending} className="bg-[#c1121f] text-white hover:bg-[#a7101c] border-0">
+      <Button type="button" onClick={handleSend} disabled={pending} className="bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa] border-0">
         {pending ? "Envoi..." : "Envoyer une demande de match"}
       </Button>
       {status === "error" && <span className="text-red-500 text-sm">{error}</span>}

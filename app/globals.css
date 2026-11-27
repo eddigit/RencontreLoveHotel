@@ -11,8 +11,8 @@
     --card-foreground: 48 12% 92%;
     --popover: 214 32% 10%;
     --popover-foreground: 48 12% 92%;
-    --primary: 356 83% 41%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 40 49% 68%;
+    --primary-foreground: 36 11% 9%;
     --secondary: 214 27% 15%;
     --secondary-foreground: 48 12% 92%;
     --muted: 214 22% 14%;
@@ -23,7 +23,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 213 12% 24%;
     --input: 213 12% 24%;
-    --ring: 48 12% 92%;
+    --ring: 40 49% 68%;
     --radius: 0.75rem;
   }
 }
@@ -239,9 +239,9 @@ body {
 }
 
 .btn-gradient {
-  background: linear-gradient(90deg, #a9101b 0%, #c1121f 100%);
+  background: #d6bc87;
   border: none;
-  color: white;
+  color: #191714;
   font-weight: 600;
   transition: all 0.3s ease;
 }
