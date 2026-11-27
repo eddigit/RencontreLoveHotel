@@ -113,7 +113,7 @@ export function CommunityFeedbackWidget() {
           aria-label={kind === 'bug' ? 'Décrire le bug' : 'Décrire votre idée'}
           placeholder={kind === 'bug'
             ? 'Quel problème avez-vous rencontré ? Indiquez la page et ce qui s’est passé.'
-            : 'Par exemple : un apéro thématique, une amélioration du profil ou une idée pour faciliter les échanges.'}
+            : 'Quel lieu ou quelle sortie aimeriez-vous découvrir ? Pour suggérer une adresse, indiquez son nom et sa ville. Vous pouvez aussi proposer une amélioration du site.'}
           minLength={8}
           maxLength={2000}
           required

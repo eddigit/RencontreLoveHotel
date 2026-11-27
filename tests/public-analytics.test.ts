@@ -10,6 +10,7 @@ describe('public analytics sanitisation', () => {
     expect(analyticsPageUrl('/admin', origin, '')).toBeNull()
   })
   it('keeps only an allowlisted public path and removes query and fragment', () => {
+    expect(sanitizeAnalyticsPath('/lieux?categorie=espaces-bdsm')).toBe('/lieux')
     expect(sanitizeAnalyticsPath('https://rencontrelovehotel.com/love-rooms?room=private#details')).toBe('/love-rooms')
   })
   it('maps every member route to one generic category', () => {

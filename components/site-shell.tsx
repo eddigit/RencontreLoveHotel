@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   CalendarDays,
+  MapPin,
   Heart,
   Home,
   LogIn,
@@ -40,6 +41,7 @@ const memberNavItems: NavigationItem[] = [
   { href: '/messages', label: 'Messages', icon: MessageCircle },
   { href: '/matches', label: 'Matchs', icon: Heart },
   { href: '/events', label: 'Événements', icon: CalendarDays },
+  { href: '/lieux', label: 'Lieux', icon: MapPin },
   { href: '/conciergerie', label: 'Conciergerie', icon: Sparkles },
   { href: '/profile', label: 'Profil', icon: UserRound }
 ]
@@ -49,6 +51,7 @@ const visitorNavItems: NavigationItem[] = [
   { href: '/concept', label: 'Concept', icon: Sparkles },
   { href: '/rencontres', label: 'Rencontres', icon: Heart },
   { href: '/events', label: 'Événements', icon: CalendarDays },
+  { href: '/lieux', label: 'Lieux', icon: MapPin },
   { href: '/love-rooms', label: 'Love Rooms', icon: Sparkles },
   { href: '/premium', label: 'Premium', icon: UserPlus }
 ]
@@ -72,6 +75,7 @@ const publicPresentationRoutes = new Set([
   '/en-direct',
   '/events',
   '/love-rooms',
+  '/lieux',
   '/premium',
   '/privacy',
   '/publicite',

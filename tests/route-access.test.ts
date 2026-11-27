@@ -21,6 +21,7 @@ describe('route access policy', () => {
     expect(isPublicPath('/')).toBe(true)
     expect(isPublicPath('/login')).toBe(true)
     expect(isPublicPath('/rencontres')).toBe(true)
+    expect(isPublicPath('/lieux')).toBe(true)
     expect(isPublicPath('/premium')).toBe(true)
     expect(isPublicPath('/version.json')).toBe(true)
     expect(isPublicPath('/manifest.webmanifest')).toBe(true)

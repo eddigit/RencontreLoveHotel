@@ -16,7 +16,7 @@ const steps = [
   {
     icon: HeartHandshake,
     title: 'Rencontrez-vous vraiment',
-    description: 'Passez du virtuel au réel à Pigalle ou Châtelet, dans un cadre identifié et choisi ensemble.'
+    description: 'Un verre en terrain neutre ou une Love Room pour plus d’intimité ? Convenez ensemble du lieu et de vos limites.'
   }
 ]
 
@@ -37,10 +37,10 @@ export default function RencontresPage() {
           <div className='max-w-3xl'>
             <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff8cc8]'>Rencontres Love Hôtel</p>
             <h1 className='mt-5 text-4xl font-black leading-tight sm:text-5xl lg:text-7xl'>
-              Une conversation en ligne. Une vraie rencontre à Paris.
+              Avec qui aimeriez-vous partager vos envies ?
             </h1>
             <p className='mt-6 max-w-2xl text-lg leading-8 text-white/72'>
-              Love Hôtel réunit une communauté libre et curieuse autour de deux adresses parisiennes et d’événements imaginés ensemble.
+              Échangez en solo ou en couple avec les membres de la communauté libertine. Un rendez-vous commence par une envie partagée, qu’il dure le temps d’un verre ou toute la soirée.
             </p>
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-6 py-3.5 font-black'>
@@ -57,7 +57,7 @@ export default function RencontresPage() {
       <section className='mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-10 lg:py-24'>
         <div className='max-w-3xl'>
           <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff8cc8]'>Du profil au rendez-vous</p>
-          <h2 className='mt-4 text-3xl font-black sm:text-5xl'>Un parcours simple, lisible et consenti</h2>
+          <h2 className='mt-4 text-3xl font-black sm:text-5xl'>Du premier échange au choix du lieu</h2>
         </div>
         <div className='mt-10 grid gap-5 md:grid-cols-3'>
           {steps.map(step => {
@@ -76,13 +76,14 @@ export default function RencontresPage() {
       <section className='border-y border-white/8 bg-white/[0.025]'>
         <div className='mx-auto grid max-w-7xl gap-6 px-4 py-16 sm:px-6 md:grid-cols-2 lg:px-10 lg:py-24'>
           {[
-            ['Pigalle', 'Paris 9e, pour les rendez-vous et expériences Love Hôtel au nord de Paris.'],
-            ['Châtelet', 'Au cœur de Paris, un second point de rencontre facile d’accès pour la communauté.']
-          ].map(([place, description]) => (
+            ['Love Rooms', 'Retrouvez le Love Hôtel à Paris et renseignez-vous directement auprès de l’établissement.', '/love-rooms', 'Découvrir les chambres'],
+            ['Lieux de rencontre', 'Explorez les ambiances envisagées pour un rendez-vous et les lieux déjà référencés.', '/lieux', 'Explorer les lieux']
+          ].map(([place, description, href, action]) => (
             <article key={place} className='rounded-3xl border border-[#ff8cc8]/18 bg-[linear-gradient(135deg,rgba(255,59,139,0.15),rgba(124,58,237,0.12))] p-8'>
               <MapPin className='h-8 w-8 text-[#ff8cc8]' />
-              <h2 className='mt-7 text-3xl font-black'>Love Hôtel {place}</h2>
+              <h2 className='mt-7 text-3xl font-black'>{place}</h2>
               <p className='mt-4 leading-7 text-white/64'>{description}</p>
+              <Link href={href} className="mt-5 inline-flex items-center gap-2 font-semibold underline underline-offset-4">{action}<ArrowRight size={16} /></Link>
             </article>
           ))}
         </div>

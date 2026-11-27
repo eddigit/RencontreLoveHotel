@@ -15,6 +15,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
         <nav className='hidden items-center gap-6 text-sm font-semibold text-white/70 lg:flex' aria-label='Navigation accueil'>
           <Link href='/concept' className='transition hover:text-white'>Le concept</Link>
           <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer' className='transition hover:text-white'>Love Hôtel Paris</Link>
+          <Link href='/lieux' className='transition hover:text-white'>Les lieux</Link>
           <Link href='/events' className='transition hover:text-white'>Expériences</Link>
           <Link href='/rencontres' className='transition hover:text-white'>La communauté</Link>
         </nav>
@@ -22,7 +23,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
         {isAuthenticated ? (
           <Link
             href='/discover'
-            className='inline-flex items-center gap-2 rounded-full bg-[#ff8cc8] px-4 py-2.5 text-sm font-bold text-[#21151d] hover:bg-[#ffacd6]'
+            className='inline-flex items-center gap-2 rounded-full bg-[#efb66e] px-4 py-2.5 text-sm font-bold text-[#21151d] hover:bg-[#ffd294]'
           >
             Mon espace
             <ArrowRight className='h-4 w-4' />
@@ -38,7 +39,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
             </Link>
             <Link
               href='/register'
-              className='rounded-full bg-[#ff8cc8] px-4 py-2.5 text-sm font-bold text-[#21151d] hover:bg-[#ffacd6] sm:px-5'
+              className='rounded-full bg-[#efb66e] px-4 py-2.5 text-sm font-bold text-[#21151d] hover:bg-[#ffd294] sm:px-5'
             >
               Inscription
             </Link>

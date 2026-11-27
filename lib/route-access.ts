@@ -7,6 +7,7 @@ const exactPublicPaths = new Set([
   '/forgot-password',
   '/goodbye',
   '/login',
+  '/lieux',
   '/loolyyb',
   '/loolyyb-memecoin',
   '/love-rooms',
