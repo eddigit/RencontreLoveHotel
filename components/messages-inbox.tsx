@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, MessageCircle, Plus, Search } from 'lucide-react'
@@ -12,6 +11,7 @@ import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { getUserConversations } from '@/actions/conversation-actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
+import { MemberAvatarImage } from '@/components/member-avatar-image'
 
 export interface InboxConversation {
   id: string
@@ -19,6 +19,8 @@ export interface InboxConversation {
   last_message: string | null
   last_message_date: string | null
   other_user_avatar: string | null
+  other_user_gender?: string | null
+  other_user_profile_status?: string | null
   other_user_online?: boolean
   has_unread_messages: boolean
 }
@@ -42,11 +44,16 @@ export function formatInboxMessageDate (value: string | null) {
 
 function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: InboxConversation, size?: 'normal' | 'large' }) {
   const avatarSize = size === 'large' ? 'h-14 w-14' : 'h-11 w-11'
-  const imageSize = size === 'large' ? '56px' : '44px'
 
   return (
     <div className={`relative ${avatarSize} shrink-0 overflow-hidden rounded-full border border-[#494136] bg-[#24211d]`}>
-      <Image src={conversation.other_user_avatar || '/default-member-couple.jpg'} alt={conversation.other_user_name || 'Profil'} fill className='object-cover' sizes={imageSize} />
+      <MemberAvatarImage
+        src={conversation.other_user_avatar}
+        gender={conversation.other_user_gender}
+        profileStatus={conversation.other_user_profile_status}
+        alt={conversation.other_user_name || 'Profil'}
+        className='h-full w-full object-cover'
+      />
       {conversation.other_user_online && <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#16181f] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
     </div>
   )

@@ -5,6 +5,8 @@ export type MemberPortrait = {
   id: string
   name: string
   image: string | null
+  gender: string | null
+  profile_status: string | null
   online: boolean
   joined_this_week: boolean
 }
@@ -13,7 +15,10 @@ export async function listMemberPortraits(viewerId: string, offset: number) {
   const hasPresence = await ensurePresenceSchema()
   const online = hasPresence ? onlinePresenceCondition('u.last_seen_at') : 'FALSE'
   return sql.query<MemberPortrait[]>(`
-      SELECT u.id, u.name, u.avatar AS image, ${online} AS online,
+      SELECT u.id, u.name, COALESCE((
+        SELECT p.url FROM photos p WHERE p.user_id = u.id AND p.is_primary IS TRUE
+        ORDER BY p.created_at DESC, p.id LIMIT 1
+      ), NULLIF(TRIM(u.avatar), '')) AS image, up.gender, up.status AS profile_status, ${online} AS online,
         u.created_at >= NOW() - INTERVAL '7 days' AS joined_this_week
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id

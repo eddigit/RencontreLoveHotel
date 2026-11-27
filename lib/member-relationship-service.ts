@@ -6,6 +6,8 @@ export type ConversationSummary = {
   other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
+  other_user_gender?: string | null
+  other_user_profile_status?: string | null
   other_user_online?: boolean
   has_unread_messages: boolean
   last_message: string | null
@@ -87,7 +89,9 @@ function conversationSummaryQuery(
       vc.id,
       other_user.id AS other_user_id,
       COALESCE(other_user.name, 'Membre') AS other_user_name,
-      other_user.avatar AS other_user_avatar,
+      COALESCE(primary_photo.url, other_user.avatar) AS other_user_avatar,
+      other_profile.gender AS other_user_gender,
+      other_profile.status AS other_user_profile_status,
       ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
       EXISTS (
         SELECT 1
@@ -107,6 +111,15 @@ function conversationSummaryQuery(
     JOIN conversation_participants other
       ON other.conversation_id = vc.id AND other.user_id != $1
     JOIN users other_user ON other_user.id = other.user_id
+    LEFT JOIN user_profiles other_profile ON other_profile.user_id = other_user.id
+    LEFT JOIN LATERAL (
+      SELECT photos.url
+      FROM photos
+      WHERE photos.user_id = other_user.id
+        AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC
+      LIMIT 1
+    ) primary_photo ON TRUE
     LEFT JOIN LATERAL (
       SELECT m.id, m.content, m.created_at
       FROM messages m

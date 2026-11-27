@@ -117,11 +117,11 @@ export default function ReservationConfirmationPage() {
                 <p>Vous pouvez annuler gratuitement jusqu'à 24h avant votre réservation.</p>
                 <p>Pour toute question, contactez notre service client au 01 23 45 67 89.</p>
               </div>
-              <div className="flex gap-3 w-full">
-                <Button variant="outline" className="flex-1" asChild>
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
+                <Button variant="outline" className="w-full sm:flex-1" asChild>
                   <Link href="/love-rooms">Voir d'autres Love Rooms</Link>
                 </Button>
-                <Button className="flex-1" asChild>
+                <Button className="w-full sm:flex-1" asChild>
                   <Link href="/profile">
                     Mes réservations
                     <ArrowRight className="ml-2 h-4 w-4" />

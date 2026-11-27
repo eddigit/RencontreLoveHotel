@@ -272,19 +272,19 @@ export default function EditEventPage() {
                   </div>
                 )}
 
-                <div className='flex gap-4 pt-4'>
+                <div className='flex flex-col gap-3 pt-4 sm:flex-row sm:gap-4'>
                   <Button 
                     type='button' 
                     variant='outline' 
                     onClick={() => router.push('/events')}
-                    className='flex-1'
+                    className='w-full sm:flex-1'
                   >
                     Annuler
                   </Button>
                   <Button 
                     type='submit' 
                     disabled={loading}
-                    className='flex-1'
+                    className='w-full sm:flex-1'
                   >
                     {loading ? 'Modification...' : 'Enregistrer les modifications'}
                   </Button>

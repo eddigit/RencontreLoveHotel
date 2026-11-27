@@ -33,12 +33,12 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
           className='mt-1 min-h-20 w-full rounded-xl border border-white/10 bg-black/20 p-2 text-sm'
         />
       </label>
-      <div className='grid grid-cols-2 gap-2'>
+      <div className='grid min-w-0 grid-cols-1 gap-2'>
         <Button
           type='button'
           disabled={pending}
           variant='outline'
-          className='rounded-xl border-white/12 bg-white/[0.03] text-xs'
+          className='h-auto min-h-10 w-full min-w-0 justify-start whitespace-normal rounded-xl border-white/12 bg-white/[0.03] px-3 py-2 text-left text-xs leading-4'
           onClick={() => report('paid_sexual_solicitation')}
         >
           <Flag className='mr-1.5 h-3.5 w-3.5' />
@@ -48,7 +48,7 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
           type='button'
           disabled={pending}
           variant='outline'
-          className='rounded-xl border-red-300/20 bg-red-500/[0.06] text-xs text-red-100'
+          className='h-auto min-h-10 w-full min-w-0 justify-start whitespace-normal rounded-xl border-red-300/20 bg-red-500/[0.06] px-3 py-2 text-left text-xs leading-4 text-red-100'
           onClick={() => startTransition(async () => {
             await blockMember(targetUserId)
             router.push('/discover')

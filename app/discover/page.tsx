@@ -62,9 +62,13 @@ type MatchRow = {
   user_id_2: string
   user1_name: string
   user1_avatar: string | null
+  user1_gender?: string | null
+  user1_profile_status?: string | null
   user1_online?: boolean
   user2_name: string
   user2_avatar: string | null
+  user2_gender?: string | null
+  user2_profile_status?: string | null
   user2_online?: boolean
   match_score?: number | string | null
 }
@@ -443,7 +447,7 @@ export default function DiscoverPage () {
           <div className='grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,30%)]'>
             <div className='min-w-0 space-y-5'>
               <section aria-label='Mur de la communauté' className='min-w-0'>
-                <CommunityWall currentUserId={user.id} currentUserName={user.name} currentUserAvatar={user.avatar} betweenComposerAndFeed={
+                <CommunityWall currentUserId={user.id} currentUserName={user.name} currentUserAvatar={user.avatar} currentUserGender={user.gender} currentUserProfileStatus={user.profile_status} betweenComposerAndFeed={
                   <CircleActivityCards
                     threads={threads}
                     loading={loading}
@@ -453,7 +457,9 @@ export default function DiscoverPage () {
                       return {
                         id: first ? match.user_id_1 : match.user_id_2,
                         name: (first ? match.user1_name : match.user2_name) || 'Membre',
-                        avatar: first ? match.user1_avatar : match.user2_avatar
+                        avatar: first ? match.user1_avatar : match.user2_avatar,
+                        gender: first ? match.user1_gender : match.user2_gender,
+                        profileStatus: first ? match.user1_profile_status : match.user2_profile_status
                       }
                     })}
                   />

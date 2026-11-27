@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
+import { MemberAvatarImage } from './member-avatar-image'
 import {
   CalendarHeart,
   ChevronDown,
@@ -42,6 +43,8 @@ type WallEventOption = {
 type CommunityWallProps = {
   currentUserId: string
   currentUserName?: string | null
+  currentUserGender?: string | null
+  currentUserProfileStatus?: string | null
   currentUserAvatar?: string | null
   betweenComposerAndFeed?: ReactNode
 }
@@ -122,11 +125,7 @@ function eventDateLabel(value?: string | Date | null) {
   })
 }
 
-function avatarInitial(name?: string | null) {
-  return (name || 'M').slice(0, 1).toUpperCase()
-}
-
-export function CommunityWall({ currentUserId, currentUserName, currentUserAvatar, betweenComposerAndFeed }: CommunityWallProps) {
+export function CommunityWall({ currentUserId, currentUserName, currentUserAvatar, currentUserGender, currentUserProfileStatus, betweenComposerAndFeed }: CommunityWallProps) {
   const [posts, setPosts] = useState<CommunityWallPost[]>([])
   const [events, setEvents] = useState<WallEventOption[]>([])
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityWallComment[]>>({})
@@ -288,13 +287,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
       <form id='wall-composer' onSubmit={handleCreatePost} className='rounded-xl bg-[#191714] p-4 shadow-sm'>
         <div className='flex items-start gap-3'>
           <div className='h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#24211d]'>
-            {currentUserAvatar ? (
-              <img src={currentUserAvatar} alt={currentUserName || 'Votre profil'} className='h-full w-full object-cover' />
-            ) : (
-              <span className='flex h-full w-full items-center justify-center text-sm font-semibold text-[#f1eee8]'>
-                {avatarInitial(currentUserName)}
-              </span>
-            )}
+            <MemberAvatarImage src={currentUserAvatar} gender={currentUserGender} profileStatus={currentUserProfileStatus} alt={currentUserName || 'Votre profil'} className='h-full w-full object-cover' />
           </div>
           <Textarea
             value={body}
@@ -427,13 +420,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
             <article key={post.id} className='rounded-xl border border-white/[0.045] bg-[#191714] p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
                 <Link href={`/profile/${post.user_id}`} className='relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
-                  {post.author_avatar ? (
-                    <img src={post.author_avatar} alt={post.author_name || 'Membre'} className='h-full w-full object-cover' />
-                  ) : (
-                    <span className='flex h-full w-full items-center justify-center bg-[#111821] font-black'>
-                      {avatarInitial(post.author_name)}
-                    </span>
-                  )}
+                  <MemberAvatarImage src={post.author_avatar} gender={post.author_gender} profileStatus={post.author_profile_status} alt={post.author_name || 'Membre'} className='h-full w-full object-cover' />
                 </Link>
                 <div className='min-w-0 flex-1'>
                   <div className='flex flex-wrap items-center gap-2'>
@@ -524,13 +511,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                   {comments.map(comment => (
                     <div key={comment.id} className='flex gap-2'>
                       <Link href={`/profile/${comment.user_id}`} className='h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
-                        {comment.author_avatar ? (
-                          <img src={comment.author_avatar} alt={comment.author_name || 'Membre'} className='h-full w-full object-cover' />
-                        ) : (
-                          <span className='flex h-full w-full items-center justify-center text-xs font-black'>
-                            {avatarInitial(comment.author_name)}
-                          </span>
-                        )}
+                        <MemberAvatarImage src={comment.author_avatar} gender={comment.author_gender} profileStatus={comment.author_profile_status} alt={comment.author_name || 'Membre'} className='h-full w-full object-cover' />
                       </Link>
                       <div className='min-w-0 flex-1'>
                         <div className='flex flex-wrap items-center gap-2 text-xs'>

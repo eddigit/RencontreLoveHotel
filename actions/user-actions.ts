@@ -110,14 +110,30 @@ export async function getUserMatches(userId: string) {
     SELECT
       um.*,
       u1.name as user1_name,
-      u1.avatar as user1_avatar,
+      COALESCE(user1_primary_photo.url, u1.avatar) as user1_avatar,
+      up1.gender as user1_gender,
+      up1.status as user1_profile_status,
       ${onlinePresenceCondition(user1PresenceColumn)} as user1_online,
       u2.name as user2_name,
-      u2.avatar as user2_avatar,
+      COALESCE(user2_primary_photo.url, u2.avatar) as user2_avatar,
+      up2.gender as user2_gender,
+      up2.status as user2_profile_status,
       ${onlinePresenceCondition(user2PresenceColumn)} as user2_online
     FROM user_matches um
     JOIN users u1 ON um.user_id_1 = u1.id
     JOIN users u2 ON um.user_id_2 = u2.id
+    LEFT JOIN user_profiles up1 ON up1.user_id = u1.id
+    LEFT JOIN user_profiles up2 ON up2.user_id = u2.id
+    LEFT JOIN LATERAL (
+      SELECT photos.url FROM photos
+      WHERE photos.user_id = u1.id AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC LIMIT 1
+    ) user1_primary_photo ON TRUE
+    LEFT JOIN LATERAL (
+      SELECT photos.url FROM photos
+      WHERE photos.user_id = u2.id AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC LIMIT 1
+    ) user2_primary_photo ON TRUE
     WHERE (um.user_id_1 = $1 OR um.user_id_2 = $1) AND um.status = 'accepted'
       AND NOT EXISTS (
         SELECT 1 FROM user_blocks b

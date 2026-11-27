@@ -36,6 +36,7 @@ import {
 } from '@/actions/conversation-actions'
 import { reportMember } from '@/actions/member-safety-actions'
 import { useNotifications } from '@/contexts/notification-context'
+import { MemberAvatarImage } from '@/components/member-avatar-image'
 
 interface MessageAttachment {
   id?: string
@@ -61,6 +62,8 @@ interface Message {
   created_at: string
   sender_name?: string
   sender_avatar?: string
+  sender_gender?: string | null
+  sender_profile_status?: string | null
   attachments?: MessageAttachment[]
 }
 
@@ -69,6 +72,8 @@ interface ConversationDetails {
   other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
+  other_user_gender?: string | null
+  other_user_profile_status?: string | null
   other_user_online?: boolean
 }
 
@@ -298,6 +303,8 @@ export default function ConversationPage ({
             other_user_id: currentConv.other_user_id,
             other_user_name: currentConv.other_user_name,
             other_user_avatar: currentConv.other_user_avatar,
+            other_user_gender: currentConv.other_user_gender,
+            other_user_profile_status: currentConv.other_user_profile_status,
             other_user_online: Boolean(currentConv.other_user_online)
           })
         } else {
@@ -682,13 +689,7 @@ export default function ConversationPage ({
                   <ArrowLeft className='h-5 w-5' aria-hidden='true' />
                 </Link>
                 <div className='relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87]/35'>
-                  <Image
-                    src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
-                    alt={conversationDetails?.other_user_name || 'Profil'}
-                    fill
-                    className='object-cover'
-                    sizes='48px'
-                  />
+                  <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil'} className='h-full w-full object-cover' />
                   {conversationDetails?.other_user_online && (
                     <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#191714] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
                   )}
@@ -783,7 +784,7 @@ export default function ConversationPage ({
                             )}
                             <div className={mine ? 'flex items-start justify-end gap-3' : 'flex items-start justify-start gap-3'}>
                               <div className={mine ? 'hidden sm:block w-8 shrink-0' : 'hidden sm:block relative mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-[#aaa69e]/30'}>
-                                {!mine && <Image src={msg.sender_avatar || conversationDetails?.other_user_avatar || '/default-member-couple.jpg'} alt='' fill sizes='32px' className='object-cover' />}
+                                {!mine && <MemberAvatarImage src={msg.sender_avatar || conversationDetails?.other_user_avatar} gender={msg.sender_gender || conversationDetails?.other_user_gender} profileStatus={msg.sender_profile_status || conversationDetails?.other_user_profile_status} alt='' className='h-full w-full object-cover' />}
                               </div>
                               <div
                                 className={[
@@ -932,13 +933,7 @@ export default function ConversationPage ({
           {!loading && !error && <aside className='hidden min-h-0 overflow-y-auto border-l border-[#5d3f3f]/35 bg-[#191714] xl:col-start-3 xl:block'>
             <div className='border-b border-[#5d3f3f]/35 p-5 text-center'>
               <div className='relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87] ring-offset-2 ring-offset-[#191714]'>
-                <Image
-                  src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
-                  alt={conversationDetails?.other_user_name || 'Profil du membre'}
-                  fill
-                  sizes='80px'
-                  className='object-cover'
-                />
+                <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil du membre'} className='h-full w-full object-cover' />
                 {conversationDetails?.other_user_online && <span className='absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border-2 border-[#191714] bg-[#35e48d]' />}
               </div>
               <h3 className='mt-4 text-lg font-bold text-[#f1eee8]'>{conversationDetails?.other_user_name || 'Membre du Cercle'}</h3>

@@ -44,6 +44,8 @@ export type CommunityWallPost = {
   created_at: string | Date
   updated_at?: string | Date
   author_name?: string | null
+  author_gender?: string | null
+  author_profile_status?: string | null
   author_avatar?: string | null
   author_location?: string | null
   event_title?: string | null
@@ -61,6 +63,8 @@ export type CommunityWallComment = {
   status: WallStatus
   created_at: string | Date
   author_name?: string | null
+  author_gender?: string | null
+  author_profile_status?: string | null
   author_avatar?: string | null
   has_reported?: boolean
 }
@@ -238,7 +242,12 @@ export async function getCommunityWallFeed(
         wp.created_at,
         wp.updated_at,
         u.name AS author_name,
-        u.avatar AS author_avatar,
+        COALESCE((
+          SELECT photo.url FROM photos photo WHERE photo.user_id = u.id AND photo.is_primary IS TRUE
+          ORDER BY photo.created_at DESC, photo.id LIMIT 1
+        ), NULLIF(TRIM(u.avatar), '')) AS author_avatar,
+        up.gender AS author_gender,
+        up.status AS author_profile_status,
         up.location AS author_location,
         e.title AS event_title,
         e.event_date,
@@ -263,7 +272,7 @@ export async function getCommunityWallFeed(
           OR wp.event_id IS NULL
           OR (e.event_date::timestamp + e.event_time) > NOW()
         )
-      GROUP BY wp.id, u.name, u.avatar, up.location, e.title, e.event_date, e.event_time
+      GROUP BY wp.id, u.id, up.gender, up.status, u.name, u.avatar, up.location, e.title, e.event_date, e.event_time
       ORDER BY wp.created_at DESC
       LIMIT ${limit}
     `,
@@ -286,7 +295,12 @@ export async function getWallComments(input: {
         wc.status,
         wc.created_at,
         u.name AS author_name,
-        u.avatar AS author_avatar,
+        COALESCE((
+          SELECT photo.url FROM photos photo WHERE photo.user_id = u.id AND photo.is_primary IS TRUE
+          ORDER BY photo.created_at DESC, photo.id LIMIT 1
+        ), NULLIF(TRIM(u.avatar), '')) AS author_avatar,
+        up.gender AS author_gender,
+        up.status AS author_profile_status,
         EXISTS (
           SELECT 1
           FROM wall_reports wr
@@ -296,6 +310,7 @@ export async function getWallComments(input: {
         ) AS has_reported
       FROM wall_comments wc
       JOIN users u ON u.id = wc.user_id
+      LEFT JOIN user_profiles up ON up.user_id = u.id
       JOIN wall_posts wp ON wp.id = wc.post_id
       WHERE wc.post_id = $1
         AND wc.status = 'active'

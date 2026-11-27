@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { nextMemberPortraits } from '@/actions/member-portraits'
 import type { MemberPortrait } from '@/lib/member-portraits'
-import { photoPriority } from '@/lib/discovery-ranking'
+import { MemberAvatarImage } from './member-avatar-image'
 import styles from './site-shell.module.css'
 
 export function MemberPortraitTrack({ initial }: { initial: MemberPortrait[] }) {
@@ -53,11 +53,8 @@ export function MemberPortraitTrack({ initial }: { initial: MemberPortrait[] }) 
           <li key={member.id} className={`shrink-0 snap-start ${styles.portraitItem}`}>
             <Link href={`/profile/${member.id}`} className={`group block text-center rounded-lg focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
               <div className={`relative mx-auto flex size-12 items-center justify-center overflow-hidden rounded-full border sm:size-14 ${styles.portraitPhoto}`}>
-                {member.image && photoPriority(member) > 0 ? (
-                  <img loading='lazy' src={member.image} alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
-                ) : (
-                  <span aria-hidden className={`text-lg font-medium ${styles.portraitInitials}`}>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
-                )}
+                <MemberAvatarImage src={member.image} gender={member.gender} profileStatus={member.profile_status}
+                  alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
               </div>
               <span className={`mt-1 block truncate text-[11px] font-semibold ${styles.portraitName}`}>{member.name}</span>
               <span className={`flex min-h-3 items-center justify-center gap-1 text-[10px] ${styles.portraitMeta}`}>
@@ -68,6 +65,6 @@ export function MemberPortraitTrack({ initial }: { initial: MemberPortrait[] }) 
           </li>
         ))}
       </ul>
-    {error && <button type='button' onClick={load}>Réessayer de charger les membres</button>}
+    {error && <button type='button' onClick={load} className='mt-3 max-w-full whitespace-normal break-words rounded-md px-3 py-2 text-sm font-medium'>Réessayer de charger les membres</button>}
   </div>
 }

@@ -110,7 +110,9 @@ export async function getConversationMessages(conversationId: string, userId?: s
   const messages = await sql.query(
     `SELECT m.*,
       u.name as sender_name,
-      u.avatar as sender_avatar,
+      COALESCE(primary_photo.url, u.avatar) as sender_avatar,
+      sender_profile.gender as sender_gender,
+      sender_profile.status as sender_profile_status,
       COALESCE(ma.attachments, '[]'::json) as attachments
     FROM (
       SELECT m.*
@@ -120,6 +122,12 @@ export async function getConversationMessages(conversationId: string, userId?: s
       LIMIT $2
     ) m
     JOIN users u ON m.sender_id = u.id
+    LEFT JOIN user_profiles sender_profile ON sender_profile.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT photos.url FROM photos
+      WHERE photos.user_id = u.id AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC LIMIT 1
+    ) primary_photo ON TRUE
     LEFT JOIN LATERAL (
       SELECT json_agg(
           json_build_object(
@@ -181,7 +189,9 @@ export async function getConversationMessagesAfter(conversationId: string, after
   const messages = await sql.query(
     `SELECT m.*,
       u.name as sender_name,
-      u.avatar as sender_avatar,
+      COALESCE(primary_photo.url, u.avatar) as sender_avatar,
+      sender_profile.gender as sender_gender,
+      sender_profile.status as sender_profile_status,
       COALESCE(
         json_agg(
           json_build_object(
@@ -201,10 +211,16 @@ export async function getConversationMessagesAfter(conversationId: string, after
       ) as attachments
     FROM messages m
     JOIN users u ON m.sender_id = u.id
+    LEFT JOIN user_profiles sender_profile ON sender_profile.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT photos.url FROM photos
+      WHERE photos.user_id = u.id AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC LIMIT 1
+    ) primary_photo ON TRUE
     LEFT JOIN message_attachments ma ON ma.message_id = m.id
     WHERE m.conversation_id = $1
       AND m.created_at > $2::timestamptz
-    GROUP BY m.id, u.name, u.avatar
+    GROUP BY m.id, u.name, u.avatar, sender_profile.gender, sender_profile.status, primary_photo.url
     ORDER BY m.created_at ASC`,
     [conversationId, afterDate.toISOString()]
   )
@@ -251,7 +267,9 @@ export async function getConversationMessagesBefore(
     )
     SELECT m.*,
       u.name as sender_name,
-      u.avatar as sender_avatar,
+      COALESCE(primary_photo.url, u.avatar) as sender_avatar,
+      sender_profile.gender as sender_gender,
+      sender_profile.status as sender_profile_status,
       COALESCE(ma.attachments, '[]'::json) as attachments
     FROM (
       SELECT m.*
@@ -266,6 +284,12 @@ export async function getConversationMessagesBefore(
       LIMIT $3
     ) m
     JOIN users u ON m.sender_id = u.id
+    LEFT JOIN user_profiles sender_profile ON sender_profile.user_id = u.id
+    LEFT JOIN LATERAL (
+      SELECT photos.url FROM photos
+      WHERE photos.user_id = u.id AND photos.is_primary IS TRUE
+      ORDER BY photos.created_at ASC LIMIT 1
+    ) primary_photo ON TRUE
     LEFT JOIN LATERAL (
       SELECT json_agg(
           json_build_object(

@@ -1,12 +1,12 @@
 import Link from 'next/link'
 import { Heart, MessageCircle } from 'lucide-react'
 import type { ConversationSummary } from '@/lib/member-relationship-service'
+import { MemberAvatarImage } from '@/components/member-avatar-image'
 
-type CardMember = { id: string; name: string; avatar: string | null }
+type CardMember = { id: string; name: string; avatar: string | null; gender?: string | null; profileStatus?: string | null }
 
-function Portrait({ name, avatar }: Pick<CardMember, 'name' | 'avatar'>) {
-  return avatar ? <img src={avatar} alt='' className='size-9 shrink-0 rounded-full object-cover' /> :
-    <span aria-hidden className='grid size-9 shrink-0 place-items-center rounded-full bg-[#302c26] text-sm'>{name.slice(0, 1)}</span>
+function Portrait({ name, avatar, gender, profileStatus }: Pick<CardMember, 'name' | 'avatar' | 'gender' | 'profileStatus'>) {
+  return <MemberAvatarImage src={avatar} gender={gender} profileStatus={profileStatus} alt='' className='size-9 shrink-0 rounded-full object-cover' />
 }
 
 export function CircleActivityCards({ threads, matches, loading, unread }: {
@@ -20,7 +20,7 @@ export function CircleActivityCards({ threads, matches, loading, unread }: {
       title: 'Messages récents', icon: MessageCircle, href: '/messages', link: 'Ouvrir la messagerie',
       empty: threads === null && !loading ? 'La messagerie reste accessible ci-dessous.' : 'Aucune conversation pour le moment.',
       rows: (threads || []).map(t => ({
-        id: t.id, name: t.other_user_name, avatar: t.other_user_avatar,
+        id: t.id, name: t.other_user_name, avatar: t.other_user_avatar, gender: t.other_user_gender, profileStatus: t.other_user_profile_status,
         href: '/messages/' + t.id, detail: t.last_message || 'Ouvrir la conversation', unread: t.has_unread_messages
       }))
     },
@@ -38,7 +38,7 @@ export function CircleActivityCards({ threads, matches, loading, unread }: {
       </div>
       {panel.rows.length === 0 && <p className='mb-3 text-sm text-[#aaa69e]'>{loading ? 'Chargement…' : panel.empty}</p>}
       {panel.rows.map(row => <Link key={row.id} href={row.href} className='flex min-h-12 items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-[#24211d]'>
-        <Portrait name={row.name} avatar={row.avatar} />
+        <Portrait name={row.name} avatar={row.avatar} gender={row.gender} profileStatus={row.profileStatus} />
         <span className='min-w-0'><span className='block truncate text-sm font-semibold'>{row.name}</span>
           <span className='block truncate text-xs text-[#aaa69e]'>{row.detail}</span></span>
         {row.unread && <span aria-label='Non lu' className='ml-auto size-2 shrink-0 rounded-full bg-[#d6bc87]' />}
