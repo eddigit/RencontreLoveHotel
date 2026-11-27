@@ -331,7 +331,7 @@ export async function getAdminMemberEngagementStats(
           SELECT
             cp.user_id,
             COUNT(DISTINCT sm.id)::int AS messages_received,
-            COUNT(DISTINCT sm.id) FILTER (WHERE sm.delivered_at IS NOT NULL)::int AS delivered_messages,
+            COUNT(DISTINCT sm.id) FILTER (WHERE sm.delivered_at IS NOT NULL OR sm.is_read)::int AS delivered_messages,
             COUNT(DISTINCT sm.id) FILTER (WHERE sm.is_read)::int AS read_messages,
             COUNT(DISTINCT sm.id) FILTER (WHERE NOT sm.is_read)::int AS unread_messages
           FROM scoped_messages sm
@@ -382,8 +382,8 @@ export async function getAdminMemberEngagementStats(
       const totals = await sql.query<any[]>(`
         SELECT
           COUNT(*)::int AS sent,
-          COUNT(*) FILTER (WHERE delivered_at IS NOT NULL)::int AS delivered,
-          COUNT(*) FILTER (WHERE delivered_at IS NULL)::int AS pending_delivery,
+          COUNT(*) FILTER (WHERE delivered_at IS NOT NULL OR is_read IS TRUE)::int AS delivered,
+          COUNT(*) FILTER (WHERE delivered_at IS NULL AND is_read IS NOT TRUE)::int AS pending_delivery,
           COUNT(*) FILTER (WHERE COALESCE(is_read, false))::int AS read,
           COUNT(*) FILTER (WHERE NOT COALESCE(is_read, false))::int AS unread
         FROM messages

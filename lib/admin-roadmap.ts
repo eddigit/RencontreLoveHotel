@@ -29,7 +29,7 @@ export const roadmapItems: RoadmapItem[] = [
     title: 'Relancer les membres par message interne et par e-mail',
     category: 'Messagerie', status: 'planned', priority: 'Haute',
     phase: 'Préparation · 28 novembre 2026', owner: 'Gilles',
-    note: 'Préparer une annonce interne et une version e-mail pour les membres ayant accepté les actualités.',
+    note: 'Au contrôle du 27 novembre, aucun compte n’était éligible à une campagne e-mail. Préparer en priorité une annonce interne avec un lien vers les choix de notification.',
     impact: 'Mesurer les retours sur le site et les reprises de conversation après la relance.',
     nextAction: 'Chiffrer les deux audiences, exclure les comptes inactifs ou bannis et les adresses désabonnées pour l’e-mail. Tester sur un compte dédié puis valider les textes avant envoi.',
     updatedAt: '2026-11-27'

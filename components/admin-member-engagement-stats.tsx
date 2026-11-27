@@ -109,7 +109,7 @@ export function AdminMemberEngagementStats() {
           <Metric label='Non lus' value={data.messageReceiptsAvailable ? data.messages.unread : null} tone='text-orange-500' />
           <Metric label='Connexions réussies' value={data.authAuditAvailable ? data.members.reduce((total, member) => total + member.successfulLogins, 0) : null} tone='text-[#d6bc87]' />
         </div>
-        <p className='text-xs text-muted-foreground'>Les états de livraison, lecture et réponse sont rattachés à un membre uniquement pour les conversations à deux participants. « Réponses 1:1 » compte les conversations où le membre a répondu après un message reçu pendant la période. Les conversations de groupe sont exclues ; les totaux généraux restent distincts.</p>
+        <p className='text-xs text-muted-foreground'>Un message lu compte comme livré, y compris pour les anciens échanges sans accusé de livraison. Les états de livraison, lecture et réponse sont rattachés à un membre uniquement pour les conversations à deux participants. « Réponses 1:1 » compte les conversations où le membre a répondu après un message reçu pendant la période. Les conversations de groupe sont exclues ; les totaux généraux restent distincts.</p>
 
         <div className='flex flex-col justify-between gap-3 sm:flex-row sm:items-center'>
           <div><h3 className='flex items-center gap-2 font-semibold'><Users className='h-4 w-4 text-sky-500' />Membres identifiés</h3><p className='text-xs text-muted-foreground'>Jours actifs = jour distinct avec connexion réussie, message envoyé ou présence enregistrée.</p></div>
