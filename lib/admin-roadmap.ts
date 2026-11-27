@@ -25,6 +25,16 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'verification-photo-pseudo',
+    title: 'Vérifier un profil sur photo et afficher un badge',
+    category: 'Securite', status: 'planned', priority: 'Haute',
+    phase: 'Avant l’ouverture du parrainage validé', owner: 'Équipe Joug',
+    note: 'Depuis Profil, le membre transmet une photo privée avec son pseudo manuscrit sur une feuille. Pour un couple, les deux personnes figurent ensemble sur la même photo avec la feuille.',
+    impact: 'Un écusson vert avec une coche et le libellé « Profil vérifié » indique que l’équipe a contrôlé la photo et le pseudo.',
+    nextAction: 'Prévoir dépôt privé distinct de la galerie, accès administrateur contrôlé, file de demandes et décisions tracées. Permettre approbation, nouvelle demande et retrait du badge. Supprimer la preuve après décision selon un délai défini et tester les accès avec deux comptes avant ouverture.',
+    updatedAt: '2026-11-28'
+  },
+  {
     id: 'notifications-push-pwa',
     title: 'Notifications push pour la PWA',
     category: 'Messagerie', status: 'planned', priority: 'Moyenne',
