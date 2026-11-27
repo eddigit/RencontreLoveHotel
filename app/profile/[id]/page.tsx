@@ -16,6 +16,9 @@ import { UserGallery } from '@/components/UserGallery'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { MemberProfileBackButton } from '@/components/member-profile-back-button'
 import { ProfileVisitTracker } from '@/components/profile-visit-tracker'
+import { PostMeetingWordForm } from '@/components/post-meeting-word'
+import { PublicPostMeetingWordsClient } from '@/components/public-post-meeting-words'
+import { getPublicPostMeetingWords, submitPostMeetingWord } from '@/actions/post-meeting-word-actions'
 import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { defaultMemberImage } from '@/lib/default-member-image'
@@ -84,6 +87,7 @@ export default async function ProfilePage ({
     : []
 
   const photoVerified = await getPublicProfileVerified(String(profile.user_id))
+  const publicPostMeetingWords = await getPublicPostMeetingWords(String(profile.user_id)).catch(() => [])
   const canShowActions = currentUser && currentUser.id !== profile.user_id
 
   return (
@@ -131,6 +135,7 @@ export default async function ProfilePage ({
               {profile.bio && (
                 <p className='break-words max-w-3xl text-base leading-7 text-[#c9c7c2]'>{profile.bio}</p>
               )}
+              <div className='mt-5'><PublicPostMeetingWordsClient words={publicPostMeetingWords} /></div>
             </div>
           </section>
 
@@ -226,6 +231,7 @@ export default async function ProfilePage ({
                     </Button>
                   </div>
                   <MemberSafetyMenu targetUserId={String(profile.user_id)} />
+                  <PostMeetingWordForm recipientUserId={String(profile.user_id)} onSubmit={submitPostMeetingWord} />
                 </div>
               </div>
             )}

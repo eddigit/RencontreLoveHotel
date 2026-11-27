@@ -37,6 +37,10 @@ export default function CommunitySafetyPage () {
             </p>
           </section>
           <section>
+            <h2 className='text-2xl font-bold'>Les mots après rencontre</h2>
+            <p className='mt-3 text-white/72'>Écrivez uniquement à propos d’une rencontre que vous avez vécue. Un mot apparaît sur la fiche si les deux membres confirment la rencontre et acceptent sa publication. Gardez les coordonnées, les noms civils et les détails intimes pour vous.</p>
+          </section>
+          <section>
             <h2 className='text-2xl font-bold'>Une modération proportionnée</h2>
             <p className='mt-3 text-white/72'>
               Des signaux automatisés peuvent créer une alerte confidentielle. Aucun bannissement permanent ne repose

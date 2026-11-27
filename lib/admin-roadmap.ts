@@ -25,6 +25,16 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'activite-personnelle',
+    title: 'Mon activité sur le cercle',
+    category: 'Fonctionnel', status: 'planned', priority: 'Moyenne',
+    phase: 'Après la reprise des échanges', owner: 'Équipe Joug',
+    note: 'La liste privée des visiteurs sur 30 jours est disponible dans Découvrir. Le bilan personnel reste à développer.',
+    impact: 'Permettre à chaque membre de retrouver ses nouvelles visites, ses conversations avec réponse et ses invitations depuis sa dernière connexion.',
+    nextAction: 'Après la relance, vérifier sur quatre semaines que ces informations sont assez fréquentes pour être utiles. Afficher les nouveautés réelles et proposer une action simple pendant les périodes calmes.',
+    updatedAt: '2026-11-28'
+  },
+  {
     id: 'verification-photo-pseudo',
     title: 'Vérifier un profil sur photo et afficher un badge',
     category: 'Securite', status: 'developed', priority: 'Haute',

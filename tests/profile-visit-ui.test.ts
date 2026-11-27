@@ -20,7 +20,7 @@ describe('profile visit UI', () => {
     expect(source).toContain("'use client'")
     expect(source).toContain('getProfileVisitors(limit)')
     expect(source).toContain('Visites des 30 derniers jours, de la plus récente à la plus ancienne.')
-    expect(source).toContain('Aucune visite enregistrée pour le moment.')
+    expect(source).toContain('Vos prochains visiteurs apparaîtront ici.')
     expect(source).toContain('Impossible de charger votre historique de visites pour le moment.')
   })
 })

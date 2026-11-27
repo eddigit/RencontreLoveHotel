@@ -28,7 +28,7 @@ export function ProfileVisitors({ limit = 8 }: { limit?: number }) {
   }, [limit])
 
   return (
-    <section aria-labelledby='profile-visitors-title' className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
+    <section id='visites' aria-labelledby='profile-visitors-title' className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
       <div className='flex items-center gap-2'>
         <Eye className='h-5 w-5 text-[#d6bc87]' aria-hidden />
         <div>
@@ -38,7 +38,7 @@ export function ProfileVisitors({ limit = 8 }: { limit?: number }) {
       </div>
       {status === 'loading' && <p className='mt-4 text-sm text-[#c9c7c2]'>Chargement de vos visites…</p>}
       {status === 'error' && <p className='mt-4 text-sm text-[#f3b5b5]'>Impossible de charger votre historique de visites pour le moment.</p>}
-      {status === 'ready' && visitors.length === 0 && <p className='mt-4 text-sm text-[#c9c7c2]'>Aucune visite enregistrée pour le moment.</p>}
+      {status === 'ready' && visitors.length === 0 && <p className='mt-4 text-sm text-[#c9c7c2]'>Vos prochains visiteurs apparaîtront ici.</p>}
       {status === 'ready' && visitors.length > 0 && <ul className='mt-4 grid gap-3 sm:grid-cols-2'>
         {visitors.map(visitor => {
           const name = displayMemberName(visitor.name)

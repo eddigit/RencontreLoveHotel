@@ -20,6 +20,8 @@ import { EmailPreferencesEditor } from '@/components/email-preferences-editor'
 import { relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 import { PhotoVerificationRequest } from '@/components/photo-verification-request'
 import { getOwnPhotoVerificationRequest, withdrawPhotoVerificationRequest } from '@/actions/photo-verification-actions'
+import { getOwnPostMeetingWords, getReceivedPostMeetingWords, respondToPostMeetingWord, withdrawPostMeetingWord } from '@/actions/post-meeting-word-actions'
+import { PostMeetingWordInbox } from '@/components/post-meeting-word'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -339,6 +341,7 @@ export default async function ProfilePage ({
 
   const emailPreferences = await getOwnEmailPreferences().catch(() => null)
   const photoVerificationRequest = await getOwnPhotoVerificationRequest().catch(() => null)
+  const [ownPostMeetingWords, receivedPostMeetingWords] = await Promise.all([getOwnPostMeetingWords().catch(() => []), getReceivedPostMeetingWords().catch(() => [])])
   const photoVerificationIdentityKind = profile.status || profile.gender
     ? (String(profile.status || profile.gender).toLowerCase().includes('couple') ? 'couple' : 'solo')
     : null
@@ -464,6 +467,8 @@ export default async function ProfilePage ({
                   onWithdraw={withdrawPhotoVerificationRequest}
                 />
               </div>
+              <Link href='/discover#visites' className='inline-flex rounded-lg px-3 py-2 font-semibold text-[#d6bc87] hover:underline'>Qui a visité mon profil ?</Link>
+              <PostMeetingWordInbox received={receivedPostMeetingWords} authored={ownPostMeetingWords} onRespond={respondToPostMeetingWord} onWithdraw={withdrawPostMeetingWord} />
               <UserProfileEditor
                 user={userData}
                 onSave={updateUserProfile}
