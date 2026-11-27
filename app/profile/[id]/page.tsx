@@ -1,5 +1,7 @@
 import { getPublicProfileVerified } from '@/actions/photo-verification-actions'
 import { VerifiedProfileBadge } from '@/components/verified-profile-badge'
+import { parseProfileTags } from '@/lib/profile-likes-dislikes'
+import { directoryProfileTypeLabel, relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -8,7 +10,6 @@ import { getServerSession } from 'next-auth/next'
 import { CalendarHeart, Heart, MapPin, Wine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { MatchRequestButton } from '@/components/match-request-button'
 import { ProfileMessageForm } from '@/components/profile-message-form'
@@ -62,10 +63,19 @@ export default async function ProfilePage ({
   if (!userProfileData || !userProfileData.user) notFound()
 
   const profile = userProfileData.user
+  const photos = userProfileData.photos || []
   const session = await getServerSession(authOptions)
   const currentUser = session?.user as SessionUser
   const avatar = defaultMemberImage(profile)
-  const interests = Array.isArray(profile.interests) ? profile.interests : []
+  const interests = parseProfileTags(profile.interests)
+  const likes = parseProfileTags(profile.likes)
+  const dislikes = parseProfileTags(profile.dislikes)
+  const targets = parseProfileTags(profile.seeking_profile_types)
+  const intents = parseProfileTags(profile.relationship_intents)
+  const lookingFor = [
+    ...seekingProfileTypeOptions.filter(option => targets.includes(option.value)),
+    ...relationshipIntentOptions.filter(option => intents.includes(option.value))
+  ].map(option => option.label)
   const profileOnline = isUserRecentlySeen(profile.last_seen_at)
 
   let matchStatus: any = null
@@ -92,17 +102,15 @@ export default async function ProfilePage ({
 
   return (
     <MainLayout session={session} user={currentUser}>
-      <LhrV2Shell
-        user={currentUser}
-        eyebrow='Profil membre'
-        title={`${displayMemberName(profile.name)}${profile.age ? `, ${profile.age}` : ''}`}
-        action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] xl:hidden'>Entrer en contact</a>}</>}
-      >
-        {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
-        <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
-          <section className='overflow-hidden rounded-3xl border border-[#111821] bg-[#0a0f15] text-[#ecebe7] shadow-2xl shadow-black/30'>
-            <div className='bg-[#04070b] p-3 sm:p-5'>
-              <div className='relative mx-auto aspect-[4/5] w-full max-h-[64svh] max-w-[640px] overflow-hidden rounded-2xl bg-[#111821]'>
+      <main className='mx-auto w-full max-w-[1440px] px-3 pb-8 text-[#ecebe7] sm:px-6'>
+        <div className='flex flex-wrap items-center justify-between gap-2 py-3'>
+          <MemberProfileBackButton />
+          {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
+        </div>
+        <header className='overflow-hidden rounded-2xl bg-[#181819]'>
+          <div aria-hidden='true' className='h-24 bg-[#251f19] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "linear-gradient(0deg, #181819, #15131670 75%), url('/guide-love-rooms.webp')"}} />
+          <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-3 px-4 pb-5 sm:px-6'>
+              <div className='relative aspect-square w-28 shrink-0 overflow-hidden rounded-xl bg-[#111214] ring-4 ring-[#181819] sm:w-32'>
                 {avatar.startsWith('http') ? (
                   <img src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-contain' />
                 ) : (
@@ -111,7 +119,7 @@ export default async function ProfilePage ({
                     alt={displayMemberName(profile.name)}
                     fill
                     className='object-contain'
-                    sizes='(max-width: 1280px) 100vw, 640px'
+                    sizes='(min-width: 768px) 128px, 112px'
                     priority
                   />
                 )}
@@ -119,31 +127,53 @@ export default async function ProfilePage ({
                   <PresenceDot className='right-4 top-4' />
                 )}
               </div>
-            </div>
-
-            <div className='border-t border-[#111821] p-5 sm:p-8'>
-              <div className='mb-4 flex flex-wrap gap-2'>
+            <div className='min-w-0 flex-1'>
+              <h1 className='break-words text-2xl font-bold tracking-tight sm:text-3xl'>{displayMemberName(profile.name)}{profile.age ? `, ${profile.age}` : ''}</h1>
+                <div className='mt-2 flex flex-wrap gap-2'>
+                <span className='self-center text-sm text-stone-300'>{directoryProfileTypeLabel(profile)}</span>
                 {photoVerified && <VerifiedProfileBadge />}
                 {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
                   <MapPin className='mr-1 h-3.5 w-3.5' />
                   {profile.location}
                 </Badge>}
                 {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
-              </div>
-
-
-              {profile.bio && (
-                <p className='break-words max-w-3xl text-base leading-7 text-[#c9c7c2]'>{profile.bio}</p>
-              )}
-              <div className='mt-5'><PublicPostMeetingWordsClient words={publicPostMeetingWords} /></div>
+                </div>
             </div>
-          </section>
-
-          <aside className='flex flex-col gap-4'>
-
-            {interests.length > 0 && <div className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
-              <h3 className='font-black'>Centres d’intérêt</h3>
-              <div className='mt-4 flex flex-wrap gap-2'>
+            {canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714]'>Entrer en contact</a>}
+          </div>
+        </header>
+        <nav aria-label='Sections du profil' className='my-4 flex flex-wrap gap-1 rounded-xl bg-[#19191c] p-1.5 text-sm font-semibold text-[#d6bc87] [&_a]:rounded-lg [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-white/10'>
+          <a href='#descriptif'>Présentation</a><a href='#gouts'>Goûts et limites</a><a href='#galerie'>Galerie</a><a href='#mots'>Commentaires</a>
+        </nav>
+        <div className='grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]'>
+          <div className='grid min-w-0 gap-5'>
+            <section id='descriptif' className='scroll-mt-20 rounded-2xl bg-[#181819] p-5'>
+              <h2 className='text-xl font-bold'>Présentation</h2>
+              <p className='mt-3 whitespace-pre-line break-words leading-7 text-stone-300'>{profile.bio?.trim() || 'Ce membre n’a pas encore rédigé sa présentation.'}</p>
+            </section>
+            <section id='galerie' className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
+              <h3 className='flex items-center gap-2 font-black'>
+                <Heart className='h-4 w-4 text-[#d6bc87]' />
+                Galerie
+              </h3>
+              <div className='mt-4'>
+                <UserGallery photos={photos} />
+              </div>
+            </section>
+            <section id='mots' className='scroll-mt-20 rounded-2xl bg-[#181819] p-5'>
+              <h2 className='text-lg font-bold'>Commentaires après rencontre</h2>
+              {publicPostMeetingWords.length ? <PublicPostMeetingWordsClient words={publicPostMeetingWords} /> : <p className='mt-2 text-sm text-stone-400'>Aucun mot publié pour le moment.</p>}
+              {canShowActions && <details className='mt-3'><summary className='cursor-pointer py-2 text-sm font-semibold text-[#d6bc87]'>Laisser un mot après une rencontre</summary><PostMeetingWordForm recipientUserId={String(profile.user_id)} onSubmit={submitPostMeetingWord} /></details>}
+            </section>
+          </div>
+          <aside className='grid min-w-0 gap-5'>
+            <section id='gouts' className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
+              <h3 className='font-black'>Goûts et limites déclarés</h3>
+              <p className='mt-4 text-sm font-semibold'>Ce que je recherche</p>
+              <p className='mt-1 text-sm text-stone-300'>{lookingFor.join(' · ') || 'Non renseigné'}</p>
+              <p className='mt-4 text-sm font-semibold'>Centres d’intérêt</p>
+              <div className='mt-2 flex flex-wrap gap-2'>
+                {!interests.length && <span className='text-sm text-stone-400'>Non renseignés</span>}
                 {interests.map((interest: string) => (
                   <Badge
                     key={interest}
@@ -153,10 +183,12 @@ export default async function ProfilePage ({
                   </Badge>
                 ))}
               </div>
-            </div>}
+              <div className='mt-4'><p className='text-xs font-bold uppercase tracking-wide text-[#d6bc87]'>J’aime</p><p className='mt-1 text-sm text-[#c9c7c2]'>{likes.length ? likes.join(' · ') : 'Non renseigné'}</p><p className='mt-3 text-xs font-bold uppercase tracking-wide text-[#d6bc87]'>Je préfère éviter</p><p className='mt-1 text-sm text-[#c9c7c2]'>{dislikes.length ? dislikes.join(' · ') : 'Non renseigné'}</p></div>
+            </section>
+
 
             {canShowActions && (
-              <div id='contact' className='order-first scroll-mt-20 rounded-2xl border border-[#d6bc87]/45 bg-[#111821] p-5 text-[#ecebe7]'>
+              <section id='contact' className=' scroll-mt-20 rounded-2xl border border-[#d6bc87]/45 bg-[#111821] p-5 text-[#ecebe7]'><div>
                 <h3 className='font-black'>Entrer en contact</h3>
                 <div className='mt-4 space-y-3'>
                   {matchStatus === null && (
@@ -230,24 +262,15 @@ export default async function ProfilePage ({
                       </Link>
                     </Button>
                   </div>
-                  <MemberSafetyMenu targetUserId={String(profile.user_id)} />
-                  <PostMeetingWordForm recipientUserId={String(profile.user_id)} onSubmit={submitPostMeetingWord} />
-                </div>
-              </div>
+                  <details className='pt-3'><summary className='cursor-pointer py-2 text-sm font-semibold'>Signaler ou bloquer ce profil</summary><MemberSafetyMenu targetUserId={String(profile.user_id)} /></details>
+
+                </div></div>
+              </section>
             )}
 
-            <div className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <Heart className='h-4 w-4 text-[#ff8cc8]' />
-                Galerie
-              </h3>
-              <div className='mt-4'>
-                <UserGallery userId={profile.user_id} />
-              </div>
-            </div>
           </aside>
         </div>
-      </LhrV2Shell>
+      </main>
     </MainLayout>
   )
 }

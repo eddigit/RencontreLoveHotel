@@ -22,6 +22,7 @@ import { PhotoVerificationRequest } from '@/components/photo-verification-reques
 import { getOwnPhotoVerificationRequest, withdrawPhotoVerificationRequest } from '@/actions/photo-verification-actions'
 import { getOwnPostMeetingWords, getReceivedPostMeetingWords, respondToPostMeetingWord, withdrawPostMeetingWord } from '@/actions/post-meeting-word-actions'
 import { PostMeetingWordInbox } from '@/components/post-meeting-word'
+import { ensureProfileLikesDislikesSchema, normalizeProfileTags, parseProfileTags } from '@/lib/profile-likes-dislikes'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -36,11 +37,14 @@ async function updateUserProfile (userData: any) {
   if (!user) {
     redirect('/login')
   }
+  await ensureProfileLikesDislikesSchema()
+  const likes = normalizeProfileTags(userData.likes)
+  const dislikes = normalizeProfileTags(userData.dislikes)
 
   await enforceMemberContent({
     actorUserId: String(user.id),
     surface: 'profile',
-    content: [userData.name, userData.location, userData.bio]
+    content: [userData.name, userData.location, userData.bio, ...likes, ...dislikes]
       .filter(Boolean)
       .join('\n')
   })
@@ -77,6 +81,8 @@ async function updateUserProfile (userData: any) {
         gender = ${userData.gender || null},
         birthday = ${userData.birthday ? userData.birthday : null},
         interests = ${JSON.stringify(userData.interests || [])},
+        likes = ${JSON.stringify(likes)},
+        dislikes = ${JSON.stringify(dislikes)},
         seeking_profile_types = COALESCE(${seekingProfileTypes}::text[], seeking_profile_types),
         relationship_intents = COALESCE(${relationshipIntents}::text[], relationship_intents),
         display_profile = ${
@@ -88,14 +94,14 @@ async function updateUserProfile (userData: any) {
     `
   } else {
     await sql`
-      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, status, featured, display_profile, seeking_profile_types, relationship_intents)
+      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, likes, dislikes, status, featured, display_profile, seeking_profile_types, relationship_intents)
       VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
       userData.gender || null
     }, ${userData.birthday ? userData.birthday : null}, ${JSON.stringify(
       userData.interests || []
-    )}, ${userData.status || 'single_male'}, false, ${
+    )}, ${JSON.stringify(likes)}, ${JSON.stringify(dislikes)}, ${userData.status || 'single_male'}, false, ${
       typeof userData.display_profile === 'boolean'
         ? userData.display_profile
         : true
@@ -307,6 +313,8 @@ export default async function ProfilePage ({
       typeof profile.interests === 'string'
         ? JSON.parse(profile.interests)
         : profile.interests || [],
+    likes: parseProfileTags(profile.likes),
+    dislikes: parseProfileTags(profile.dislikes),
     seekingProfileTypes: Array.isArray(profile.seeking_profile_types) ? profile.seeking_profile_types : [],
     relationshipIntents: Array.isArray(profile.relationship_intents) ? profile.relationship_intents : [],
     display_profile:

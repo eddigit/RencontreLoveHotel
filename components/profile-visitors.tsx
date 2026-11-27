@@ -14,6 +14,7 @@ export function ProfileVisitors({ limit = 8 }: { limit?: number }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
 
   useEffect(() => {
+    if (window.location.hash === '#visites') document.getElementById('visites')?.scrollIntoView()
     let active = true
     void getProfileVisitors(limit)
       .then(rows => {
@@ -28,7 +29,7 @@ export function ProfileVisitors({ limit = 8 }: { limit?: number }) {
   }, [limit])
 
   return (
-    <section id='visites' aria-labelledby='profile-visitors-title' className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
+    <section id='visites' aria-labelledby='profile-visitors-title' className='scroll-mt-24 rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
       <div className='flex items-center gap-2'>
         <Eye className='h-5 w-5 text-[#d6bc87]' aria-hidden />
         <div>

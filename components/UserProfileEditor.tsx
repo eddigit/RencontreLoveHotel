@@ -48,6 +48,11 @@ export function UserProfileEditor ({
     if (!Array.isArray(interests)) {
       interests = []
     }
+    const parseTags = (value: unknown) => {
+      if (Array.isArray(value)) return value.filter(item => typeof item === 'string')
+      if (typeof value !== 'string') return []
+      try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : [] } catch { return [] }
+    }
     return {
       name: user.name || '',
       status: user.status || '',
@@ -58,6 +63,8 @@ export function UserProfileEditor ({
       gender: user.gender || '',
       birthday: user.birthday || '',
       interests,
+      likes: parseTags(user.likes),
+      dislikes: parseTags(user.dislikes),
       seekingProfileTypes: Array.isArray(user.seekingProfileTypes) ? user.seekingProfileTypes : [],
       relationshipIntents: Array.isArray(user.relationshipIntents) ? user.relationshipIntents : [],
       avatar: user.avatar || '',
@@ -66,6 +73,12 @@ export function UserProfileEditor ({
     }
   })
   const [saving, setSaving] = useState(false)
+  const [likesDraft, setLikesDraft] = useState(() => {
+    try { const value = typeof user.likes === 'string' ? JSON.parse(user.likes) : user.likes; return Array.isArray(value) ? value.join(', ') : '' } catch { return '' }
+  })
+  const [dislikesDraft, setDislikesDraft] = useState(() => {
+    try { const value = typeof user.dislikes === 'string' ? JSON.parse(user.dislikes) : user.dislikes; return Array.isArray(value) ? value.join(', ') : '' } catch { return '' }
+  })
   const [newInterest, setNewInterest] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -171,7 +184,8 @@ export function UserProfileEditor ({
   async function handleSubmit (e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
-    await onSave(form)
+    const toTags = (draft: string) => draft.split(',').map(item => item.trim()).filter(Boolean)
+    await onSave({ ...form, likes: toTags(likesDraft), dislikes: toTags(dislikesDraft) })
     await update()
     setSaving(false)
     router.refresh()
@@ -410,6 +424,16 @@ export function UserProfileEditor ({
                 Ajouter
               </Button>
             </div>
+          </div>
+          <div className='sm:col-span-2 grid gap-4 sm:grid-cols-2'>
+            <label className='grid gap-2 text-sm font-bold'>Ce que vous aimez
+              <Textarea value={likesDraft} onChange={e => setLikesDraft(e.target.value)} maxLength={720} placeholder='Danser, cocktails, discussions…' className='min-h-24 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40' />
+              <span className='text-xs font-normal text-white/55'>Facultatif · séparez les idées par des virgules.</span>
+            </label>
+            <label className='grid gap-2 text-sm font-bold'>Ce que vous n’aimez pas
+              <Textarea value={dislikesDraft} onChange={e => setDislikesDraft(e.target.value)} maxLength={720} placeholder='Fumée, lieux bruyants…' className='min-h-24 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40' />
+              <span className='text-xs font-normal text-white/55'>Facultatif · restez factuel et respectueux.</span>
+            </label>
           </div>
           </div>
         </div>

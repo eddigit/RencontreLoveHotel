@@ -22,6 +22,7 @@ import { memberIdentityFromStatus, type MemberStatus } from '@/lib/member-profil
 import { ensurePrivatePhotoVerificationSchema } from '@/lib/photo-verification-schema'
 import { verifiedPhotoPredicateSql } from '@/lib/photo-verification-badge'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
+import { ensureProfileLikesDislikesSchema } from '@/lib/profile-likes-dislikes'
 import { revalidatePath } from 'next/cache'
 import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
@@ -30,16 +31,19 @@ type CommunityMemberStats = {
 }
 
 export async function getUserProfile(userId: string) {
+  const currentUser = await requireCurrentUser()
+  const privateAccess = currentUser.id === userId || currentUser.role === 'admin'
+  await ensureProfileLikesDislikesSchema()
   const user = await sql`
     SELECT
       u.id AS user_id,
       u.id,
       u.name,
-      u.email,
-      u.role,
+      CASE WHEN ${privateAccess} THEN u.email ELSE NULL END AS email,
+      CASE WHEN ${privateAccess} THEN u.role ELSE NULL END AS role,
       u.avatar,
       u.onboarding_completed,
-      u.is_banned,
+      CASE WHEN ${privateAccess} THEN u.is_banned ELSE NULL END AS is_banned,
       u.status AS account_status,
       u.created_at AS user_created_at,
       u.updated_at AS user_updated_at,
@@ -52,8 +56,10 @@ export async function getUserProfile(userId: string) {
       up.bio,
       up.location,
       up.gender,
-      up.birthday,
+      CASE WHEN ${privateAccess} THEN up.birthday ELSE NULL END AS birthday,
       up.interests,
+      up.likes,
+      up.dislikes,
       up.featured,
       up.display_profile,
       up.created_at AS profile_created_at,
@@ -64,8 +70,16 @@ export async function getUserProfile(userId: string) {
       up.bdsm_roles
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
-    WHERE u.id = ${userId}
+    WHERE u.id = ${userId} AND (${privateAccess} OR (
+      up.display_profile IS TRUE AND COALESCE(u.is_banned, false) = false
+      AND COALESCE(u.status, 'active') = 'active'
+      AND NOT EXISTS (SELECT 1 FROM user_blocks b
+        WHERE (b.blocker_id = ${currentUser.id} AND b.blocked_id = u.id)
+           OR (b.blocker_id = u.id AND b.blocked_id = ${currentUser.id}))
+    ))
+    ORDER BY up.updated_at DESC NULLS LAST, up.id DESC LIMIT 1
   `
+  if (!user.length) return { user: null, photos: [], preferences: null, meetingTypes: null, additionalOptions: null }
 
   const photos = await sql`
     SELECT * FROM photos

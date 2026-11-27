@@ -1,123 +1,36 @@
 'use client'
-import React, { useEffect, useState } from 'react'
-import { isMemberId } from '@/lib/member-id'
 
-interface UserPhoto {
-  id: string
-  url: string
-  is_primary: boolean
-}
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
-export function UserGallery ({ userId }: { userId: string }) {
-  const [photos, setPhotos] = useState<UserPhoto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [viewerOpen, setViewerOpen] = useState(false)
-  const [viewerIndex, setViewerIndex] = useState(0)
+type GalleryPhoto = { id: string; url: string }
 
-  useEffect(() => {
-    const fetchPhotos = async () => {
-      try {
-        if (!userId || !isMemberId(userId)) {
-          console.error('Invalid userId format:', userId)
-          setPhotos([])
-          setLoading(false)
-          return
-        }
+export function UserGallery({ photos }: { photos: GalleryPhoto[] }) {
+  const [index, setIndex] = useState<number | null>(null)
+  const selected = index === null ? undefined : photos[index]
+  if (!photos.length) return <p className='text-sm text-stone-400'>Ce membre n’a pas encore ajouté de photo à sa galerie.</p>
 
-        const response = await fetch(`/api/photos/list?userId=${userId}`)
+  function move(step: number) {
+    setIndex(current => ((current ?? 0) + step + photos.length) % photos.length)
+  }
 
-        if (!response.ok) {
-          console.error('API response error:', response.status, response.statusText)
-          setPhotos([])
-          setLoading(false)
-          return
-        }
-
-        const data = await response.json()
-
-        if (data.error) {
-          console.error('API error:', data.error, data.details)
-          setPhotos([])
-        } else {
-          setPhotos(data.photos || [])
-        }
-      } catch (error) {
-        console.error('Error fetching photos:', error)
-        setPhotos([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPhotos()
-  }, [userId])
-
-  if (loading) return <div>Chargement de la galerie...</div>
-  if (!photos.length) return <div>Aucune photo dans la galerie.</div>
-
-  return (
-    <>
-      <div className='flex flex-wrap gap-4'>
-        {photos.map((photo, idx) => (
-          <div
-            key={photo.id}
-            className='w-32 h-32 border rounded overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary transition'
-            onClick={() => {
-              setViewerIndex(idx)
-              setViewerOpen(true)
-            }}
-          >
-            <img
-              src={photo.url}
-              alt='Photo galerie utilisateur'
-              className='object-cover w-full h-full'
-            />
-          </div>
-        ))}
-      </div>
-      {viewerOpen && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center bg-black/80'
-          onClick={() => setViewerOpen(false)}
-        >
-          <button
-            className='absolute top-4 right-4 text-white text-3xl font-bold bg-black/40 rounded-full px-3 py-1 hover:bg-black/70 transition'
-            onClick={e => {
-              e.stopPropagation()
-              setViewerOpen(false)
-            }}
-            aria-label='Fermer'
-          >
-            ×
-          </button>
-          <button
-            className='absolute left-4 top-1/2 -translate-y-1/2 text-white text-3xl font-bold bg-black/40 rounded-full px-3 py-1 hover:bg-black/70 transition'
-            onClick={e => {
-              e.stopPropagation()
-              setViewerIndex((viewerIndex - 1 + photos.length) % photos.length)
-            }}
-            aria-label='Précédent'
-          >
-            ‹
-          </button>
-          <img
-            src={photos[viewerIndex].url}
-            alt='Photo agrandie'
-            className='max-h-[80vh] max-w-[90vw] rounded shadow-lg border-4 border-white'
-            onClick={e => e.stopPropagation()}
-          />
-          <button
-            className='absolute right-4 top-1/2 -translate-y-1/2 text-white text-3xl font-bold bg-black/40 rounded-full px-3 py-1 hover:bg-black/70 transition'
-            onClick={e => {
-              e.stopPropagation()
-              setViewerIndex((viewerIndex + 1) % photos.length)
-            }}
-            aria-label='Suivant'
-          >
-            ›
-          </button>
-        </div>
-      )}
-    </>
-  )
+  return <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setIndex(null) }}>
+    <div className='grid grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-2 sm:grid-cols-[repeat(auto-fill,minmax(7rem,1fr))]'>
+      {photos.map((photo, i) => <button type='button' key={photo.id} onClick={() => setIndex(i)}
+        className='aspect-square overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-amber-200'
+        aria-label={`Agrandir la photo ${i + 1}`}>
+        <img alt='' src={photo.url} loading='lazy' className='h-full w-full object-cover' />
+      </button>)}
+    </div>
+    {selected && index !== null && <DialogContent aria-describedby={undefined} className='w-[94vw] max-w-3xl border-white/10 bg-[#131416] text-stone-100'
+      onKeyDown={event => { if (event.key === 'ArrowLeft') move(-1); if (event.key === 'ArrowRight') move(1) }}>
+      <DialogTitle>Photo {index + 1} sur {photos.length}</DialogTitle>
+      <img src={selected.url} alt={`Photo de galerie ${index + 1}`} className='mx-auto max-h-[68svh] max-w-full object-contain' />
+      {photos.length > 1 && <div className='flex justify-between'>
+        <button type='button' onClick={() => move(-1)} aria-label='Photo précédente' className='p-2'><ChevronLeft /></button>
+        <button type='button' onClick={() => move(1)} aria-label='Photo suivante' className='p-2'><ChevronRight /></button>
+      </div>}
+    </DialogContent>}
+  </Dialog>
 }

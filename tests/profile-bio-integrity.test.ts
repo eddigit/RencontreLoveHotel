@@ -13,12 +13,12 @@ describe('profile biography integrity', () => {
     expect(members).not.toContain('Profil disponible pour une rencontre dans la communauté.')
   })
 
-  it('only renders biography and intentions blocks when the member supplied a biography', () => {
+  it('shows an explicit empty state when a member has not supplied a biography', () => {
     const discover = readFileSync('app/discover/page.tsx', 'utf8')
     const profile = readFileSync('app/profile/[id]/page.tsx', 'utf8')
     const members = readFileSync('components/member-directory-card.tsx', 'utf8')
     expect(discover).toContain('profile.location || profile.bio ||')
-    expect(profile).toContain('profile.bio &&')
+    expect(profile).toContain("profile.bio?.trim() || 'Ce membre n’a pas encore rédigé sa présentation.'")
     expect(members).toContain('member.bio &&')
   })
 })

@@ -177,7 +177,8 @@ function writeDiscoverUrlState(
   if (activeMeetingTypes.length > 0) params.set('meetingTypes', activeMeetingTypes.join(','))
 
   const query = params.toString()
-  router.replace(query ? `/discover?${query}` : '/discover', { scroll: false })
+  const path = query ? `/discover?${query}` : '/discover'
+  router.replace(path + window.location.hash, { scroll: false })
 }
 
 function profileImage (profile?: DiscoverProfile) {

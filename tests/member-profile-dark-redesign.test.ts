@@ -5,13 +5,17 @@ describe('member profile dark redesign', () => {
   it('keeps the portrait, identity and contact action at the start of the profile', () => {
     const page = readFileSync('app/profile/[id]/page.tsx', 'utf8')
 
-    expect(page).toContain("bg-[#04070b]")
-    expect(page).toContain("bg-[#0a0f15]")
+    expect(page).toContain("bg-[#181819]")
+    expect(page).toContain("Ce membre n’a pas encore rédigé sa présentation.")
     expect(page).toContain("bg-[#111821]")
     expect(page).toContain("text-[#ecebe7]")
     expect(page).toContain("text-[#c9c7c2]")
     expect(page).toContain("bg-[#d6bc87]")
-    expect(page).toContain("aspect-[4/5]")
+    expect(page).toContain("aspect-square w-28")
+    for (const section of ['descriptif', 'gouts', 'galerie', 'mots']) {
+      expect(page).toContain(`id='${section}'`)
+      expect(page).toContain(`href='#${section}'`)
+    }
     expect(page).toContain("className='object-contain'")
     expect(page.indexOf('Entrer en contact')).toBeLessThan(page.indexOf('Galerie'))
   })

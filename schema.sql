@@ -72,6 +72,8 @@ CREATE TABLE user_profiles
     -- Explicitly NULL
     interests TEXT NULL,
     -- Explicitly NULL, Storing as JSON string
+    likes TEXT NULL,
+    dislikes TEXT NULL,
     featured BOOLEAN DEFAULT FALSE NULL,
     -- Added column
     display_profile BOOLEAN DEFAULT TRUE NULL,

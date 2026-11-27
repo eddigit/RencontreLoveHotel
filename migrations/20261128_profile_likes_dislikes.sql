@@ -1,0 +1,2 @@
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS likes TEXT;
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS dislikes TEXT;
