@@ -62,6 +62,9 @@ export default function AdminEmailCampaignsPage () {
       setPreview(previewResult)
       setTemplates(templatesResult)
       setCampaigns(campaignsResult)
+    } catch {
+      setPreview(null)
+      setStatus('Impossible de charger l’audience pour le moment.')
     } finally {
       setLoading(false)
     }
@@ -162,7 +165,7 @@ export default function AdminEmailCampaignsPage () {
               </CardHeader>
               <CardContent>
                 <div className='text-3xl font-black'>
-                  {loading ? '...' : preview?.eligible || 0}
+                  {loading ? '...' : preview?.eligible ?? 'Indisponible'}
                 </div>
                 <p className='mt-2 text-sm text-muted-foreground'>
                   Membres avec consentement campagne actif.
@@ -179,7 +182,7 @@ export default function AdminEmailCampaignsPage () {
               </CardHeader>
               <CardContent>
                 <div className='text-3xl font-black'>
-                  {loading ? '...' : preview?.excluded || 0}
+                  {loading ? '...' : preview?.excluded ?? 'Indisponible'}
                 </div>
                 <p className='mt-2 text-sm text-muted-foreground'>
                   Opt-out, absence de consentement, suppression list ou compte banni.

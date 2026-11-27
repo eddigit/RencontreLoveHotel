@@ -162,12 +162,7 @@ export async function previewEmailAudience(
     return summarizeAudience(rows)
   } catch (error) {
     console.warn('Apercu audience email indisponible:', error)
-    return {
-      total: 0,
-      eligible: 0,
-      excluded: 0,
-      reasons: {}
-    }
+    throw new Error('Audience e-mail indisponible')
   }
 }
 
