@@ -597,8 +597,10 @@ export default function DiscoverPage () {
                         href={`/profile/${member.id}`}
                         className='flex items-center gap-2 rounded-xl bg-[#121318] p-2 hover:bg-[#191714]'
                       >
-                        <div className='relative h-9 w-9 shrink-0 overflow-hidden rounded-full'>
-                          {mediaImage(profileImage(member), member.name)}
+                        <div className='relative h-9 w-9 shrink-0'>
+                          <div className='relative h-full w-full overflow-hidden rounded-full'>
+                            {mediaImage(profileImage(member), member.name)}
+                          </div>
                           <span
                             aria-label='En ligne'
                             className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#191714] bg-[#35e48d]'
