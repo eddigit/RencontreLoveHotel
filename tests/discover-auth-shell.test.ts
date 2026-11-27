@@ -12,8 +12,8 @@ describe('Discover authenticated shell', () => {
     expect(shell).toContain('isDiscoverShell && styles.panel')
     expect(shell).toContain("data-chat-thread={/^\\/messages\\/[^/]+\\/?$/.test(pathname) || undefined}")
     expect(styles).toContain('--discover-ivory: #f7f4ec')
-    expect(styles).toContain('--discover-navy: #102440')
-    expect(styles).toContain('--discover-cobalt: #2563eb')
+    expect(styles).toContain('--discover-charcoal: #191b1c')
+    expect(styles).toContain('--discover-accent: #695322')
   })
 
   it('presents discoverable members as a two-card mobile photo strip', () => {

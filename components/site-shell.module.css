@@ -3,8 +3,8 @@
   --discover-paper: #fffdf8;
   --discover-ink: #17223a;
   --discover-muted: #61708a;
-  --discover-navy: #102440;
-  --discover-cobalt: #2563eb;
+  --discover-charcoal: #191b1c;
+  --discover-accent: #695322;
   --discover-line: #dce3ed;
   background: var(--discover-ivory) !important;
   color: var(--discover-ink);
@@ -17,7 +17,7 @@
 }
 
 .rail {
-  background: var(--discover-navy) !important;
+  background: var(--discover-charcoal) !important;
   border: 0;
   border-radius: 0;
   box-shadow: none;
@@ -44,7 +44,7 @@
 }
 
 .navigationLinkActive {
-  background: var(--discover-cobalt);
+  background: var(--discover-accent);
   box-shadow: 0 8px 20px rgb(7 31 74 / 0.28);
   color: white;
 }
@@ -81,7 +81,7 @@
 }
 
 .mobileRail {
-  background: var(--discover-navy) !important;
+  background: var(--discover-charcoal) !important;
   border-color: rgb(255 255 255 / 0.14);
 }
 
@@ -92,7 +92,7 @@
 }
 
 .panel footer :global(.text-primary) {
-  color: var(--discover-cobalt);
+  color: var(--discover-accent);
 }
 
 .panel footer :global(.text-muted-foreground) {
@@ -104,21 +104,28 @@
 }
 
 .communityStrip {
+  --discover-paper: #202223;
+  --discover-line: #4c4d4b;
+  --discover-ink: #fbf7ed;
+  --discover-muted: #d3cfc4;
+  --discover-accent: #e6cd92;
   background: var(--discover-paper);
   border-bottom: 1px solid var(--discover-line);
   color: var(--discover-ink);
 }
 
 .stripEyebrow {
-  color: var(--discover-cobalt);
+  color: var(--discover-accent);
 }
 
 .stripTitle {
+  font-family: Georgia, serif;
+  font-weight: 400;
   color: var(--discover-ink);
 }
 
 .stripLink {
-  color: var(--discover-cobalt);
+  color: var(--discover-accent);
 }
 
 .portraitList {
@@ -134,7 +141,7 @@
 }
 
 .portraitCard:focus-visible {
-  outline-color: var(--discover-cobalt);
+  outline-color: var(--discover-accent);
 }
 
 .portraitPhoto {

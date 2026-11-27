@@ -432,7 +432,7 @@ export default function DiscoverPage () {
             <p className='text-[#667085]'>
               Quelques informations sont nécessaires pour proposer des rencontres compatibles.
             </p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#1f5eff] text-white hover:bg-[#1746c8]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#735c29] text-white hover:bg-[#685122]'>
               Compléter mon profil
             </Button>
           </div>
@@ -451,7 +451,7 @@ export default function DiscoverPage () {
             <div className='hidden lg:block'>
               <NotificationsButton />
             </div>
-            <Button asChild size='sm' variant='ghost' className='text-[#1f5eff] hover:bg-[#eef3ff] hover:text-[#1746c8]'>
+            <Button asChild size='sm' variant='ghost' className='text-[#735c29] hover:bg-[#f6f1e6] hover:text-[#685122]'>
               <Link href='#boite-a-idees'>Boîte à idées</Link>
             </Button>
           </div>
@@ -459,30 +459,30 @@ export default function DiscoverPage () {
       >
         <div className='-m-3 min-h-[calc(100vh-8rem)] bg-[#f6f4ee] p-3 text-[#172033] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
         <section aria-label='Action principale' className='mb-5'>
-          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#cbd8ff] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#1f5eff]'>
-            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef3ff] text-[#1f5eff]'><PrimaryActionIcon className='h-5 w-5' /></span>
+          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#ddd4be] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#735c29]'>
+            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f6f1e6] text-[#735c29]'><PrimaryActionIcon className='h-5 w-5' /></span>
             <span className='min-w-0 flex-1'><span className='block text-lg font-black'>{primaryHomeAction.title}</span><span className='mt-0.5 block text-sm text-[#667085]'>{primaryHomeAction.detail}</span></span>
-            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#1f5eff] sm:block'>{primaryHomeAction.count}</span>}
-            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#1746c8]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
+            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#735c29] sm:block'>{primaryHomeAction.count}</span>}
+            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#685122]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
           </Link>
         </section>
 
-        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#cbd8ff] bg-white shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
+        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#ddd4be] bg-white shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
           {upcomingEvents.length > 0 ? (
             <div className='grid sm:grid-cols-[180px_minmax(0,1fr)]'>
               <div className='relative aspect-[16/10] bg-[#e7e4dc] sm:aspect-auto'>{mediaImage(upcomingEvents[0].image || '/soiree-masquee.webp', upcomingEvents[0].title)}</div>
-              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#667085]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#1746c8]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
+              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#667085]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#685122]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
             </div>
-          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#667085]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#1746c8]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
+          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#667085]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#685122]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
         </section>
 
         <div className='space-y-5'>
           <section className='order-1 min-w-0 space-y-5'>
             {(counts.matches > 0 || counts.events > 0) && (
               <section aria-label='À suivre' className='flex flex-wrap gap-2'>
-                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Heart className='h-4 w-4 text-[#1f5eff]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
-                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Bell className='h-4 w-4 text-[#1f5eff]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
-                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#1746c8]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
+                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Heart className='h-4 w-4 text-[#735c29]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
+                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Bell className='h-4 w-4 text-[#735c29]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
+                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#685122]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
               </section>
             )}
 
@@ -493,7 +493,7 @@ export default function DiscoverPage () {
                 placeholder='Rechercher un profil, une ville, une ambiance...'
                 value={searchQuery}
                 onChange={event => handleSearchChange(event.target.value)}
-                className='h-12 rounded-2xl border-[#d9d7d0] bg-white pl-11 text-[#172033] placeholder:text-[#667085] focus:border-[#1f5eff]'
+                className='h-12 rounded-2xl border-[#d9d7d0] bg-white pl-11 text-[#172033] placeholder:text-[#667085] focus:border-[#735c29]'
               />
             </div>
 
@@ -506,7 +506,7 @@ export default function DiscoverPage () {
             <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Découvrir</p>
+                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Découvrir</p>
                   <h2 className='mt-1 text-xl font-black'>Des profils qui pourraient vous plaire</h2>
                   <p className='mt-1 text-sm leading-5 text-[#667085]'>{newProfilesSummary}</p>
                 </div>
@@ -517,22 +517,22 @@ export default function DiscoverPage () {
                     </span>
                     <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
                   </div>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#d9d7d0] bg-white text-[#172033] hover:bg-[#eef3ff]'>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#d9d7d0] bg-white text-[#172033] hover:bg-[#f6f1e6]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
                     {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>
                 </div>
               </div>
-              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d7e1ff] bg-[#eef3ff] px-3 py-2 text-sm'>
+              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d7e1ff] bg-[#f6f1e6] px-3 py-2 text-sm'>
                 <span className='font-medium text-[#34405a]'>Affinez par type de profil, envies et critères de rencontre.</span>
-                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#1746c8] hover:text-[#12379e]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
+                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#685122] hover:text-[#12379e]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map(profile => (
                   <Link
                     key={profile.id}
                     href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-[#d9d7d0] bg-white shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#1f5eff]'
+                    className='group overflow-hidden rounded-2xl border border-[#d9d7d0] bg-white shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#735c29]'
                   >
                     <div className='relative aspect-[4/5] bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
@@ -567,7 +567,7 @@ export default function DiscoverPage () {
             <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#d9d7d0] bg-white'>
               <button type='button' onClick={() => setFeedbackOpen(open => !open)} aria-expanded={feedbackOpen} className='flex w-full items-center justify-between gap-4 p-4 text-left'>
                 <span><span className='block font-black'>Une idée ou un problème à signaler ?</span><span className='mt-0.5 block text-sm text-[#667085]'>Votre retour aide à améliorer la communauté.</span></span>
-                <ChevronDown className={`h-5 w-5 shrink-0 text-[#1f5eff] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-5 w-5 shrink-0 text-[#735c29] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
               </button>
               {feedbackOpen && <div className='border-t border-[#e7e4dc] p-4'><CommunityFeedbackWidget /></div>}
             </section>
