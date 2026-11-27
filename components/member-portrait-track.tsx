@@ -7,6 +7,7 @@ import { nextMemberPortraits } from '@/actions/member-portraits'
 import type { MemberPortrait } from '@/lib/member-portraits'
 import { MemberAvatarImage } from './member-avatar-image'
 import { displayMemberName } from '@/lib/display-member-name'
+import { directoryProfileTypeLabel } from '@/lib/member-profile-types'
 import styles from './site-shell.module.css'
 
 export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPortrait[], visitSeed: string }) {
@@ -50,21 +51,25 @@ export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPor
       <button type='button' aria-label='Membres suivants' onClick={() => slide(1)}><ChevronRight size={20} /></button>
     </div>
       <ul ref={track} tabIndex={0} aria-label="Parcourir les membres" onScroll={nearEnd} className={`flex snap-x gap-2 overflow-x-auto py-1 ${styles.portraitList}`}>
-        {members.map(member => (
-          <li key={member.id} className={`shrink-0 snap-start ${styles.portraitItem}`}>
+        {members.map(member => {
+          const type = directoryProfileTypeLabel(member)
+          return (
+          <li key={member.id} data-profile-type={type} className={`shrink-0 snap-start ${styles.portraitItem}`}>
             <Link href={`/profile/${member.id}`} className={`group block text-center rounded-lg focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
               <div className={`relative mx-auto flex size-12 items-center justify-center overflow-hidden rounded-full border sm:size-14 ${styles.portraitPhoto}`}>
                 <MemberAvatarImage src={member.image} gender={member.gender} profileStatus={member.profile_status}
                   alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
               </div>
               <span title={displayMemberName(member.name)} className={`mt-1 text-[11px] font-semibold ${styles.portraitName}`}>{displayMemberName(member.name)}</span>
+              <span className={styles.portraitType}>{type === 'Profil membre' ? 'Membre' : type === 'Personne trans' ? 'Trans' : type}</span>
               <span className={`flex min-h-3 items-center justify-center gap-1 text-[10px] ${styles.portraitMeta}`}>
                 {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
                 {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : ''}
               </span>
             </Link>
           </li>
-        ))}
+          )
+        })}
       </ul>
     {error && <button type='button' onClick={load} className='mt-3 max-w-full whitespace-normal break-words rounded-md px-3 py-2 text-sm font-medium'>Réessayer de charger les membres</button>}
   </div>

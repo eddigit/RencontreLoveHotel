@@ -210,6 +210,23 @@
   color: var(--discover-ink);
 }
 
+.portraitItem[data-profile-type='Femme'] { --portrait-accent: #d5b7ed; }
+.portraitItem[data-profile-type='Homme'] { --portrait-accent: #a5c7e0; }
+.portraitItem[data-profile-type='Couple'] { --portrait-accent: #dec391; }
+.portraitItem[data-profile-type='Personne trans'] { --portrait-accent: #a7d4ca; }
+
+.portraitItem .portraitPhoto {
+  border: 2px solid var(--portrait-accent, var(--discover-line));
+}
+
+.portraitType {
+  display: block;
+  color: var(--portrait-accent, var(--discover-muted));
+  font-size: 0.6875rem;
+  line-height: 0.9375rem;
+  white-space: nowrap;
+}
+
 .portraitMeta {
   color: var(--discover-muted);
 }
