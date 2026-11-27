@@ -33,7 +33,7 @@ describe('fair discovery ranking', () => {
   it('keeps members with a personal photo ahead of native-avatar profiles', () => {
     const ranked = rankDiscoveryCandidates([
       { id: 'native', image: '/default-member-woman.jpg', matchScore: 100, impressions14d: 0, profileQuality: 100 },
-      { id: 'photo', image: 'https://blob.example/member.jpg', matchScore: 60, impressions14d: 4, profileQuality: 60 }
+      { id: 'photo', image: 'https://member.public.blob.vercel-storage.com/member.jpg', matchScore: 60, impressions14d: 4, profileQuality: 60 }
     ], { viewerId: 'viewer', batch: 0 })
 
     expect(ranked[0].id).toBe('photo')
@@ -42,7 +42,7 @@ describe('fair discovery ranking', () => {
   it('treats legacy native avatars as profiles without a personal photo', () => {
     const ranked = rankDiscoveryCandidates([
       { id: 'legacy-native', image: '/mystical-forest-spirit.png', impressions14d: 0 },
-      { id: 'photo', image: 'https://blob.example/member.jpg', impressions14d: 2 }
+      { id: 'photo', image: 'https://member.public.blob.vercel-storage.com/member.jpg', impressions14d: 2 }
     ], { viewerId: 'viewer', batch: 0 })
 
     expect(ranked[0].id).toBe('photo')
@@ -69,14 +69,14 @@ describe('fair discovery ranking', () => {
     const ranked = rankDiscoveryCandidates([
       {
         id: 'already-seen',
-        image: 'https://blob.example/member.jpg',
+        image: 'https://member.public.blob.vercel-storage.com/member.jpg',
         matchScore: 100,
         impressions14d: 4,
         profileQuality: 100
       },
       {
         id: 'unseen',
-        image: 'https://blob.example/another-member.jpg',
+        image: 'https://member.public.blob.vercel-storage.com/another-member.jpg',
         matchScore: 50,
         impressions14d: 0,
         profileQuality: 50

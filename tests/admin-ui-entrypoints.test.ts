@@ -59,12 +59,15 @@ describe('admin notifications email moderation UI entrypoints', () => {
     expect(source).toContain("metrics.timestamp ? new Date(metrics.timestamp).toLocaleTimeString('fr-FR') : 'en attente'")
   })
 
-  it('uses the native member image by profile type in the global user administration', () => {
+  it('uses the resolved member photo with the shared profile-type fallback in global user administration', () => {
     const page = readFileSync('app/admin/users/page.tsx', 'utf8')
     const actions = readFileSync('actions/user-actions.ts', 'utf8')
 
-    expect(page).toContain("import { defaultMemberImage } from '@/lib/default-member-image'")
-    expect(page).toContain('src={defaultMemberImage(u)}')
+    expect(page).toContain("import { MemberAvatarImage } from '@/components/member-avatar-image'")
+    expect(page).toContain('src={u.image}')
+    expect(page).toContain('gender={u.gender}')
+    expect(page).toContain('profileStatus={u.profile_status}')
     expect(actions).toContain('up.gender, up.status AS profile_status')
+    expect(actions).toContain('primary_photo.url')
   })
 })

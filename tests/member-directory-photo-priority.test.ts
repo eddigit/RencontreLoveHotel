@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('member directory photo priority', () => {
-  it('orders personal avatar profiles before native-avatar profiles before pagination', () => {
+  it('orders admin-starred real photos, then real photos, before pagination', () => {
     const actions = readFileSync('actions/user-actions.ts', 'utf8')
     const directoryQuery = actions.slice(
       actions.indexOf('export async function searchCommunityMembers'),
@@ -10,8 +10,10 @@ describe('member directory photo priority', () => {
     )
 
     expect(directoryQuery).toContain('AS has_personal_photo')
+    expect(directoryQuery).toContain('AS photo_rank')
+    expect(directoryQuery).toContain('u.admin_starred_at IS NOT NULL')
     expect(directoryQuery).toMatch(
-      /ORDER BY\s+name_search_rank ASC,\s+has_personal_photo DESC,\s+u\.created_at DESC,\s+u\.id ASC\s+LIMIT[\s\S]*OFFSET/
+      /ORDER BY\s+name_search_rank ASC,\s+photo_rank DESC,\s+u\.created_at DESC,\s+u\.id ASC\s+LIMIT[\s\S]*OFFSET/
     )
   })
 

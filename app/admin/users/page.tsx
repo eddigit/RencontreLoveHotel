@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react' // Ajout de useCallback
+import { useEffect, useState, useCallback, useRef } from 'react' // Ajout de useCallback
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProtectedRoute } from '@/components/protected-route'
@@ -8,7 +8,8 @@ import {
   getAllUsers,
   deleteUserByAdmin,
   getTotalUsersCount,
-  getUserCountsByGender // Importer la nouvelle action
+  getUserCountsByGender,
+  setUserAdminStar // Importer la nouvelle action
 } from '@/actions/user-actions'
 import { banUser, unbanUser } from '@/actions/message-actions'
 import MainLayout from '@/components/layout/main-layout'
@@ -16,9 +17,9 @@ import { AdminTabs } from '@/components/admin-tabs'
 import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
-import { ModerationAvatar } from '@/components/moderation/moderation-avatar'
-import { defaultMemberImage } from '@/lib/default-member-image'
+import { MemberAvatarImage } from '@/components/member-avatar-image'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // Pour le graphique
+import { Star } from 'lucide-react'
 
 // Define a more specific type for user data, including ban status
 interface AdminUser {
@@ -27,12 +28,16 @@ interface AdminUser {
   email?: string
   role?: string
   avatar?: string
+  image?: string | null
   location?: string
   age?: number
   gender?: string | null
   profile_status?: string | null
   is_banned?: boolean
   status?: string
+  admin_starred_at?: string | null
+  admin_starred?: boolean
+  has_eligible_photo?: boolean
   // Add any other properties that come from getAllUsers
   [key: string]: any // Keep it flexible for other existing props from Record<string, any>
 }
@@ -50,6 +55,9 @@ export default function AdminUsersPage () {
   const [loading, setLoading] = useState(true)
   const [loadingGenderCounts, setLoadingGenderCounts] = useState(true); // Nouvel état de chargement
   const [search, setSearch] = useState('')
+  const [showStarredOnly, setShowStarredOnly] = useState(false)
+  const [starUpdatingIds, setStarUpdatingIds] = useState<Set<string>>(() => new Set())
+  const pendingStarIds = useRef(new Set<string>())
 
   const fetchAdminData = useCallback(async () => { // Renommer et utiliser useCallback
     setLoading(true);
@@ -117,10 +125,41 @@ export default function AdminUsersPage () {
     }
   }
 
+  const handleToggleAdminStar = async (member: AdminUser) => {
+    if (pendingStarIds.current.has(member.id)) return
+
+    const nextStarred = !member.admin_starred
+    pendingStarIds.current.add(member.id)
+    setStarUpdatingIds(current => new Set(current).add(member.id))
+
+    try {
+      const result = await setUserAdminStar(member.id, nextStarred)
+      setUsers(current => current.map(user => user.id === member.id
+        ? {
+            ...user,
+            admin_starred_at: result.adminStarredAt,
+            admin_starred: Boolean(result.adminStarredAt)
+          }
+        : user))
+    } catch (error) {
+      console.error('Erreur de mise à jour de la mise en avant:', error)
+      alert('La mise en avant n’a pas pu être enregistrée.')
+    } finally {
+      pendingStarIds.current.delete(member.id)
+      setStarUpdatingIds(current => {
+        const next = new Set(current)
+        next.delete(member.id)
+        return next
+      })
+    }
+  }
+
   const filteredUsers = users.filter(
     u =>
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase())
+      (!showStarredOnly || u.admin_starred) && (
+        !search.trim() || u.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
+        u.email?.toLowerCase().includes(search.trim().toLowerCase())
+      )
   )
 
   const getGenderLabel = (genderKey: string) => {
@@ -203,15 +242,29 @@ export default function AdminUsersPage () {
             </CardContent>
           </Card>
 
-          <input
-            type='text'
-            placeholder='Rechercher par nom ou email...'
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className='mb-6 w-full max-w-md border rounded p-2'
-          />
+          <div className='mb-6 flex flex-wrap items-center gap-3'>
+            <input
+              type='text'
+              placeholder='Rechercher par nom ou email...'
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className='w-full max-w-md border rounded p-2'
+            />
+            <label className='flex items-center gap-2 text-sm font-medium'>
+              <input
+                type='checkbox'
+                checked={showStarredOnly}
+                onChange={event => setShowStarredOnly(event.target.checked)}
+              />
+              Voir uniquement les profils mis en avant
+            </label>
+          </div>
           {loading ? (
             <div>Chargement...</div>
+          ) : filteredUsers.length === 0 ? (
+            <p role='status' className='text-sm text-muted-foreground'>
+              {showStarredOnly && !search.trim() ? 'Aucun profil mis en avant pour le moment.' : 'Aucun profil trouvé.'}
+            </p>
           ) : (
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
               {filteredUsers.map(u => (
@@ -221,7 +274,13 @@ export default function AdminUsersPage () {
                 >
                   <CardHeader>
                     <CardTitle className='flex items-center gap-3'>
-                      <ModerationAvatar name={u.name} src={defaultMemberImage(u)} />
+                      <MemberAvatarImage
+                        src={u.image}
+                        gender={u.gender}
+                        profileStatus={u.profile_status}
+                        alt={`Photo de ${u.name || 'membre'}`}
+                        className='h-12 w-12 shrink-0 rounded-full border border-white/15 object-cover'
+                      />
                       <span>{u.name}{' '}
                       <span className='text-xs text-muted-foreground'>
                         ({u.role})
@@ -238,7 +297,25 @@ export default function AdminUsersPage () {
                     <div className='mb-2 text-sm text-muted-foreground'>
                       {u.location || '-'} | {u.age ? `${u.age} ans` : '-'}
                     </div>
-                    <div className='flex gap-2 mt-4'>
+                    <div className='mt-4 flex flex-wrap gap-2'>
+                      <Button
+                        size='sm'
+                        variant={u.admin_starred ? 'default' : 'outline'}
+                        aria-pressed={Boolean(u.admin_starred)}
+                        disabled={starUpdatingIds.has(u.id) || (!u.admin_starred && !u.has_eligible_photo)}
+                        onClick={() => handleToggleAdminStar(u)}
+                        title={u.admin_starred
+                          ? 'Retirer la mise en avant'
+                          : u.has_eligible_photo
+                            ? 'Mettre en avant'
+                            : 'Une photo membre éligible est requise'}
+                      >
+                        <Star className='mr-1 h-4 w-4' fill={u.admin_starred ? 'currentColor' : 'none'} />
+                        {u.admin_starred ? 'Mis en avant' : 'Mettre en avant'}
+                      </Button>
+                      {!u.admin_starred && !u.has_eligible_photo && (
+                        <span className='self-center text-xs text-muted-foreground'>Photo membre requise</span>
+                      )}
                       <Button size='sm' asChild>
                         <Link href={`/admin/users/${u.id}/edit`}>Éditer</Link>
                       </Button>

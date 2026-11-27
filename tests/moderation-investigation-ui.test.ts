@@ -24,8 +24,11 @@ describe('moderation investigation cockpit UI', () => {
     expect(cockpit).toContain('Lire le fil audité')
   })
 
-  it('uses avatars in global user and message administration', () => {
-    expect(read('app/admin/users/page.tsx')).toContain('ModerationAvatar')
+  it('uses the member-image fallback in global user administration and avatars in messages', () => {
+    const users = read('app/admin/users/page.tsx')
+    expect(users).toContain('MemberAvatarImage')
+    expect(users).toContain('src={u.image}')
+    expect(users).toContain('profileStatus={u.profile_status}')
     const messages = read('app/admin/messages/page.tsx')
     expect(messages).toContain('getAdminConversations')
     expect(messages).toContain('ConversationThread')

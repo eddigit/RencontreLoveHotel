@@ -1,3 +1,5 @@
+import { hasEligibleMemberPhoto, memberPhotoRank } from '@/lib/member-photo'
+
 export type DiscoveryCandidate = {
   id: string
   matchScore?: number | null
@@ -8,6 +10,7 @@ export type DiscoveryCandidate = {
   image?: string | null
   avatar?: string | null
   featured?: boolean
+  hasEligiblePhoto?: boolean
   [key: string]: unknown
 }
 
@@ -42,21 +45,12 @@ function freshnessScore(value: string | Date | null | undefined, now: Date) {
 }
 
 export function photoPriority(candidate: DiscoveryCandidate) {
-  const nativeAvatarMarkers = [
-    '/default-member-',
-    '/mystical-forest-spirit',
-    '/purple-haze-chat',
-    '/serene-woman',
-    '/contemplative-portrait'
-  ]
+  if (candidate.hasEligiblePhoto) return candidate.featured ? 2 : 1
+  if (candidate.hasEligiblePhoto === false) return 0
+  const image = [candidate.avatar, candidate.image]
+    .find(value => hasEligibleMemberPhoto(value))
 
-  const images = [candidate.avatar, candidate.image]
-    .map(value => String(value || '').trim().toLowerCase())
-    .filter(Boolean)
-
-  if (images.some(image => image.includes('blob.vercel-storage.com/'))) return 2
-  if (images.some(image => !nativeAvatarMarkers.some(marker => image.includes(marker)))) return 1
-  return 0
+  return memberPhotoRank(image, Boolean(candidate.featured))
 }
 
 export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
@@ -89,8 +83,6 @@ export function rankDiscoveryCandidates<T extends DiscoveryCandidate>(
       const impressionDifference =
         Number(left.impressions14d || 0) - Number(right.impressions14d || 0)
       if (impressionDifference) return impressionDifference
-      const featuredDifference = Number(Boolean(right.featured)) - Number(Boolean(left.featured))
-      if (featuredDifference) return featuredDifference
       return right.discoveryScore - left.discoveryScore || left.id.localeCompare(right.id)
     })
 }
@@ -114,13 +106,13 @@ export function rotateDiscoveryBatchWithPhotoPriority<T extends DiscoveryCandida
   batch: number,
   windowSize = 12
 ): T[] {
-  const uploadedPhotos = candidates.filter(candidate => photoPriority(candidate) === 2)
-  const otherPersonalPhotos = candidates.filter(candidate => photoPriority(candidate) === 1)
-  const nativeAvatars = candidates.filter(candidate => photoPriority(candidate) === 0)
+  const starredPortraits = candidates.filter(candidate => photoPriority(candidate) === 2)
+  const personalPhotos = candidates.filter(candidate => photoPriority(candidate) === 1)
+  const otherProfiles = candidates.filter(candidate => photoPriority(candidate) === 0)
 
   return [
-    ...rotateDiscoveryBatch(uploadedPhotos, batch, windowSize),
-    ...rotateDiscoveryBatch(otherPersonalPhotos, batch, windowSize),
-    ...rotateDiscoveryBatch(nativeAvatars, batch, windowSize)
+    ...rotateDiscoveryBatch(starredPortraits, batch, windowSize),
+    ...rotateDiscoveryBatch(personalPhotos, batch, windowSize),
+    ...rotateDiscoveryBatch(otherProfiles, batch, windowSize)
   ]
 }

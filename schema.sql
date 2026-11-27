@@ -28,8 +28,10 @@ CREATE TABLE users
     -- Made nullable
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NULL,
     -- Made nullable
-    last_seen_at TIMESTAMPTZ NULL
+    last_seen_at TIMESTAMPTZ NULL,
     -- Last authenticated activity for online presence
+    admin_starred_at TIMESTAMPTZ NULL
+    -- Reversible curation marker reserved for administrators
 );
 
 CREATE TABLE member_referral_codes

@@ -15,8 +15,11 @@ import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/
 import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
 import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
+import { eligibleMemberPhotoSql } from '@/lib/member-photo'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 import type { DirectoryProfileType } from '@/lib/member-profile-types'
+import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
+import { revalidatePath } from 'next/cache'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -244,6 +247,7 @@ export type CommunityMemberDirectoryFilters = {
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
   const currentUser = await requireCurrentUser()
+  await ensureAdminUserStarSchema()
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
@@ -337,7 +341,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
       SELECT
         u.id,
         u.name,
-        u.avatar,
+        COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), '')) AS avatar,
         u.created_at,
         up.age,
         up.location,
@@ -348,20 +352,20 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         umt.open_to_other_couples,
         umt.open_curtains,
         umt.libertine,
+        CASE WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1 ELSE 0 END AS has_personal_photo,
         CASE
-          WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
-            AND LOWER(u.avatar) NOT LIKE '%/default-member-%'
-            AND LOWER(u.avatar) NOT LIKE '%/mystical-forest-spirit%'
-            AND LOWER(u.avatar) NOT LIKE '%/purple-haze-chat%'
-            AND LOWER(u.avatar) NOT LIKE '%/serene-woman%'
-            AND LOWER(u.avatar) NOT LIKE '%/contemplative-portrait%'
-          THEN 1
+          WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL THEN 2
+          WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1
           ELSE 0
-        END AS has_personal_photo,
+        END AS photo_rank,
         ${nameSearchRankSql} AS name_search_rank,
         (${onlinePresenceCondition('u.updated_at')}) AS online
       FROM users u
       JOIN user_profiles up ON up.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT p.url FROM photos p WHERE p.user_id = u.id AND p.is_primary IS TRUE
+        ORDER BY p.created_at DESC, p.id LIMIT 1
+      ) primary_photo ON TRUE
       LEFT JOIN LATERAL (
         SELECT
           BOOL_OR(COALESCE(open_to_other_couples, false)) AS open_to_other_couples,
@@ -371,7 +375,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         WHERE user_id = u.id
       ) umt ON TRUE
       ${whereCondition}
-      ORDER BY name_search_rank ASC, has_personal_photo DESC, u.created_at DESC, u.id ASC
+      ORDER BY name_search_rank ASC, photo_rank DESC, u.created_at DESC, u.id ASC
       LIMIT ${limitPlaceholder}
       OFFSET ${offsetPlaceholder}
     `,
@@ -389,6 +393,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
 
 export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions, batch = 0) {
   log('info', 'Discover profiles requested', { operation: 'getDiscoverProfiles', page, pageSize });
+  await ensureAdminUserStarSchema()
 
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUserId);
   if (!isValidUUID) {
@@ -431,6 +436,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
   // Only show profiles with display_profile = TRUE
   whereClauses.push("up.display_profile = TRUE");
+  whereClauses.push('u.onboarding_completed = TRUE')
+  whereClauses.push('COALESCE(u.is_banned, FALSE) = FALSE')
+  whereClauses.push("COALESCE(u.status, 'active') <> 'banned'")
   whereClauses.push(`NOT EXISTS (SELECT 1 FROM user_blocks ub
     WHERE (ub.blocker_id = $1 AND ub.blocked_id = u.id)
        OR (ub.blocker_id = u.id AND ub.blocked_id = $1))`)
@@ -569,6 +577,10 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
   const baseFromClause = `
     FROM users u
     JOIN user_profiles up ON u.id = up.user_id
+    LEFT JOIN LATERAL (
+      SELECT p.url FROM photos p WHERE p.user_id = u.id AND p.is_primary IS TRUE
+      ORDER BY p.created_at DESC, p.id LIMIT 1
+    ) primary_photo ON TRUE
     LEFT JOIN user_meeting_types umt_filter ON u.id = umt_filter.user_id
     LEFT JOIN user_preferences upref_filter ON u.id = upref_filter.user_id
   `;
@@ -588,7 +600,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     SELECT
       u.id,
       u.name,
-      u.avatar as image,
+      COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), '')) as image,
       u.created_at,
       up.age,
       up.location,
@@ -616,20 +628,13 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       umt_filter.specific_preferences,
       ${hasPresenceColumn ? 'u.last_seen_at,' : 'NULL as last_seen_at,'}
       ${onlineCondition} as online,
-      false as featured,
+      u.admin_starred_at IS NOT NULL as featured,
       CASE
-        WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
-          AND LOWER(u.avatar) LIKE '%blob.vercel-storage.com/%'
-        THEN 2
-        WHEN NULLIF(TRIM(u.avatar), '') IS NOT NULL
-          AND LOWER(u.avatar) NOT LIKE '%/default-member-%'
-          AND LOWER(u.avatar) NOT LIKE '%/mystical-forest-spirit%'
-          AND LOWER(u.avatar) NOT LIKE '%/purple-haze-chat%'
-          AND LOWER(u.avatar) NOT LIKE '%/serene-woman%'
-          AND LOWER(u.avatar) NOT LIKE '%/contemplative-portrait%'
-        THEN 1
+        WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL THEN 2
+        WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1
         ELSE 0
       END AS photo_priority,
+      ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AS has_eligible_photo,
       (SELECT COUNT(*) FROM product_events pe
         WHERE pe.event_name = 'profile_impression'
           AND pe.user_id = $1
@@ -641,7 +646,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       photo_priority DESC,
       viewer_impressions_14d ASC,
       (CASE WHEN ${onlineCondition} THEN 1 ELSE 0 END) DESC,
-      u.created_at DESC
+      u.created_at DESC,
+      u.id ASC
     LIMIT ${limitPlaceholder}
     OFFSET ${offsetPlaceholder}
   `;
@@ -695,6 +701,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
         matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
         impressions14d: Number(profile.viewer_impressions_14d || 0),
+        hasEligiblePhoto: Boolean(profile.has_eligible_photo),
         profileQuality: Math.round((
           (Number(profile.photo_priority || 0) > 0 ? 35 : 0) +
           (profile.bio ? 25 : 0) +
@@ -1039,14 +1046,26 @@ export async function getOutgoingMatchRequests(userId: string) {
 
 export async function getAllUsers() {
   await requireAdmin()
+  await ensureAdminUserStarSchema()
 
-  const users = await sql`
-    SELECT u.id, u.name, u.email, u.role, u.avatar, up.location, up.age,
-           up.gender, up.status AS profile_status, u.is_banned, u.status
+  const displayedPhoto = "COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))"
+  const users = await sql.query(`
+    SELECT u.id, u.name, u.email, u.role, u.avatar,
+           ${displayedPhoto} AS image,
+           ${eligibleMemberPhotoSql(displayedPhoto, 'primary_photo.url IS NOT NULL')} AS has_eligible_photo,
+           up.location, up.age, up.gender, up.status AS profile_status,
+           u.is_banned, u.status, u.admin_starred_at,
+           (u.admin_starred_at IS NOT NULL) AS admin_starred
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
+    LEFT JOIN LATERAL (
+      SELECT p.url FROM photos p
+      WHERE p.user_id = u.id AND p.is_primary IS TRUE
+      ORDER BY p.created_at DESC, p.id
+      LIMIT 1
+    ) primary_photo ON TRUE
     ORDER BY u.created_at DESC
-  `
+  `)
   return users || []
 }
 
@@ -1113,6 +1132,48 @@ export async function updateUserByAdmin(userId: string, { name, email, role, ava
     RETURNING *
   `
   return user
+}
+
+export async function setUserAdminStar(userId: string, starred: boolean) {
+  await requireAdmin()
+  await ensureAdminUserStarSchema()
+
+  const displayedPhoto = "COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))"
+  const [target] = await sql.query<Array<{ id: string, has_eligible_photo: boolean }>>(`
+    SELECT u.id,
+           ${eligibleMemberPhotoSql(displayedPhoto, 'primary_photo.url IS NOT NULL')} AS has_eligible_photo
+    FROM users u
+    LEFT JOIN LATERAL (
+      SELECT p.url FROM photos p
+      WHERE p.user_id = u.id AND p.is_primary IS TRUE
+      ORDER BY p.created_at DESC, p.id
+      LIMIT 1
+    ) primary_photo ON TRUE
+    WHERE u.id = $1
+  `, [userId])
+
+  if (!target) throw new Error('Utilisateur introuvable')
+  if (starred && !target.has_eligible_photo) {
+    throw new Error('Une photo membre éligible est requise pour mettre ce profil en avant')
+  }
+
+  const [user] = await sql`
+    UPDATE users
+    SET admin_starred_at = CASE
+      WHEN ${starred} THEN COALESCE(admin_starred_at, CURRENT_TIMESTAMP)
+      ELSE NULL
+    END
+    WHERE id = ${userId}
+    RETURNING id, admin_starred_at
+  `
+
+  if (!user) throw new Error('Utilisateur introuvable')
+
+  revalidatePath('/admin/users')
+  return {
+    id: user.id as string,
+    adminStarredAt: user.admin_starred_at as string | null
+  }
 }
 
 export async function deleteUserByAdmin(userId: string) {

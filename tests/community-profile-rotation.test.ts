@@ -45,7 +45,7 @@ describe('community profile rotation', () => {
     expect(source).toContain('profile.viewer_impressions_14d')
   })
 
-  it('selects uploaded-photo profiles before limiting the discovery pool', () => {
+  it('selects starred eligible photos, then eligible photos, before limiting the discovery pool', () => {
     const source = readFileSync('actions/user-actions.ts', 'utf8')
     const discoverQuery = source.slice(
       source.indexOf('const profilesQuery'),
@@ -53,10 +53,11 @@ describe('community profile rotation', () => {
     )
 
     expect(discoverQuery).toContain('AS photo_priority')
-    expect(discoverQuery).toContain("LIKE '%blob.vercel-storage.com/%'")
+    expect(discoverQuery).toContain('eligibleMemberPhotoSql')
+    expect(discoverQuery).toContain('u.admin_starred_at IS NOT NULL')
     expect(discoverQuery).toContain('photo_priority DESC')
     expect(discoverQuery.indexOf('photo_priority DESC'))
-      .toBeLessThan(discoverQuery.indexOf('viewer_impressions_14d ASC'))
+      .toBeLessThan(discoverQuery.indexOf('LIMIT'))
   })
 
   it('keeps schema changes out of runtime presence checks', () => {
