@@ -8,6 +8,9 @@ import { createEvent } from "@/actions/event-actions"
 import { ProtectedRoute } from "@/components/protected-route"
 import { getOption } from "@/actions/user-actions"
 import { useAuth } from "@/contexts/auth-context" // Ajouté pour récupérer l'admin connecté
+import MainLayout from '@/components/layout/main-layout'
+import { AdminHeader } from '@/components/admin-header'
+import { AdminTabs } from '@/components/admin-tabs'
 import { EventPhotoField } from "@/components/event-photo-field"
 
 const activeEventCategoriesFallback =
@@ -95,8 +98,11 @@ export default function AdminCreateEventPage() {
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
-      <div className="container py-10 max-w-xl">
-        <Card>
+      <MainLayout user={user}>
+      <div className="container py-8">
+        <AdminHeader user={user} />
+        <AdminTabs />
+        <Card className="mx-auto max-w-2xl">
           <CardHeader>
             <CardTitle>Créer un nouvel événement</CardTitle>
           </CardHeader>
@@ -132,6 +138,7 @@ export default function AdminCreateEventPage() {
           </CardContent>
         </Card>
       </div>
+      </MainLayout>
     </ProtectedRoute>
   )
 }

@@ -25,6 +25,26 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'relance-communaute-novembre',
+    title: 'Relancer les membres par message interne et par e-mail',
+    category: 'Messagerie', status: 'planned', priority: 'Haute',
+    phase: 'Préparation · 28 novembre 2026', owner: 'Gilles',
+    note: 'Préparer une annonce interne et une version e-mail pour les membres ayant accepté les actualités.',
+    impact: 'Mesurer les retours sur le site et les reprises de conversation après la relance.',
+    nextAction: 'Chiffrer les deux audiences, exclure les comptes inactifs ou bannis et les adresses désabonnées pour l’e-mail. Tester sur un compte dédié puis valider les textes avant envoi.',
+    updatedAt: '2026-11-27'
+  },
+  {
+    id: 'domaine-joug-rencontre',
+    title: 'Choisir le futur domaine de Joug Rencontre',
+    category: 'Infrastructure', status: 'planned', priority: 'Moyenne',
+    phase: 'Décision après la relance', owner: 'Gilles',
+    note: 'Étudier Joug.World et un domaine dédié à Rencontre.',
+    impact: 'Permettre aux membres de retrouver leur compte, leurs photos et leurs conversations après la transition.',
+    nextAction: 'Choisir le domaine puis préparer les redirections, la connexion Google et les liens des e-mails.',
+    updatedAt: '2026-11-27'
+  },
+  {
     id: 'messagerie-derniere-presence',
     title: 'Dernière connexion dans la messagerie',
     category: 'Messagerie',

@@ -34,10 +34,10 @@ function StatCard({ title, value, change, changeLabel, icon, color = 'blue', tre
   const colorClasses = {
     blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
     green: 'bg-green-500/10 text-green-600 border-green-500/20',
-    purple: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+    purple: 'bg-[#d6bc87]/10 text-[#d6bc87] border-[#d6bc87]/20',
     orange: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
     red: 'bg-red-500/10 text-red-600 border-red-500/20',
-    pink: 'bg-pink-500/10 text-pink-600 border-pink-500/20'
+    pink: 'bg-[#d6bc87]/10 text-[#d6bc87] border-[#d6bc87]/20'
   }
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Activity
@@ -89,7 +89,7 @@ function GenderDistribution({ data }: { data: AdminStatsData['usersByGender'] })
     <Card className="col-span-1 md:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center">
-          <Heart className="mr-2 h-5 w-5 text-pink-500" />
+          <Heart className="mr-2 h-5 w-5 text-[#d6bc87]" />
           Répartition par Genre
         </CardTitle>
         <CardDescription>Distribution des {total.toLocaleString()} utilisateurs</CardDescription>
@@ -102,12 +102,12 @@ function GenderDistribution({ data }: { data: AdminStatsData['usersByGender'] })
             <Badge variant="secondary">{getPercentage(data.male)}%</Badge>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-pink-600">{data.female}</div>
+            <div className="text-2xl font-bold text-[#d6bc87]">{data.female}</div>
             <div className="text-sm text-muted-foreground">Femmes</div>
             <Badge variant="secondary">{getPercentage(data.female)}%</Badge>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{data.couple}</div>
+            <div className="text-2xl font-bold text-[#d6bc87]">{data.couple}</div>
             <div className="text-sm text-muted-foreground">Couples</div>
             <Badge variant="secondary">{getPercentage(data.couple)}%</Badge>
           </div>
@@ -324,19 +324,19 @@ export function AdminRealTimeStats() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <div className="text-center p-4 bg-blue-500/10 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">{stats.recentActivity.newUsersToday}</div>
               <div className="text-sm text-blue-700">Nouveaux Utilisateurs</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-4 bg-green-500/10 rounded-lg">
               <div className="text-2xl font-bold text-green-600">{stats.recentActivity.messagesLast24h}</div>
               <div className="text-sm text-green-700">Messages Envoyés</div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">{stats.recentActivity.conversationsLast24h}</div>
-              <div className="text-sm text-purple-700">Nouvelles Conversations</div>
+            <div className="text-center p-4 bg-[#d6bc87]/10 rounded-lg">
+              <div className="text-2xl font-bold text-[#d6bc87]">{stats.recentActivity.conversationsLast24h}</div>
+              <div className="text-sm text-[#d6bc87]">Nouvelles Conversations</div>
             </div>
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
+            <div className="text-center p-4 bg-orange-500/10 rounded-lg">
               <div className="text-2xl font-bold text-orange-600">{stats.recentActivity.eventSubscriptionsLast24h}</div>
               <div className="text-sm text-orange-700">Inscriptions Événements</div>
             </div>

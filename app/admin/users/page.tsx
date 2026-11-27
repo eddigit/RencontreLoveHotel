@@ -1,15 +1,14 @@
 'use client'
 
-import { useEffect, useState, useCallback, useRef } from 'react' // Ajout de useCallback
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { ProtectedRoute } from '@/components/protected-route'
 import {
   getAllUsers,
   deleteUserByAdmin,
   getTotalUsersCount,
-  getUserCountsByGender,
-  setUserAdminStar // Importer la nouvelle action
+  setUserAdminStar
 } from '@/actions/user-actions'
 import { banUser, unbanUser } from '@/actions/message-actions'
 import MainLayout from '@/components/layout/main-layout'
@@ -18,9 +17,10 @@ import { AdminHeader } from '@/components/admin-header'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { MemberAvatarImage } from '@/components/member-avatar-image'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // Pour le graphique
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Star } from 'lucide-react'
+import { Search, Star, X } from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { filterAdminUsers, getAdminUserCategory, type AdminPhotoFilter, type AdminUserFilter } from '@/lib/admin-user-filters'
 
 // Define a more specific type for user data, including ban status
 interface AdminUser {
@@ -43,50 +43,59 @@ interface AdminUser {
   [key: string]: any // Keep it flexible for other existing props from Record<string, any>
 }
 
-interface GenderCount { // Nouvelle interface
-  gender: string;
-  count: number;
+const PAGE_SIZE = 24
+
+const categoryLabels: Record<AdminUserFilter, string> = {
+  all: 'Tous', woman: 'Femmes', man: 'Hommes', couple: 'Couples', other: 'Autres'
+}
+
+const profileLabels: Record<string, string> = {
+  male: 'Homme', female: 'Femme', single_male: 'Homme seul', single_female: 'Femme seule',
+  married_male: 'Homme marié', married_female: 'Femme mariée', couple_mf: 'Couple H/F',
+  couple_mm: 'Couple H/H', couple_ff: 'Couple F/F', trans: 'Personne trans', single_trans: 'Personne trans'
+}
+
+const profileLabel = (user: Pick<AdminUser, 'gender' | 'profile_status'>) => {
+  const value = user.gender || user.profile_status || ''
+  return profileLabels[value.toLowerCase()] || value || 'Profil non renseigné'
 }
 
 export default function AdminUsersPage () {
   const { user } = useAuth()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [totalUsers, setTotalUsers] = useState(0)
-  const [genderCounts, setGenderCounts] = useState<GenderCount[]>([]); // Nouvel état
   const [loading, setLoading] = useState(true)
-  const [loadingGenderCounts, setLoadingGenderCounts] = useState(true); // Nouvel état de chargement
   const [search, setSearch] = useState('')
-  const [photosOnly, setPhotosOnly] = useState(false)
+  useEffect(() => {
+    const member = new URLSearchParams(window.location.search).get('member')
+    if (member && /^[a-f0-9-]{36}$/i.test(member)) setSearch(member)
+  }, [])
+  const [photoFilter, setPhotoFilter] = useState<AdminPhotoFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState<AdminUserFilter>('all')
+  const [page, setPage] = useState(1)
   const [previewId, setPreviewId] = useState<string | null>(null)
   const preview = previewId ? users.find(member => member.id === previewId) : undefined
-  const [showStarredOnly, setShowStarredOnly] = useState(false)
+  const [starFilter, setStarFilter] = useState<'all' | 'starred' | 'unstarred'>('all')
+  const showStarredOnly = starFilter === 'starred'
   const [starUpdatingIds, setStarUpdatingIds] = useState<Set<string>>(() => new Set())
   const pendingStarIds = useRef(new Set<string>())
 
-  const fetchAdminData = useCallback(async () => { // Renommer et utiliser useCallback
-    setLoading(true);
-    setLoadingGenderCounts(true);
-
+  const fetchAdminData = useCallback(async () => {
+    setLoading(true)
     try {
-      const [usersResult, totalCountResult, genderCountsResult] = await Promise.all([
+      const [usersResult, totalCountResult] = await Promise.all([
         getAllUsers(),
-        getTotalUsersCount(),
-        getUserCountsByGender()
-      ]);
+        getTotalUsersCount()
+      ])
 
-      setUsers(usersResult as AdminUser[]);
-      setTotalUsers(totalCountResult);
-      setGenderCounts(genderCountsResult || []);
-
+      setUsers(usersResult as AdminUser[])
+      setTotalUsers(totalCountResult)
     } catch (error) {
-      console.error("Erreur lors de la récupération des données admin:", error);
-      // Gérer les erreurs individuelles si nécessaire ou afficher un message global
-      setUsers([]);
-      setTotalUsers(0);
-      setGenderCounts([]);
+      console.error('Erreur lors de la récupération des données admin:', error)
+      setUsers([])
+      setTotalUsers(0)
     } finally {
-      setLoading(false);
-      setLoadingGenderCounts(false);
+      setLoading(false)
     }
   }, []);
 
@@ -158,115 +167,70 @@ export default function AdminUsersPage () {
     }
   }
 
-  const filteredUsers = users.filter(
-    u =>
-      (!photosOnly || u.has_eligible_photo) && (!showStarredOnly || u.admin_starred) && (
-        !search.trim() || u.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
-        u.email?.toLowerCase().includes(search.trim().toLowerCase())
-      )
-  )
-
-  const getGenderLabel = (genderKey: string) => {
-    const labels: { [key: string]: string } = {
-      'male': 'Hommes',
-      'female': 'Femmes',
-      'couple_mf': 'Couples H/F',
-      'couple_mm': 'Couples H/H',
-      'couple_ff': 'Couples F/F',
-      'single_male': 'Homme seul',
-      'single_female': 'Femme seule',
-      'single_trans': 'Personne trans',
-      'trans': 'Personne trans',
-      'married_male': 'Homme marié',
-      'married_female': 'Femme mariée',
-      'other': 'Autre',
-      // Ajoutez d'autres genres/types de profil de votre table user_profiles
-    };
-    return labels[genderKey.toLowerCase()] || genderKey;
-  };
-
-  const genderChartData = genderCounts.map(item => ({
-    name: getGenderLabel(item.gender),
-    Nombre: item.count,
-  }));
+  const filteredUsers = useMemo(() => filterAdminUsers(users, {
+    search,
+    photo: photoFilter,
+    category: categoryFilter,
+    starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred'
+  }), [users, search, photoFilter, categoryFilter, starFilter, showStarredOnly])
+  const categoryCounts = useMemo(() => (Object.keys(categoryLabels) as AdminUserFilter[]).reduce<Record<AdminUserFilter, number>>((counts, category) => {
+    counts[category] = filterAdminUsers(users, {
+      search,
+      photo: photoFilter,
+      category,
+      starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred'
+    }).length
+    return counts
+  }, { all: 0, woman: 0, man: 0, couple: 0, other: 0 }), [users, search, photoFilter, starFilter, showStarredOnly])
+  const distributionData = useMemo(() => (Object.keys(categoryLabels) as Exclude<AdminUserFilter, 'all'>[])
+    .map(category => ({ name: categoryLabels[category], Nombre: filteredUsers.filter(user => getAdminUserCategory(user) === category).length }))
+    .filter(item => item.Nombre > 0), [filteredUsers])
+  const pageCount = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE))
+  const currentPage = Math.min(page, pageCount)
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  const resetPage = () => setPage(1)
+  const hasActiveFilters = search.trim() || photoFilter !== 'all' || categoryFilter !== 'all' || starFilter !== 'all'
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
       <MainLayout user={user}>
-        <div className='container py-10 mx-auto px-4'> {/* Ajout de mx-auto et px-4 */}
+        <div className='container py-8 mx-auto px-4'>
           <AdminHeader user={user} />
           <AdminTabs />
-          <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8'> {/* Responsive flex */}
-            <h1 className='text-2xl font-bold mb-2 sm:mb-0'>Gestion des utilisateurs</h1>
-            <div className='text-lg'>
-              Total : <span className='font-bold'>{totalUsers}</span> utilisateurs
+          <div className='mb-6 rounded-2xl border border-[#d6b36a]/30 bg-[#1d1d20] p-5 text-[#f8f2e8] shadow-xl shadow-black/20'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
+              <div>
+                <p className='text-xs font-semibold uppercase tracking-[0.22em] text-[#d6b36a]'>Administration</p>
+                <h1 className='mt-1 text-2xl font-semibold'>Utilisateurs</h1>
+              </div>
+              <p className='text-sm text-[#d9d4cb]'><span className='font-semibold text-[#f2d79a]'>{filteredUsers.length}</span> résultat{filteredUsers.length > 1 ? 's' : ''} affiché{filteredUsers.length > 1 ? 's' : ''} · {totalUsers} comptes</p>
             </div>
           </div>
-
-          {/* Carte des statistiques par genre */}
-          <Card className="mb-6 bg-gray-800 border-gray-700 text-white">
-            <CardHeader>
-              <CardTitle className="text-xl">Statistiques par Genre/Type de Profil</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingGenderCounts ? (
-                <p className="text-gray-400">Chargement des statistiques...</p>
-              ) : genderCounts.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  {genderCounts.map((item) => (
-                    <div key={item.gender} className="bg-gray-700 p-4 rounded-lg shadow">
-                      <p className="font-medium text-gray-300">{getGenderLabel(item.gender)}</p>
-                      <p className="text-2xl font-bold text-primary">{item.count}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-400">Aucune donnée de genre/type de profil disponible.</p>
-              )}
-              {/* Graphique */}
-              {genderCounts.length > 0 && (
-                <div className="mt-6 h-72 md:h-96">
-                  <h3 className="text-lg font-semibold mb-2">Répartition visuelle</h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={genderChartData} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#4A5568" />
-                      <XAxis dataKey="name" tick={{ fill: '#A0AEC0' }} />
-                      <YAxis allowDecimals={false} tick={{ fill: '#A0AEC0' }} />
-                      <Tooltip
-                        contentStyle={{ backgroundColor: '#2D3748', border: '1px solid #4A5568', color: '#E2E8F0' }}
-                        itemStyle={{ color: '#E2E8F0' }}
-                        cursor={{ fill: 'rgba(188, 82, 133, 0.2)' }}
-                      />
-                      <Legend wrapperStyle={{ color: '#E2E8F0' }} />
-                      <Bar dataKey="Nombre" fill="#BC5285" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+          <Card className='mb-6 border-[#d6b36a]/25 bg-[#252529] text-[#f8f2e8]'>
+            <CardContent className='space-y-4 p-4 sm:p-5'>
+              <div className='relative'>
+                <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#d6b36a]' />
+                <label htmlFor='admin-user-search' className='sr-only'>Rechercher un utilisateur</label>
+                <input
+              id='admin-user-search'
+              type='text'
+              placeholder='Rechercher un nom, un email ou une ville…'
+              value={search}
+              onChange={e => { setSearch(e.target.value); resetPage() }}
+              className='w-full rounded-xl border border-white/15 bg-[#18181b] py-2.5 pl-10 pr-3 text-sm text-white placeholder:text-zinc-500 focus:border-[#d6b36a] focus:outline-none'
+            />
+              </div>
+              <div className='flex flex-wrap gap-2' aria-label='Filtrer par photo'>
+                {([['all', 'Toutes les photos'], ['with-photo', 'Avec photo'], ['without-photo', 'Sans photo']] as const).map(([value, label]) => <Button key={value} size='sm' variant={photoFilter === value ? 'default' : 'outline'} aria-pressed={photoFilter === value} className={photoFilter === value ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setPhotoFilter(value); resetPage() }}>{label}</Button>)}
+                <Button size='sm' variant={showStarredOnly ? 'default' : 'outline'} aria-pressed={showStarredOnly} className={showStarredOnly ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setStarFilter(showStarredOnly ? 'all' : 'starred'); resetPage() }}><Star className='mr-1 h-3.5 w-3.5' fill={showStarredOnly ? 'currentColor' : 'none'} />Favoris</Button>
+                <Button size='sm' variant={starFilter === 'unstarred' ? 'default' : 'outline'} aria-pressed={starFilter === 'unstarred'} onClick={() => { setStarFilter(starFilter === 'unstarred' ? 'all' : 'unstarred'); resetPage() }}>Hors favoris</Button>
+              </div>
+              <div className='flex flex-wrap gap-2 border-t border-white/10 pt-4' aria-label='Filtrer par type de profil'>
+                {(Object.keys(categoryLabels) as AdminUserFilter[]).map(value => <Button key={value} size='sm' variant={categoryFilter === value ? 'default' : 'outline'} aria-pressed={categoryFilter === value} aria-label={`${categoryLabels[value]}, ${categoryCounts[value]} résultat${categoryCounts[value] > 1 ? 's' : ''} avec les autres filtres actifs`} className={categoryFilter === value ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setCategoryFilter(value); resetPage() }}>{categoryLabels[value]} <span className='ml-1 opacity-70' aria-hidden='true'>{categoryCounts[value]}</span></Button>)}
+                {hasActiveFilters && <Button size='sm' variant='ghost' className='text-[#f2d79a] hover:bg-white/10 hover:text-[#f2d79a]' onClick={() => { setSearch(''); setPhotoFilter('all'); setCategoryFilter('all'); setStarFilter('all'); resetPage() }}><X className='mr-1 h-3.5 w-3.5' />Réinitialiser</Button>}
+              </div>
             </CardContent>
           </Card>
-
-          <div className='mb-6 flex flex-wrap items-center gap-3'>
-            <input
-              type='text'
-              placeholder='Rechercher par nom ou email...'
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className='w-full max-w-md border rounded p-2'
-            />
-            <label className='flex items-center gap-2 text-sm font-medium'>
-              <input type='checkbox' checked={photosOnly} onChange={event => setPhotosOnly(event.target.checked)} />
-              Avec photo de profil
-            </label>
-            <label className='flex items-center gap-2 text-sm font-medium'>
-              <input
-                type='checkbox'
-                checked={showStarredOnly}
-                onChange={event => setShowStarredOnly(event.target.checked)}
-              />
-              Voir uniquement les profils mis en avant
-            </label>
-          </div>
           {loading ? (
             <div>Chargement...</div>
           ) : filteredUsers.length === 0 ? (
@@ -274,40 +238,26 @@ export default function AdminUsersPage () {
               {showStarredOnly && !search.trim() ? 'Aucun profil mis en avant pour le moment.' : 'Aucun profil trouvé.'}
             </p>
           ) : (
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-              {filteredUsers.map(u => (
+            <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
+              {paginatedUsers.map(u => (
                 <Card
                   key={u.id}
-                  className={u.is_banned ? 'border-red-500 border-2' : ''}
+                  className={`overflow-hidden border-[#d6b36a]/20 bg-[#252529] text-[#f8f2e8] transition hover:border-[#d6b36a]/60 ${u.is_banned ? 'border-red-500 border-2' : ''}`}
                 >
-                  <CardHeader>
-                    <CardTitle className='flex items-center gap-3'>
-                      <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)}
-                        aria-label={`Agrandir la photo de ${u.name || 'ce membre'}`} className='shrink-0 rounded-lg enabled:cursor-zoom-in'>
+                  <div className='relative aspect-[4/3] bg-[#18181b]'>
+                    <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)} aria-label={`Agrandir la photo de ${u.name || 'ce membre'}`} className='h-full w-full enabled:cursor-zoom-in'>
                       <MemberAvatarImage
                         src={u.image}
                         gender={u.gender}
                         profileStatus={u.profile_status}
                         alt={`Photo de ${u.name || 'membre'}`}
-                        className='h-20 w-20 shrink-0 rounded-lg border border-white/15 object-cover'
+                        className='h-full w-full object-cover'
                       />
-                      </button>
-                      <span>{u.name}{' '}
-                      <span className='text-xs text-muted-foreground'>
-                        ({u.role})
-                      </span>{' '}
-                      {u.is_banned && (
-                        <span className='text-red-500 text-xs'>(BANNI)</span>
-                      )}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className='mb-2 text-sm text-muted-foreground'>
-                      {u.email}
-                    </div>
-                    <div className='mb-2 text-sm text-muted-foreground'>
-                      {u.location || '-'} | {u.age ? `${u.age} ans` : '-'}
-                    </div>
+                    </button>
+                    {u.admin_starred && <span className='absolute right-3 top-3 rounded-full bg-[#d6b36a] p-2 text-[#171719] shadow-lg'><Star className='h-4 w-4' fill='currentColor' /></span>}
+                  </div>
+                  <CardContent className='p-4'>
+                    <div className='mb-3 min-w-0'><p className='truncate font-semibold'>{u.name || 'Membre sans nom'} {u.is_banned && <span className='text-xs text-red-400'>(BANNI)</span>}</p><p className='truncate text-xs text-zinc-400'>{u.email || 'Email non renseigné'}</p><p className='mt-1 text-xs text-[#d9d4cb]'>{u.location || 'Localisation non renseignée'} · {u.age ? `${u.age} ans` : 'Âge non renseigné'}</p><div className='mt-2 flex flex-wrap gap-1.5 text-[11px]'><span className='rounded-full border border-[#d6b36a]/30 bg-[#1d1d20] px-2 py-0.5 text-[#f2d79a]'>{profileLabel(u)}</span><span className='rounded-full border border-white/10 bg-[#1d1d20] px-2 py-0.5 text-zinc-300'>Rôle : {u.role || 'utilisateur'}</span></div></div>
                     <div className='mt-4 flex flex-wrap gap-2'>
                       <Button
                         size='sm'
@@ -352,6 +302,8 @@ export default function AdminUsersPage () {
               ))}
             </div>
           )}
+          {!loading && filteredUsers.length > PAGE_SIZE && <nav className='mt-6 flex items-center justify-between rounded-xl border border-white/10 bg-[#1d1d20] p-3 text-sm text-[#e8e1d6]' aria-label='Pagination des utilisateurs'><span>Page {currentPage} sur {pageCount}</span><div className='flex gap-2'><Button size='sm' variant='outline' className='border-white/15 bg-transparent text-[#e8e1d6]' disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Précédent</Button><Button size='sm' variant='outline' className='border-white/15 bg-transparent text-[#e8e1d6]' disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)}>Suivant</Button></div></nav>}
+          {!loading && distributionData.length > 0 && <details className='mt-6 rounded-xl border border-[#d6b36a]/20 bg-[#1d1d20] p-4 text-[#f8f2e8]'><summary className='cursor-pointer font-medium text-[#f2d79a]'>Répartition des {filteredUsers.length} résultat{filteredUsers.length > 1 ? 's' : ''}</summary><p className='mt-2 text-xs text-zinc-400'>Le graphique tient compte de tous les filtres actifs.</p><div className='mt-4 h-64 sm:h-80'><ResponsiveContainer width='100%' height='100%'><BarChart data={distributionData} margin={{ top: 8, right: 12, left: -20, bottom: 4 }}><CartesianGrid strokeDasharray='3 3' stroke='#45403a' /><XAxis dataKey='name' tick={{ fill: '#d9d4cb', fontSize: 12 }} /><YAxis allowDecimals={false} tick={{ fill: '#d9d4cb', fontSize: 12 }} /><Tooltip contentStyle={{ backgroundColor: '#252529', border: '1px solid #d6b36a', borderRadius: '8px', color: '#f8f2e8' }} cursor={{ fill: 'rgba(214, 179, 106, 0.12)' }} /><Bar dataKey='Nombre' fill='#d6b36a' radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div></details>}
         </div>
         <Dialog open={Boolean(preview)} onOpenChange={open => { if (!open) setPreviewId(null) }}>
           {preview && <DialogContent className='max-w-lg'>

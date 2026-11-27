@@ -64,14 +64,14 @@ export default function AdminInternalMessagesPage () {
                 Envoyer un message interne à tous les membres actifs. Une conversation admin est créée ou réutilisée, et aucun email n'est envoyé.
               </p>
             </div>
-            <div className='flex items-center gap-2 rounded-full border border-[#ff8cc8]/25 bg-[#ff3b8b]/10 px-4 py-2 text-sm text-[#ffb3d8]'>
+            <div className='flex items-center gap-2 rounded-full border border-[#d6bc87]/25 bg-[#d6bc87]/10 px-4 py-2 text-sm text-[#d6bc87]'>
               <Users className='h-4 w-4' />
               Membres actifs
             </div>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -80,7 +80,7 @@ export default function AdminInternalMessagesPage () {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <Send className='h-5 w-5 text-[#ff8cc8]' />
+                  <Send className='h-5 w-5 text-[#d6bc87]' />
                   Nouveau message interne
                 </CardTitle>
               </CardHeader>
@@ -91,7 +91,7 @@ export default function AdminInternalMessagesPage () {
                     <input
                       value={title}
                       onChange={event => setTitle(event.target.value)}
-                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                       required
                     />
                   </label>
@@ -102,7 +102,7 @@ export default function AdminInternalMessagesPage () {
                       value={description}
                       onChange={event => setDescription(event.target.value)}
                       rows={7}
-                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                       placeholder='Exemple : un nouvel apéro jacuzzi est ouvert aux inscriptions ce soir.'
                       required
                     />
@@ -114,7 +114,7 @@ export default function AdminInternalMessagesPage () {
                       <input
                         value={link}
                         onChange={event => setLink(event.target.value)}
-                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                         placeholder='/events'
                       />
                     </label>
@@ -124,7 +124,7 @@ export default function AdminInternalMessagesPage () {
                       <select
                         value={priority}
                         onChange={event => setPriority(event.target.value as NotificationPriority)}
-                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                       >
                         {priorities.map(item => (
                           <option key={item.value} value={item.value}>
@@ -138,7 +138,7 @@ export default function AdminInternalMessagesPage () {
                   <Button
                     type='submit'
                     disabled={sending}
-                    className='w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'
+                    className='w-full bg-[#d6bc87] text-[#191714]'
                   >
                     {sending ? 'Envoi...' : 'Envoyer à tous les membres'}
                   </Button>

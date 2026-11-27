@@ -45,7 +45,7 @@ export default function AdminMessagesPage () {
           <AdminHeader user={user} />
           <AdminTabs />
           <div className='mt-6 rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-white'>
-            <MessageSquareText className='h-7 w-7 text-[#ff8cc8]' />
+            <MessageSquareText className='h-7 w-7 text-[#d6bc87]' />
             <h1 className='mt-3 text-2xl font-black'>Conversations ({total})</h1>
             <p className='mt-2 text-sm text-white/55'>Une conversation par ligne. Ouvrez-la pour lire le fil complet et chronologique avec les avatars.</p>
             <form onSubmit={event => { event.preventDefault(); load(keywords) }} className='mt-4 flex gap-2'>
@@ -57,11 +57,13 @@ export default function AdminMessagesPage () {
           <div className='mt-5 grid gap-5 text-white lg:grid-cols-[380px_1fr]'>
             <section className='max-h-[760px] space-y-2 overflow-y-auto rounded-3xl border border-white/10 bg-white/[0.04] p-4'>
               {loading ? <p>Chargement…</p> : conversations.map(conversation => (
-                <button key={conversation.id} onClick={() => open(conversation.id)} className={`w-full rounded-2xl border p-4 text-left ${selected === conversation.id ? 'border-[#ff77b7] bg-[#ff3b8b]/15' : 'border-white/10 bg-black/15 hover:border-white/25'}`}>
+                <article key={conversation.id} className={`rounded-2xl border p-4 ${selected === conversation.id ? 'border-[#d6bc87] bg-[#d6bc87]/15' : 'border-white/10 bg-black/15 hover:border-white/25'}`}>
+                  <button type='button' onClick={() => open(conversation.id)} className='w-full text-left' aria-pressed={selected === conversation.id} aria-label={`Ouvrir la conversation, ${conversation.messageCount} message${conversation.messageCount > 1 ? 's' : ''}`}>
                   <div className='flex items-center justify-between gap-2'><div className='flex -space-x-2'>{conversation.participants.map(participant => <ModerationAvatar key={participant.userId} name={participant.name} src={participant.avatar} className='h-9 w-9' />)}</div><span className='text-xs text-white/45'>{conversation.messageCount} msg</span></div>
                   <p className='mt-3 line-clamp-2 text-sm'>{conversation.lastMessage || 'Conversation vide'}</p>
-                  <div className='mt-3 flex flex-wrap gap-2'>{conversation.participants.map(participant => <Link key={participant.userId} href={`/admin/users/${participant.userId}/edit`} onClick={event => event.stopPropagation()} className='text-xs font-bold text-[#ffb2d9] underline'>{participant.name || 'Profil'}</Link>)}</div>
-                </button>
+                  </button>
+                  <div className='mt-3 flex flex-wrap gap-2'>{conversation.participants.map(participant => <Link key={participant.userId} href={`/admin/users/${participant.userId}/edit`} className='text-xs font-bold text-[#d6bc87] underline'>{participant.name || 'Profil'}</Link>)}</div>
+                </article>
               ))}
             </section>
             <section><h2 className='mb-3 text-xl font-black'>{selected ? 'Fil de la conversation' : 'Sélectionnez une conversation'}</h2><ConversationThread messages={thread} /></section>

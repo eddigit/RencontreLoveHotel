@@ -15,6 +15,6 @@ describe('admin statistics period integrity', () => {
     expect(conversations).toContain('created_at >= $1 AND created_at < $2')
     expect(users).toContain('created_at >= $1 AND created_at < $2')
     expect(users).toContain('accepted_at >= $1 AND accepted_at < $2')
-    expect(events).toContain('created_at >= $1 AND created_at < $2')
+    expect(events).toContain('joined_at >= $1 AND joined_at < $2')
   })
 })

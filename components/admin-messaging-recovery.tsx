@@ -105,10 +105,10 @@ function KpiCard({
   suffix?: string
 }) {
   return (
-    <Card className='border-pink-500/20 bg-gradient-to-br from-pink-500/10 via-background to-purple-500/5'>
+    <Card className='border-[#d6bc87]/20 bg-gradient-to-br from-[#d6bc87]/10 via-background to-[#d6bc87]/5'>
       <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
         <CardTitle className='text-sm font-medium'>{title}</CardTitle>
-        <div className='rounded-lg bg-pink-500/15 p-2 text-pink-500'>{icon}</div>
+        <div className='rounded-lg bg-[#d6bc87]/15 p-2 text-[#d6bc87]'>{icon}</div>
       </CardHeader>
       <CardContent>
         <div className='text-2xl font-bold'>
@@ -127,7 +127,7 @@ function LoadingCards() {
   return (
     <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4'>
       {Array.from({ length: 8 }, (_, index) => (
-        <Card key={index} className='animate-pulse border-pink-500/10'>
+        <Card key={index} className='animate-pulse border-[#d6bc87]/10'>
           <CardContent className='space-y-3 pt-6'>
             <div className='h-4 w-2/3 rounded bg-muted' />
             <div className='h-8 w-1/3 rounded bg-muted' />
@@ -219,7 +219,7 @@ export function AdminMessagingRecovery() {
     >
       <div className='flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between'>
         <div>
-          <div className='mb-1 flex items-center gap-2 text-pink-500'>
+          <div className='mb-1 flex items-center gap-2 text-[#d6bc87]'>
             <Sparkles className='h-5 w-5' />
             <span className='text-xs font-semibold uppercase tracking-[0.2em]'>
               Indicateurs prioritaires
@@ -245,7 +245,7 @@ export function AdminMessagingRecovery() {
                 onClick={() => setScale(option.value)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   scale === option.value
-                    ? 'bg-pink-500 text-white'
+                    ? 'bg-[#d6bc87] text-[#191714]'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -323,7 +323,7 @@ export function AdminMessagingRecovery() {
               suffix='%'
               icon={<RefreshCw className='h-4 w-4' />}
             />
-            <Card className='border-violet-500/20 bg-violet-500/10'>
+            <Card className='border-[#d6bc87]/20 bg-[#d6bc87]/10'>
               <CardHeader className='pb-2'>
                 <CardTitle className='text-sm font-medium'>Admin / conciergerie</CardTitle>
               </CardHeader>
@@ -341,7 +341,7 @@ export function AdminMessagingRecovery() {
       ) : null}
 
       {historyLoading && !history ? (
-        <Card className='animate-pulse border-pink-500/10'>
+        <Card className='animate-pulse border-[#d6bc87]/10'>
           <CardContent className='h-[390px] pt-6' />
         </Card>
       ) : null}
@@ -356,7 +356,7 @@ export function AdminMessagingRecovery() {
       ) : null}
 
       {history ? (
-        <Card className='border-pink-500/20'>
+        <Card className='border-[#d6bc87]/20'>
           <CardHeader className='gap-4 lg:flex-row lg:items-start lg:justify-between'>
             <div>
               <CardTitle className='text-lg'>Activité depuis le lancement</CardTitle>
@@ -426,7 +426,7 @@ export function AdminMessagingRecovery() {
                   type='monotone'
                   dataKey='activeConversations'
                   name='Conversations actives'
-                  stroke='#ec4899'
+                  stroke='#c6a367'
                   strokeWidth={2}
                   dot={false}
                 />

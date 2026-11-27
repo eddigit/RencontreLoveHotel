@@ -134,8 +134,8 @@ export default async function AdminConciergeriePage() {
         <AdminHeader user={user} />
         <AdminTabs />
 
-        <div className='mb-8 rounded-3xl border border-white/10 bg-[#2d0737]/80 p-6 text-white'>
-          <p className='text-sm font-black uppercase tracking-[0.2em] text-[#ff7ac0]'>
+        <div className='mb-8 rounded-3xl border border-white/10 bg-[#1c1d20]/80 p-6 text-white'>
+          <p className='text-sm font-black uppercase tracking-[0.2em] text-[#d6bc87]'>
             Conciergerie Love Hotel
           </p>
           <h1 className='mt-2 text-3xl font-black'>Demandes de conciergerie</h1>
@@ -163,12 +163,12 @@ export default async function AdminConciergeriePage() {
               return (
                 <article
                   key={demande.id}
-                  className='rounded-3xl border border-white/10 bg-[#24002d]/80 p-5 text-white shadow-xl'
+                  className='rounded-3xl border border-white/10 bg-[#1c1d20]/80 p-5 text-white shadow-xl'
                 >
                   <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
                     <div>
                       <div className='flex flex-wrap items-center gap-2'>
-                        <span className='rounded-full bg-[#ff3b8b] px-3 py-1 text-xs font-black uppercase text-white'>
+                        <span className='rounded-full bg-[#d6bc87] px-3 py-1 text-xs font-black uppercase text-[#191714]'>
                           {requestLabel}
                         </span>
                         <span className='rounded-full border border-white/15 px-3 py-1 text-xs font-bold text-white/75'>
@@ -199,7 +199,7 @@ export default async function AdminConciergeriePage() {
                       {chatLink ? (
                         <Link
                           href={chatLink}
-                          className='rounded-xl bg-[#ff3b8b] px-4 py-2 text-sm font-black text-white transition hover:brightness-110'
+                          className='rounded-xl bg-[#d6bc87] px-4 py-2 text-sm font-black text-[#191714] transition hover:brightness-110'
                         >
                           Répondre dans le chat
                         </Link>

@@ -4,8 +4,9 @@ import { usePathname } from 'next/navigation'
 
 const tabs = [
   { label: 'Vue d’ensemble', href: '/admin' },
-  { label: 'Boîte à idées', href: '/admin/idees' },
   { label: 'Utilisateurs', href: '/admin/users' },
+  { label: 'Statistiques', href: '/admin/stats' },
+  { label: 'Boîte à idées', href: '/admin/idees' },
   { label: 'Événements', href: '/admin/events' },
   { label: 'Messages', href: '/admin/messages' },
   { label: 'Messages internes', href: '/admin/internal-messages' },
@@ -16,14 +17,13 @@ const tabs = [
   { label: 'Roadmap', href: '/admin/roadmap' },
   { label: 'Paramètres', href: '/admin/options' }
   // Add more admin sections here as needed
-  // { label: "Statistiques", href: "/admin/stats" },
 ]
 
 export function AdminTabs () {
   const pathname = usePathname()
   return (
     <nav
-      className='mb-8 flex gap-2 overflow-x-auto rounded-2xl border border-white/10 bg-black/20 p-2 shadow-lg shadow-black/10 backdrop-blur-xl'
+      className='mb-6 flex gap-1.5 overflow-x-auto md:flex-wrap rounded-2xl border border-white/10 bg-[#191a1c] p-2 shadow-lg shadow-black/10 backdrop-blur-xl'
       aria-label='Navigation administration'
     >
       {tabs.map(tab => {
@@ -38,7 +38,7 @@ export function AdminTabs () {
             aria-current={isActive ? 'page' : undefined}
             className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition md:px-4 ${
               isActive
-                ? 'bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white shadow-md shadow-[#ff3b8b]/15'
+                ? 'bg-[#d6bc87] text-[#191714] shadow-md shadow-[#d6bc87]/15'
                 : 'text-white/58 hover:bg-white/[0.06] hover:text-white'
             }`}
           >

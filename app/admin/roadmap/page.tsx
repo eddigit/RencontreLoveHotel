@@ -41,7 +41,7 @@ const sections: Array<{
     title: 'Points développés',
     description: 'Changements déjà livrés ou stabilisés sur la bêta.',
     icon: Hammer,
-    badgeClassName: 'border-pink-500/40 bg-pink-500/10 text-pink-200'
+    badgeClassName: 'border-[#d6bc87]/40 bg-[#d6bc87]/10 text-[#d6bc87]'
   },
   {
     status: 'planned',
@@ -130,7 +130,7 @@ export default async function AdminRoadmapPage () {
               <div className='text-xs text-white/60'>Pas bons</div>
             </div>
             <div className='rounded-md border border-white/10 bg-white/[0.04] px-4 py-3'>
-              <div className='text-2xl font-bold text-pink-200'>{summary.developed}</div>
+              <div className='text-2xl font-bold text-[#d6bc87]'>{summary.developed}</div>
               <div className='text-xs text-white/60'>Développés</div>
             </div>
             <a href='#fonctions-a-venir' className='rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 hover:underline'>

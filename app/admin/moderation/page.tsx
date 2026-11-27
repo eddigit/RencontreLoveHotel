@@ -79,10 +79,10 @@ export default function AdminModerationPage () {
           <AdminHeader user={user} />
           <AdminTabs />
 
-          <div className='mb-8 overflow-hidden rounded-3xl border border-[#ff8cc8]/20 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(124,58,237,0.13),rgba(0,0,0,0.18))] p-6 shadow-2xl shadow-black/15 sm:p-8'>
+          <div className='mb-8 overflow-hidden rounded-3xl border border-[#d6bc87]/20 bg-[linear-gradient(135deg,rgba(214,188,135,0.13),rgba(32,33,35,0.8),rgba(0,0,0,0.18))] p-6 shadow-2xl shadow-black/15 sm:p-8'>
             <div className='flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
               <div className='max-w-3xl'>
-                <div className='mb-3 flex items-center gap-2 text-[#ff9bce]'>
+                <div className='mb-3 flex items-center gap-2 text-[#d6bc87]'>
                   <ShieldAlert className='h-5 w-5' />
                   <span className='text-xs font-black uppercase tracking-[0.2em]'>Centre de modération</span>
                 </div>
@@ -92,14 +92,14 @@ export default function AdminModerationPage () {
                   claire de chaque action. La messagerie privée complète n’est jamais ouverte en masse.
                 </p>
               </div>
-              <Button asChild className='h-12 shrink-0 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-6 font-black text-white'>
+              <Button asChild className='h-12 shrink-0 bg-[#d6bc87] px-6 font-black text-[#191714]'>
                 <Link href='/moderation'>Ouvrir la file sécurisée</Link>
               </Button>
             </div>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -142,13 +142,13 @@ export default function AdminModerationPage () {
                   <input
                     value={keyword}
                     onChange={event => setKeyword(event.target.value)}
-                    className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[#ff8cc8]'
+                    className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-[#d6bc87]'
                     placeholder='Mot-clé à surveiller'
                   />
                   <select
                     value={severity}
                     onChange={event => setSeverity(event.target.value as ModerationSeverity)}
-                    className='w-full rounded-md border border-white/10 bg-[#241035] px-3 py-2 text-sm text-white outline-none focus:border-[#ff8cc8]'
+                    className='w-full rounded-md border border-white/10 bg-[#1c1d20] px-3 py-2 text-sm text-white outline-none focus:border-[#d6bc87]'
                   >
                     {severityOptions.map(option => (
                       <option key={option} value={option}>
@@ -173,7 +173,7 @@ export default function AdminModerationPage () {
                         className='flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm'
                       >
                         <span className='font-semibold'>{rule.keyword}</span>
-                        <span className='rounded-full bg-[#ff3b8b]/20 px-2 py-1 text-xs text-[#ffb3d7]'>
+                        <span className='rounded-full bg-[#d6bc87]/20 px-2 py-1 text-xs text-[#d6bc87]'>
                           {rule.severity}
                         </span>
                       </div>
@@ -204,7 +204,7 @@ export default function AdminModerationPage () {
                             {item.reason}
                           </div>
                           <div className='flex gap-2 text-xs'>
-                            <span className='rounded-full bg-[#ff3b8b]/20 px-2 py-1 text-[#ffb3d7]'>
+                            <span className='rounded-full bg-[#d6bc87]/20 px-2 py-1 text-[#d6bc87]'>
                               {item.severity}
                             </span>
                             <span className='rounded-full bg-white/10 px-2 py-1'>
@@ -217,7 +217,7 @@ export default function AdminModerationPage () {
                           {item.created_at && <time dateTime={new Date(item.created_at).toISOString()}>{new Date(item.created_at).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}</time>}
                         </p>
                         {item.investigation_id && (
-                          <Link href={`/moderation/${item.investigation_id}`} className='mt-2 inline-block text-sm text-[#94ffc9] underline'>Examiner le dossier</Link>
+                          <Link href={`/moderation/${item.investigation_id}`} className='mt-2 inline-block text-sm text-[#d6bc87] underline'>Examiner le dossier</Link>
                         )}
                         {item.excerpt && (
                           <p className='mt-2 line-clamp-3 text-sm text-muted-foreground'>
@@ -258,7 +258,7 @@ function ModerationStat ({
   return (
     <Card>
       <CardContent className='p-5'>
-        <Icon className='mb-4 h-5 w-5 text-[#ff8cc8]' />
+        <Icon className='mb-4 h-5 w-5 text-[#d6bc87]' />
         <div className='text-3xl font-black'>{value}</div>
         <p className='mt-1 text-sm text-muted-foreground'>{title}</p>
       </CardContent>

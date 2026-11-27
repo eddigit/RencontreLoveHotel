@@ -16,8 +16,8 @@ export async function GET() {
   const events = await sql`
     SELECT *, (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = e.id) as participant_count
     FROM events e
-    WHERE e.event_date < NOW()
-    ORDER BY event_date DESC
+    WHERE (e.event_date::date + COALESCE(e.event_time::time, TIME '23:59:59')) <= (NOW() AT TIME ZONE 'Europe/Paris')
+    ORDER BY event_date DESC, event_time DESC
   `
   return NextResponse.json(events || [])
 }

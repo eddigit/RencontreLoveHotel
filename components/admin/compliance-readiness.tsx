@@ -38,9 +38,9 @@ export function ComplianceReadiness () {
   ]))
 
   return (
-    <section className='mb-8 rounded-2xl border border-pink-500/20 bg-pink-500/[0.06] p-5'>
+    <section className='mb-8 rounded-2xl border border-[#d6bc87]/20 bg-[#d6bc87]/[0.06] p-5'>
       <div className='flex items-start gap-3'>
-        <ShieldCheck className='mt-0.5 h-6 w-6 text-pink-300' />
+        <ShieldCheck className='mt-0.5 h-6 w-6 text-[#d6bc87]' />
         <div>
           <h2 className='text-xl font-bold'>État de préparation Compliance</h2>
           <p className='mt-1 text-sm text-muted-foreground'>Fonctions désactivées par défaut : chaque activation reste conditionnée à ses prérequis.</p>

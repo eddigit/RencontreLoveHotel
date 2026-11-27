@@ -56,7 +56,7 @@ function RolePanel({
       <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
         <Metric label='En ligne' value={status.online} accent='text-emerald-500' />
         <Metric label='Actifs 24 h' value={status.active24h} accent='text-sky-500' />
-        <Metric label='Connexions 24 h' value={status.logins24h} accent='text-violet-500' />
+        <Metric label='Connexions 24 h' value={status.logins24h} accent='text-[#d6bc87]' />
         <Metric label='Échecs 24 h' value={status.failures24h} accent={status.failures24h ? 'text-red-500' : 'text-muted-foreground'} />
       </div>
     </div>
@@ -225,7 +225,7 @@ export function AdminLoginStatus() {
 
             <div>
               <h3 className='mb-3 flex items-center gap-2 font-semibold'>
-                <Clock3 className='h-4 w-4 text-violet-500' />
+                <Clock3 className='h-4 w-4 text-[#d6bc87]' />
                 Dernières authentifications
               </h3>
 

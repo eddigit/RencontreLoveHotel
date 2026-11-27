@@ -82,6 +82,60 @@ export interface AdminLoginStatusData {
   timestamp: string
 }
 
+export type AdminStatsPeriodDays = 7 | 30 | 90
+
+export interface AdminMemberEngagement {
+  userId: string
+  name: string | null
+  email: string
+  role: 'admin' | 'user'
+  lastSeenAt: string | null
+  online: boolean
+  /** Distinct Paris calendar days with a recorded sign-in, outgoing message, or last presence. */
+  activeDays: number
+  successfulLogins: number
+  messagesSent: number
+  /** Recipient metrics are calculated only for two-member conversations. */
+  messagesReceived: number
+  deliveredMessages: number
+  readMessages: number
+  unreadMessages: number
+  repliedConversations: number
+  emailNewsOptIn: boolean | null
+  emailActivityCategories: { messages: boolean; matches: boolean; events: boolean } | null
+}
+
+export interface AdminMemberEngagementStats {
+  periodDays: AdminStatsPeriodDays
+  periodStart: string
+  periodEnd: string
+  accounts: {
+    total: number
+    online: number
+    active: number
+  }
+  /** Anonymous traffic is not recorded by the application database. */
+  anonymousVisitors: {
+    tracked: 'external'
+    detail: string
+    audienceUrl: string
+  }
+  messages: {
+    sent: number
+    delivered: number
+    pendingDelivery: number
+    read: number
+    unread: number
+  }
+  members: AdminMemberEngagement[]
+  presenceAvailable: boolean
+  presenceHistoryAvailable: boolean
+  authAuditAvailable: boolean
+  messageReceiptsAvailable: boolean
+  emailPreferencesAvailable: boolean
+  timestamp: string
+}
+
 function emptyRoleStatus(): AdminLoginRoleStatus {
   return { total: 0, online: 0, active24h: 0, logins24h: 0, failures24h: 0 }
 }
@@ -89,6 +143,276 @@ function emptyRoleStatus(): AdminLoginRoleStatus {
 function asNumber(value: unknown): number {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function normalizePeriodDays(value: number): AdminStatsPeriodDays {
+  if (value === 7 || value === 30 || value === 90) return value
+  return 30
+}
+
+function emptyMemberEngagementStats(periodDays: AdminStatsPeriodDays, periodStart: Date, periodEnd: Date): AdminMemberEngagementStats {
+  return {
+    periodDays,
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
+    accounts: { total: 0, online: 0, active: 0 },
+    anonymousVisitors: {
+      tracked: 'external',
+      detail: 'L’audience web est mesurée dans Vercel Analytics. Les visiteurs anonymes ne sont pas distinguables individuellement et ne sont pas rattachables à un compte membre.',
+      audienceUrl: 'https://vercel.com/gilles-korzec-projects/love-hotel-rencontre/analytics'
+    },
+    messages: { sent: 0, delivered: 0, pendingDelivery: 0, read: 0, unread: 0 },
+    members: [],
+    presenceAvailable: false,
+    presenceHistoryAvailable: false,
+    authAuditAvailable: false,
+    messageReceiptsAvailable: false,
+    emailPreferencesAvailable: false,
+    timestamp: new Date().toISOString()
+  }
+}
+
+/**
+ * Admin-only, content-free engagement report. It deliberately measures only
+ * recorded account activity; anonymous visits have no durable identifier here.
+ */
+export async function getAdminMemberEngagementStats(
+  requestedPeriodDays: number = 30
+): Promise<AdminMemberEngagementStats> {
+  await requireAdmin()
+
+  const periodDays = normalizePeriodDays(requestedPeriodDays)
+  const periodEnd = new Date()
+  const periodStart = new Date(periodEnd.getTime() - periodDays * 24 * 60 * 60 * 1000)
+  const empty = emptyMemberEngagementStats(periodDays, periodStart, periodEnd)
+
+  try {
+    const memberRows = await sql.query<any[]>(`
+      SELECT
+        u.id AS user_id,
+        u.name,
+        u.email,
+        CASE WHEN u.role = 'admin' THEN 'admin' ELSE 'user' END AS role,
+        u.last_seen_at,
+        (u.last_seen_at >= NOW() - INTERVAL '10 minutes') AS online
+      FROM users u
+      ORDER BY u.name ASC NULLS LAST, u.email ASC
+    `)
+
+    const members: AdminMemberEngagement[] = memberRows.map(row => ({
+      userId: String(row.user_id),
+      name: row.name ? String(row.name) : null,
+      email: String(row.email),
+      role: row.role === 'admin' ? 'admin' as const : 'user' as const,
+      lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
+      online: Boolean(row.online),
+      activeDays: 0,
+      successfulLogins: 0,
+      messagesSent: 0,
+      messagesReceived: 0,
+      deliveredMessages: 0,
+      readMessages: 0,
+      unreadMessages: 0,
+      repliedConversations: 0,
+      emailNewsOptIn: null,
+      emailActivityCategories: null
+    }))
+    const byUserId = new Map(members.map(member => [member.userId, member]))
+
+    empty.members = members
+    empty.accounts.total = members.length
+    empty.accounts.online = members.filter(member => member.online).length
+    empty.presenceAvailable = true
+
+    try {
+      const preferenceRows = await sql.query<any[]>(`
+        SELECT u.id::text AS user_id, ep.campaign_opt_in, ep.message_email_enabled,
+               ep.match_email_enabled, ep.event_email_enabled
+        FROM users u
+        LEFT JOIN email_preferences ep ON ep.user_id = u.id
+      `)
+      for (const row of preferenceRows) {
+        const member = byUserId.get(String(row.user_id))
+        if (member) {
+          member.emailNewsOptIn = row.campaign_opt_in === null || row.campaign_opt_in === undefined ? false : Boolean(row.campaign_opt_in)
+          member.emailActivityCategories = {
+            messages: Boolean(row.message_email_enabled),
+            matches: Boolean(row.match_email_enabled),
+            events: Boolean(row.event_email_enabled)
+          }
+        }
+      }
+      empty.emailPreferencesAvailable = true
+    } catch (error) {
+      console.warn('Préférences e-mail indisponibles:', error)
+    }
+
+    const activeDaysByUser = new Map<string, Set<string>>()
+    const addActiveDay = (userId: string, value: unknown) => {
+      const date = String(value)
+      if (!date) return
+      const days = activeDaysByUser.get(userId) || new Set<string>()
+      days.add(date)
+      activeDaysByUser.set(userId, days)
+    }
+
+    // last_seen_at is a current-presence marker, not a session history. It can
+    // therefore contribute at most one day to the selected period.
+    for (const row of memberRows) {
+      if (row.last_seen_at && new Date(row.last_seen_at) >= periodStart) {
+        addActiveDay(String(row.user_id), new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).format(new Date(row.last_seen_at)))
+      }
+    }
+
+    try {
+      const presenceDayRows = await sql.query<any[]>(`
+        SELECT user_id::text AS user_id, active_day::text AS active_day
+        FROM member_presence_days
+        WHERE active_day >= $1::date
+          AND active_day <= $2::date
+      `, [periodStart.toISOString(), periodEnd.toISOString()])
+      for (const row of presenceDayRows) addActiveDay(String(row.user_id), row.active_day)
+      empty.presenceHistoryAvailable = true
+    } catch (error) {
+      console.warn('Historique journalier de présence indisponible:', error)
+    }
+
+    try {
+      const authRows = await sql.query<any[]>(`
+        SELECT
+          COALESCE(u.id, al.user_id)::text AS user_id,
+          COUNT(*)::int AS successful_logins,
+          ARRAY_AGG(DISTINCT timezone('Europe/Paris', al.created_at)::date::text) AS active_days
+        FROM auth_logs al
+        LEFT JOIN users u
+          ON u.id = al.user_id
+          OR (al.user_id IS NULL AND LOWER(u.email) = LOWER(al.email))
+        WHERE al.event = 'sign_in_success'
+          AND al.created_at >= $1
+          AND al.created_at < $2
+          AND COALESCE(u.id, al.user_id) IS NOT NULL
+        GROUP BY COALESCE(u.id, al.user_id)
+      `, [periodStart, periodEnd])
+
+      for (const row of authRows) {
+        const member = byUserId.get(String(row.user_id))
+        if (!member) continue
+        member.successfulLogins = asNumber(row.successful_logins)
+        for (const day of row.active_days || []) addActiveDay(member.userId, day)
+      }
+      empty.authAuditAvailable = true
+    } catch (error) {
+      console.warn("Historique d'authentification indisponible pour les statistiques membres:", error)
+    }
+
+    try {
+      const messageRows = await sql.query<any[]>(`
+        WITH scoped_messages AS (
+          SELECT id, conversation_id, sender_id, created_at, delivered_at, COALESCE(is_read, false) AS is_read,
+                 timezone('Europe/Paris', created_at)::date::text AS active_day
+          FROM messages
+          WHERE created_at >= $1
+            AND created_at < $2
+        ), sender_stats AS (
+          SELECT
+            sender_id AS user_id,
+            COUNT(*)::int AS messages_sent,
+            ARRAY_AGG(DISTINCT active_day) AS active_days
+          FROM scoped_messages
+          GROUP BY sender_id
+        ), direct_conversations AS (
+          SELECT conversation_id
+          FROM conversation_participants
+          GROUP BY conversation_id
+          HAVING COUNT(*) = 2
+        ), recipient_stats AS (
+          SELECT
+            cp.user_id,
+            COUNT(DISTINCT sm.id)::int AS messages_received,
+            COUNT(DISTINCT sm.id) FILTER (WHERE sm.delivered_at IS NOT NULL)::int AS delivered_messages,
+            COUNT(DISTINCT sm.id) FILTER (WHERE sm.is_read)::int AS read_messages,
+            COUNT(DISTINCT sm.id) FILTER (WHERE NOT sm.is_read)::int AS unread_messages
+          FROM scoped_messages sm
+          JOIN direct_conversations dc ON dc.conversation_id = sm.conversation_id
+          JOIN conversation_participants cp
+            ON cp.conversation_id = sm.conversation_id
+           AND cp.user_id <> sm.sender_id
+          GROUP BY cp.user_id
+        ), response_stats AS (
+          SELECT outgoing.sender_id AS user_id, COUNT(DISTINCT outgoing.conversation_id)::int AS replied_conversations
+          FROM scoped_messages outgoing
+          JOIN direct_conversations dc ON dc.conversation_id = outgoing.conversation_id
+          WHERE EXISTS (
+            SELECT 1 FROM scoped_messages incoming
+            WHERE incoming.conversation_id = outgoing.conversation_id
+              AND incoming.sender_id <> outgoing.sender_id
+              AND incoming.created_at < outgoing.created_at
+          )
+          GROUP BY outgoing.sender_id
+        )
+        SELECT
+          u.id::text AS user_id,
+          COALESCE(ss.messages_sent, 0)::int AS messages_sent,
+          COALESCE(ss.active_days, ARRAY[]::text[]) AS active_days,
+          COALESCE(rs.messages_received, 0)::int AS messages_received,
+          COALESCE(rs.delivered_messages, 0)::int AS delivered_messages,
+          COALESCE(rs.read_messages, 0)::int AS read_messages,
+          COALESCE(rs.unread_messages, 0)::int AS unread_messages,
+          COALESCE(resp.replied_conversations, 0)::int AS replied_conversations
+        FROM users u
+        LEFT JOIN sender_stats ss ON ss.user_id = u.id
+        LEFT JOIN recipient_stats rs ON rs.user_id = u.id
+        LEFT JOIN response_stats resp ON resp.user_id = u.id
+      `, [periodStart, periodEnd])
+
+      for (const row of messageRows) {
+        const member = byUserId.get(String(row.user_id))
+        if (!member) continue
+        member.messagesSent = asNumber(row.messages_sent)
+        member.messagesReceived = asNumber(row.messages_received)
+        member.deliveredMessages = asNumber(row.delivered_messages)
+        member.readMessages = asNumber(row.read_messages)
+        member.unreadMessages = asNumber(row.unread_messages)
+        member.repliedConversations = asNumber(row.replied_conversations)
+        for (const day of row.active_days || []) addActiveDay(member.userId, day)
+      }
+
+      const totals = await sql.query<any[]>(`
+        SELECT
+          COUNT(*)::int AS sent,
+          COUNT(*) FILTER (WHERE delivered_at IS NOT NULL)::int AS delivered,
+          COUNT(*) FILTER (WHERE delivered_at IS NULL)::int AS pending_delivery,
+          COUNT(*) FILTER (WHERE COALESCE(is_read, false))::int AS read,
+          COUNT(*) FILTER (WHERE NOT COALESCE(is_read, false))::int AS unread
+        FROM messages
+        WHERE created_at >= $1
+          AND created_at < $2
+      `, [periodStart, periodEnd])
+      const total = totals[0] || {}
+      empty.messages = {
+        sent: asNumber(total.sent),
+        delivered: asNumber(total.delivered),
+        pendingDelivery: asNumber(total.pending_delivery),
+        read: asNumber(total.read),
+        unread: asNumber(total.unread)
+      }
+      empty.messageReceiptsAvailable = true
+    } catch (error) {
+      console.warn('Reçus de livraison et de lecture indisponibles:', error)
+    }
+
+    for (const member of members) {
+      member.activeDays = activeDaysByUser.get(member.userId)?.size || 0
+    }
+    empty.accounts.active = members.filter(member => member.activeDays > 0).length
+
+    return empty
+  } catch (error) {
+    console.error('Statistiques de fréquentation membre indisponibles:', error)
+    throw new Error('Données des membres indisponibles')
+  }
 }
 
 export async function getAdminOverviewCounts() {

@@ -17,7 +17,7 @@ type Filters = Record<string, string | string[] | undefined>
 const dateFormat = new Intl.DateTimeFormat('fr-FR', {
   dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Paris'
 })
-const controlClass = 'block min-h-11 w-full rounded-xl border border-white/20 bg-[#250d31] px-3 text-sm text-white focus-visible:ring-2 focus-visible:ring-[#94ffc9]'
+const controlClass = 'block min-h-11 w-full rounded-xl border border-white/20 bg-[#1c1d20] px-3 text-sm text-white focus-visible:ring-2 focus-visible:ring-[#d6bc87]'
 
 export default async function AdminIdeasPage({ searchParams }: { searchParams: Promise<Filters> }) {
   const session = await getServerSession(authOptions)
@@ -44,7 +44,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
         <AdminTabs />
         <section aria-labelledby="feedback-heading" className="mx-auto max-w-5xl">
           <header className="mb-6 flex items-center gap-4">
-            <Lightbulb aria-hidden="true" className="h-9 w-9 shrink-0 text-[#94ffc9]" />
+            <Lightbulb aria-hidden="true" className="h-9 w-9 shrink-0 text-[#d6bc87]" />
             <div><h2 id="feedback-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">Boîte à idées</h2>
               <p className="mt-1 text-sm text-white/70">Les idées et les problèmes envoyés depuis l’espace membre.</p></div>
           </header>
@@ -57,7 +57,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
               <select key={status ?? 'all'} name="status" defaultValue={status ?? ''} className={controlClass}>
                 <option value="">Tous les statuts</option><option value="open">À lire</option><option value="in_progress">En cours</option><option value="resolved">Traité</option>
               </select></label>
-            <button className="min-h-11 rounded-xl bg-[#94ffc9] px-5 font-bold text-[#14271e] hover:bg-[#b7ffdb]">Filtrer</button>
+            <button className="min-h-11 rounded-xl bg-[#d6bc87] px-5 font-bold text-[#14271e] hover:bg-[#b7ffdb]">Filtrer</button>
           </form>
           {!data ? (
             <p role="alert" className="rounded-xl border border-rose-300/30 p-4">Les retours n’ont pas pu être chargés. <Link className="underline" href={hrefFor(page)}>Réessayer</Link></p>
@@ -65,7 +65,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
             <>
               <p className="mb-3 text-sm text-white/65">{data.total} retour{data.total > 1 ? 's' : ''}</p>
               {data.items.length === 0 && <div className="rounded-2xl border border-dashed border-white/20 p-6">
-                {kind || status ? <>Aucun retour ne correspond à ces filtres. <Link href="/admin/idees" className="text-[#94ffc9] underline">Voir tous les retours</Link></> : <>Aucun retour disponible. Les prochaines contributions des membres apparaîtront ici.</>}
+                {kind || status ? <>Aucun retour ne correspond à ces filtres. <Link href="/admin/idees" className="text-[#d6bc87] underline">Voir tous les retours</Link></> : <>Aucun retour disponible. Les prochaines contributions des membres apparaîtront ici.</>}
               </div>}
               <ol className="space-y-3">
                 {data.items.map(item => {
@@ -73,7 +73,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
                   const Icon = isIdea ? Lightbulb : Bug
                   return <li key={item.id} className="rounded-2xl border border-white/10 bg-white/[.045] p-5">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="inline-flex items-center gap-2 font-bold"><Icon aria-hidden="true" className={isIdea ? 'h-4 w-4 text-[#94ffc9]' : 'h-4 w-4 text-[#ff9ace]'} />{isIdea ? 'Idée' : 'Problème'} · {item.reporter_name}</h3>
+                      <h3 className="inline-flex items-center gap-2 font-bold"><Icon aria-hidden="true" className={isIdea ? 'h-4 w-4 text-[#d6bc87]' : 'h-4 w-4 text-[#d6bc87]'} />{isIdea ? 'Idée' : 'Problème'} · {item.reporter_name}</h3>
                       <time dateTime={new Date(item.created_at).toISOString()} className="text-sm text-white/65">{dateFormat.format(new Date(item.created_at))}</time>
                     </div>
                     <p className="my-4 whitespace-pre-wrap break-words text-base leading-7">{item.message}</p>
@@ -82,9 +82,9 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
                 })}
               </ol>
               {pageCount > 1 && <nav aria-label="Pages de retours" className="mt-5 flex flex-wrap items-center gap-4 text-sm">
-                {page > 1 && <Link href={hrefFor(page - 1)} className="text-[#94ffc9] underline">Précédente</Link>}
+                {page > 1 && <Link href={hrefFor(page - 1)} className="text-[#d6bc87] underline">Précédente</Link>}
                 <span>Page {page} sur {pageCount}</span>
-                {page < pageCount && <Link href={hrefFor(page + 1)} className="text-[#94ffc9] underline">Suivante</Link>}
+                {page < pageCount && <Link href={hrefFor(page + 1)} className="text-[#d6bc87] underline">Suivante</Link>}
               </nav>}
             </>
           )}

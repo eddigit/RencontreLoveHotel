@@ -79,8 +79,8 @@ function buildAudienceClause(input: EmailAudiencePreviewInput) {
     }
   }
 
-  if (input.audience === 'manual' && input.userIds?.length) {
-    return { where: 'WHERE u.id = ANY($1::uuid[])', params: [input.userIds] }
+  if (input.audience === 'manual') {
+    return { where: 'WHERE u.id = ANY($1::uuid[])', params: [input.userIds || []] }
   }
 
   return { where: '', params: [] as unknown[] }

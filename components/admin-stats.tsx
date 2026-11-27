@@ -11,7 +11,7 @@ const defaultRange = 90 // days
 function getDateRange(days: number) {
   const end = new Date()
   const start = new Date(end)
-  start.setDate(start.getDate() - days)
+  start.setDate(start.getDate() - days + 1)
   end.setDate(end.getDate() + 1)
   return {
     startDate: start.toISOString().slice(0, 10),
@@ -37,11 +37,14 @@ const dateFormatter = (d: any) => {
 export function AdminStats() {
   const [scale, setScale] = useState<"day"|"week"|"month">(defaultScale as any)
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
   const [data, setData] = useState<any[]>([])
 
   useEffect(() => {
+    let current = true
     async function fetchStats() {
       setLoading(true)
+      setFailed(false)
       const { startDate, endDate } = getDateRange(defaultRange)
       const [users, actives, matches, messages, subscriptions] = await Promise.all([
         getNewUsersStats({ startDate, endDate, scale }),
@@ -67,10 +70,12 @@ export function AdminStats() {
         eventSubscriptions: subscriptions.find((d: any) => d.period === period)?.count || 0,
       }))
       .sort((a, b) => a.period.localeCompare(b.period))
+      if (!current) return
       setData(merged)
       setLoading(false)
     }
-    fetchStats()
+    fetchStats().catch(() => { if (current) { setFailed(true); setLoading(false) } })
+    return () => { current = false }
   }, [scale])
 
   return (
@@ -89,7 +94,7 @@ export function AdminStats() {
           ))}
         </div>
       </div>
-      {loading ? (
+      {failed ? <p role="alert">Les courbes sont momentanément indisponibles.</p> : loading ? (
         <div>Chargement des statistiques...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -104,12 +109,12 @@ export function AdminStats() {
                   labelFormatter={dateFormatter}
                   formatter={(value: any) => value?.toLocaleString?.('fr-FR') ?? value}
                 />
-                <Line type="monotone" dataKey="newUsers" stroke="#8884d8" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="newUsers" stroke="#d6bc87" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div>
-            <h3 className="font-semibold mb-2">Utilisateurs actifs</h3>
+            <h3 className="font-semibold mb-2">Membres ayant envoyé un message</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -164,7 +169,7 @@ export function AdminStats() {
                   labelFormatter={dateFormatter}
                   formatter={(value: any) => value?.toLocaleString?.('fr-FR') ?? value}
                 />
-                <Line type="monotone" dataKey="eventSubscriptions" stroke="#b84cff" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="eventSubscriptions" stroke="#99aeb4" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

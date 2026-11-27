@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProtectedRoute } from "@/components/protected-route"
-import { getUpcomingEvents, deleteEvent, resetAllEvents } from "@/actions/event-actions"
+import { getAdminUpcomingEvents, deleteEvent, resetAllEvents } from "@/actions/event-actions"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
 import MainLayout from "@/components/layout/main-layout"
@@ -25,13 +25,20 @@ export default function AdminEventsPage() {
     async function fetchEvents() {
       setLoading(true)
       // Récupère les événements à venir
-      const result = await getUpcomingEvents(user?.id || "")
-      setEvents(result)
-      // Récupère les événements passés
-      const res = await fetch("/api/admin/events/past")
-      const past = await res.json()
-      setPastEvents(past)
-      setLoading(false)
+      try {
+        const result = await getAdminUpcomingEvents()
+        setEvents(result)
+        // Récupère les événements passés
+        const res = await fetch("/api/admin/events/past")
+        if (!res.ok) throw new Error('Impossible de charger les événements passés')
+        const past = await res.json()
+        setPastEvents(Array.isArray(past) ? past : [])
+      } catch (error) {
+        console.error('Erreur lors du chargement des événements admin:', error)
+        setStatus('Les événements n’ont pas pu être chargés. Réessayez la page.')
+      } finally {
+        setLoading(false)
+      }
     }
     if (user?.id) fetchEvents()
   }, [user?.id])
@@ -72,7 +79,7 @@ export default function AdminEventsPage() {
             </div>
           </div>
           {status && (
-            <div className="mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white">
+            <div className="mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white">
               {status}
             </div>
           )}

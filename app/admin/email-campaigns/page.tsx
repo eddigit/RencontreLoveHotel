@@ -140,14 +140,14 @@ export default function AdminEmailCampaignsPage () {
                 supprime, banni ou non consentant ne peut entrer dans la file.
               </p>
             </div>
-            <Button disabled className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+            <Button disabled className='bg-[#d6bc87] text-[#191714]'>
               <Send className='mr-2 h-4 w-4' />
               Envoi reel verrouille
             </Button>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#ff8cc8]/30 bg-[#ff3b8b]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -156,7 +156,7 @@ export default function AdminEmailCampaignsPage () {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <Users className='h-5 w-5 text-[#ff8cc8]' />
+                  <Users className='h-5 w-5 text-[#d6bc87]' />
                   Audience eligible
                 </CardTitle>
               </CardHeader>
@@ -173,7 +173,7 @@ export default function AdminEmailCampaignsPage () {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <ShieldCheck className='h-5 w-5 text-[#94ffc9]' />
+                  <ShieldCheck className='h-5 w-5 text-[#d6bc87]' />
                   Exclus proteges
                 </CardTitle>
               </CardHeader>
@@ -216,7 +216,7 @@ export default function AdminEmailCampaignsPage () {
                       <input
                         value={form.name}
                         onChange={event => setForm({ ...form, name: event.target.value })}
-                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                        className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                       />
                     </label>
                     <label className='space-y-1 text-sm'>
@@ -224,7 +224,7 @@ export default function AdminEmailCampaignsPage () {
                       <select
                         value={audience}
                         onChange={event => setAudience(event.target.value as EmailAudience)}
-                        className='w-full rounded-md border border-white/10 bg-[#241035] px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                        className='w-full rounded-md border border-white/10 bg-[#1c1d20] px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                       >
                         {Object.entries(audienceLabels).map(([value, label]) => (
                           <option key={value} value={value}>
@@ -240,7 +240,7 @@ export default function AdminEmailCampaignsPage () {
                     <input
                       value={form.subject}
                       onChange={event => setForm({ ...form, subject: event.target.value })}
-                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                     />
                   </label>
 
@@ -250,7 +250,7 @@ export default function AdminEmailCampaignsPage () {
                       value={form.bodyHtml}
                       onChange={event => setForm({ ...form, bodyHtml: event.target.value })}
                       rows={7}
-                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                     />
                   </label>
 
@@ -260,14 +260,14 @@ export default function AdminEmailCampaignsPage () {
                       value={form.bodyText}
                       onChange={event => setForm({ ...form, bodyText: event.target.value })}
                       rows={4}
-                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#ff8cc8]'
+                      className='w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-[#d6bc87]'
                     />
                   </label>
 
                   <Button
                     type='submit'
                     disabled={saving || !form.name.trim() || !form.subject.trim()}
-                    className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'
+                    className='bg-[#d6bc87] text-[#191714]'
                   >
                     {saving ? 'Creation...' : 'Creer le brouillon'}
                   </Button>

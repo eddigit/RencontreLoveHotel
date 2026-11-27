@@ -57,15 +57,15 @@ export function AdminProductDiagnostic() {
 
   return (
     <div className='space-y-8'>
-      <section className='rounded-3xl border border-pink-500/25 bg-gradient-to-br from-pink-500/15 via-purple-500/10 to-black/20 p-6 md:p-8'>
+      <section className='rounded-3xl border border-[#d6bc87]/25 bg-gradient-to-br from-[#d6bc87]/15 via-[#d6bc87]/10 to-black/20 p-6 md:p-8'>
         <div className='flex flex-col gap-6 md:flex-row md:items-center md:justify-between'>
           <div>
-            <p className='text-xs font-bold uppercase tracking-[0.22em] text-pink-300'>Pilotage exclusif Love Hotel Rencontre</p>
+            <p className='text-xs font-bold uppercase tracking-[0.22em] text-[#d6bc87]'>Pilotage exclusif Love Hotel Rencontre</p>
             <h1 className='mt-2 text-3xl font-black text-white'>Cockpit Produit & Croissance LHR</h1>
             <p className='mt-2 max-w-3xl text-sm text-white/65'>Des comptes jusqu’aux rencontres réelles : chaque alerte repose sur les données du projet.</p>
           </div>
           <div className='rounded-3xl border border-white/10 bg-black/25 px-8 py-5 text-center'>
-            <div className='text-5xl font-black text-pink-300'>{diagnostic.overallScore}</div>
+            <div className='text-5xl font-black text-[#d6bc87]'>{diagnostic.overallScore}</div>
             <div className='text-xs uppercase tracking-[0.18em] text-white/50'>Santé produit / 100</div>
           </div>
         </div>
@@ -91,13 +91,13 @@ export function AdminProductDiagnostic() {
       </section>
 
       <section>
-        <div className='mb-4 flex items-center gap-2'><HeartPulse className='h-5 w-5 text-pink-400' /><h2 className='text-2xl font-black text-white'>Entonnoir réel</h2></div>
+        <div className='mb-4 flex items-center gap-2'><HeartPulse className='h-5 w-5 text-[#d6bc87]' /><h2 className='text-2xl font-black text-white'>Entonnoir réel</h2></div>
         <div className='grid gap-2 md:grid-cols-7'>
           {diagnostic.funnel.map((step, index) => (
             <div key={step.label} className='relative rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center'>
               <div className='text-2xl font-black text-white'>{step.value.toLocaleString('fr-FR')}</div>
               <div className='mt-1 text-xs text-white/55'>{step.label}</div>
-              {index < diagnostic.funnel.length - 1 ? <ArrowDown className='mx-auto mt-2 h-4 w-4 text-pink-400 md:hidden' /> : null}
+              {index < diagnostic.funnel.length - 1 ? <ArrowDown className='mx-auto mt-2 h-4 w-4 text-[#d6bc87] md:hidden' /> : null}
             </div>
           ))}
         </div>
@@ -106,7 +106,7 @@ export function AdminProductDiagnostic() {
       <section>
         <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
           <div><h2 className='text-2xl font-black text-white'>Plan d'action priorisé</h2><p className='text-sm text-white/55'>Urgence, preuve, impact et prochaine action.</p></div>
-          <Button onClick={recoverProfiles} disabled={isPending} variant='outline' className='border-pink-400/30 bg-pink-500/10 text-white'>
+          <Button onClick={recoverProfiles} disabled={isPending} variant='outline' className='border-[#d6bc87]/30 bg-[#d6bc87]/10 text-white'>
             {isPending ? 'Création…' : 'Créer les profils privés manquants'}
           </Button>
         </div>

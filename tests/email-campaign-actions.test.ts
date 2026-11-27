@@ -59,6 +59,12 @@ describe('email campaign actions', () => {
     expect(sql.query).not.toHaveBeenCalled()
   })
 
+  it('keeps an empty manual audience empty', async () => {
+    vi.mocked(sql.query).mockResolvedValueOnce([])
+    await previewEmailAudience({ audience: 'manual' })
+    expect(sql.query).toHaveBeenCalledWith(expect.stringContaining('WHERE u.id = ANY($1::uuid[])'), [[]])
+  })
+
   it('previews eligible and excluded campaign recipients without sending email', async () => {
     ;(sql.query as any).mockResolvedValueOnce([
       {

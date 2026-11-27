@@ -201,7 +201,8 @@ export async function getMemberRelationshipOverview(
         um.id AS match_id,
         other_user.id AS other_user_id,
         COALESCE(other_user.name, 'Membre') AS other_user_name,
-        COALESCE(other_user.avatar, primary_photo.url) AS other_user_avatar,
+        -- The member-selected primary photo must win over the legacy avatar fallback.
+        COALESCE(primary_photo.url, other_user.avatar) AS other_user_avatar,
         other_profile.age AS other_user_age,
         other_profile.location AS other_user_location,
         other_profile.status AS other_user_profile_status,

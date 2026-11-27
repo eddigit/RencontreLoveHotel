@@ -96,6 +96,12 @@ export async function getUpcomingEvents(userId?: string) {
   }
 }
 
+/** Administrative inventory: unlike the member feed, this also exposes drafts. */
+export async function getAdminUpcomingEvents() {
+  await requireAdmin()
+  return getUpcomingEventsQuery(undefined, false)
+}
+
 function isMissingPublicationStatusColumn(error: unknown) {
   const dbError = error as { code?: string; column?: string; message?: string }
   return (
@@ -506,16 +512,16 @@ export async function getEventSubscriptionsStats({ startDate, endDate, scale }: 
 
   let dateTrunc;
   if (scale === "day") {
-    dateTrunc = "TO_CHAR(DATE(created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE(joined_at), 'YYYY-MM-DD')";
   } else if (scale === "week") {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('week', created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE_TRUNC('week', joined_at), 'YYYY-MM-DD')";
   } else {
-    dateTrunc = "TO_CHAR(DATE_TRUNC('month', created_at), 'YYYY-MM-DD')";
+    dateTrunc = "TO_CHAR(DATE_TRUNC('month', joined_at), 'YYYY-MM-DD')";
   }
   const query = `
     SELECT ${dateTrunc} as period, COUNT(*) as count
     FROM event_participants
-    WHERE created_at >= $1 AND created_at < $2
+    WHERE joined_at >= $1 AND joined_at < $2
     GROUP BY period
     ORDER BY period ASC
   `;

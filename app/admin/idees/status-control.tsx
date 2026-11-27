@@ -27,7 +27,7 @@ export function FeedbackStatusControl({ id, status }: { id: string; status: Stat
     })
   }}>
     <label className="flex flex-wrap items-center gap-2 text-sm text-white/75">Statut
-      <select key={status} name="status" defaultValue={status} disabled={pending} className="min-h-10 rounded-lg border border-white/20 bg-[#250d31] px-3 text-white">
+      <select key={status} name="status" defaultValue={status} disabled={pending} className="min-h-10 rounded-lg border border-white/20 bg-[#1c1d20] px-3 text-white">
         {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
     </label>

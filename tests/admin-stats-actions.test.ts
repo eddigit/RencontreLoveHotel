@@ -15,6 +15,7 @@ vi.mock('@/lib/server-auth', () => ({
 
 import {
   getAdminDashboardStats,
+  getAdminMemberEngagementStats,
   getAdminLoginStatus,
   getAdminOverviewCounts,
   getRealTimeMetrics
@@ -143,6 +144,53 @@ describe('Admin Stats Actions', () => {
       expect((sql.query as any).mock.calls[0][0]).toContain(
         "e.publication_status = 'published'"
       )
+    })
+  })
+
+  describe('getAdminMemberEngagementStats', () => {
+    it('returns content-free account, message receipt, and activity-day metrics for the requested period', async () => {
+      ;(sql.query as any)
+        .mockResolvedValueOnce([{ user_id: 'member-1', name: 'Ines', email: 'ines@example.com', role: 'user', last_seen_at: '2026-11-27T11:00:00.000Z', online: true }])
+        .mockResolvedValueOnce([{ user_id: 'member-1', campaign_opt_in: true }])
+        .mockResolvedValueOnce([{ user_id: 'member-1', active_day: '2026-11-25' }])
+        .mockResolvedValueOnce([{ user_id: 'member-1', successful_logins: '2', active_days: ['2026-11-26', '2026-11-27'] }])
+        .mockResolvedValueOnce([{ user_id: 'member-1', messages_sent: '3', active_days: ['2026-11-25'], messages_received: '4', delivered_messages: '3', read_messages: '2', unread_messages: '2' }])
+        .mockResolvedValueOnce([{ sent: '3', delivered: '3', pending_delivery: '0', read: '2', unread: '1' }])
+
+      const stats = await getAdminMemberEngagementStats(7)
+
+      expect(stats.periodDays).toBe(7)
+      expect(stats.accounts).toEqual({ total: 1, online: 1, active: 1 })
+      expect(stats.anonymousVisitors.tracked).toBe('external')
+      expect(stats.members[0]).toMatchObject({
+        name: 'Ines', successfulLogins: 2, messagesSent: 3, messagesReceived: 4,
+        deliveredMessages: 3, readMessages: 2, unreadMessages: 2
+      })
+      expect(stats.members[0].activeDays).toBeGreaterThanOrEqual(3)
+      expect(stats.messages).toEqual({ sent: 3, delivered: 3, pendingDelivery: 0, read: 2, unread: 1 })
+
+      const allQueries = (sql.query as any).mock.calls.map((call: any[]) => call[0]).join('\n')
+      expect(allQueries).not.toContain('content')
+      expect(allQueries).toContain('COUNT(DISTINCT sm.id)')
+      expect(allQueries).toContain('HAVING COUNT(*) = 2')
+    })
+
+    it('does not fail the protected report when audit or receipt history is unavailable', async () => {
+      ;(sql.query as any)
+        .mockResolvedValueOnce([{ user_id: 'member-1', name: 'Ines', email: 'ines@example.com', role: 'user', last_seen_at: null, online: false }])
+        .mockResolvedValueOnce([])
+        .mockRejectedValueOnce(new Error('presence history missing'))
+        .mockRejectedValueOnce(new Error('auth_logs missing'))
+        .mockRejectedValueOnce(new Error('delivery receipts unavailable'))
+
+      const stats = await getAdminMemberEngagementStats(999)
+
+      expect(stats.periodDays).toBe(30)
+      expect(stats.presenceAvailable).toBe(true)
+      expect(stats.presenceHistoryAvailable).toBe(false)
+      expect(stats.authAuditAvailable).toBe(false)
+      expect(stats.messageReceiptsAvailable).toBe(false)
+      expect(stats.members).toHaveLength(1)
     })
   })
 

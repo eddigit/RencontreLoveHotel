@@ -92,7 +92,7 @@ function StatCard({
 }) {
   const toneClass = {
     default: 'border-white/10 bg-white/[0.05] text-white',
-    pink: 'border-[#ff4fa3]/30 bg-[#ff4fa3]/10 text-[#ffd5ea]',
+    pink: 'border-[#d6bc87]/30 bg-[#d6bc87]/10 text-[#d6bc87]',
     green: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
     amber: 'border-amber-300/25 bg-amber-300/10 text-amber-100'
   }[tone]
@@ -121,11 +121,11 @@ function SectionHeader({
   return (
     <div className='mb-5 flex flex-col gap-3 md:flex-row md:items-start md:justify-between'>
       <div className='flex gap-3'>
-        <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.07] text-[#ff7ac0]'>
+        <div className='flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.07] text-[#d6bc87]'>
           {icon}
         </div>
         <div>
-          <p className='text-xs font-black uppercase tracking-[0.18em] text-[#ff7ac0]'>
+          <p className='text-xs font-black uppercase tracking-[0.18em] text-[#d6bc87]'>
             {eyebrow}
           </p>
           <h2 className='mt-1 text-2xl font-black text-white'>{title}</h2>
@@ -154,7 +154,7 @@ function FieldLabel({
 }
 
 const inputClass =
-  'w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white placeholder:text-white/35 outline-none transition focus:border-[#ff4fa3] focus:ring-2 focus:ring-[#ff4fa3]/25'
+  'w-full rounded-2xl border border-white/10 bg-white/[0.07] px-4 py-3 text-white placeholder:text-white/35 outline-none transition focus:border-[#d6bc87] focus:ring-2 focus:ring-[#d6bc87]/25'
 
 export default function AdminOptionsPage () {
   const { user } = useAuth()
@@ -240,11 +240,11 @@ export default function AdminOptionsPage () {
           <AdminHeader user={user} />
           <AdminTabs />
 
-          <div className='mt-8 overflow-hidden rounded-3xl border border-white/10 bg-[#16001e]/85 text-white shadow-2xl'>
-            <div className='border-b border-white/10 bg-gradient-to-r from-[#3d064c] via-[#24002f] to-[#120018] p-6 lg:p-8'>
+          <div className='mt-8 overflow-hidden rounded-3xl border border-white/10 bg-[#1c1d20]/85 text-white shadow-2xl'>
+            <div className='border-b border-white/10 bg-gradient-to-r from-[#1c1d20] via-[#1c1d20] to-[#1c1d20] p-6 lg:p-8'>
               <div className='flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between'>
                 <div>
-                  <div className='inline-flex items-center gap-2 rounded-full border border-[#ff4fa3]/35 bg-[#ff4fa3]/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#ffd5ea]'>
+                  <div className='inline-flex items-center gap-2 rounded-full border border-[#d6bc87]/35 bg-[#d6bc87]/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#d6bc87]'>
                     <Settings2 className='h-4 w-4' />
                     Console de configuration
                   </div>
@@ -291,7 +291,7 @@ export default function AdminOptionsPage () {
                     {eventCategoryList.map(category => (
                       <div
                         key={category.value}
-                        className='rounded-2xl border border-[#ff4fa3]/25 bg-[#ff4fa3]/10 p-4'
+                        className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/10 p-4'
                       >
                         <div className='flex items-center justify-between gap-3'>
                           <p className='font-black text-white'>{category.label}</p>
@@ -448,7 +448,7 @@ export default function AdminOptionsPage () {
                       description='Suivi des modules sensibles sans activer d’offre commerciale non finalisée.'
                     />
                     <div className='space-y-3'>
-                      <div className='rounded-2xl border border-[#ff4fa3]/25 bg-[#ff4fa3]/10 p-4'>
+                      <div className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/10 p-4'>
                         <p className='font-black text-white'>
                           Conciergerie érotique
                         </p>
@@ -483,7 +483,7 @@ export default function AdminOptionsPage () {
                         </p>
                       </div>
                       <div className='flex gap-3 rounded-2xl bg-white/[0.04] p-4'>
-                        <MessageSquareText className='mt-0.5 h-5 w-5 shrink-0 text-[#ff7ac0]' />
+                        <MessageSquareText className='mt-0.5 h-5 w-5 shrink-0 text-[#d6bc87]' />
                         <p>
                           Messagerie autorisée après match accepté ou dans une
                           conversation admin.
@@ -531,7 +531,7 @@ export default function AdminOptionsPage () {
                 </div>
               ) : null}
 
-              <div className='sticky bottom-4 z-20 flex flex-col gap-3 rounded-3xl border border-white/10 bg-[#17001e]/95 p-4 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between'>
+              <div className='sticky bottom-4 z-20 flex flex-col gap-3 rounded-3xl border border-white/10 bg-[#1c1d20]/95 p-4 shadow-2xl backdrop-blur md:flex-row md:items-center md:justify-between'>
                 <p className='text-sm text-white/65'>
                   Les catégories sont filtrées à la sauvegarde pour éviter de
                   réactiver une offre indisponible.
@@ -539,7 +539,7 @@ export default function AdminOptionsPage () {
                 <Button
                   type='submit'
                   disabled={saving || loading}
-                  className='rounded-2xl bg-[#ff3b8b] px-6 py-3 font-black text-white hover:bg-[#ff4fa3]'
+                  className='rounded-2xl bg-[#d6bc87] px-6 py-3 font-black text-[#191714] hover:bg-[#d6bc87]'
                 >
                   <Save className='mr-2 h-4 w-4' />
                   {saving
