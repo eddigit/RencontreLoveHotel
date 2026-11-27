@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   referrer: 'origin',
   title: 'Love Hotel Rencontre',
   description:
-    'Rencontrez la communauté Love Hotel à Paris, découvrez les événements, Love Rooms et services de conciergerie.'
+    'Rencontres libertines entre adultes à Paris. En solo ou en couple, découvrez les profils, échangez et proposez des rencontres consenties.'
 }
 
 export const viewport: Viewport = {

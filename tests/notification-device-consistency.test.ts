@@ -21,7 +21,8 @@ describe('notification device consistency', () => {
     const conversationPage = readFileSync('app/messages/[id]/page.tsx', 'utf8')
     const matchesPage = readFileSync('app/matches/page.tsx', 'utf8')
 
-    expect(conversationPage).toContain('markResourceNotificationsAsRead(session.user.id, `/messages/${id}`)')
+    expect(conversationPage).toContain('markResourceAsRead(`/messages/${id}`)')
     expect(matchesPage).toContain("markResourceNotificationsAsRead(user.id, '/matches')")
+    expect(readFileSync('contexts/notification-context.tsx', 'utf8')).toContain('markResourceAsRead')
   })
 })

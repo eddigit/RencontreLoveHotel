@@ -12,6 +12,7 @@ import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { MemberProfileBackButton } from '@/components/member-profile-back-button'
+import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { defaultMemberImage } from '@/lib/default-member-image'
 import { isUserRecentlySeen } from '@/lib/presence'
@@ -70,6 +71,17 @@ export default async function ProfilePage ({
     matchStatus = await getMatchStatus(String(currentUser.id), String(profile.user_id))
     isRequester = matchStatus && matchStatus.user_id_1 === currentUser.id
   }
+
+  const [existingThread] = currentUser?.id && matchStatus?.status === 'accepted'
+    ? await sql.query<Array<{ id: string }>>(
+        `SELECT c.id FROM conversations c
+         JOIN conversation_participants me ON me.conversation_id = c.id AND me.user_id = $1
+         JOIN conversation_participants peer ON peer.conversation_id = c.id AND peer.user_id = $2
+         WHERE (SELECT COUNT(*) FROM conversation_participants cp WHERE cp.conversation_id = c.id) = 2
+         ORDER BY c.updated_at DESC NULLS LAST, c.id LIMIT 1`,
+        [currentUser.id, profile.user_id]
+      )
+    : []
 
   const canShowActions = currentUser && currentUser.id !== profile.user_id
 
@@ -231,7 +243,9 @@ export default async function ProfilePage ({
                   )}
 
                   {matchStatus && matchStatus.status === 'accepted' && (
-                    <ProfileMessageForm recipientId={profile.user_id} />
+                    existingThread ? (
+                      <Button asChild><Link href={`/messages/${existingThread.id}`}>Ouvrir notre conversation</Link></Button>
+                    ) : <ProfileMessageForm recipientId={profile.user_id} />
                   )}
 
                   {matchStatus && matchStatus.status === 'rejected' && (

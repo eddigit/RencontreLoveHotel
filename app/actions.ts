@@ -16,6 +16,16 @@ import { createEmailVerificationToken } from '@/lib/email-verification-token'
 import { sendVerificationEmail } from '@/lib/verification-email'
 import { sendRegistrationAdminNotification } from '@/lib/registration-admin-notification'
 
+// Notification timestamps originate in PostgreSQL as timestamptz values.
+// Format them in the product's French timezone instead of the server runtime's
+// timezone (which is UTC in production).
+const NOTIFICATION_TIME_ZONE = 'Europe/Paris'
+const notificationTimeFormat = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+  timeZone: NOTIFICATION_TIME_ZONE
+})
+
 export async function getNotifications(userId: string) {
   const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)
   if (!isValidUUID) {
@@ -53,7 +63,7 @@ export async function getNotifications(userId: string) {
       audience: row.audience || 'user',
       metadata: row.metadata || {},
       readAt: row.read_at,
-      time: new Date(row.created_at).toLocaleString(),
+      time: notificationTimeFormat.format(new Date(row.created_at)),
     }))
     return { notifications }
   } catch (error) {

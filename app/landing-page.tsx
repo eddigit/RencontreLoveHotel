@@ -20,11 +20,11 @@ export default function LandingPage() {
         <div className='mx-auto grid w-full max-w-[1440px] items-center gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:gap-14 lg:px-12 lg:py-16'>
           <div className='max-w-xl lg:py-6'>
             <h1 className='max-w-[13ch] text-[clamp(2.8rem,6vw,5.6rem)] font-bold leading-[1.02] tracking-[-0.055em]'>
-              Rencontres et sorties{' '}
+              Rencontres libertines{' '}
               <span className='font-serif italic font-normal'>à Paris</span>
             </h1>
             <p className='mt-5 max-w-md text-base leading-7 text-white/75 sm:text-lg'>
-              Faites connaissance, proposez un verre ou un apéro jacuzzi et choisissez ensemble la suite.
+              En solo ou en couple, échangez avec des adultes qui partagent vos envies. Du premier verre à une rencontre intime, chacun choisit son rythme et ses limites.
             </p>
             <Suspense fallback={null}><PublicCommunityActivity /></Suspense>
             <div className='mt-8 flex flex-wrap gap-3'>

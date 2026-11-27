@@ -70,6 +70,34 @@ describe('notification access control', () => {
     ])
   })
 
+  it('formats notification timestamps in the LHR timezone, independently of the server runtime', async () => {
+    getServerSessionMock.mockResolvedValue({
+      user: {
+        id: '11111111-1111-4111-8111-111111111111',
+        role: 'user'
+      }
+    })
+    sqlMock.mockResolvedValue([{
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      type: 'system',
+      title: 'Test',
+      description: 'Test timezone',
+      read: false,
+      created_at: '2026-06-01T12:30:00.000Z'
+    }])
+
+    const { getNotifications } = await import('@/app/actions')
+    const { notifications } = await getNotifications('11111111-1111-4111-8111-111111111111')
+
+    expect(notifications[0]?.time).toBe(
+      new Intl.DateTimeFormat('fr-FR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: 'Europe/Paris'
+      }).format(new Date('2026-06-01T12:30:00.000Z'))
+    )
+  })
+
   it('blocks preference saving for another account', async () => {
     getServerSessionMock.mockResolvedValue({
       user: {

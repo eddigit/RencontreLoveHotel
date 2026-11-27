@@ -1,5 +1,6 @@
 'use client'
 import React, { useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { uploadProfilePhoto } from '@/lib/profile-photo-upload'
 
 interface UserPhoto {
@@ -19,6 +20,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   userId,
   maxPhotos = 10
 }) => {
+  const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [photos, setPhotos] = useState<UserPhoto[]>(initialPhotos)
   const [isPending, startTransition] = useTransition()
@@ -46,6 +48,9 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
           { id: data.id || data.url, url: data.url, is_primary: false }
         ])
         setMessage('Photo sauvegardée')
+        // Tabs unmount their inactive panels. Refresh the RSC payload so this
+        // committed photo remains present when the Photos tab mounts again.
+        router.refresh()
       } catch (uploadError) {
         setError(
           uploadError instanceof Error

@@ -128,7 +128,7 @@ export async function getUserMatches(userId: string) {
 }
 
 export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
-  await requireCurrentUser()
+  const viewer = await requireCurrentUser()
 
   const [stats] = await sql.query<Array<{
     total_members: string | number
@@ -148,11 +148,15 @@ export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
             AND u.onboarding_completed = TRUE
             AND up.display_profile = TRUE
             AND u.created_at >= NOW() - INTERVAL '24 hours'
+            AND u.id <> $1
+            AND NOT EXISTS (SELECT 1 FROM user_blocks b
+              WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
+                 OR (b.blocker_id = u.id AND b.blocked_id = $1))
         ) AS new_members_last_24h
       FROM users u
       LEFT JOIN user_profiles up ON up.user_id = u.id
     `,
-    []
+    [viewer.id]
   )
 
   return {
@@ -209,6 +213,7 @@ export type CommunityMemberDirectoryFilters = {
   orientation?: 'all' | 'hetero' | 'bi' | 'bisexual' | 'homo' | 'gay' | 'lesbian' | 'pansexual'
   meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
   onlineOnly?: boolean
+  recent?: boolean
 }
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
@@ -222,6 +227,8 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   const params: unknown[] = [currentUser.id]
   const whereClauses = [
     'u.id <> $1',
+    `NOT EXISTS (SELECT 1 FROM user_blocks b WHERE
+      (b.blocker_id = $1 AND b.blocked_id = u.id) OR (b.blocker_id = u.id AND b.blocked_id = $1))`,
     'up.display_profile = TRUE',
     'u.onboarding_completed = TRUE',
     'COALESCE(u.is_banned, false) = false',
@@ -233,6 +240,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     return `$${params.length}`
   }
 
+  if (input.recent) whereClauses.push("u.created_at >= NOW() - INTERVAL '24 hours'")
   const search = input.search?.trim().toLowerCase()
   if (search) {
     const placeholder = addParam(`%${search}%`)

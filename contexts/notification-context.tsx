@@ -1,7 +1,7 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from "@/app/actions"
+import { createContext, useCallback, useContext, useState, useEffect, type ReactNode } from "react"
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead, markResourceNotificationsAsRead } from "@/app/actions"
 import { useAuth } from "@/contexts/auth-context"
 import type { Notification } from "@/components/notifications-dropdown"
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
@@ -19,6 +19,7 @@ type NotificationContextType = {
   counts: NotificationCounts
   markAsRead: (id: string) => void
   markAllAsRead: () => void
+  markResourceAsRead: (resourceLink: string) => Promise<void>
   addNotification: (notification: Notification) => void
 }
 
@@ -42,13 +43,36 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
     let pollingStopped = false;
     let loading = false;
+    let previousIds: Set<string> | null = null
+    let lastCheck = 0
+    let originalTitle = ''
+    let attention: ReturnType<typeof setInterval> | undefined
+    function restoreTitle() {
+      if (attention === undefined) return
+      clearInterval(attention)
+      attention = undefined
+      document.title = originalTitle
+    }
     let interval: NodeJS.Timeout;
     async function loadNotifications() {
-      if (loading || pollingStopped || document.visibilityState === 'hidden') return
+      if (loading || pollingStopped) return
+      if (document.hidden && Date.now() - lastCheck < 60000) return
+      lastCheck = Date.now()
       loading = true
       try {
         const { notifications } = await getNotifications(currentUserId)
-        if (isMounted) setNotifications(notifications)
+        if (!isMounted) return
+        const ids = new Set<string>(notifications.map(item => item.id))
+        if (document.hidden && previousIds && attention === undefined &&
+            notifications.some(item => !item.read && !previousIds?.has(item.id))) {
+          originalTitle = document.title
+          document.title = 'Nouvelle notification'
+          attention = setInterval(() => {
+            document.title = document.title === originalTitle ? 'Nouvelle notification' : originalTitle
+          }, 2500)
+        }
+        previousIds = ids
+        setNotifications(notifications)
       } catch (error) {
         if (isMounted) pollingStopped = recoverFromStaleServerAction(error)
       } finally {
@@ -56,7 +80,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
     }
     function handleVisibilityChange() {
-      if (document.visibilityState !== "hidden") void loadNotifications()
+      if (document.visibilityState !== "hidden") {
+        restoreTitle()
+        void loadNotifications()
+      }
     }
     loadNotifications()
     interval = setInterval(loadNotifications, 15000)
@@ -64,6 +91,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", handleVisibilityChange)
     return () => {
       isMounted = false;
+      restoreTitle()
       window.removeEventListener("focus", loadNotifications)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       clearInterval(interval)
@@ -115,6 +143,26 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const markResourceAsRead = useCallback(async (resourceLink: string) => {
+    if (!user?.id) return
+
+    setNotifications((prev) => prev.map((notification) => (
+      notification.link === resourceLink ? { ...notification, read: true } : notification
+    )))
+
+    try {
+      await markResourceNotificationsAsRead(user.id, resourceLink)
+    } catch (error) {
+      recoverFromStaleServerAction(error)
+      try {
+        const { notifications } = await getNotifications(user.id)
+        setNotifications(notifications)
+      } catch (refreshError) {
+        recoverFromStaleServerAction(refreshError)
+      }
+    }
+  }, [user?.id])
+
   const addNotification = (notification: Notification) => {
     setNotifications((prev) => [notification, ...prev])
   }
@@ -126,6 +174,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         counts,
         markAsRead,
         markAllAsRead,
+        markResourceAsRead,
         addNotification,
       }}
     >

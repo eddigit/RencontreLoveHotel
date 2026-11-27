@@ -30,8 +30,8 @@ import {
   markConversationMessagesAsRead,
   sendMessage
 } from '@/actions/conversation-actions'
-import { markResourceNotificationsAsRead } from '@/app/actions'
 import { reportMember } from '@/actions/member-safety-actions'
+import { useNotifications } from '@/contexts/notification-context'
 
 interface MessageAttachment {
   id?: string
@@ -149,6 +149,7 @@ export default function ConversationPage ({
 }) {
   const { id } = use(params)
   const { data: session } = useSession()
+  const { markResourceAsRead } = useNotifications()
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [conversationDetails, setConversationDetails] =
@@ -170,15 +171,23 @@ export default function ConversationPage ({
   const messagesEndRef = useRef<null | HTMLDivElement>(null)
   const messageScrollRef = useRef<null | HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const messageInputRef = useRef<HTMLInputElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const audioStreamRef = useRef<MediaStream | null>(null)
   const messagesRef = useRef<Message[]>([])
   const preservedScrollRef = useRef<{ height: number; top: number } | null>(null)
+  const refocusComposerAfterSendRef = useRef(false)
 
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+
+  useEffect(() => {
+    if (sending || !refocusComposerAfterSendRef.current) return
+    refocusComposerAfterSendRef.current = false
+    requestAnimationFrame(() => messageInputRef.current?.focus())
+  }, [sending])
 
   useEffect(() => {
     const preservedScroll = preservedScrollRef.current
@@ -226,10 +235,8 @@ export default function ConversationPage ({
         }
 
         // Les accusés n'empêchent jamais l'ouverture du fil : ils peuvent être rejoués au prochain passage.
-        void Promise.allSettled([
-          markConversationMessagesAsRead(id, session.user.id),
-          markResourceNotificationsAsRead(session.user.id, `/messages/${id}`)
-        ])
+        void Promise.allSettled([markConversationMessagesAsRead(id, session.user.id)])
+        void markResourceAsRead(`/messages/${id}`)
       } catch (error) {
         console.error('Failed to fetch conversation data:', error)
         if (error instanceof Error && error.message.includes('Access denied')) {
@@ -246,7 +253,7 @@ export default function ConversationPage ({
     return () => {
       cancelled = true
     }
-  }, [session?.user?.id, id])
+  }, [session?.user?.id, id, markResourceAsRead])
 
   useEffect(() => {
     if (!session?.user?.id || !id || loading || error || loadingEarlierMessages) return
@@ -291,6 +298,7 @@ export default function ConversationPage ({
 
           if (unseenMessages.some(item => item.sender_id !== authenticatedUserId)) {
             await markConversationMessagesAsRead(id, authenticatedUserId)
+            void markResourceAsRead(`/messages/${id}`)
           }
         }
 
@@ -308,7 +316,7 @@ export default function ConversationPage ({
       cancelled = true
       clearInterval(interval)
     }
-  }, [session?.user?.id, id, loading, error, loadingEarlierMessages])
+  }, [session?.user?.id, id, loading, error, loadingEarlierMessages, markResourceAsRead])
 
   const loadEarlierMessages = async () => {
     const oldestMessage = messagesRef.current[0]
@@ -505,6 +513,7 @@ export default function ConversationPage ({
           msg.id === optimisticMessage.id ? (newMessage as Message) : msg
         )
       )
+      refocusComposerAfterSendRef.current = true
       if (newMessage.moderation_outcome === 'warn') {
         setSendError('Rappel : aucune sollicitation sexuelle contre argent, cadeau, service ou avantage n’est autorisée.')
       }
@@ -745,7 +754,7 @@ export default function ConversationPage ({
                       ))}
                     </div>
                   )}
-                  <form onSubmit={handleSendMessage} className='flex flex-wrap items-center gap-2'>
+                  <form onSubmit={handleSendMessage} className='grid grid-cols-[auto_auto_1fr] items-center gap-2 sm:flex'>
                     <input
                       ref={fileInputRef}
                       type='file'
@@ -758,7 +767,7 @@ export default function ConversationPage ({
                       type='button'
                       variant='outline'
                       onClick={() => fileInputRef.current?.click()}
-                      className='h-12 rounded-2xl border-white/12 bg-white/[0.04] px-4'
+                      className='h-12 shrink-0 rounded-2xl border-white/12 bg-white/[0.04] px-4'
                       disabled={uploading || sending || recording || pendingAttachments.length >= 4}
                       aria-label='Ajouter une pièce jointe'
                     >
@@ -769,7 +778,7 @@ export default function ConversationPage ({
                       variant='outline'
                       onClick={startAudioRecording}
                       className={[
-                        'h-12 rounded-2xl border-white/12 px-4',
+                        'h-12 shrink-0 rounded-2xl border-white/12 px-4',
                         recording
                           ? 'bg-[#ff3b8b]/24 text-[#ffb4d8]'
                           : 'bg-white/[0.04]'
@@ -780,15 +789,16 @@ export default function ConversationPage ({
                       {recording ? <Square className='h-4 w-4' /> : <Mic className='h-4 w-4' />}
                     </Button>
                     <Input
+                      ref={messageInputRef}
                       value={message}
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
-                      className='h-12 min-w-[10rem] flex-1 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
+                      className='col-span-3 row-start-1 h-12 w-full min-w-0 flex-1 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
                       disabled={sending || recording}
                     />
                     <Button
-                      type='submit'
-                      className='h-12 rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-4 text-white hover:opacity-90 sm:px-5'
+                      type='submit' aria-label='Envoyer le message'
+                      className='h-12 shrink-0 justify-self-end rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-3 text-white hover:opacity-90 sm:px-5'
                       disabled={!canSend}
                     >
                       <Send className='h-4 w-4 sm:mr-2' />

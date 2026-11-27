@@ -434,9 +434,9 @@ export default function DiscoverPage () {
   const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
   const memberGrowthLabel = memberStats.newMembersLast24h > 0
     ? `+${formatCount(memberStats.newMembersLast24h)} en 24 h`
-    : `${totalMembersLabel} adhérents`
+    : 'Voir les membres'
   const newProfilesSummary = memberStats.totalMembers > 0
-    ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} adhérents.`
+    ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} membres.`
     : `Les ${newProfiles.length} derniers profils visibles.`
 
   if (isLoading) {
@@ -624,10 +624,10 @@ export default function DiscoverPage () {
             </section>
 
             <div className='grid gap-3 md:grid-cols-3'>
-              <Link href='#new-profiles' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
+              <Link href={memberStats.newMembersLast24h > 0 ? '/members?recent=true' : '/members'} className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
                 <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
                 <div className='text-2xl font-black'>{totalMembersLabel}</div>
-                <div className='text-sm text-white/56'>adhérents</div>
+                <div className='text-sm text-white/56'>membres</div>
                 <div className='mt-1 text-xs font-bold text-[#94ffc9]'>{memberGrowthLabel}</div>
               </Link>
               <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>

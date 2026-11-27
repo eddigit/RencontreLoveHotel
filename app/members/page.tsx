@@ -74,6 +74,7 @@ function filtersFromSearchParams(searchParams: URLSearchParams) {
       profileType: isDirectoryProfileType(profileType) ? profileType : initialFilters.profileType,
       orientation: isDirectoryOrientation(orientation) ? orientation : initialFilters.orientation,
       meetingCriterion: isDirectoryMeetingCriterion(meetingCriterion) ? meetingCriterion : initialFilters.meetingCriterion,
+      recent: searchParams.get('recent') === 'true',
       onlineOnly: searchParams.get('onlineOnly') === 'true'
     }
   }
@@ -91,6 +92,7 @@ function writeMemberDirectoryUrlState(
   if (filters.profileType && filters.profileType !== initialFilters.profileType) params.set('profileType', filters.profileType)
   if (filters.orientation && filters.orientation !== initialFilters.orientation) params.set('orientation', filters.orientation)
   if (filters.meetingCriterion && filters.meetingCriterion !== initialFilters.meetingCriterion) params.set('meetingCriterion', filters.meetingCriterion)
+  if (filters.recent) params.set('recent', 'true')
   if (filters.onlineOnly) params.set('onlineOnly', 'true')
   if (page > 1) params.set('page', String(page))
 
@@ -194,6 +196,7 @@ export default function MembersPage() {
     filters.profileType !== 'all' ? filters.profileType : '',
     filters.orientation !== 'all' ? filters.orientation : '',
     filters.meetingCriterion !== 'all' ? filters.meetingCriterion : '',
+    filters.recent ? 'recent' : '',
     filters.onlineOnly ? 'online' : ''
   ].filter(Boolean).length
 
@@ -207,6 +210,7 @@ export default function MembersPage() {
     appliedFilters.meetingCriterion === 'open_couples' ? 'Ouverts aux couples' : null,
     appliedFilters.meetingCriterion === 'open_curtains' ? 'Rideaux ouverts' : null,
     appliedFilters.meetingCriterion === 'libertine' ? 'Libertins' : null,
+    appliedFilters.recent ? 'Inscrits depuis 24 h' : null,
     appliedFilters.onlineOnly ? 'En ligne maintenant' : null
   ].filter((criterion): criterion is string => Boolean(criterion))
 
@@ -377,6 +381,15 @@ export default function MembersPage() {
                       className='h-4 w-4 accent-[#ff3b8b]'
                     />
                     En ligne maintenant
+                  </label>
+                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm font-semibold'>
+                    <input
+                      type='checkbox'
+                      checked={Boolean(filters.recent)}
+                      onChange={event => applyFilters({ ...filters, recent: event.target.checked })}
+                      className='h-4 w-4 accent-[#ff3b8b]'
+                    />
+                    Inscrits depuis 24 h
                   </label>
                 </div>
               </div>

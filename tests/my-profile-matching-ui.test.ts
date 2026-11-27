@@ -36,6 +36,8 @@ describe('my profile matching UI', () => {
     expect(photos).toContain('Ajouter une photo')
     expect(photos).toContain('Photo sauvegardée')
     expect(photos).toContain('uploadProfilePhoto')
+    expect(photos).toContain("import { useRouter } from 'next/navigation'")
+    expect(photos).toContain('router.refresh()')
     expect(photos).toContain('Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo.')
     expect(preferences).toContain('Intentions de rencontre')
     expect(preferences).toContain('Apéro jacuzzi')
