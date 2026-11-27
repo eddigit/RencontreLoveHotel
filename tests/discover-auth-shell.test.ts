@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('Discover authenticated shell', () => {
-  it('uses the dark circle shell on discover, the agenda and the messenger', () => {
+  it('uses the dark circle shell on discover, the agenda, the concierge and the messenger', () => {
     const shell = readFileSync('components/site-shell.tsx', 'utf8')
     const styles = readFileSync('components/site-shell.module.css', 'utf8')
 
     expect(shell).toContain("const isMemberShell = Boolean(user)")
-    expect(shell).toContain("const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/events' || pathname === '/messages' || pathname.startsWith('/messages/')))")
+    expect(shell).toContain("const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/events' || pathname === '/conciergerie' || pathname === '/messages' || pathname.startsWith('/messages/')))")
     expect(shell).toContain('isMemberShell && styles.discoverShell')
     expect(shell).toContain('isMemberShell && styles.rail')
     expect(shell).toContain('isMemberShell && styles.panel')

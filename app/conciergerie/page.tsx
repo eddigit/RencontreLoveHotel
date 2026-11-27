@@ -2,14 +2,12 @@ import Link from 'next/link'
 import { getServerSession } from 'next-auth/next'
 import {
   CalendarHeart,
-  HeartHandshake,
   Hotel,
   Sparkles,
   Waves
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ConciergerieForm from '@/components/ConciergerieForm'
-import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { authOptions } from '@/lib/auth'
 
@@ -44,89 +42,64 @@ export default async function ConciergeriePage() {
 
   return (
     <MainLayout session={session} user={user}>
-      <LhrV2Shell
-        user={user}
-        eyebrow='Service privé Love Hotel'
-        title='Conciergerie coquine'
-        subtitle='Une demande unique, confidentielle et structurée pour organiser une expérience romantique, coquine ou libertine autour des Love Rooms, jacuzzis et rideaux ouverts.'
-        action={
-          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-            <Link href='#demande-conciergerie'>Faire une demande</Link>
-          </Button>
-        }
-      >
-        <div className='space-y-6'>
-          <section className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
-            <div className='overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(20,2,28,0.92))]'>
-              <div className='grid min-h-[430px] lg:grid-cols-[0.95fr_1.05fr]'>
-                <div className='relative min-h-[320px] overflow-hidden'>
+      <div className='container py-4 md:py-6'>
+        <div className='space-y-7'>
+          <section className='overflow-hidden rounded-2xl border border-[#2b3040] bg-[#16181f] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)]'>
+            <div className='grid min-h-[260px] md:grid-cols-[0.9fr_1.1fr]'>
+              <div className='relative min-h-[220px] overflow-hidden'>
                   <img
                     src={conciergerieImageUrl}
                     alt='Conciergerie privée Love Hotel'
                     className='absolute inset-0 h-full w-full object-cover'
                   />
-                  <div className='absolute inset-0 bg-gradient-to-t from-[#16031f] via-[#16031f]/28 to-transparent' />
-                </div>
-                <div className='flex flex-col justify-center p-5 md:p-8'>
-                  <div className='mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#ff8cc8]/35 bg-[#ff3b8b]/18 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#ffb4d8]'>
-                    <HeartHandshake className='h-4 w-4' />
-                    Service confidentiel
-                  </div>
-                  <h2 className='max-w-2xl text-3xl font-black leading-tight md:text-5xl'>
-                    Une envie privée, un cadre réel, une organisation maîtrisée.
-                  </h2>
-                  <p className='mt-4 max-w-2xl text-sm leading-7 text-white/68'>
-                    La conciergerie transforme une idée en moment concret :
-                    Love Room préparée, jacuzzi, rideaux ouverts, week-end,
-                    demande surprise, arrivée scénarisée ou soirée plus
-                    libertine. La demande passe uniquement par le formulaire et
-                    arrive directement à l’équipe opérationnelle.
-                  </p>
+                  <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13] via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#16181f]' />
+              </div>
+              <div className='flex flex-col justify-center p-6 sm:p-8'>
+                <h1 className='max-w-xl text-3xl font-semibold leading-tight text-[#f8fafc] sm:text-4xl'>
+                  Conciergerie coquine
+                </h1>
+                <p className='mt-3 max-w-xl text-sm leading-6 text-[#c1c6da]'>
+                  Préparer une Love Room, organiser un apéro jacuzzi entre couples ou découvrir les chambres à rideaux ouverts. Décrivez à l’équipe le lieu, la date et l’ambiance que vous imaginez.
+                </p>
+                <div className='mt-5'>
+                  <Button asChild className='rounded-xl bg-[#ff334b] text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] hover:bg-[#cc001a]'>
+                    <Link href='#demande-conciergerie'>Faire une demande</Link>
+                  </Button>
                 </div>
               </div>
             </div>
-
-            <aside className='space-y-4'>
-              <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
-                <h3 className='font-black'>Ce que la conciergerie clarifie</h3>
-                <p className='mt-3 text-sm leading-6 text-white/64'>
-                  Le lieu, la période, le nombre de personnes, l’ambiance, les
-                  limites, le budget et le niveau de discrétion attendu.
-                </p>
-              </div>
-              <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-5'>
-                <h3 className='font-black'>Canal unique</h3>
-                <p className='mt-3 text-sm leading-6 text-white/64'>
-                  Pas de demande dispersée : tout est envoyé par formulaire à
-                  l’adresse opérationnelle de conciergerie.
-                </p>
-              </div>
-            </aside>
           </section>
 
-          <section className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
+          <div id='demande-conciergerie' className='scroll-mt-20'>
+            <ConciergerieForm />
+          </div>
+
+          <section aria-labelledby='possibilites-conciergerie'>
+            <div className='mb-4'>
+              <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#ffb3b2]'>Points de départ</p>
+              <h2 id='possibilites-conciergerie' className='mt-2 text-2xl font-semibold text-[#f8fafc]'>Les possibilités de la conciergerie</h2>
+            </div>
+            <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-4'>
             {possibilities.map(item => {
               const Icon = item.icon
               return (
                 <div
                   key={item.title}
-                  className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'
+                  className='rounded-xl border border-[#2b3040] bg-[#16181f] p-5'
                 >
-                  <Icon className='h-5 w-5 text-[#ff8cc8]' />
-                  <h3 className='mt-4 font-black'>{item.title}</h3>
-                  <p className='mt-2 text-sm leading-6 text-white/58'>
+                  <Icon className='h-5 w-5 text-[#ff525d]' />
+                  <h3 className='mt-4 font-semibold text-[#f8fafc]'>{item.title}</h3>
+                  <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>
                     {item.text}
                   </p>
                 </div>
               )
             })}
+            </div>
           </section>
 
-          <div id='demande-conciergerie'>
-            <ConciergerieForm />
-          </div>
         </div>
-      </LhrV2Shell>
+      </div>
     </MainLayout>
   )
 }

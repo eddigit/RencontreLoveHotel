@@ -2,16 +2,13 @@
 
 import React, { useState } from 'react'
 import {
-  CalendarHeart,
   Mail,
   Phone,
   Sparkles
 } from 'lucide-react'
 
 const inputClass =
-  'w-full rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-white placeholder:text-white/45 outline-none transition focus:border-[#ff4fa3] focus:ring-2 focus:ring-[#ff4fa3]/30'
-
-const conciergerieImageUrl = '/conciergerie-service.jpg'
+  'w-full rounded-xl border border-[#2b3040] bg-[#121318] px-3.5 py-3 text-[#e3e1e9] placeholder:text-[#94a3b8] outline-none transition focus:border-[#ff525d] focus:ring-2 focus:ring-[#ff525d]/25'
 
 const requestTypes = [
   {
@@ -127,63 +124,46 @@ export default function ConciergerieForm() {
   }
 
   return (
-    <section className='w-full py-10'>
-      <div className='grid w-full gap-6 overflow-hidden rounded-3xl border border-white/15 bg-[#26002f]/80 shadow-2xl lg:grid-cols-[0.9fr_1.1fr]'>
-        <div className='relative min-h-[360px] overflow-hidden bg-[#130018]'>
-          <img
-            src={conciergerieImageUrl}
-            alt='Conciergerie privée Love Hotel'
-            className='absolute inset-0 h-full w-full object-cover opacity-75'
-          />
-          <div className='absolute inset-0 bg-gradient-to-t from-[#18001e] via-[#18001e]/40 to-transparent' />
-          <div className='relative z-10 flex h-full flex-col justify-end p-6 md:p-8'>
-            <div className='mb-4 inline-flex w-fit items-center gap-2 rounded-full bg-[#ff3b8b] px-4 py-2 text-sm font-black uppercase tracking-wide text-white'>
-              <Sparkles className='h-4 w-4' />
-              Conciergerie coquine
-            </div>
-            <h2 className='max-w-md text-3xl font-black leading-tight text-white md:text-4xl'>
-              Confiez-nous l’organisation de votre moment privé.
-            </h2>
-            <p className='mt-4 max-w-md text-sm leading-6 text-white/80'>
-              Love Room préparée, apéro jacuzzi, rideaux ouverts, week-end,
-              arrivée scénarisée ou événement plus libertin : la demande passe
-              uniquement par ce formulaire et arrive directement à la
-              conciergerie.
-            </p>
+    <section className='w-full py-6 sm:py-8'>
+      <form onSubmit={handleSubmit} className='mx-auto max-w-5xl rounded-2xl border border-[#2b3040] bg-[#1a1b21] p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] sm:p-6 lg:p-8'>
+        <div className='border-b border-[#2b3040] pb-5'>
+          <div className='flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#ffb3b2]'>
+            <Sparkles className='h-4 w-4' /> Demande privée
           </div>
+          <h2 className='mt-2 text-2xl font-semibold text-[#e3e1e9] sm:text-3xl'>Parlez-nous de votre projet</h2>
+          <p className='mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]'>Choisissez votre expérience et précisez vos souhaits. L’équipe vous répondra par e-mail.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className='space-y-5 p-6 md:p-8'>
-          <div>
-            <div className='mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-[0.16em] text-[#ff8cc8]'>
-              <Sparkles className='h-4 w-4' />
-              Choisissez le point de départ
-            </div>
-            <div className='grid gap-3 md:grid-cols-3'>
+        <fieldset className='mt-6'>
+          <legend className='text-sm font-semibold text-[#e3e1e9]'>Type de demande</legend>
+          <p className='mt-1 text-xs text-[#94a3b8]'>Choisissez l’option la plus proche de votre besoin.</p>
+          <div className='mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4' role='radiogroup' aria-label='Type de demande'>
               {requestTypes.map(type => (
-                <button
+                <label
                   key={type.value}
-                  type='button'
-                  onClick={() => setRequestType(type.value)}
                   className={[
-                    'rounded-2xl border p-4 text-left transition',
+                    'relative cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#ff525d]',
                     requestType === type.value
-                      ? 'border-[#ff7ac0] bg-[#ff3b8b]/22 text-white shadow-lg shadow-[#ff3b8b]/10'
-                      : 'border-white/10 bg-white/[0.055] text-white/74 hover:border-[#ff7ac0]/60 hover:text-white'
+                      ? 'border-[#ff525d] bg-[#ff334b]/15 text-[#e3e1e9]'
+                      : 'border-[#2b3040] bg-[#121318] text-[#c1c6da] hover:border-[#5d3f3f] hover:text-[#e3e1e9]'
                   ].join(' ')}
                 >
-                  <span className='block text-sm font-black'>{type.label}</span>
-                  <span className='mt-2 block text-xs leading-5 text-white/58'>
+                  <input className='sr-only' type='radio' name='concierge-experience' value={type.value}
+                    checked={requestType === type.value} onChange={() => setRequestType(type.value)} />
+                  <span className='block text-sm font-semibold'>{type.label}</span>
+                  <span className='mt-1.5 block text-xs leading-5 text-[#94a3b8]'>
                     {type.description}
                   </span>
-                </button>
+                </label>
               ))}
-            </div>
           </div>
+        </fieldset>
 
-          <div className='grid gap-4 md:grid-cols-2'>
+        <fieldset className='mt-6'>
+          <legend className='text-sm font-semibold text-[#e3e1e9]'>Vos coordonnées</legend>
+          <div className='mt-3 grid gap-4 md:grid-cols-2'>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Votre nom</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Votre nom</span>
               <input
                 type='text'
                 value={nom}
@@ -194,7 +174,7 @@ export default function ConciergerieForm() {
               />
             </label>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Votre email</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Votre email</span>
               <input
                 type='email'
                 value={email}
@@ -205,11 +185,10 @@ export default function ConciergerieForm() {
               />
             </label>
           </div>
-
-          <div className='grid gap-4 md:grid-cols-2'>
+          <div className='mt-4 grid gap-4 md:grid-cols-2'>
             <label className='space-y-2'>
-              <span className='flex items-center gap-2 text-sm font-bold text-white'>
-                <Phone className='h-4 w-4 text-[#ff7ac0]' />
+              <span className='flex items-center gap-2 text-sm font-medium text-[#e3e1e9]'>
+                <Phone className='h-4 w-4 text-[#ff525d]' />
                 Téléphone optionnel
               </span>
               <input
@@ -220,28 +199,15 @@ export default function ConciergerieForm() {
                 placeholder='Si vous voulez être rappelé'
               />
             </label>
-            <label className='space-y-2'>
-              <span className='flex items-center gap-2 text-sm font-bold text-white'>
-                <CalendarHeart className='h-4 w-4 text-[#ff7ac0]' />
-                Type retenu
-              </span>
-              <select
-                value={requestType}
-                onChange={e => setRequestType(e.target.value)}
-                className={inputClass}
-              >
-                {requestTypes.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className='rounded-xl border border-[#2b3040] bg-[#121318] p-3 text-sm leading-5 text-[#94a3b8]'><Mail className='mb-1 h-4 w-4 text-[#ff525d]' /> Vos coordonnées servent uniquement à répondre à cette demande.</div>
           </div>
+        </fieldset>
 
-          <div className='grid gap-4 md:grid-cols-2'>
+        <fieldset className='mt-6'>
+          <legend className='text-sm font-semibold text-[#e3e1e9]'>Votre projet</legend>
+          <div className='mt-3 grid gap-4 md:grid-cols-2'>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Établissement souhaité</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Établissement souhaité</span>
               <select
                 value={venuePreference}
                 onChange={e => setVenuePreference(e.target.value)}
@@ -254,7 +220,7 @@ export default function ConciergerieForm() {
               </select>
             </label>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Date ou période souhaitée</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Date ou période souhaitée</span>
               <input
                 type='text'
                 value={desiredDate}
@@ -264,10 +230,9 @@ export default function ConciergerieForm() {
               />
             </label>
           </div>
-
-          <div className='grid gap-4 md:grid-cols-2'>
+          <div className='mt-4 grid gap-4 md:grid-cols-2'>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Nombre de personnes ou couples</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Nombre de personnes ou couples</span>
               <input
                 type='text'
                 value={partySize}
@@ -277,7 +242,7 @@ export default function ConciergerieForm() {
               />
             </label>
             <label className='space-y-2'>
-              <span className='text-sm font-bold text-white'>Ambiance recherchée</span>
+              <span className='text-sm font-medium text-[#e3e1e9]'>Ambiance recherchée</span>
               <select
                 value={mood}
                 onChange={e => setMood(e.target.value)}
@@ -292,19 +257,8 @@ export default function ConciergerieForm() {
               </select>
             </label>
           </div>
-
-          <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-4 text-sm leading-6 text-white/78'>
-            <div className='mb-1 flex items-center gap-2 font-black text-white'>
-              <Mail className='h-4 w-4 text-[#ff8cc8]' />
-              Demande envoyée uniquement par formulaire
-            </div>
-            Elle arrive directement à la conciergerie Love Hotel sur l’adresse
-            opérationnelle dédiée. La réponse se fait par email ou téléphone si
-            vous l’indiquez.
-          </div>
-
-          <label className='space-y-2'>
-            <span className='text-sm font-bold text-white'>
+          <label className='mt-4 block space-y-2'>
+            <span className='text-sm font-medium text-[#e3e1e9]'>
               Décrivez votre envie
             </span>
             <textarea
@@ -317,8 +271,8 @@ export default function ConciergerieForm() {
             />
           </label>
 
-          <label className='space-y-2'>
-            <span className='text-sm font-bold text-white'>
+          <label className='mt-4 block space-y-2'>
+            <span className='text-sm font-medium text-[#e3e1e9]'>
               Budget indicatif optionnel
             </span>
             <input
@@ -329,22 +283,25 @@ export default function ConciergerieForm() {
               placeholder='Ex : 300-600 euros'
             />
           </label>
+        </fieldset>
 
+        <div className='mt-6 border-t border-[#2b3040] pt-5'>
+          <p className='mb-3 text-xs leading-5 text-[#94a3b8]'>La demande est transmise par ce formulaire. Aucun détail n’est publié sur votre profil.</p>
           <button
             type='submit'
             disabled={isSubmitting}
-            className='w-full rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff7ac0] px-5 py-4 text-base font-black text-white shadow-lg transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60'
+            className='w-full rounded-xl bg-[#ff334b] px-5 py-3.5 text-base font-semibold text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] transition hover:bg-[#cc001a] disabled:cursor-not-allowed disabled:opacity-60'
           >
             {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande privée'}
           </button>
 
           {submittedMessage && (
-            <p className='rounded-2xl border border-white/15 bg-white/10 p-4 text-center text-sm font-bold text-white'>
+            <p role='status' className='mt-3 rounded-xl border border-[#5d3f3f] bg-[#121318] p-4 text-center text-sm font-medium text-[#e3e1e9]'>
               {submittedMessage}
             </p>
           )}
-        </form>
-      </div>
+        </div>
+      </form>
     </section>
   )
 }
