@@ -14,7 +14,7 @@ describe('public event acquisition', () => {
   it('uses the supplied event campaign photography', () => {
     const events = readFileSync('app/events/page.tsx', 'utf8')
     const landing = readFileSync('app/landing-page.tsx', 'utf8')
-    expect(events).toContain('/paris-event-limousine.png')
+    expect(events).toContain('CIRCLE_EVENT_PHOTOS.gathering')
     expect(landing).toContain('/paris-event-limousine.png')
   })
 

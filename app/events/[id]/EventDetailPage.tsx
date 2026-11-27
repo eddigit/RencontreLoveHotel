@@ -12,7 +12,7 @@ import { Calendar, MapPin, Users, Clock, ArrowLeft, Heart, Share2 } from 'lucide
 import Link from 'next/link'
 import MainLayout from '@/components/layout/main-layout'
 import { ParticipantProfilePopup } from '@/components/participant-profile-popup'
-import { experienceLabels, formatEventDateTime, getEventImage } from '@/lib/event-presentation'
+import { CIRCLE_EVENT_PHOTOS, experienceLabels, formatEventDateTime, getEventImage } from '@/lib/event-presentation'
 
 interface Event {
   id: string
@@ -160,7 +160,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
   const eventDateTime = new Date(`${String(event.event_date).slice(0, 10)}T${event.event_time || '23:59:59'}`)
   const isEventPast = Number.isFinite(eventDateTime.getTime()) && eventDateTime < new Date()
   const eventImage = getEventImage({
-    image: event.image,
+    image: event.image || (isEventPast ? null : CIRCLE_EVENT_PHOTOS.gathering),
     category: event.category,
     experience_type: event.experience_type || event.category
   })

@@ -59,8 +59,8 @@ describe('Love Hotel experiences UI', () => {
   })
 
   it('reframes the listing as a commercial community experience page', () => {
-    expect(listPage).toContain('Expériences Love Hotel')
     expect(listPage).toContain('Événements à venir')
+    expect(listPage).toContain('Les prochaines dates')
     expect(listPage).toContain('Apéros jacuzzi')
     expect(listPage).toContain('Rideaux ouverts')
     expect(listPage).toContain('Créées par la communauté')

@@ -12,6 +12,11 @@ export const DEFAULT_EVENT_IMAGES = {
   default: '/paris-event-masquerade.png'
 } as const
 
+export const CIRCLE_EVENT_PHOTOS = {
+  gathering: '/images/events/ambiance-du-cercle.webp',
+  masquerade: '/images/events/soiree-masquee-du-cercle.webp'
+} as const
+
 export const EMPTY_EVENTS_STATE = {
   title: 'Aucun événement programmé pour le moment',
   description:

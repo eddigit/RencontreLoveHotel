@@ -19,6 +19,7 @@ import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
   EMPTY_EVENTS_STATE,
+  CIRCLE_EVENT_PHOTOS,
   EVENT_TIME_ZONE,
   formatEventDateTime,
   isPastEvent,
@@ -229,7 +230,7 @@ export default function EventsPage () {
       title={event.title}
       location={event.location}
       date={formatEventDateTime(event)}
-      image={event.image}
+      image={options.isPast ? event.image : event.image || CIRCLE_EVENT_PHOTOS.gathering}
       attendees={event.attendees || event.participant_count || 0}
       prix_personne_seule={event.prix_personne_seule ?? 0}
       prix_couple={event.prix_couple ?? 0}
@@ -259,20 +260,20 @@ export default function EventsPage () {
     <MainLayout user={authUser}>
       <div className='min-h-screen flex flex-col pb-16 md:pb-0'>
         <div className='container py-4 md:py-6 flex-1'>
-          <header className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-            <div>
-              <h1 className='text-2xl font-bold md:text-3xl'>
-                Expériences Love Hotel
-              </h1>
-              <p className='mt-1 text-sm text-white/58'>
-                Les prochaines dates, triées de la plus proche à la plus lointaine.
-              </p>
+          <header className='relative isolate mb-5 grid min-h-48 items-end overflow-hidden rounded-xl bg-[#1a1b21] p-5 sm:min-h-56 sm:p-7'>
+            <Image src={CIRCLE_EVENT_PHOTOS.gathering} alt='' fill priority sizes='(min-width: 1024px) 80vw, 100vw' className='-z-20 object-cover object-[center_38%]' />
+            <div className='absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/65 to-black/30' />
+            <div className='flex flex-wrap items-end justify-between gap-4'>
+              <div>
+                <h1 className='font-serif text-3xl text-white md:text-4xl'>Événements à venir</h1>
+                <p className='mt-2 text-sm text-white/80'>Les prochaines rencontres et sorties du cercle.</p>
+              </div>
+              <Button asChild className='bg-[#ff525d] text-[#260408] hover:bg-[#ff838b]'>
+                <Link href={authUser?.id ? '/events/new' : '/login'}>
+                  {authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}
+                </Link>
+              </Button>
             </div>
-            <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
-              <Link href={authUser?.id ? '/events/new' : '/login'}>
-                {authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}
-              </Link>
-            </Button>
           </header>
 
           {actionError && (
@@ -326,7 +327,7 @@ export default function EventsPage () {
             <div>
               <div className='mb-3 flex items-end justify-between gap-3'>
                 <div>
-                  <h2 className='text-xl font-black'>Événements à venir</h2>
+                  <h2 className='text-xl font-black'>Les prochaines dates</h2>
                   <p className='text-sm text-white/52'>
                     {filteredUpcomingEvents.length} date{filteredUpcomingEvents.length > 1 ? 's' : ''} disponible{filteredUpcomingEvents.length > 1 ? 's' : ''}
                   </p>
@@ -480,8 +481,8 @@ function EmptyEventsState () {
     <div className='col-span-full grid overflow-hidden rounded-2xl border border-[#ff8cc8]/25 bg-white/[0.035] md:grid-cols-[minmax(260px,0.85fr),minmax(0,1fr)] md:items-stretch'>
       <div className='relative min-h-56 md:min-h-72'>
         <Image
-          src='/paris-event-limousine.png'
-          alt='Soirée parisienne en limousine avec vue sur la tour Eiffel'
+          src={CIRCLE_EVENT_PHOTOS.masquerade}
+          alt='Illustration de soirée masquée'
           fill
           className='object-cover'
           sizes='(max-width: 768px) 100vw, 42vw'

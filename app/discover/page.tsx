@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MemberReferralLink } from '@/components/member-referral-link'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { CIRCLE_EVENT_PHOTOS } from '@/lib/event-presentation'
 import { CircleAgendaWeek } from '@/components/circle-agenda-week'
 import { CircleActivityCards } from '@/components/circle-activity-cards'
 import type { ConversationSummary } from '@/lib/member-relationship-service'
@@ -629,11 +630,9 @@ export default function DiscoverPage () {
                         href={`/events/${event.id}`}
                         className='flex items-center gap-2 rounded-xl bg-[#121318] p-3 hover:bg-[#0a0f15]'
                       >
-                        {event.image && (
-                          <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
-                            {mediaImage(event.image, '')}
-                          </span>
-                        )}
+                        <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
+                          {mediaImage(event.image || CIRCLE_EVENT_PHOTOS.gathering, '')}
+                        </span>
                         <div className='min-w-0'>
                           <div className='text-sm font-bold'>{event.title}</div>
                           <p className='mt-1 text-xs text-[#c9c7c2]'>
@@ -650,7 +649,13 @@ export default function DiscoverPage () {
                     ))}
                   </div>
                 ) : (
-                  <p className='mt-3 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de l’agenda…' : error ? 'Agenda temporairement indisponible.' : 'Aucun rendez-vous à venir.'}</p>
+                  <div className='mt-3'>
+                    <Link href='/events' className='relative block aspect-[2.6] overflow-hidden rounded-lg' aria-label='Découvrir les événements à venir'>
+                      <Image src={CIRCLE_EVENT_PHOTOS.gathering} alt='' fill sizes='(min-width: 1280px) 300px, 100vw' className='object-cover object-[center_35%]' />
+                      <span className='absolute inset-0 flex items-end bg-gradient-to-t from-black/85 via-transparent to-transparent p-3 text-sm font-semibold text-white'>Événements à venir →</span>
+                    </Link>
+                    <p className='mt-2 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de l’agenda…' : error ? 'Agenda temporairement indisponible.' : 'Aucune date annoncée pour le moment.'}</p>
+                  </div>
                 )}
                 <Link
                   href='/lieux'

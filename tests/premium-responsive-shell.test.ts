@@ -12,6 +12,6 @@ describe('premium responsive shell', () => {
     expect(siteShell).toContain("max-w-[min(60vw,230px)]")
     expect(pageShell).toContain('sm:flex-row')
     expect(pageShell).toContain('flex-wrap')
-    expect(events).toContain('/paris-event-limousine.png')
+    expect(events).toContain('CIRCLE_EVENT_PHOTOS.gathering')
   })
 })
