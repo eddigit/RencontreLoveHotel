@@ -127,7 +127,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigationItems = user ? memberNavItems : visitorNavItems
   const isMemberShell = Boolean(user)
-  const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/messages' || pathname.startsWith('/messages/')))
+  const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/events' || pathname === '/messages' || pathname.startsWith('/messages/')))
 
   useEffect(() => {
     setMobileOpen(false)

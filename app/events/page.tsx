@@ -1,6 +1,5 @@
 'use client'
 
-import { useNotifications } from '@/contexts/notification-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -17,6 +16,7 @@ import { getOption } from '@/actions/user-actions'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
+import { CalendarDays, MapPin, Users } from 'lucide-react'
 import {
   EMPTY_EVENTS_STATE,
   CIRCLE_EVENT_PHOTOS,
@@ -113,8 +113,8 @@ function filterEvents(
 }
 
 export default function EventsPage () {
-  const { markAsRead } = useNotifications()
   const { user: authUser } = useAuth()
+  const memberId = authUser?.id
   const router = useRouter()
 
   const [events, setEvents] = useState<any[]>([])
@@ -128,35 +128,34 @@ export default function EventsPage () {
   const [venueFilter, setVenueFilter] = useState('all')
 
   useEffect(() => {
+    let cancelled = false
     async function fetchEventsAndCategories () {
       setLoading(true)
       setActionError('')
 
       try {
         const [result, rawCategories] = await Promise.all([
-          authUser?.id
-            ? getPublishedEventsForMember(authUser.id)
+          memberId
+            ? getPublishedEventsForMember(memberId)
             : getUpcomingEvents(),
-          authUser?.id ? getOption('event_categories') : Promise.resolve(null)
+          memberId ? getOption('event_categories') : Promise.resolve(null)
         ])
+        if (cancelled) return
         setEvents(sortEventsChronologically(result))
         setCategories(parseActiveEventCategories(rawCategories))
       } catch (error) {
+        if (cancelled) return
+        setEvents([])
         setActionError("Les événements n'ont pas pu être chargés.")
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
 
     fetchEventsAndCategories()
 
-    const eventNotifications: string[] = []
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    eventNotifications.forEach((id: string) => {
-      if (uuidRegex.test(id)) markAsRead(id)
-    })
-  }, [markAsRead, authUser, router])
+    return () => { cancelled = true }
+  }, [memberId])
 
   const sortedEvents = useMemo(
     () => sortEventsChronologically(events),
@@ -171,6 +170,16 @@ export default function EventsPage () {
   }
   const filteredUpcomingEvents = filterEvents(upcomingEvents, filters)
   const filteredPastEvents = filterEvents(pastEvents, filters)
+  const featuredEvent = filteredUpcomingEvents[0]
+  const featuredAttendees = Number(
+    featuredEvent?.attendees || featuredEvent?.participant_count || 0
+  )
+  const featuredIsFull = Boolean(
+    featuredEvent?.max_participants && featuredAttendees >= Number(featuredEvent.max_participants)
+  )
+  const remainingUpcomingEvents = filteredUpcomingEvents.filter(
+    event => event.id !== featuredEvent?.id
+  )
 
   const handleSubscribeToggle = async (event: any) => {
     if (!authUser?.id) return
@@ -258,22 +267,17 @@ export default function EventsPage () {
 
   return (
     <MainLayout user={authUser}>
-      <div className='min-h-screen flex flex-col pb-16 md:pb-0'>
+      <div className='min-h-screen flex flex-col bg-[#121318] text-[#e3e1e9]'>
         <div className='container py-4 md:py-6 flex-1'>
-          <header className='relative isolate mb-5 grid min-h-48 items-end overflow-hidden rounded-xl bg-[#1a1b21] p-5 sm:min-h-56 sm:p-7'>
-            <Image src={CIRCLE_EVENT_PHOTOS.gathering} alt='' fill priority sizes='(min-width: 1024px) 80vw, 100vw' className='-z-20 object-cover object-[center_38%]' />
-            <div className='absolute inset-0 -z-10 bg-gradient-to-r from-black/90 via-black/65 to-black/30' />
-            <div className='flex flex-wrap items-end justify-between gap-4'>
-              <div>
-                <h1 className='font-serif text-3xl text-white md:text-4xl'>Événements à venir</h1>
-                <p className='mt-2 text-sm text-white/80'>Les prochaines rencontres et sorties du cercle.</p>
-              </div>
-              <Button asChild className='bg-[#ff525d] text-[#260408] hover:bg-[#ff838b]'>
-                <Link href={authUser?.id ? '/events/new' : '/login'}>
-                  {authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}
-                </Link>
-              </Button>
+          <header className='mb-5 flex flex-col gap-4 border-b border-[#2b3040] pb-5 sm:flex-row sm:items-end sm:justify-between'>
+            <div>
+              <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#ffb3b2]'>Agenda du cercle</p>
+              <h1 className='mt-2 text-3xl font-semibold tracking-tight text-[#f8fafc] md:text-4xl'>Événements à venir</h1>
+              <p className='mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]'>Les dates publiques et privées proposées par la communauté.</p>
             </div>
+            <Button asChild className='shrink-0 bg-[#ff334b] text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] hover:bg-[#cc001a]'>
+              <Link href={authUser?.id ? '/events/new' : '/login'}>{authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}</Link>
+            </Button>
           </header>
 
           {actionError && (
@@ -282,10 +286,39 @@ export default function EventsPage () {
             </div>
           )}
 
-          <section className='mb-6 space-y-4'>
-            <div className='flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.04] p-3 md:flex-row'>
+          <section className='mb-6 space-y-6'>
+            {!loading && featuredEvent && (
+              <article className='grid overflow-hidden rounded-2xl border border-[#2b3040] bg-[#16181f] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)] lg:grid-cols-[minmax(0,1.1fr),minmax(360px,0.9fr)]'>
+                <div className='relative min-h-64 lg:min-h-[360px]'>
+                  <Image src={featuredEvent.image || CIRCLE_EVENT_PHOTOS.gathering} alt={featuredEvent.title} fill priority sizes='(min-width: 1024px) 52vw, 100vw' className='object-cover' />
+                  <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#16181f]' />
+                  <p className='absolute left-4 top-4 rounded-md border border-white/15 bg-[#0d0e13]/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#ffb3b2] backdrop-blur'>Date la plus proche</p>
+                </div>
+                <div className='flex flex-col justify-center p-6 sm:p-8'>
+                  <p className='text-xs font-semibold uppercase tracking-[0.14em] text-[#ffb3b2]'>{getEventType(featuredEvent) ? categories.find(category => category.value === getEventType(featuredEvent))?.label || getEventType(featuredEvent) : 'Événement'}</p>
+                  <h2 className='mt-3 text-2xl font-semibold leading-tight text-[#f8fafc]'>{featuredEvent.title}</h2>
+                  <div className='mt-5 space-y-2 text-sm text-[#94a3b8]'>
+                    <p className='flex items-center gap-2'><CalendarDays className='h-4 w-4 text-[#ff525d]' />{formatEventDateTime(featuredEvent)}</p>
+                    {featuredEvent.location && <p className='flex items-center gap-2'><MapPin className='h-4 w-4 text-[#ff525d]' />{featuredEvent.location}</p>}
+                    <p className='flex items-center gap-2'><Users className='h-4 w-4 text-[#ff525d]' />{featuredAttendees} participant{featuredAttendees > 1 ? 's' : ''}</p>
+                  </div>
+                  <div className='mt-6 flex flex-wrap gap-3'>
+                    <Button asChild className='bg-[#ff334b] text-white hover:bg-[#cc001a]'><Link href={`/events/${featuredEvent.id}`}>Voir l’événement</Link></Button>
+                    {authUser?.id && <Button variant='outline' className='border-[#3b4257] bg-[#1e222d] text-[#f8fafc] hover:bg-[#34343a] hover:text-white' onClick={() => handleSubscribeToggle(featuredEvent)} disabled={featuredIsFull && !featuredEvent.is_participating}>{featuredEvent.is_participating ? 'Se désinscrire' : featuredIsFull ? 'Complet' : 'Participer'}</Button>}
+                    {(authUser?.role === 'admin' || (memberId && featuredEvent.creator_id === memberId)) && <>
+                      <Button variant='outline' onClick={() => handleEdit(featuredEvent.id)}>Modifier</Button>
+                      <Button variant='destructive' onClick={() => handleDelete(featuredEvent.id)}>Supprimer</Button>
+                    </>}
+                  </div>
+                </div>
+              </article>
+            )}
+
+            {!loading && !actionError && upcomingEvents.length === 0 && <EmptyEventsState />}
+
+            <div className='flex flex-col gap-3 rounded-xl border border-[#2b3040] bg-[#16181f] p-3 md:flex-row'>
               <select
-                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                className='w-full rounded-lg border border-[#2b3040] bg-[#1e222d] p-2 text-sm text-[#f8fafc]'
                 value={periodFilter}
                 onChange={event => setPeriodFilter(event.target.value)}
                 aria-label='Filtrer par date'
@@ -296,7 +329,7 @@ export default function EventsPage () {
               </select>
 
               <select
-                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                className='w-full rounded-lg border border-[#2b3040] bg-[#1e222d] p-2 text-sm text-[#f8fafc]'
                 value={typeFilter}
                 onChange={event => setTypeFilter(event.target.value)}
                 aria-label="Filtrer par type d'expérience"
@@ -310,7 +343,7 @@ export default function EventsPage () {
               </select>
 
               <select
-                className='w-full rounded-lg border border-white/10 bg-[#16051f] p-2 text-sm text-white'
+                className='w-full rounded-lg border border-[#2b3040] bg-[#1e222d] p-2 text-sm text-[#f8fafc]'
                 value={venueFilter}
                 onChange={event => setVenueFilter(event.target.value)}
                 aria-label='Filtrer par lieu'
@@ -327,20 +360,22 @@ export default function EventsPage () {
             <div>
               <div className='mb-3 flex items-end justify-between gap-3'>
                 <div>
-                  <h2 className='text-xl font-black'>Les prochaines dates</h2>
-                  <p className='text-sm text-white/52'>
+                  <h2 className='text-xl font-semibold text-[#f8fafc]'>Les prochaines dates</h2>
+                  <p className='text-sm text-[#94a3b8]'>
                     {filteredUpcomingEvents.length} date{filteredUpcomingEvents.length > 1 ? 's' : ''} disponible{filteredUpcomingEvents.length > 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
 
-              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+              <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4'>
                 {loading ? (
                   <LoadingEventCards />
-                ) : filteredUpcomingEvents.length === 0 ? (
-                  <EmptyEventsState />
+                ) : !upcomingEvents.length ? null : remainingUpcomingEvents.length === 0 ? (
+                  <div className='col-span-full rounded-xl border border-dashed border-[#3b4257] p-6 text-sm text-[#94a3b8]'>
+                    {featuredEvent ? 'La prochaine date est mise à l’honneur ci-dessus.' : 'Aucune date ne correspond aux filtres.'}
+                  </div>
                 ) : (
-                  filteredUpcomingEvents.map(event => renderEventCard(event))
+                  remainingUpcomingEvents.map(event => renderEventCard(event))
                 )}
               </div>
             </div>
@@ -383,36 +418,43 @@ export default function EventsPage () {
             </section>
           )}
 
-          <section className='mb-6 rounded-xl border border-[#ff8cc8]/20 bg-white/[0.045] p-5'>
+          <section className='mb-6 rounded-2xl border border-[#2b3040] bg-[#16181f] p-5 sm:p-6'>
             <div className='flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
               <div>
-                <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
-                  Créer une rencontre autour d’un lieu réel
-                </p>
-                <h2 className='mt-2 text-2xl font-black'>
-                  De la rencontre douce à l’expérience assumée.
-                </h2>
-                <p className='mt-2 max-w-3xl text-sm leading-6 text-white/62'>
-                  Chaque expérience part d’un cadre concret : Love Room à l’heure,
-                  Jacuzzi privatif et Chambres rideaux ouverts à Pigalle ou
-                  Châtelet.
-                </p>
+                <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#ffb3b2]'>Initiative des membres</p>
+                <h2 className='mt-2 text-2xl font-semibold text-[#f8fafc]'>De la rencontre douce à l’expérience assumée.</h2>
+                <p className='mt-2 max-w-3xl text-sm leading-6 text-[#94a3b8]'>Créer une rencontre autour d’un lieu réel : Love Room à l’heure, Jacuzzi privatif et Chambres rideaux ouverts. Le formulaire existant permet de préciser le format, le lieu et les conditions de participation avant publication.</p>
               </div>
               <div className='flex flex-wrap gap-2'>
-                <Button asChild className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                  <Link href='/love-rooms'>Réserver une Love Room</Link>
-                </Button>
-                <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                  <Link href={authUser?.id ? '/events/new' : '/login'}>Proposer un événement</Link>
-                </Button>
+                <Button asChild className='bg-[#ff334b] text-white hover:bg-[#cc001a]'><Link href={authUser?.id ? '/events/new' : '/login'}>Créer un événement</Link></Button>
+                <Button asChild variant='outline' className='border-[#3b4257] bg-[#1e222d] text-[#f8fafc] hover:bg-[#34343a] hover:text-white'><Link href='/love-rooms'>Réserver une Love Room</Link></Button>
               </div>
             </div>
           </section>
 
-          <section className='mb-6 rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,59,139,0.12),rgba(10,3,18,0.7))] p-5'>
+          <section className='mb-6'>
+            <div className='mb-4'>
+              <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#ffb3b2]'>Lieux & séjours</p>
+              <h2 className='mt-2 text-2xl font-semibold text-[#f8fafc]'>Préparer votre prochaine sortie</h2>
+            </div>
+            <div className='grid gap-4 md:grid-cols-2'>
+              <Link href='/lieux' className='group rounded-2xl border border-[#2b3040] bg-[#16181f] p-5 transition hover:border-[#ff525d]/60 hover:bg-[#1e222d]'>
+                <p className='text-sm font-semibold text-[#f8fafc]'>Découvrir les lieux</p>
+                <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>Retrouvez les lieux référencés avant de proposer ou rejoindre une rencontre.</p>
+                <span className='mt-4 inline-block text-sm font-semibold text-[#ffb3b2] group-hover:text-white'>Voir les lieux →</span>
+              </Link>
+              <Link href='/love-rooms' className='group rounded-2xl border border-[#2b3040] bg-[#16181f] p-5 transition hover:border-[#ff525d]/60 hover:bg-[#1e222d]'>
+                <p className='text-sm font-semibold text-[#f8fafc]'>Explorer les Love Rooms</p>
+                <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>Consultez les disponibilités et les détails des Love Rooms proposées sur LHR.</p>
+                <span className='mt-4 inline-block text-sm font-semibold text-[#ffb3b2] group-hover:text-white'>Voir les Love Rooms →</span>
+              </Link>
+            </div>
+          </section>
+
+          <section className='mb-6 rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(255,82,93,0.08),rgba(22,24,31,1))] p-5'>
             <div className='flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between'>
               <div>
-                <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
+                <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ffb3b2]'>
                   Formats disponibles
                 </p>
                 <h2 className='mt-2 text-2xl font-black'>
@@ -423,7 +465,7 @@ export default function EventsPage () {
                   sont visibles directement sur chaque carte.
                 </p>
               </div>
-              <Button asChild className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
+              <Button asChild className='bg-[#ac2336] text-white hover:bg-[#982032]'>
                 <Link href={authUser?.id ? '/events/new' : '/login'}>Créer un format</Link>
               </Button>
             </div>
@@ -451,13 +493,6 @@ export default function EventsPage () {
           </details>
         </div>
 
-        <div className='fixed bottom-0 left-0 right-0 z-40 flex justify-center pb-6 pointer-events-none md:hidden'>
-          <Link href={authUser?.id ? '/events/new' : '/login'} className='pointer-events-auto'>
-            <Button className='rounded-full bg-[#ff3b8b] px-7 py-3 text-base font-bold text-white shadow-lg hover:bg-[#ff3b8b]/90'>
-              Proposer un événement
-            </Button>
-          </Link>
-        </div>
       </div>
     </MainLayout>
   )
@@ -478,7 +513,7 @@ function LoadingEventCards () {
 
 function EmptyEventsState () {
   return (
-    <div className='col-span-full grid overflow-hidden rounded-2xl border border-[#ff8cc8]/25 bg-white/[0.035] md:grid-cols-[minmax(260px,0.85fr),minmax(0,1fr)] md:items-stretch'>
+    <div className='col-span-full grid overflow-hidden rounded-2xl border border-[#2b3040] bg-[#16181f] md:grid-cols-[minmax(260px,0.85fr),minmax(0,1fr)] md:items-stretch'>
       <div className='relative min-h-56 md:min-h-72'>
         <Image
           src={CIRCLE_EVENT_PHOTOS.masquerade}
@@ -487,17 +522,17 @@ function EmptyEventsState () {
           className='object-cover'
           sizes='(max-width: 768px) 100vw, 42vw'
         />
-        <div className='absolute inset-0 bg-gradient-to-t from-[#16051f]/65 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#16051f]/35' />
+        <div className='absolute inset-0 bg-gradient-to-t from-[#121318]/65 via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#121318]/35' />
       </div>
       <div className='flex flex-col justify-center p-6 md:p-8'>
-        <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
+        <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ffb3b2]'>
           Prochaines dates
         </p>
         <h2 className='mt-2 text-2xl font-black'>{emptyEventsTitle}</h2>
         <p className='mt-2 max-w-xl text-sm leading-6 text-white/60'>
           {EMPTY_EVENTS_STATE.description}
         </p>
-        <Button asChild className='mt-5 bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+        <Button asChild className='mt-5 bg-gradient-to-r from-[#b32a3d] to-[#a82136] text-white'>
           <Link href='/events/new'>{EMPTY_EVENTS_STATE.cta}</Link>
         </Button>
       </div>

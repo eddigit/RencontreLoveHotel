@@ -1,7 +1,7 @@
 import { experienceLabels } from '@/lib/event-presentation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Calendar, MapPin, Sparkles, Users } from 'lucide-react'
+import { ArrowRight, Calendar, MapPin, Sparkles, Users } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { getEventImage } from '@/lib/event-presentation'
@@ -78,69 +78,48 @@ export function EventCard ({
     ? Math.max(0, Number(maxParticipants) - Number(attendees || 0))
     : null
 
+  const attendanceLabel = remainingPlaces !== null
+    ? `${remainingPlaces} place${remainingPlaces > 1 ? 's' : ''} restante${remainingPlaces > 1 ? 's' : ''}`
+    : `${attendees} participant${attendees > 1 ? 's' : ''}`
+
   return (
-    <Card className='overflow-hidden card-hover border-0 shadow-lg shadow-purple-900/20'>
-      <div className='relative h-48 sm:h-56'>
+    <Card className='group flex h-full flex-col overflow-hidden border border-[#2b3040] bg-[#1a1b21] text-[#e3e1e9] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] transition-colors hover:border-[#5d3f3f] hover:bg-[#1e1f25]'>
+      <div className='relative h-48 shrink-0 overflow-hidden sm:h-52'>
         <Image
           src={eventImage}
           alt={title}
           fill
-          className='object-cover'
+          sizes='(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw'
+          className='object-cover transition-transform duration-500 group-hover:scale-105'
         />
-        <div className='absolute inset-0 bg-gradient-to-t from-[#1a0d2e] via-[#3d1155]/50 to-transparent flex items-end p-4'>
-          <div className='text-white'>
-            <h3 className='font-bold text-lg line-clamp-1'>{title}</h3>
-            <div className='flex items-center gap-1 text-sm'>
-              <MapPin className='h-3 w-3 flex-shrink-0' />
-              <span className='line-clamp-1'>{location}</span>
-            </div>
-          </div>
+        <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-[#0d0e13]/20 to-transparent' />
+        <div className='absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2'>
+          {experienceLabel && <span className='inline-flex items-center gap-1 rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffb3b2] backdrop-blur'><Sparkles className='h-3 w-3' />{experienceLabel}</span>}
+          {isPast && <span className='rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ad8887] backdrop-blur'>Terminé</span>}
+          {!isPast && isFull && <span className='rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#ffb3b2] backdrop-blur'>Complet</span>}
         </div>
+        {venue && <span className='absolute bottom-3 left-3 rounded-md bg-[#0d0e13]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#c1c6da] backdrop-blur'>{venueLabels[venue] || venue}</span>}
       </div>
-      <CardContent className='p-4 space-y-4 bg-gradient-to-br from-[#2d1155]/90 to-[#3d1155]/80'>
-        <div className='flex flex-wrap gap-2 text-xs font-semibold'>
-          {experienceLabel && (
-            <span className='inline-flex items-center gap-1 rounded-full bg-[#ff3b8b]/18 px-3 py-1 text-[#ff8cc8]'>
-              <Sparkles className='h-3 w-3' />
-              {experienceLabel}
-            </span>
-          )}
-          {venue && (
-            <span className='rounded-full bg-white/10 px-3 py-1 text-white/80'>
-              {venueLabels[venue] || venue}
-            </span>
-          )}
-          {createdByRole === 'member' && (
-            <span className='rounded-full bg-white/10 px-3 py-1 text-white/70'>
-              Communauté
-            </span>
-          )}
+      <CardContent className='flex flex-1 flex-col p-5'>
+        <div className='flex items-center justify-between gap-3 text-xs text-[#ad8887]'>
+          <span className='flex min-w-0 items-center gap-1.5 truncate'><MapPin className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' />{location}</span>
+          {createdByRole === 'member' && <span className='shrink-0 text-[#c1c6da]'>Communauté</span>}
         </div>
-        <div className='flex items-center justify-between flex-wrap gap-y-2'>
-          <div className='flex items-center gap-1 text-sm text-gray-300'>
-            <Calendar className='h-3 w-3 flex-shrink-0' />
-            <span>{date}</span>
-          </div>
-          <div className='flex items-center gap-1 text-sm text-gray-300'>
-            <Users className='h-3 w-3 flex-shrink-0' />
-            <span>
-              {remainingPlaces !== null
-                ? `${remainingPlaces} place${remainingPlaces > 1 ? 's' : ''} restante${remainingPlaces > 1 ? 's' : ''}`
-                : `${attendees} participant${attendees > 1 ? 's' : ''}`}
-            </span>
-          </div>
+        <h3 className='mt-3 text-base font-semibold leading-6 text-[#e3e1e9] transition-colors group-hover:text-[#ffb3b2]'>{title}</h3>
+        <div className='mt-4 space-y-2 border-y border-[#2b3040] py-3 text-xs'>
+          <div className='flex items-center gap-2 text-[#c1c6da]'><Calendar className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' /><span>{date}</span></div>
+          <div className='flex items-center justify-between gap-3'><span className='flex items-center gap-2 text-[#c1c6da]'><Users className='h-3.5 w-3.5 shrink-0 text-[#ff525d]' />{attendanceLabel}</span>{isFull ? <span className='shrink-0 font-semibold text-[#ffb3b2]'>Complet</span> : null}</div>
         </div>
-        {(singlePrice > 0 || couplePrice > 0) && (
-          <div className='flex flex-col gap-1 text-pink-300 font-semibold'>
-            {singlePrice > 0 && <span>Pers. seule : {singlePrice}€</span>}
-            {couplePrice > 0 && <span>Couple : {couplePrice}€</span>}
+        {(singlePrice > 0 || couplePrice > 0 || Boolean(price)) && (
+          <div className='mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs font-semibold text-[#ffb3b2]'>
+            {singlePrice > 0 && <span>Personne seule : {singlePrice} €</span>}
+            {couplePrice > 0 && <span>Couple : {couplePrice} €</span>}
+            {singlePrice === 0 && couplePrice === 0 && price ? <span>{price} €</span> : null}
           </div>
         )}
-        {singlePrice === 0 && couplePrice === 0 && price && (
-          <div className='text-pink-300 font-semibold'>{price}€</div>
-        )}
+        <div className='mt-auto grid gap-2 pt-5'>
         <Button
-          className={`w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] border-0 hover:opacity-90`}
+          className='w-full rounded-xl bg-[#ff334b] text-white shadow-[0_0_16px_rgba(255,51,75,0.22)] hover:bg-[#cc001a]'
           variant={isParticipating ? 'secondary' : 'default'}
           onClick={onSubscribeToggle}
           disabled={actionDisabled}
@@ -154,11 +133,11 @@ export function EventCard ({
             : 'Participer'}
         </Button>
 
-        <Link href={`/events/${id}`}>
-          <Button variant="outline" className="w-full mt-2">
-            Voir les détails
+        {id && (
+          <Button asChild variant='outline' className='w-full rounded-xl border-[#2b3040] bg-transparent text-[#e3e1e9] hover:bg-[#292a2f] hover:text-white'>
+            <Link href={`/events/${id}`}>Voir les détails <ArrowRight className='h-4 w-4' /></Link>
           </Button>
-        </Link>
+        )}
         {canEdit && (
           <div className='flex gap-2 mt-2'>
             <Button
@@ -181,6 +160,7 @@ export function EventCard ({
             )}
           </div>
         )}
+        </div>
       </CardContent>
     </Card>
   )
