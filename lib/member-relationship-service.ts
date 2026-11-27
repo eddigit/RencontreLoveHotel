@@ -11,7 +11,6 @@ export type ConversationSummary = {
   other_user_gender?: string | null
   other_user_profile_status?: string | null
   other_user_online?: boolean
-  other_user_last_seen_at?: string | null
   has_unread_messages: boolean
   last_message: string | null
   last_message_date: string | null
@@ -97,7 +96,6 @@ function conversationSummaryQuery(
       COALESCE(primary_photo.url, other_user.avatar) AS other_user_avatar,
       other_profile.gender AS other_user_gender,
       other_profile.status AS other_user_profile_status,
-      ${presenceColumn} AS other_user_last_seen_at,
       ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
       EXISTS (
         SELECT 1

@@ -25,6 +25,19 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'messagerie-derniere-presence',
+    title: 'Dernière connexion dans la messagerie',
+    category: 'Messagerie',
+    status: 'planned',
+    priority: 'Basse',
+    phase: 'Backend · Fonction différée',
+    owner: 'MyBotIA',
+    note: 'Aujourd’hui, seule la présence en ligne est affichée. La date de dernière activité reste côté serveur.',
+    impact: 'Quand le cercle sera plus actif, une indication récente pourra aider les membres à savoir quand reprendre une conversation.',
+    nextAction: 'Réexaminer avec Gilles lorsque la fréquentation aura augmenté. Décider alors de la précision et de l’ancienneté maximale à afficher.',
+    updatedAt: '2026-11-27'
+  },
+  {
     id: 'production-vps2-online',
     title: 'Production repositionnee sur VPS2',
     category: 'Infrastructure',

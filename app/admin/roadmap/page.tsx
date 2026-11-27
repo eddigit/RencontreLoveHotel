@@ -46,7 +46,7 @@ const sections: Array<{
   {
     status: 'planned',
     title: 'À développer',
-    description: 'Travaux prévus pour rendre la bêta présentable et exploitable.',
+    description: 'Fonctions à venir, priorités et décisions à réexaminer.',
     icon: Clock3,
     badgeClassName: 'border-sky-500/40 bg-sky-500/10 text-sky-200'
   }
@@ -54,7 +54,7 @@ const sections: Array<{
 
 function RoadmapItemCard ({ item }: { item: RoadmapItem }) {
   return (
-    <li className='rounded-md border border-white/10 bg-white/[0.03] p-4'>
+    <li id={item.id} className='scroll-mt-20 rounded-md border border-white/10 bg-white/[0.03] p-4'>
       <div className='mb-3 flex flex-wrap items-start justify-between gap-3'>
         <div>
           <h3 className='font-semibold leading-snug text-white'>{item.title}</h3>
@@ -133,10 +133,10 @@ export default async function AdminRoadmapPage () {
               <div className='text-2xl font-bold text-pink-200'>{summary.developed}</div>
               <div className='text-xs text-white/60'>Développés</div>
             </div>
-            <div className='rounded-md border border-white/10 bg-white/[0.04] px-4 py-3'>
+            <a href='#fonctions-a-venir' className='rounded-md border border-white/10 bg-white/[0.04] px-4 py-3 hover:underline'>
               <div className='text-2xl font-bold text-sky-200'>{summary.planned}</div>
               <div className='text-xs text-white/60'>À développer</div>
-            </div>
+            </a>
           </div>
         </div>
 
@@ -146,7 +146,7 @@ export default async function AdminRoadmapPage () {
             const items = getRoadmapItemsByStatus(roadmapItems, section.status)
 
             return (
-              <Card key={section.status} className='border-white/10 bg-black/20'>
+              <Card id={section.status === 'planned' ? 'fonctions-a-venir' : undefined} key={section.status} className='border-white/10 bg-black/20'>
                 <CardHeader>
                   <div className='mb-3 flex items-center justify-between gap-3'>
                     <Icon className='h-5 w-5 text-primary' />

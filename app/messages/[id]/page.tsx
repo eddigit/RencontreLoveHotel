@@ -83,7 +83,6 @@ interface ConversationDetails {
   other_user_gender?: string | null
   other_user_profile_status?: string | null
   other_user_online?: boolean
-  other_user_last_seen_at?: string | null
 }
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
@@ -109,15 +108,6 @@ function messageDayLabel (value: string) {
   if (date >= todayStart) return 'Aujourd’hui'
   if (date >= yesterdayStart) return 'Hier'
   return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-}
-
-function formatLastSeen (value?: string | null) {
-  if (!value) return 'Hors ligne'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Hors ligne'
-  return `Vu le ${new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris'
-  }).format(date)}`
 }
 
 function renderAttachment (attachment: MessageAttachment) {
@@ -417,7 +407,6 @@ export default function ConversationPage ({
             other_user_gender: currentConv.other_user_gender,
             other_user_profile_status: currentConv.other_user_profile_status,
             other_user_online: Boolean(currentConv.other_user_online),
-            other_user_last_seen_at: currentConv.other_user_last_seen_at
           })
         } else {
           setError('Conversation introuvable ou non autorisée.')
@@ -505,7 +494,6 @@ export default function ConversationPage ({
             other_user_gender: currentConv.other_user_gender,
             other_user_profile_status: currentConv.other_user_profile_status,
             other_user_online: Boolean(currentConv.other_user_online),
-            other_user_last_seen_at: currentConv.other_user_last_seen_at
           }))
         }
 
@@ -813,7 +801,7 @@ export default function ConversationPage ({
       ? 'Action requise'
       : conversationDetails?.other_user_online
         ? 'En ligne'
-        : formatLastSeen(conversationDetails?.other_user_last_seen_at)
+        : null
 
   return (
     <MainLayout user={session?.user}>
@@ -846,10 +834,7 @@ export default function ConversationPage ({
                   <h2 className='truncate text-base font-bold text-[#f1eee8]'>
                     {conversationDetails?.other_user_name || 'Conversation'}
                   </h2>
-                  <p className='flex items-center gap-1.5 text-xs text-[#e5d1aa]'>
-                    <span className={conversationDetails?.other_user_online ? 'h-1.5 w-1.5 rounded-full bg-[#35e48d]' : 'h-1.5 w-1.5 rounded-full bg-[#aaa69e]'} />
-                    {conversationStatus}
-                  </p>
+                  {conversationStatus && <p className='text-xs text-[#e5d1aa]'>{conversationStatus}</p>}
                 </div>
               </div>
               {conversationDetails?.other_user_id && <Link href={`/profile/${conversationDetails.other_user_id}`} aria-label={`Voir le profil de ${conversationDetails.other_user_name}`} className='rounded-lg p-2 text-[#aaa69e] transition-colors hover:bg-[#302c26] hover:text-[#f1eee8]'><UserRound className='h-5 w-5' /></Link>}

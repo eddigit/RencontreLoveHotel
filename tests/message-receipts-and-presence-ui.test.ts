@@ -10,8 +10,8 @@ describe('message receipt and presence UI', () => {
     const relationships = readFileSync(join(root, 'lib/member-relationship-service.ts'), 'utf8')
 
     expect(thread).toContain("? 'En ligne'")
-    expect(thread).toContain("if (!value) return 'Hors ligne'")
-    expect(thread).toContain('formatLastSeen(conversationDetails?.other_user_last_seen_at)')
+    expect(thread).not.toContain("h-1.5 w-1.5 rounded-full")
+    expect(relationships).not.toContain('AS other_user_last_seen_at')
     expect(thread).not.toContain('Synchronisé à')
     expect(relationships).not.toContain("'other_user.updated_at'")
     expect(relationships).toContain("? 'other_user.last_seen_at' : 'NULL'")
