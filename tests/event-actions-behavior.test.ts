@@ -68,6 +68,22 @@ describe('event actions behavior', () => {
     )
   })
 
+  it('restricts official circle events to administrators and requires a capacity', async () => {
+    const { createEvent } = await import('@/actions/event-actions')
+    const outing = {
+      title: 'Soirée du cercle', location: 'Lieu de test', date: '2027-05-20T20:00',
+      creator_id: 'user-1', experience_type: 'libertine', max_participants: 18
+    }
+    await expect(createEvent(outing)).rejects.toThrow('réservée')
+    getServerSessionMock.mockResolvedValue({ user: { id: 'user-1', role: 'admin' } })
+    await expect(createEvent({ ...outing, max_participants: 0 })).rejects.toThrow('nombre de places')
+    expect(sqlMock).not.toHaveBeenCalled()
+    sqlMock.mockResolvedValueOnce([{ id: 'event-1' }])
+    await expect(createEvent(outing)).resolves.toEqual({ id: 'event-1' })
+    expect(sqlMock.mock.calls[0]).toContain('libertine')
+    expect(sqlMock.mock.calls[0]).toContain(18)
+  })
+
   it('rejects unavailable event formats before writing to the database', async () => {
     const { createEvent } = await import('@/actions/event-actions')
 
