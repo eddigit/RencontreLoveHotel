@@ -15,6 +15,7 @@ import { userRegistrationSchema } from '@/lib/validation'
 import { createEmailVerificationToken } from '@/lib/email-verification-token'
 import { sendVerificationEmail } from '@/lib/verification-email'
 import { sendRegistrationAdminNotification } from '@/lib/registration-admin-notification'
+import { recordMemberReferral } from '@/lib/member-referral'
 
 // Notification timestamps originate in PostgreSQL as timestamptz values.
 // Format them in the product's French timezone instead of the server runtime's
@@ -149,7 +150,8 @@ export async function registerUser(
   email: string,
   password: string,
   name: string,
-  consent: RegistrationConsent
+  consent: RegistrationConsent,
+  referralToken?: string | null
 ) {
   if (!isCurrentRegistrationConsent(consent)) {
     return {
@@ -191,6 +193,8 @@ export async function registerUser(
     if (!user) {
       return { success: false, error: "Erreur lors de l'inscription" }
     }
+
+    await recordMemberReferral(user.id, referralToken)
 
     try {
       await sendRegistrationAdminNotification({

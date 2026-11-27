@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getServerSessionMock = vi.hoisted(() => vi.fn())
 const notifyEventReservationAdminsMock = vi.hoisted(() => vi.fn())
+const reserveEventSeatMock = vi.hoisted(() => vi.fn())
 const sqlMock = vi.hoisted(() => {
   const fn = vi.fn()
   return Object.assign(fn, { query: vi.fn() })
@@ -23,6 +24,10 @@ vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
 }))
 
+vi.mock('@/lib/event-participation', () => ({
+  reserveEventSeat: reserveEventSeatMock
+}))
+
 describe('event actions behavior', () => {
   beforeEach(() => {
     getServerSessionMock.mockReset()
@@ -33,6 +38,8 @@ describe('event actions behavior', () => {
     sqlMock.query.mockReset()
     notifyEventReservationAdminsMock.mockReset()
     notifyEventReservationAdminsMock.mockResolvedValue({ success: true, emailSent: true })
+    reserveEventSeatMock.mockReset()
+    reserveEventSeatMock.mockResolvedValue('joined')
   })
 
   it('creates an event with separated event date and event time', async () => {
@@ -108,20 +115,13 @@ describe('event actions behavior', () => {
           publication_status: 'published'
         }
       ])
-      .mockResolvedValueOnce([])
 
     const { subscribeToEvent } = await import('@/actions/event-actions')
 
     const result = await subscribeToEvent('event-1', 'user-1')
 
     expect(result).toEqual({ success: true })
-    expect(sqlMock).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.stringContaining('INSERT INTO event_participants')
-      ]),
-      'event-1',
-      'user-1'
-    )
+    expect(reserveEventSeatMock).toHaveBeenCalledWith('event-1', 'user-1')
     expect(notifyEventReservationAdminsMock).toHaveBeenCalledWith({
       action: 'join',
       eventId: 'event-1',
@@ -189,6 +189,26 @@ describe('event actions behavior', () => {
     )
   })
 
+  it('derives the event creator role from the authenticated member or admin', async () => {
+    sqlMock.mockResolvedValueOnce([{ id: 'member-event' }])
+    const { createEvent } = await import('@/actions/event-actions')
+    await createEvent({
+      title: 'Apéro membre', location: 'Pigalle', date: '2027-07-10T21:30',
+      creator_id: 'user-1', experience_type: 'jacuzzi', max_participants: 2,
+      created_by_role: 'admin'
+    })
+    expect(sqlMock.mock.calls[0].slice(1)).toContain('member')
+
+    getServerSessionMock.mockResolvedValueOnce({ user: { id: 'admin-1', role: 'admin' } })
+    sqlMock.mockResolvedValueOnce([{ id: 'admin-event' }])
+    await createEvent({
+      title: 'Apéro admin', location: 'Pigalle', date: '2027-07-11T21:30',
+      creator_id: 'admin-1', experience_type: 'jacuzzi', max_participants: 2,
+      created_by_role: 'member'
+    })
+    expect(sqlMock.mock.calls[1].slice(1)).toContain('admin')
+  })
+
   it('rejects participation when the event is full', async () => {
     sqlMock.mockResolvedValueOnce([
       {
@@ -202,10 +222,11 @@ describe('event actions behavior', () => {
 
     const { subscribeToEvent } = await import('@/actions/event-actions')
 
+    reserveEventSeatMock.mockResolvedValueOnce('full')
     const result = await subscribeToEvent('event-1', 'user-1')
 
     expect(result).toEqual({ success: false, error: 'Événement complet' })
-    expect(sqlMock).toHaveBeenCalledTimes(1)
+    expect(reserveEventSeatMock).toHaveBeenCalledWith('event-1', 'user-1')
     expect(notifyEventReservationAdminsMock).not.toHaveBeenCalled()
   })
 

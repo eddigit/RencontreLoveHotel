@@ -29,6 +29,8 @@ const activeEventCategoriesFallback =
   'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
 const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
 
+const circleEventCategory = { value: 'libertine', label: 'Sortie du cercle' }
+
 const venueLabels: Record<string, string> = {
   pigalle: 'Pigalle',
   chatelet: 'Châtelet'
@@ -50,7 +52,7 @@ function parseActiveEventCategories(rawCategories?: string | null) {
     .filter(
       (category): category is { value: string; label: string } =>
         category !== null && activeEventCategoryValues.has(category.value)
-    )
+    ).concat(circleEventCategory)
 }
 
 function getEventType(event: any) {

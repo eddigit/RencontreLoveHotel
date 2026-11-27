@@ -1,0 +1,173 @@
+.discoverShell {
+  --discover-ivory: #f7f4ec;
+  --discover-paper: #fffdf8;
+  --discover-ink: #17223a;
+  --discover-muted: #61708a;
+  --discover-navy: #102440;
+  --discover-cobalt: #2563eb;
+  --discover-line: #dce3ed;
+  background: var(--discover-ivory) !important;
+  color: var(--discover-ink);
+}
+
+.discoverShell > div {
+  gap: 0;
+  max-width: none;
+  padding: 0;
+}
+
+.rail {
+  background: var(--discover-navy) !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.logoLockup {
+  background: rgb(255 255 255 / 0.08);
+  border-color: rgb(255 255 255 / 0.14);
+}
+
+.nav {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.navigationLink {
+  border-radius: 0.75rem;
+  color: rgb(226 232 240 / 0.78);
+}
+
+.navigationLink:hover {
+  background: rgb(255 255 255 / 0.1);
+  color: white;
+}
+
+.navigationLinkActive {
+  background: var(--discover-cobalt);
+  box-shadow: 0 8px 20px rgb(7 31 74 / 0.28);
+  color: white;
+}
+
+.profileLink {
+  background: rgb(255 255 255 / 0.09);
+}
+
+.panel {
+  background: var(--discover-paper) !important;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--discover-ink);
+}
+
+.mobileHeader {
+  background: var(--discover-paper) !important;
+  border-color: var(--discover-line);
+  color: var(--discover-ink);
+}
+
+.mobileHeader :global(.text-white) {
+  color: var(--discover-ink);
+}
+
+.mobileHeader button[aria-label="Ouvrir le menu"] {
+  background: #eef3fa;
+  border-color: var(--discover-line);
+}
+
+.mobileScrim {
+  background: rgb(15 35 62 / 0.52);
+}
+
+.mobileRail {
+  background: var(--discover-navy) !important;
+  border-color: rgb(255 255 255 / 0.14);
+}
+
+.panel footer {
+  background: var(--discover-paper);
+  border-color: var(--discover-line);
+  color: var(--discover-ink);
+}
+
+.panel footer :global(.text-primary) {
+  color: var(--discover-cobalt);
+}
+
+.panel footer :global(.text-muted-foreground) {
+  color: var(--discover-muted);
+}
+
+.panel footer a:hover {
+  color: var(--discover-ink);
+}
+
+.communityStrip {
+  background: var(--discover-paper);
+  border-bottom: 1px solid var(--discover-line);
+  color: var(--discover-ink);
+}
+
+.stripEyebrow {
+  color: var(--discover-cobalt);
+}
+
+.stripTitle {
+  color: var(--discover-ink);
+}
+
+.stripLink {
+  color: var(--discover-cobalt);
+}
+
+.portraitList {
+  scrollbar-color: #b8c5d6 transparent;
+}
+
+.portraitItem {
+  flex: 0 0 calc((100% - 0.75rem) / 2);
+}
+
+.portraitCard {
+  color: var(--discover-ink);
+}
+
+.portraitCard:focus-visible {
+  outline-color: var(--discover-cobalt);
+}
+
+.portraitPhoto {
+  background: #e8edf4;
+  border-color: var(--discover-line);
+}
+
+.portraitInitials {
+  color: #40516d;
+}
+
+.portraitName {
+  color: var(--discover-ink);
+}
+
+.portraitMeta {
+  color: var(--discover-muted);
+}
+
+.onlineDot {
+  background: #16a34a;
+}
+
+@media (min-width: 640px) {
+  .portraitItem {
+    flex-basis: 9rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .portraitItem {
+    flex-basis: auto;
+  }
+}
+
+.panel :global(.lhr-v2-content) > header { color: #172033; background: #f6f4ee; border-color: #deddd6; }

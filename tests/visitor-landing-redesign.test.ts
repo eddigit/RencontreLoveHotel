@@ -10,7 +10,7 @@ describe('visitor landing redesign', () => {
     expect(existsSync(headerPath)).toBe(true)
     expect(shell).toContain("pathname === '/'")
     expect(shell).toContain('<VisitorLandingHeader')
-    expect(shell.indexOf("pathname === '/'")).toBeLessThan(shell.indexOf("<aside className='sticky"))
+    expect(shell.indexOf("pathname === '/'")).toBeLessThan(shell.indexOf("<aside "))
     expect(header).toContain("href='/concept'")
     expect(header).toContain("href='https://lovehotelaparis.fr'")
     expect(header).toContain("href='/events'")

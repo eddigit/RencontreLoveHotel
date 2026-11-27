@@ -39,6 +39,7 @@ export default function AdminCreateEventPage() {
     image: "",
     category: "jacuzzi",
     description: "",
+    circleCapacity: "",
     prix_personne_seule: 0,
     prix_couple: 0
   })
@@ -78,6 +79,8 @@ export default function AdminCreateEventPage() {
 	        category: form.category,
 	        experience_type: form.category,
         description: form.description,
+        max_participants: form.category === "libertine" ? Number(form.circleCapacity) : undefined,
+        created_by_role: "admin",
         prix_personne_seule: form.prix_personne_seule,
         prix_couple: form.prix_couple,
         creator_id: user.id // Correction : on passe bien l'admin comme créateur
@@ -110,10 +113,16 @@ export default function AdminCreateEventPage() {
               />
               <select name="category" value={form.category} onChange={handleChange} className="w-full border rounded p-2">
                 <option value="">Catégorie</option>
+                <option value="libertine">Sortie du cercle · lieu de votre choix</option>
                 {categories.map(cat => (
                   <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
+              {form.category === "libertine" && (
+                <label className="grid gap-1">Places convenues avec le lieu
+                  <input name="circleCapacity" type="number" min="1" step="1" required value={form.circleCapacity} onChange={handleChange} className="w-full rounded border p-2" />
+                </label>
+              )}
               <textarea name="description" placeholder="Description" value={form.description} onChange={handleChange} className="w-full border rounded p-2" />
               <input name="prix_personne_seule" type="number" min="0" step="0.01" placeholder="Prix par personne seule (€)" value={form.prix_personne_seule} onChange={handleChange} className="w-full border rounded p-2" />
               <input name="prix_couple" type="number" min="0" step="0.01" placeholder="Prix par couple (€)" value={form.prix_couple} onChange={handleChange} className="w-full border rounded p-2" />

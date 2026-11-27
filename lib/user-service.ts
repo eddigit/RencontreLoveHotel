@@ -9,6 +9,7 @@ import {
   digestEmailVerificationToken,
   verifyEmailVerificationToken
 } from '@/lib/email-verification-token'
+import { recordMemberReferral } from '@/lib/member-referral'
 
 // Types
 export interface User {
@@ -279,12 +280,14 @@ export async function getOrCreateOAuthUser({
   name,
   avatar,
   consent,
+  referralToken,
   emailVerifiedByProvider = false
 }: {
   email: string
   name?: string
   avatar?: string
   consent?: RegistrationConsent | null
+  referralToken?: string | null
   emailVerifiedByProvider?: boolean
 }) {
   const normalizedEmail = email.trim().toLowerCase()
@@ -359,7 +362,9 @@ export async function getOrCreateOAuthUser({
       consent.versions.antiSolicitation
     ]
   )
-  return created[0] || null
+  const user = created[0] || null
+  if (user) await recordMemberReferral(user.id, referralToken)
+  return user
 }
 
 // Mettre à jour le token de réinitialisation du mot de passe d'un utilisateur

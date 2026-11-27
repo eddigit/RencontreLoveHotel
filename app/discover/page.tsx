@@ -8,20 +8,19 @@ import {
   ArrowUpRight,
   Bell,
   CalendarHeart,
-  Crown,
+  ChevronDown,
   Heart,
   MessageCircle,
   RefreshCw,
   Search,
-  Sparkles,
-  UsersRound,
-  Wine
+  UsersRound
 } from 'lucide-react'
 import { AdvancedFilters, defaultFilters, FilterOptions } from '@/components/advanced-filters'
 import { CommunityWall } from '@/components/community-wall'
 import { CommunityFeedbackWidget } from '@/components/community-feedback-widget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { MemberReferralLink } from '@/components/member-referral-link'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { NotificationsButton } from '@/components/notifications-button'
 import MainLayout from '@/components/layout/main-layout'
@@ -86,10 +85,6 @@ type CommunityMemberStats = {
   totalMembers: number
   newMembersLast24h: number
 }
-
-const jacuzziMeetupImageUrl = '/apero-jacuzzi-rencontre.jpg'
-const openCurtainsImageUrl = '/rideaux-ouverts-rencontre.jpg'
-const conciergerieImageUrl = '/conciergerie-service.jpg'
 
 function isDiscoverStatus(value: string | null): value is FilterOptions['status'] {
   return value === 'all' || value === 'single' || value === 'couple' || value === 'trans'
@@ -194,36 +189,6 @@ function formatCount (value: number) {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
 
-function DashboardActivityLink ({
-  href,
-  icon,
-  label,
-  count
-}: {
-  href: string
-  icon: React.ReactNode
-  label: string
-  count: number
-}) {
-  return (
-    <Link
-      href={href}
-      className='flex min-h-16 items-center gap-3 rounded-lg border border-white/10 bg-black/16 px-3 py-2 transition hover:border-white/20 hover:bg-white/[0.06]'
-    >
-      <span className='flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.07]'>
-        {icon}
-      </span>
-      <span className='min-w-0'>
-        <span className='block truncate text-sm font-bold'>{label}</span>
-        <span className='block text-xs text-white/52'>
-          {count > 0 ? `${count} non ${count > 1 ? 'lues' : 'lue'}` : 'Aucune nouvelle'}
-        </span>
-      </span>
-      <span className='ml-auto text-xl font-black'>{count}</span>
-    </Link>
-  )
-}
-
 export default function DiscoverPage () {
   const { user, isLoading } = useAuth()
   const { counts } = useNotifications()
@@ -244,6 +209,7 @@ export default function DiscoverPage () {
   const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
   const [preparingProfiles, setPreparingProfiles] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const communityRequest = useRef(0)
   const localBatchNavigationRef = useRef<number | null>(null)
@@ -373,6 +339,10 @@ export default function DiscoverPage () {
     return () => window.clearInterval(interval)
   }, [user?.id])
 
+  useEffect(() => {
+    if (window.location.hash === '#boite-a-idees') setFeedbackOpen(true)
+  }, [])
+
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     setProfileBatch(0)
@@ -426,11 +396,8 @@ export default function DiscoverPage () {
     )
   }, [profiles, searchQuery])
 
-  const onlineProfiles = onlineMembers
   const newProfiles = [...filteredProfiles].slice(0, 12)
-  const featuredProfiles = filteredProfiles.slice(0, 4)
   const upcomingEvents = events.slice(0, 3)
-  const recentMatches = matches.slice(0, 5)
   const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
   const memberGrowthLabel = memberStats.newMembersLast24h > 0
     ? `+${formatCount(memberStats.newMembersLast24h)} en 24 h`
@@ -438,12 +405,18 @@ export default function DiscoverPage () {
   const newProfilesSummary = memberStats.totalMembers > 0
     ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} membres.`
     : `Les ${newProfiles.length} derniers profils visibles.`
+  const primaryHomeAction = counts.messages > 0
+    ? { href: '/messages', icon: MessageCircle, title: 'Répondre à vos messages', detail: `${counts.messages} message${counts.messages > 1 ? 's' : ''} attend${counts.messages > 1 ? 'ent' : ''} votre réponse.`, label: 'Ouvrir la messagerie', count: counts.messages }
+    : matches.length > 0
+      ? { href: '/matches', icon: Heart, title: 'Voir vos matchs', detail: `${matches.length} match${matches.length > 1 ? 's' : ''} à découvrir.`, label: 'Voir mes matchs', count: matches.length }
+      : { href: '/members', icon: UsersRound, title: 'Découvrir des profils', detail: 'Explorez selon vos envies, votre ville et le type de rencontre.', label: 'Explorer', count: null }
+  const PrimaryActionIcon = primaryHomeAction.icon
 
   if (isLoading) {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Communauté' subtitle='Chargement de votre espace rencontre.' user={user}>
-          <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-white/70'>
+          <div className='rounded-2xl border border-[#d9d7d0] bg-[#f6f4ee] p-8 text-[#667085]'>
             Chargement...
           </div>
         </LhrV2Shell>
@@ -455,11 +428,11 @@ export default function DiscoverPage () {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Complétez votre profil' subtitle='Votre profil doit être prêt avant d’entrer dans la communauté.' user={user}>
-          <div className='max-w-xl rounded-2xl border border-white/10 bg-white/[0.05] p-6'>
-            <p className='text-white/70'>
+          <div className='max-w-xl rounded-2xl border border-[#d9d7d0] bg-[#f6f4ee] p-6 text-[#172033]'>
+            <p className='text-[#667085]'>
               Quelques informations sont nécessaires pour proposer des rencontres compatibles.
             </p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#1f5eff] text-white hover:bg-[#1746c8]'>
               Compléter mon profil
             </Button>
           </div>
@@ -472,189 +445,60 @@ export default function DiscoverPage () {
     <MainLayout user={user}>
       <LhrV2Shell
         user={user}
-        eyebrow='Accueil connecté'
-        title='Mon espace membre'
+        title='Mon cercle'
         action={
           <div className='flex flex-wrap items-center gap-2'>
             <div className='hidden lg:block'>
               <NotificationsButton />
             </div>
-            <Button asChild size='sm' variant='ghost' className='text-[#94ffc9] hover:bg-[#94ffc9]/10 hover:text-[#94ffc9]'>
+            <Button asChild size='sm' variant='ghost' className='text-[#1f5eff] hover:bg-[#eef3ff] hover:text-[#1746c8]'>
               <Link href='#boite-a-idees'>Boîte à idées</Link>
             </Button>
           </div>
         }
       >
-        <section aria-label='Accès rapides' className='mb-5 grid gap-3 md:grid-cols-3'>
-          <Link
-            href='/messages'
-            className='group relative overflow-hidden rounded-2xl border border-[#94ffc9]/30 bg-[linear-gradient(135deg,rgba(148,255,201,0.16),rgba(31,8,42,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/65'
-          >
-            <MessageCircle className='h-6 w-6 text-[#94ffc9]' />
-            <div className='mt-6 flex items-end justify-between gap-3'>
-              <div>
-                <p className='text-lg font-black'>Ma messagerie</p>
-                <p className='mt-1 text-sm text-white/65'>Reprendre une conversation ou répondre.</p>
-              </div>
-              <span className='flex h-9 min-w-9 items-center justify-center rounded-full bg-[#94ffc9] px-2 text-sm font-black text-[#210018]'>
-                {counts.messages}
-              </span>
-            </div>
-            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#94ffc9]'>Ouvrir <ArrowUpRight className='h-4 w-4' /></span>
-          </Link>
-
-          <Link
-            href='/members'
-            className='group relative overflow-hidden rounded-2xl border border-[#ff8cc8]/30 bg-[linear-gradient(135deg,rgba(255,59,139,0.20),rgba(54,9,57,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/70'
-          >
-            <UsersRound className='h-6 w-6 text-[#ffb2d8]' />
-            <div className='mt-6'>
-              <p className='text-lg font-black'>Découvrir quelqu’un</p>
-              <p className='mt-1 text-sm text-white/65'>Des profils selon vos envies et le type de rencontre recherché.</p>
-            </div>
-            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#ffb2d8]'>Explorer <ArrowUpRight className='h-4 w-4' /></span>
-          </Link>
-
-          <Link
-            href='/events/new'
-            className='group relative overflow-hidden rounded-2xl border border-[#ffd166]/35 bg-[linear-gradient(135deg,rgba(255,209,102,0.17),rgba(49,19,51,0.96))] p-5 transition hover:-translate-y-0.5 hover:border-[#ffd166]/70'
-          >
-            <CalendarHeart className='h-6 w-6 text-[#ffd166]' />
-            <div className='mt-6'>
-              <p className='text-lg font-black'>Proposer une sortie</p>
-              <p className='mt-1 text-sm text-white/65'>Créer un apéro jacuzzi ou une session rideaux ouverts.</p>
-            </div>
-            <span className='mt-4 inline-flex items-center gap-1 text-sm font-bold text-[#ffd166]'>Commencer <ArrowUpRight className='h-4 w-4' /></span>
+        <div className='-m-3 min-h-[calc(100vh-8rem)] bg-[#f6f4ee] p-3 text-[#172033] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
+        <section aria-label='Action principale' className='mb-5'>
+          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#cbd8ff] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#1f5eff]'>
+            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#eef3ff] text-[#1f5eff]'><PrimaryActionIcon className='h-5 w-5' /></span>
+            <span className='min-w-0 flex-1'><span className='block text-lg font-black'>{primaryHomeAction.title}</span><span className='mt-0.5 block text-sm text-[#667085]'>{primaryHomeAction.detail}</span></span>
+            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#1f5eff] sm:block'>{primaryHomeAction.count}</span>}
+            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#1746c8]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
           </Link>
         </section>
 
-        <div className='grid gap-5 xl:grid-cols-[240px_minmax(0,1fr)] 2xl:grid-cols-[260px_minmax(0,1fr)_360px]'>
-          <aside className='order-2 space-y-4 xl:order-1 xl:sticky xl:top-24 xl:self-start'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <div className='flex items-center gap-3'>
-                <div className='relative h-14 w-14 overflow-hidden rounded-2xl bg-white/10'>
-                  {user.avatar ? (
-                    user.avatar.startsWith('http') ? (
-                      <img src={user.avatar} alt={user.name} className='h-full w-full object-cover' />
-                    ) : (
-                      <Image src={user.avatar} alt={user.name} fill className='object-cover' sizes='56px' />
-                    )
-                  ) : (
-                    <div className='flex h-full w-full items-center justify-center bg-[#ff3b8b]/20 font-black'>
-                      {user.name?.slice(0, 1) || 'L'}
-                    </div>
-                  )}
-                </div>
-                <div className='min-w-0'>
-                  <h2 className='truncate font-black'>{user.name}</h2>
-                  <p className='text-xs text-[#94ffc9]'>Profil actif</p>
-                </div>
-              </div>
-              <div className='mt-5 space-y-3 text-sm'>
-                <Link href='#online-now' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>En ligne maintenant</span>
-                  <span className='text-right font-bold'>{onlineProfiles.length}</span>
-                </Link>
-                <Link href='/matches' className='flex justify-between rounded-xl border-b border-white/8 pb-3 transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>Vos matchs</span>
-                  <span className='font-bold'>{matches.length}</span>
-                </Link>
-                <Link href='/events' className='flex justify-between rounded-xl transition hover:bg-white/[0.04]'>
-                  <span className='text-white/58'>Événements</span>
-                  <span className='font-bold'>{events.length}</span>
-                </Link>
-              </div>
+        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#cbd8ff] bg-white shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
+          {upcomingEvents.length > 0 ? (
+            <div className='grid sm:grid-cols-[180px_minmax(0,1fr)]'>
+              <div className='relative aspect-[16/10] bg-[#e7e4dc] sm:aspect-auto'>{mediaImage(upcomingEvents[0].image || '/soiree-masquee.webp', upcomingEvents[0].title)}</div>
+              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#667085]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#1746c8]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
             </div>
+          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#667085]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#1746c8]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
+        </section>
 
-            <Link
-              href='/members'
-              className='flex items-center gap-3 rounded-2xl border border-[#94ffc9]/25 bg-[#94ffc9]/10 p-4 transition hover:border-[#94ffc9]/50 hover:bg-[#94ffc9]/15'
-            >
-              <Search className='h-5 w-5 shrink-0 text-[#94ffc9]' />
-              <div className='min-w-0'>
-                <div className='font-black'>Rechercher des membres</div>
-                <div className='text-xs text-white/58'>{totalMembersLabel} profils visibles</div>
-              </div>
-              <ArrowUpRight className='ml-auto h-4 w-4 shrink-0 text-[#94ffc9]' />
-            </Link>
-
-          </aside>
-
-          <section className='order-1 min-w-0 space-y-5 xl:order-2 xl:col-start-2 2xl:col-start-auto'>
-            <div id='boite-a-idees' className='scroll-mt-24'>
-              <CommunityFeedbackWidget />
-            </div>
-
-            <section
-              aria-label='Activité à suivre'
-              className='border-y border-white/10 bg-white/[0.025] px-3 py-3'
-            >
-              <div className='mb-3 flex items-center justify-between gap-3'>
-                <div>
-                  <p className='text-xs font-bold uppercase tracking-wider text-[#ff8cc8]'>Activité à suivre</p>
-                  <h2 className='mt-1 text-lg font-black'>Vos dernières alertes</h2>
-                </div>
-                <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]'>
-                  <Link href='/notifications'>
-                    <Bell className='mr-2 h-4 w-4' />
-                    Tout voir
-                  </Link>
-                </Button>
-              </div>
-              <div className='grid gap-2 sm:grid-cols-3'>
-                <DashboardActivityLink
-                  href='/messages'
-                  icon={<MessageCircle className='h-4 w-4 text-[#94ffc9]' />}
-                  label='Messages non lus'
-                  count={counts.messages}
-                />
-                <DashboardActivityLink
-                  href='/matches'
-                  icon={<Heart className='h-4 w-4 text-[#ff8cc8]' />}
-                  label='Matchs à consulter'
-                  count={counts.matches}
-                />
-                <DashboardActivityLink
-                  href='/events'
-                  icon={<CalendarHeart className='h-4 w-4 text-[#ffd166]' />}
-                  label='Alertes événements'
-                  count={counts.events}
-                />
-              </div>
-            </section>
-
-            <div className='grid gap-3 md:grid-cols-3'>
-              <Link href={memberStats.newMembersLast24h > 0 ? '/members?recent=true' : '/members'} className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#94ffc9]/45 hover:bg-white/[0.075]'>
-                <UsersRound className='mb-3 h-5 w-5 text-[#94ffc9]' />
-                <div className='text-2xl font-black'>{totalMembersLabel}</div>
-                <div className='text-sm text-white/56'>membres</div>
-                <div className='mt-1 text-xs font-bold text-[#94ffc9]'>{memberGrowthLabel}</div>
-              </Link>
-              <Link href='/matches' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ff8cc8]/45 hover:bg-white/[0.075]'>
-                <Heart className='mb-3 h-5 w-5 text-[#ff8cc8]' />
-                <div className='text-2xl font-black'>{matches.length}</div>
-                <div className='text-sm text-white/56'>Vos matchs</div>
-              </Link>
-              <Link href='/events' className='group rounded-2xl border border-white/10 bg-white/[0.05] p-4 transition hover:-translate-y-0.5 hover:border-[#ffd166]/45 hover:bg-white/[0.075]'>
-                <CalendarHeart className='mb-3 h-5 w-5 text-[#ffd166]' />
-                <div className='text-2xl font-black'>{events.length}</div>
-                <div className='text-sm text-white/56'>Événements à venir</div>
-              </Link>
-            </div>
+        <div className='space-y-5'>
+          <section className='order-1 min-w-0 space-y-5'>
+            {(counts.matches > 0 || counts.events > 0) && (
+              <section aria-label='À suivre' className='flex flex-wrap gap-2'>
+                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Heart className='h-4 w-4 text-[#1f5eff]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
+                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Bell className='h-4 w-4 text-[#1f5eff]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
+                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#1746c8]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
+              </section>
+            )}
 
             <div className='relative'>
-              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45' />
+              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]' />
               <Input
                 type='text'
                 placeholder='Rechercher un profil, une ville, une ambiance...'
                 value={searchQuery}
                 onChange={event => handleSearchChange(event.target.value)}
-                className='h-12 rounded-2xl border-white/10 bg-white/[0.06] pl-11 text-white placeholder:text-white/38 focus:border-[#ff62a8]'
+                className='h-12 rounded-2xl border-[#d9d7d0] bg-white pl-11 text-[#172033] placeholder:text-[#667085] focus:border-[#1f5eff]'
               />
             </div>
 
             {error && (
-              <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100'>
+              <div className='rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800'>
                 {error}
               </div>
             )}
@@ -662,33 +506,33 @@ export default function DiscoverPage () {
             <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#94ffc9]'>Profils à découvrir</p>
-                  <h2 className='mt-1 text-xl font-black'>Nouveaux profils visibles</h2>
-                  <p className='mt-1 text-sm leading-5 text-white/56'>{newProfilesSummary}</p>
+                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#1746c8]'>Découvrir</p>
+                  <h2 className='mt-1 text-xl font-black'>Des profils qui pourraient vous plaire</h2>
+                  <p className='mt-1 text-sm leading-5 text-[#667085]'>{newProfilesSummary}</p>
                 </div>
                 <div className='flex shrink-0 flex-col items-end gap-2'>
                   <div className='flex items-center gap-2'>
-                    <span className='hidden text-right text-xs text-white/52 sm:block'>
+                    <span className='hidden text-right text-xs text-[#667085] sm:block'>
                       {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
                     </span>
                     <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
                   </div>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-white/12 bg-white/[0.04]'>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#d9d7d0] bg-white text-[#172033] hover:bg-[#eef3ff]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
                     {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>
                 </div>
               </div>
-              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#94ffc9]/16 bg-[#94ffc9]/[0.06] px-3 py-2 text-sm'>
-                <span className='font-medium text-white/75'>Affinez par type de profil, envies et critères de rencontre.</span>
-                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#94ffc9] hover:text-white'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
+              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d7e1ff] bg-[#eef3ff] px-3 py-2 text-sm'>
+                <span className='font-medium text-[#34405a]'>Affinez par type de profil, envies et critères de rencontre.</span>
+                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#1746c8] hover:text-[#12379e]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map(profile => (
                   <Link
                     key={profile.id}
                     href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045] transition hover:-translate-y-0.5 hover:bg-white/[0.07]'
+                    className='group overflow-hidden rounded-2xl border border-[#d9d7d0] bg-white shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#1f5eff]'
                   >
                     <div className='relative aspect-[4/5] bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
@@ -698,7 +542,7 @@ export default function DiscoverPage () {
                           className='absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]'
                         />
                       )}
-                      <div className='absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent' />
+                      <div className='absolute inset-0 bg-gradient-to-t from-[#172033]/80 via-transparent to-transparent' />
                       <div className='absolute bottom-3 left-3 right-3'>
                         <div className='text-lg font-black'>
                           {profile.name}{profile.age ? `, ${profile.age}` : ''}
@@ -708,7 +552,7 @@ export default function DiscoverPage () {
                     </div>
                     {profile.bio && (
                       <div className='p-3'>
-                        <p className='line-clamp-2 text-sm leading-5 text-white/62'>{profile.bio}</p>
+                        <p className='line-clamp-2 text-sm leading-5 text-[#667085]'>{profile.bio}</p>
                       </div>
                     )}
                   </Link>
@@ -716,329 +560,20 @@ export default function DiscoverPage () {
               </div>
             </section>
 
+
+            <MemberReferralLink />
             <CommunityWall currentUserId={user.id} />
 
-            <section className='rounded-2xl border border-[#ff8cc8]/20 bg-white/[0.045] p-4'>
-              <div className='flex flex-col gap-3 md:flex-row md:items-end md:justify-between'>
-                <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
-                    Choisir son degré d’ouverture
-                  </p>
-                  <h2 className='mt-1 text-xl font-black'>Rencontrer, ressentir, puis décider.</h2>
-                  <p className='mt-2 max-w-3xl text-sm leading-6 text-white/62'>
-                    La communauté permet de passer d’un verre discret à une expérience plus ouverte, avec des rideaux fermés, entrouverts ou ouverts selon l’envie du moment.
-                  </p>
-                </div>
-                <Button asChild size='sm' className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                  <Link href='/profile'>Régler mes envies</Link>
-                </Button>
-              </div>
-              <div className='mt-4 grid gap-3 md:grid-cols-3'>
-                {[
-                  ['Découverte douce', 'Un verre, une Love Room privée, aucune pression.'],
-                  ['Curiosité encadrée', 'Apéro jacuzzi, 3 couples maximum, règles claires.'],
-                  ['Expérience assumée', 'Rideaux ouverts et soirées couples pour profils alignés.']
-                ].map(([title, detail]) => (
-                  <div key={title} className='rounded-2xl border border-white/10 bg-black/18 p-4'>
-                    <div className='font-black'>{title}</div>
-                    <div className='mt-2 text-sm leading-5 text-white/58'>{detail}</div>
-                  </div>
-                ))}
-              </div>
+            <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#d9d7d0] bg-white'>
+              <button type='button' onClick={() => setFeedbackOpen(open => !open)} aria-expanded={feedbackOpen} className='flex w-full items-center justify-between gap-4 p-4 text-left'>
+                <span><span className='block font-black'>Une idée ou un problème à signaler ?</span><span className='mt-0.5 block text-sm text-[#667085]'>Votre retour aide à améliorer la communauté.</span></span>
+                <ChevronDown className={`h-5 w-5 shrink-0 text-[#1f5eff] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {feedbackOpen && <div className='border-t border-[#e7e4dc] p-4'><CommunityFeedbackWidget /></div>}
             </section>
 
-            <section className='rounded-2xl border border-[#ff8cc8]/20 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(61,17,85,0.72),rgba(10,3,18,0.94))] p-4'>
-              <div className='flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between'>
-                <div className='min-w-0'>
-                  <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ff8cc8]'>
-                    Expériences officielles Love Hotel
-                  </p>
-                  <h2 className='mt-1 text-xl font-black md:text-2xl'>
-                    Un match peut devenir un rendez-vous à Pigalle ou Châtelet.
-                  </h2>
-                  <div className='mt-3 flex flex-wrap gap-2 text-xs font-bold'>
-                    {['Love Room à l’heure', 'Jacuzzi privatif', 'Rideaux ouverts', 'Champagne'].map(label => (
-                      <span key={label} className='rounded-full border border-white/10 bg-white/[0.07] px-3 py-1.5 text-white/82'>
-                        {label}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className='flex shrink-0 flex-wrap gap-2'>
-                  <Button asChild size='sm' className='bg-[#ff4fa3] text-white hover:bg-[#ff6cb4]'>
-                    <Link href='/events/new'>Créer</Link>
-                  </Button>
-                  <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/love-rooms'>Love Rooms</Link>
-                  </Button>
-                  <Button asChild size='sm' variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/events'>Agenda</Link>
-                  </Button>
-                </div>
-              </div>
-            </section>
-
-            <section className='grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]'>
-              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-                <div className='mb-4 flex items-center justify-between'>
-                  <h2 className='text-xl font-black'>Événements à venir</h2>
-                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/events'>Tout voir</Link>
-                  </Button>
-                </div>
-                <div className='space-y-3'>
-                  {upcomingEvents.length === 0 && (
-                    <p className='text-sm text-white/58'>Aucun événement programmé pour le moment.</p>
-                  )}
-                  {upcomingEvents.map(event => (
-                    <Link key={event.id} href={`/events/${event.id}`} className='flex gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
-                      <div className='relative h-20 w-24 shrink-0 overflow-hidden rounded-2xl bg-white/10'>
-                        {mediaImage(event.image || '/pink-jacuzzi-night.png', event.title)}
-                      </div>
-                      <div className='min-w-0'>
-                        <div className='text-xs font-bold uppercase tracking-[0.14em] text-[#ffd166]'>
-                          {eventDateLabel(event.event_date)}
-                        </div>
-                        <div className='truncate font-black'>{event.title}</div>
-                        <div className='truncate text-sm text-white/56'>{event.location}</div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[linear-gradient(135deg,rgba(255,59,139,0.18),rgba(148,255,201,0.08))] p-5'>
-                <Crown className='mb-4 h-6 w-6 text-[#ffd166]' />
-                <h2 className='text-xl font-black'>Love Rooms</h2>
-                <p className='mt-3 text-sm leading-6 text-white/66'>
-                  Proposez une chambre, un verre, trois coupes ou une bouteille de champagne quand l’échange devient concret.
-                </p>
-                <div className='mt-5 flex flex-wrap gap-2'>
-                  <Button asChild className='bg-[#ff4fa3] hover:bg-[#ff6cb4]'>
-                    <Link href='/love-rooms'>Réserver</Link>
-                  </Button>
-                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/messages'>Inviter un match</Link>
-                  </Button>
-                </div>
-              </div>
-            </section>
-
-            <section id='online-now' className='scroll-mt-24 rounded-2xl border border-white/10 bg-black/16 p-4'>
-              <div className='mb-4 flex items-center justify-between gap-3'>
-                <div>
-                  <h2 className='text-xl font-black'>En ligne maintenant</h2>
-                  <p className='text-sm text-white/56'>
-                    {onlineProfiles.length > 0
-                      ? 'Des membres disponibles pour échanger tout de suite.'
-                      : 'Aucun membre vu dans les dernières minutes.'}
-                  </p>
-                </div>
-                <Button asChild variant='outline' className='hidden border-white/12 bg-white/[0.04] sm:inline-flex'>
-                  <Link href='/messages'>Messages</Link>
-                </Button>
-              </div>
-              <div className='flex gap-3 overflow-x-auto pb-2'>
-                {onlineProfiles.map(profile => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='w-[116px] shrink-0'>
-                    <div className='relative h-[116px] overflow-hidden rounded-2xl bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      <span className='absolute right-2 top-2 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' />
-                    </div>
-                    <div className='mt-2 truncate text-sm font-bold'>
-                      {profile.is_current_user ? 'Vous' : profile.name}{profile.age ? `, ${profile.age}` : ''}
-                    </div>
-                    <div className='truncate text-xs text-white/50'>{profile.location || 'Paris'}</div>
-                  </Link>
-                ))}
-              </div>
-            </section>
           </section>
-
-          <aside className='order-2 xl:order-3 space-y-4 xl:col-start-2 2xl:col-start-auto 2xl:sticky 2xl:top-24 2xl:self-start'>
-            <div className='overflow-hidden rounded-2xl border border-[#ff8cc8]/25 bg-[#ff3b8b]/10 shadow-xl shadow-black/20'>
-              <div
-                className='relative aspect-[16/11] bg-cover bg-center'
-                style={{
-                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.86), rgba(0,0,0,0.18), rgba(0,0,0,0.03)), url(${openCurtainsImageUrl})`
-                }}
-              >
-                <img
-                  src={openCurtainsImageUrl}
-                  alt='Activité rencontre rideaux ouverts'
-                  className='sr-only'
-                />
-                <div className='absolute bottom-3 left-3 right-3'>
-                  <span className='rounded-full bg-[#ff3b8b] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white'>
-                    RIDEAUX OUVERTS
-                  </span>
-                </div>
-              </div>
-              <div className='p-4'>
-                <h2 className='text-lg font-black'>Initiation rideaux ouverts</h2>
-                <p className='mt-2 text-sm leading-6 text-white/66'>
-                  Une expérience progressive pour découvrir, observer puis choisir d’ouvrir davantage si tout le monde est aligné.
-                </p>
-                <div className='mt-4 grid gap-2'>
-                  <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
-                    <Link href='/events'>Voir les créneaux</Link>
-                  </Button>
-                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/events/new'>Créer une session</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className='overflow-hidden rounded-2xl border border-[#ff8cc8]/25 bg-[#ff3b8b]/10 shadow-xl shadow-black/20'>
-              <div
-                className='relative aspect-[16/10] bg-cover bg-center'
-                style={{
-                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0.18), rgba(0,0,0,0.02)), url(${jacuzziMeetupImageUrl})`
-                }}
-              >
-                <img
-                  src={jacuzziMeetupImageUrl}
-                  alt='Apéro jacuzzi rencontre'
-                  className='sr-only'
-                />
-                <div className='absolute bottom-3 left-3 right-3'>
-                  <span className='rounded-full bg-[#ff3b8b] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-white'>
-                    3 couples maximum
-                  </span>
-                </div>
-              </div>
-              <div className='p-4'>
-                <div className='flex items-center gap-2 font-black'>
-                  <Wine className='h-4 w-4 text-[#ff8cc8]' />
-                  Apéro jacuzzi rencontre
-                </div>
-                <p className='mt-2 text-sm leading-6 text-white/66'>
-                  Champagne, spa et rencontre en petit comité pour créer une vraie opportunité entre couples.
-                </p>
-                <div className='mt-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-1'>
-                  <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
-                    <Link href='/events/new'>Créer un apéro jacuzzi</Link>
-                  </Button>
-                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href='/events'>Voir les expériences</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className='overflow-hidden rounded-2xl border border-[#ffd166]/25 bg-[#ffd166]/10 shadow-xl shadow-black/20'>
-              <div
-                className='relative aspect-[16/12] bg-cover bg-center'
-                style={{
-                  backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.88), rgba(0,0,0,0.34), rgba(0,0,0,0.08)), url(${conciergerieImageUrl})`
-                }}
-              >
-                <img
-                  src={conciergerieImageUrl}
-                  alt='Conciergerie privée Love Hotel'
-                  className='sr-only'
-                />
-                <div className='absolute bottom-3 left-3 right-3'>
-                  <span className='rounded-full bg-[#ffd166] px-3 py-1 text-xs font-black uppercase tracking-[0.12em] text-[#210018]'>
-                    Conciergerie privée
-                  </span>
-                </div>
-              </div>
-              <div className='p-4'>
-                <div className='flex items-center gap-2 font-black'>
-                  <Sparkles className='h-4 w-4 text-[#ffd166]' />
-                  Soirée sur mesure
-                </div>
-                <p className='mt-2 text-sm leading-6 text-white/66'>
-                  Une envie particulière autour d’une Love Room, d’un jacuzzi,
-                  de rideaux ouverts ou d’une arrivée scénarisée.
-                </p>
-                <div className='mt-4 grid gap-2'>
-                  <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
-                    <Link href='/conciergerie'>Faire une demande</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            <div className='rounded-2xl border border-[#ffd166]/25 bg-[linear-gradient(135deg,rgba(255,209,102,0.16),rgba(255,59,139,0.12),rgba(255,255,255,0.045))] p-5'>
-              <div className='flex items-start justify-between gap-3'>
-                <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ffd166]'>Premium bientôt</p>
-                  <h2 className='mt-1 text-xl font-black'>Club Love Hotel</h2>
-                </div>
-                <Crown className='h-6 w-6 shrink-0 text-[#ffd166]' />
-              </div>
-              <p className='mt-3 text-sm leading-6 text-white/66'>
-                Standard : matchs et envois limités. Club : messages illimités après match, photos, vidéos et vocaux dans la messagerie, puis lives privés quand la modération sera prête.
-              </p>
-              <div className='mt-4 grid gap-2 text-sm text-white/72'>
-                {[
-                  'messages illimités entre membres compatibles',
-                  'photos, vidéos et vocaux réservés au Club',
-                  'lives privés en direct dans une prochaine étape'
-                ].map(label => (
-                  <div key={label} className='flex items-center gap-2 rounded-2xl border border-white/10 bg-black/16 px-3 py-2'>
-                    <Sparkles className='h-3.5 w-3.5 shrink-0 text-[#ff8cc8]' />
-                    <span>{label}</span>
-                  </div>
-                ))}
-              </div>
-              <Button asChild variant='outline' className='mt-4 w-full border-[#ffd166]/30 bg-[#ffd166]/10 text-white hover:bg-[#ffd166]/18'>
-                <Link href='/profile'>Être prévenu</Link>
-              </Button>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h2 className='font-black'>Suggestions compatibles</h2>
-              <div className='mt-4 space-y-2'>
-                {featuredProfiles.map(profile => (
-                  <Link key={profile.id} href={`/profile/${profile.id}`} className='flex items-center justify-between gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
-                    <div className='min-w-0'>
-                      <div className='truncate font-bold'>{profile.name}</div>
-                      {typeof profile.matchScore === 'number' && <div className='text-xs text-white/50'>{Math.round(profile.matchScore)}% compatible</div>}
-                    </div>
-                    <ArrowUpRight className='h-4 w-4 text-white/50' />
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h2 className='font-black'>Vos matchs</h2>
-              <div className='mt-4 space-y-3'>
-                {recentMatches.length === 0 && (
-                  <p className='text-sm text-white/58'>Vos prochains matchs apparaîtront ici.</p>
-                )}
-                {recentMatches.map(match => {
-                  const otherIsUser1 = match.user_id_1 !== user.id
-                  const name = otherIsUser1 ? match.user1_name : match.user2_name
-                  const avatar = otherIsUser1 ? match.user1_avatar : match.user2_avatar
-                  const online = otherIsUser1 ? match.user1_online : match.user2_online
-                  const otherId = otherIsUser1 ? match.user_id_1 : match.user_id_2
-                  return (
-                    <Link key={match.id} href={`/profile/${otherId}`} className='flex items-center gap-3 rounded-2xl p-2 transition hover:bg-white/8'>
-                      <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
-                        {mediaImage(avatar || '/default-member-couple.jpg', name || 'Match')}
-                        {online && (
-                          <span
-                            aria-label='En ligne'
-                            className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]'
-                          />
-                        )}
-                      </div>
-                      <div className='min-w-0 flex-1'>
-                        <div className='truncate font-bold'>{name}</div>
-                        <div className='text-xs text-white/50'>Match confirmé</div>
-                      </div>
-                      <MessageCircle className='h-4 w-4 text-[#ff8cc8]' />
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          </aside>
+        </div>
         </div>
       </LhrV2Shell>
     </MainLayout>

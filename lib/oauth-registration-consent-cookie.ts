@@ -19,3 +19,10 @@ export async function consumeOAuthRegistrationConsent(): Promise<RegistrationCon
   const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || ''
   return verifyOAuthRegistrationConsentToken(token, secret)
 }
+
+export async function consumeOAuthRegistrationReferral(): Promise<string | null> {
+  const cookieStore = await cookies()
+  const token = cookieStore.get('lhr_oauth_referral')?.value || null
+  try { cookieStore.delete('lhr_oauth_referral') } catch {}
+  return token
+}

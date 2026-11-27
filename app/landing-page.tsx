@@ -23,19 +23,19 @@ export default function LandingPage() {
         <div className='absolute left-[8%] top-16 -z-10 h-72 w-72 rounded-full border border-[#e7a151]/15 blur-[1px]' />
         <div className='mx-auto grid w-full max-w-[1440px] items-center gap-10 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:px-12 lg:py-20'>
           <div className='max-w-xl lg:py-6'>
-            <p className='text-[11px] font-bold uppercase tracking-[0.32em] text-[#efb66e]'>Paris · communauté adulte</p>
+            <p className='text-[11px] font-bold uppercase tracking-[0.32em] text-[#efb66e]'>Paris · Cercle privé de rencontres</p>
             <h1 className='mt-5 max-w-[10ch] font-serif text-[clamp(3.35rem,7vw,6.8rem)] leading-[0.88] tracking-[-0.055em] text-[#fff8ed]'>
               Rencontres <span className='italic text-[#efb66e]'>libertines</span>, à votre façon.
             </h1>
             <p className='mt-7 max-w-lg text-base leading-7 text-[#f6e9df]/75 sm:text-lg sm:leading-8'>
-              En solo ou en couple, rencontrez des adultes qui partagent vos envies. Prenez le temps d’échanger,
-              puis choisissez ensemble un lieu, un moment et des limites qui vous ressemblent.
+              Célibataire ou en couple, retrouvez les membres du cercle autour d’un verre, d’une soirée ou d’une escapade en Love Room. Découvrez les sorties proposées et inscrivez-vous depuis leur fiche.
             </p>
             <Suspense fallback={null}><PublicCommunityActivity /></Suspense>
             <div className='mt-8 flex flex-wrap gap-3'>
-              <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-[#efb66e] px-6 py-3.5 text-sm font-extrabold text-[#24101d] transition hover:-translate-y-0.5 hover:bg-[#ffd294]'>Créer mon profil <ArrowRight className='h-4 w-4' /></Link>
+              <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-[#efb66e] px-6 py-3.5 text-sm font-extrabold text-[#24101d] transition hover:-translate-y-0.5 hover:bg-[#ffd294]'>Rejoindre le cercle <ArrowRight className='h-4 w-4' /></Link>
               <Link href='/lieux' className='inline-flex items-center gap-2 rounded-full border border-[#f6e9df]/25 px-6 py-3.5 text-sm font-bold text-[#fff8ed] transition hover:border-[#efb66e]/70 hover:bg-white/[0.06]'>Choisir un type de lieu <MapPin className='h-4 w-4' /></Link>
             </div>
+            <p className='mt-3 text-sm text-[#f6e9df]/75'>Inscription libre · Parrainage facultatif</p>
           </div>
           <div className='relative mx-auto w-full max-w-3xl lg:ml-auto'>
             <div className='absolute -inset-5 rounded-[2.4rem] bg-[#d7875f]/20 blur-3xl' />

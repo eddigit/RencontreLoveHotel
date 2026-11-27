@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config();
 
-import { Pool } from 'pg'
+import { Pool, type PoolClient } from 'pg'
 import { log } from '@/utils/logger'
 
 let pool: Pool | null = null
@@ -81,5 +81,20 @@ export async function executeQuery<T = any>(query: string, params: any[] = []): 
           : undefined
     })
     throw error
+  }
+}
+
+export async function withTransaction<T>(operation: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await initPool().connect()
+  try {
+    await client.query('BEGIN')
+    const result = await operation(client)
+    await client.query('COMMIT')
+    return result
+  } catch (error) {
+    try { await client.query('ROLLBACK') } catch {}
+    throw error
+  } finally {
+    client.release()
   }
 }

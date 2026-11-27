@@ -1,3 +1,9 @@
+export const experienceLabels: Record<string, string> = {
+  jacuzzi: 'Apéro jacuzzi',
+  open_curtains: 'Rideaux ouverts',
+  libertine: 'Sortie du cercle'
+}
+
 export const EVENT_TIME_ZONE = 'Europe/Paris'
 
 export const DEFAULT_EVENT_IMAGES = {

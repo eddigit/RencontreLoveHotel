@@ -7,20 +7,16 @@ describe('Love Hotel commercial bridges', () => {
   const events = fs.readFileSync(path.join(process.cwd(), 'app/events/page.tsx'), 'utf8')
   const loveRooms = fs.readFileSync(path.join(process.cwd(), 'app/love-rooms/page.tsx'), 'utf8')
 
-  it('promotes official Love Hotel activity from the community home', () => {
-    expect(discover).toContain('Expériences officielles Love Hotel')
-    expect(discover).toContain('Châtelet')
-    expect(discover).toContain('Pigalle')
-    expect(discover).toContain('Love Room à l’heure')
-    expect(discover).toContain('Jacuzzi privatif')
-    expect(discover).toContain('Rideaux ouverts')
+  it('connects the community home to real agenda and place routes', () => {
+    expect(discover).toContain('Mon cercle · prochain rendez-vous')
+    expect(discover).toContain("href='/events'")
+    expect(discover).toContain("href='/lieux'")
   })
 
-  it('keeps community profiles visible before the commercial bridge', () => {
-    expect(discover.indexOf("id='new-profiles'")).toBeLessThan(
-      discover.indexOf('Expériences officielles Love Hotel')
-    )
+  it('keeps profile discovery without a promotional desktop rail', () => {
+    expect(discover).toContain("id='new-profiles'")
     expect(discover).not.toContain("lg:grid-cols-[minmax(0,1fr)_280px]")
+    expect(discover).not.toContain('Expériences officielles Love Hotel')
   })
 
   it('connects events to rooms, jacuzzi and official booking opportunities', () => {

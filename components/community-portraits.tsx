@@ -3,6 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 import { sql } from '@/lib/db'
 import { ensurePresenceSchema, onlinePresenceCondition } from '@/lib/presence'
 import { photoPriority } from '@/lib/discovery-ranking'
+import styles from './site-shell.module.css'
 
 type MemberPortrait = {
   id: string
@@ -40,27 +41,30 @@ export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
   if (!members.length) return null
 
   return (
-    <section aria-labelledby='community-portraits-title' className='overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#301229] via-[#211020] to-[#170d20] px-4 pb-5 pt-6 sm:px-6 lg:px-8'>
+    <section aria-labelledby='community-portraits-title' className={`overflow-hidden px-4 pb-5 pt-6 sm:px-6 lg:px-8 ${styles.communityStrip}`}>
       <div className='mb-4 flex items-end justify-between gap-3'>
-        <h2 id='community-portraits-title' className='text-2xl font-semibold tracking-tight text-white sm:text-3xl'>Les visages de la communauté</h2>
-        <Link href='/members' className='inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-[#ffc4df] hover:underline'>
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-[0.16em] ${styles.stripEyebrow}`}>Communauté</p>
+          <h2 id='community-portraits-title' className={`mt-1 text-2xl font-semibold tracking-tight sm:text-3xl ${styles.stripTitle}`}>À découvrir</h2>
+        </div>
+        <Link href='/members' className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline ${styles.stripLink}`}>
           Tous les membres <ArrowUpRight aria-hidden className='size-4' />
         </Link>
       </div>
-      <ul className='flex snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 xl:grid xl:grid-cols-6'>
+      <ul className={`flex snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 xl:grid xl:grid-cols-6 ${styles.portraitList}`}>
         {members.map(member => (
-          <li key={member.id} className='w-28 shrink-0 snap-start sm:w-36 lg:w-40 xl:w-auto'>
-            <Link href={`/profile/${member.id}`} className='group block rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-300'>
-              <div className='relative flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-[#54304c] to-[#28182d]'>
+          <li key={member.id} className={`shrink-0 snap-start xl:w-auto ${styles.portraitItem}`}>
+            <Link href={`/profile/${member.id}`} className={`group block rounded-xl focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
+              <div className={`relative flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl border ${styles.portraitPhoto}`}>
                 {member.image && photoPriority(member) > 0 ? (
                   <img src={member.image} alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
                 ) : (
-                  <span aria-hidden className='text-4xl font-light text-[#f7cde2]'>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
+                  <span aria-hidden className={`text-4xl font-light ${styles.portraitInitials}`}>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
                 )}
               </div>
-              <span className='mt-2 block truncate font-semibold text-white'>{member.name}</span>
-              <span className='flex items-center gap-1.5 text-xs text-white/70'>
-                {member.online && <span aria-hidden className='size-2 rounded-full bg-emerald-300' />}
+              <span className={`mt-2 block truncate font-semibold ${styles.portraitName}`}>{member.name}</span>
+              <span className={`flex items-center gap-1.5 text-xs ${styles.portraitMeta}`}>
+                {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
                 {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : 'Voir le profil'}
               </span>
             </Link>

@@ -7,17 +7,13 @@ function readFile (filePath: string) {
 }
 
 describe('Progressive Love Hotel encounter concept', () => {
-  it('presents the three levels of openness on the community home', () => {
+  it('keeps the community home focused on real upcoming meetings', () => {
     const discover = readFile('app/discover/page.tsx')
 
-    expect(discover).toContain('Choisir son degré d’ouverture')
-    expect(discover).toContain('Découverte douce')
-    expect(discover).toContain('Curiosité encadrée')
-    expect(discover).toContain('Expérience assumée')
-    expect(discover).toContain('rideaux fermés, entrouverts ou ouverts')
-    expect(discover).toContain('RIDEAUX OUVERTS')
-    expect(discover).toContain('/rideaux-ouverts-rencontre.jpg')
-    expect(discover.indexOf('RIDEAUX OUVERTS')).toBeLessThan(discover.indexOf("<h2 className='font-black'>Vos matchs</h2>"))
+    expect(discover).toContain('Mon cercle · prochain rendez-vous')
+    expect(discover).toContain("href='/events'")
+    expect(discover).toContain("href='/lieux'")
+    expect(discover).toContain("'/soiree-masquee.webp'")
   })
 
   it('positions events as progressive experiences around real Love Hotel places', () => {

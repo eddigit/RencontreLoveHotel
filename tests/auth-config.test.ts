@@ -6,6 +6,7 @@ const getUserByIdMock = vi.hoisted(() => vi.fn())
 const verifyUserCredentialsMock = vi.hoisted(() => vi.fn())
 const recordAuthEventMock = vi.hoisted(() => vi.fn())
 const consumeOAuthRegistrationConsentMock = vi.hoisted(() => vi.fn())
+const consumeOAuthRegistrationReferralMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/user-service', () => ({
   getOrCreateOAuthUser: getOrCreateOAuthUserMock,
@@ -21,7 +22,8 @@ vi.mock('@/lib/auth-audit', () => ({
 }))
 
 vi.mock('@/lib/oauth-registration-consent-cookie', () => ({
-  consumeOAuthRegistrationConsent: consumeOAuthRegistrationConsentMock
+  consumeOAuthRegistrationConsent: consumeOAuthRegistrationConsentMock,
+  consumeOAuthRegistrationReferral: consumeOAuthRegistrationReferralMock
 }))
 
 import { authOptions } from '../lib/auth'
@@ -36,6 +38,8 @@ describe('authOptions', () => {
     recordAuthEventMock.mockResolvedValue(undefined)
     consumeOAuthRegistrationConsentMock.mockReset()
     consumeOAuthRegistrationConsentMock.mockResolvedValue(null)
+    consumeOAuthRegistrationReferralMock.mockReset()
+    consumeOAuthRegistrationReferralMock.mockResolvedValue(null)
   })
 
   it('does not expose invalid NextAuth route-only options', () => {

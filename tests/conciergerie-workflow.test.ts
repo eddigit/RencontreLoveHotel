@@ -51,9 +51,7 @@ describe('conciergerie workflow', () => {
     expect(page).not.toContain('/images/conciergerie-service.jpg')
     expect(page).toContain('Faire une demande')
     expect(page).toContain('ConciergerieForm')
-    expect(discover).toContain('/conciergerie-service.jpg')
-    expect(discover).toContain('Soirée sur mesure')
-    expect(discover).not.toContain('/images/conciergerie-service.jpg')
+    expect(discover).not.toContain('/conciergerie-service.jpg')
   })
 
   it('surfaces the preferred response channel in the admin concierge backend', () => {

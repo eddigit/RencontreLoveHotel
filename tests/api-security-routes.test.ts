@@ -5,6 +5,7 @@ const getServerSessionMock = vi.hoisted(() => vi.fn())
 const acceptMatchRequestMock = vi.hoisted(() => vi.fn())
 const findOrCreateConversationMock = vi.hoisted(() => vi.fn())
 const notifyEventReservationAdminsMock = vi.hoisted(() => vi.fn())
+const reserveEventSeatMock = vi.hoisted(() => vi.fn())
 const sqlMock = vi.hoisted(() => vi.fn())
 const executeQueryMock = vi.hoisted(() => vi.fn())
 const logSecurityEventMock = vi.hoisted(() => vi.fn())
@@ -33,6 +34,10 @@ vi.mock('@/lib/db', () => ({
 
 vi.mock('@/lib/event-reservation-notifications', () => ({
   notifyEventReservationAdmins: notifyEventReservationAdminsMock
+}))
+
+vi.mock('@/lib/event-participation', () => ({
+  reserveEventSeat: reserveEventSeatMock
 }))
 
 vi.mock('@vercel/blob', () => ({
@@ -77,6 +82,8 @@ describe('sensitive API routes', () => {
     findOrCreateConversationMock.mockReset()
     notifyEventReservationAdminsMock.mockReset()
     notifyEventReservationAdminsMock.mockResolvedValue({ success: true, emailSent: true })
+    reserveEventSeatMock.mockReset()
+    reserveEventSeatMock.mockResolvedValue('joined')
     sqlMock.mockReset()
     executeQueryMock.mockReset()
     logSecurityEventMock.mockReset()
@@ -190,9 +197,6 @@ describe('sensitive API routes', () => {
         }
       ])
       .mockResolvedValueOnce([{ id: 'user-1' }])
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ count: 0 }])
-      .mockResolvedValueOnce([])
 
     const { POST } = await import('@/app/api/events/[id]/participate/route')
     const response = (await POST(
@@ -201,11 +205,8 @@ describe('sensitive API routes', () => {
       }),
       { params: Promise.resolve({ id: 'event-1' }) }
     )) as Response
-    const insertValues = sqlMock.mock.calls.at(-1)?.slice(1)
-
     expect(response.status).toBe(200)
-    expect(insertValues?.[1]).toBe('event-1')
-    expect(insertValues?.[2]).toBe('user-1')
+    expect(reserveEventSeatMock).toHaveBeenCalledWith('event-1', 'user-1')
     expect(notifyEventReservationAdminsMock).toHaveBeenCalledWith({
       action: 'join',
       eventId: 'event-1',

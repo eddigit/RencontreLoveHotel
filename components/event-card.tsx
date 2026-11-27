@@ -1,3 +1,4 @@
+import { experienceLabels } from '@/lib/event-presentation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Calendar, MapPin, Sparkles, Users } from 'lucide-react'
@@ -35,10 +36,7 @@ const venueLabels: Record<string, string> = {
   chatelet: 'Châtelet'
 }
 
-const experienceLabels: Record<string, string> = {
-  jacuzzi: 'Apéro jacuzzi',
-  open_curtains: 'Rideaux ouverts'
-}
+
 
 export function EventCard ({
   title,

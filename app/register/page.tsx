@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { User, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { Checkbox } from '@/components/ui/checkbox'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { registerUser } from '@/app/actions'
 import { AuthPageShell } from '@/components/auth-page-shell'
@@ -39,6 +39,8 @@ export default function RegisterPage () {
   })
 
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const referralToken = searchParams.get('parrain')
   const showOAuthProviders = shouldShowOAuthProviders(
     process.env.NEXT_PUBLIC_ENABLE_OAUTH
   )
@@ -67,7 +69,8 @@ export default function RegisterPage () {
           terms: formData.agreeTerms,
           antiSolicitation: formData.antiSolicitation,
           versions: LEGAL_POLICY_VERSIONS
-        }
+        },
+        referralToken
       )
 
       if (result.success) {
@@ -101,7 +104,8 @@ export default function RegisterPage () {
           adult: formData.adult,
           terms: formData.agreeTerms,
           antiSolicitation: formData.antiSolicitation,
-          versions: LEGAL_POLICY_VERSIONS
+          versions: LEGAL_POLICY_VERSIONS,
+          referralToken
         })
       })
       const result = await response.json()
@@ -125,7 +129,7 @@ export default function RegisterPage () {
                   Créer un compte
                 </CardTitle>
                 <CardDescription className='text-center'>
-                  Inscrivez-vous pour accéder à toutes les fonctionnalités
+                  {referralToken ? 'Vous avez suivi un lien de parrainage. Créez votre compte pour rejoindre le cercle.' : 'Rejoignez le cercle. L’inscription est libre, avec ou sans parrain.'}
                 </CardDescription>
               </CardHeader>
               <CardContent>

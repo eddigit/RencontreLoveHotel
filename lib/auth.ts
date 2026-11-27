@@ -10,7 +10,7 @@ import {
   verifyUserCredentials
 } from '@/lib/user-service'
 import { recordAuthEvent } from '@/lib/auth-audit'
-import { consumeOAuthRegistrationConsent } from '@/lib/oauth-registration-consent-cookie'
+import { consumeOAuthRegistrationConsent, consumeOAuthRegistrationReferral } from '@/lib/oauth-registration-consent-cookie'
 
 function invalidateAuthToken(token: JWT): JWT {
   token.sub = undefined
@@ -113,11 +113,15 @@ export const authOptions: NextAuthOptions = {
         const consent = account.provider === 'google'
           ? await consumeOAuthRegistrationConsent()
           : null
+        const referralToken = account.provider === 'google'
+          ? await consumeOAuthRegistrationReferral()
+          : null
         const dbUser = await getOrCreateOAuthUser({
           email: user.email!,
           name: user.name ?? undefined,
           avatar: user.image ?? undefined,
           consent,
+          referralToken,
           emailVerifiedByProvider:
             account.provider === 'google' &&
             Boolean((profile as { email_verified?: boolean } | undefined)?.email_verified)

@@ -4,8 +4,9 @@ import { sql } from "@/lib/db"
 import { notifyEventReservationAdmins } from "@/lib/event-reservation-notifications"
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { enforceMemberContent } from '@/lib/content-safety-service'
+import { reserveEventSeat } from '@/lib/event-participation'
 
-const activeExperienceTypes = ['jacuzzi', 'open_curtains'] as const
+const activeExperienceTypes = ['jacuzzi', 'open_curtains', 'libertine'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
 
 function normalizeActiveExperienceType(value?: string | null): ActiveExperienceType {
@@ -25,6 +26,12 @@ function normalizeEventCapacity(
   maxParticipants?: number
 ) {
   const requestedCapacity = Number(maxParticipants || 0)
+  if (experienceType === 'libertine') {
+    if (!Number.isSafeInteger(requestedCapacity) || requestedCapacity < 1 || requestedCapacity > 2147483647) {
+      throw new Error('Indiquez le nombre de places convenu avec le lieu.')
+    }
+    return requestedCapacity
+  }
   const minCapacity = 2
   const maxCapacity = experienceType === 'jacuzzi' ? 4 : 3
   const capacity = requestedCapacity || maxCapacity
@@ -77,6 +84,7 @@ function eventDateTimeHasPassed(event: any) {
 }
 
 export async function getUpcomingEvents(userId?: string) {
+  if (userId) await requireSameUserOrAdmin(userId)
   try {
     return await getUpcomingEventsQuery(userId, true)
   } catch (error) {
@@ -246,6 +254,9 @@ export async function createEvent({
   const publicationStatus = betaPublicationRule.includes('published') ? 'published' : publication_status
   const { eventDate, eventTime } = normalizeEventDateTime(date)
   const normalizedExperienceType = normalizeActiveExperienceType(experience_type || category)
+  if (normalizedExperienceType === 'libertine' && currentUser.role !== 'admin') {
+    throw new Error('La programmation du cercle est réservée à l’équipe.')
+  }
   const normalizedCategory = normalizedExperienceType
   const normalizedMaxParticipants = normalizeEventCapacity(
     normalizedExperienceType,
@@ -303,7 +314,7 @@ export async function createEvent({
       ${normalizedExperienceType},
       ${normalizedMaxParticipants},
       ${publicationStatus},
-      ${created_by_role},
+      ${currentUser.role === 'admin' ? 'admin' : 'member'},
       NOW(),
       NOW()
     )
@@ -343,7 +354,7 @@ export async function updateEvent(eventId: string, {
     : undefined
   const normalizedDateTime = date ? normalizeEventDateTime(date) : undefined
   const [existingEvent] = await sql`
-    SELECT creator_id FROM events WHERE id = ${eventId}
+    SELECT creator_id, experience_type FROM events WHERE id = ${eventId}
   `
 
   if (!existingEvent) {
@@ -352,6 +363,11 @@ export async function updateEvent(eventId: string, {
 
   if (currentUser.role !== 'admin' && existingEvent.creator_id !== currentUser.id) {
     throw new Error('Action limitée à votre propre compte')
+  }
+
+  if (normalizedCategory && (normalizedCategory === 'libertine' || existingEvent.experience_type === 'libertine') &&
+      (currentUser.role !== 'admin' || normalizedCategory !== existingEvent.experience_type)) {
+    throw new Error('Le format d’une sortie du cercle est fixé à sa création.')
   }
 
   if (currentUser.role !== 'admin') {
@@ -447,16 +463,10 @@ export async function subscribeToEvent(eventId: string, userId: string) {
     return { success: false, error: 'Impossible de participer à un événement passé' }
   }
 
-  if (event?.max_participants && Number(event.participant_count || 0) >= Number(event.max_participants)) {
-    return { success: false, error: 'Événement complet' }
-  }
-
-  await sql`
-    INSERT INTO event_participants (event_id, user_id)
-    VALUES (${eventId}, ${userId})
-    ON CONFLICT DO NOTHING
-  `
-  await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
+  const reservation = await reserveEventSeat(eventId, userId)
+  if (reservation === 'full') return { success: false, error: 'Événement complet' }
+  if (reservation === 'missing') return { success: false, error: 'Événement introuvable' }
+  if (reservation === 'joined') await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
   return { success: true }
 }
 
@@ -502,6 +512,7 @@ export async function getEventSubscriptionsStats({ startDate, endDate, scale }: 
 }
 
 export async function getEventById(eventId: string, userId?: string) {
+  if (userId) await requireSameUserOrAdmin(userId)
   try {
     const eventQuery = userId
       ? `
@@ -560,6 +571,7 @@ export async function getEventById(eventId: string, userId?: string) {
 }
 
 export async function checkUserParticipation(eventId: string, userId: string) {
+  await requireSameUserOrAdmin(userId)
   try {
     const [participation] = await sql`
       SELECT id FROM event_participants

@@ -63,14 +63,14 @@ export function CommunityFeedbackWidget() {
   }
 
   return (
-    <section aria-labelledby='community-feedback-title' className='rounded-2xl border border-[#94ffc9]/20 bg-[linear-gradient(135deg,rgba(148,255,201,0.10),rgba(255,59,139,0.10),rgba(255,255,255,0.04))] p-4 sm:p-5'>
+    <section aria-labelledby='community-feedback-title' className='rounded-2xl border border-slate-200 bg-white text-slate-900 p-4 sm:p-5'>
       <div className='flex items-start gap-3'>
-        <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#94ffc9]/15 text-[#94ffc9]'>
+        <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-800'>
           <Lightbulb className='h-5 w-5' />
         </div>
         <div>
           <h2 id='community-feedback-title' className='font-black'>Boîte à idées</h2>
-          <p className='mt-1 text-sm leading-5 text-white/58'>
+          <p className='mt-1 text-sm leading-5 text-slate-600'>
             Qu’aimeriez-vous organiser ou améliorer pour rendre la communauté plus agréable ?
           </p>
         </div>
@@ -85,10 +85,10 @@ export function CommunityFeedbackWidget() {
             return (
               <label
                 key={option.value}
-                className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black transition has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[#94ffc9] has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-[#210018] ${
+                className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 text-sm font-black transition has-[:focus-visible]:outline-none has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-600 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-white ${
                   isActive
-                    ? 'border-[#ff8cc8]/70 bg-[#ff3b8b]/28 text-white'
-                    : 'border-white/10 bg-white/[0.04] text-white/62 hover:bg-white/[0.07]'
+                    ? 'border-blue-600 bg-blue-50 text-blue-900'
+                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-50'
                 }`}
               >
                 <input
@@ -117,7 +117,7 @@ export function CommunityFeedbackWidget() {
           minLength={8}
           maxLength={2000}
           required
-          className='min-h-28 rounded-2xl border-white/10 bg-black/18 text-white placeholder:text-white/35 focus-visible:ring-[#ff62a8]'
+          className='min-h-28 rounded-2xl border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-600 focus-visible:ring-blue-600'
         />
 
         {status && (
@@ -126,8 +126,8 @@ export function CommunityFeedbackWidget() {
             aria-live='polite'
             className={`rounded-2xl border p-3 text-sm ${
               status.type === 'success'
-                ? 'border-[#94ffc9]/25 bg-[#94ffc9]/10 text-[#caffdf]'
-                : 'border-red-300/25 bg-red-500/10 text-red-100'
+                ? 'border-slate-200 bg-blue-50 text-blue-800'
+                : 'border-red-300/25 bg-red-500/10 text-red-800'
             }`}
           >
             <div className='flex items-center gap-2'>
@@ -137,15 +137,15 @@ export function CommunityFeedbackWidget() {
           </div>
         )}
 
-        <p className='flex items-start gap-2 text-xs leading-5 text-white/52'>
-          <LockKeyhole aria-hidden='true' className='mt-0.5 h-3.5 w-3.5 shrink-0 text-[#94ffc9]' />
+        <p className='flex items-start gap-2 text-xs leading-5 text-slate-600'>
+          <LockKeyhole aria-hidden='true' className='mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-800' />
           <span>Votre message et votre pseudo sont visibles uniquement par l’équipe du site.</span>
         </p>
 
         <Button
           type='submit'
           disabled={isSubmitting}
-          className='w-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'
+          className='w-full bg-[#304bc7] text-white hover:opacity-90'
         >
           <Send className='mr-2 h-4 w-4' />
           {isSubmitting ? 'Envoi en cours...' : kind === 'bug' ? 'Signaler le bug' : 'Envoyer mon idée'}

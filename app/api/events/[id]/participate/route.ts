@@ -3,8 +3,8 @@ import { getServerSession } from 'next-auth/next'
 import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { notifyEventReservationAdmins } from '@/lib/event-reservation-notifications'
-import { randomUUID } from 'crypto'
 import { isPastEvent } from '@/lib/event-presentation'
+import { reserveEventSeat } from '@/lib/event-participation'
 
 export async function POST(
   request: NextRequest,
@@ -67,33 +67,14 @@ export async function POST(
     }
 
     if (action === 'join') {
-      // Vérifier si déjà inscrit
-      const [existing] = await sql`
-        SELECT id FROM event_participants
-        WHERE event_id = ${eventId} AND user_id = ${userId}
-      `
-
-      if (existing) {
+      const reservation = await reserveEventSeat(eventId, userId)
+      if (reservation === 'already_joined') {
         return NextResponse.json({ error: 'Déjà inscrit à cet événement' }, { status: 409 })
       }
-
-      // Vérifier le nombre maximum de participants
-      const [participantCount] = await sql`
-        SELECT COUNT(*) as count
-        FROM event_participants
-        WHERE event_id = ${eventId}
-      `
-
-      if (Number(participantCount.count) >= Number(event.max_participants)) {
+      if (reservation === 'full') {
         return NextResponse.json({ error: 'Événement complet' }, { status: 409 })
       }
-
-      // Ajouter la participation
-      const participantId = randomUUID();
-      await sql`
-        INSERT INTO event_participants (id, event_id, user_id, joined_at)
-        VALUES (${participantId}, ${eventId}, ${userId}, NOW())
-      `
+      if (reservation === 'missing') return NextResponse.json({ error: 'Événement non trouvé' }, { status: 404 })
       await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
 
       return NextResponse.json({

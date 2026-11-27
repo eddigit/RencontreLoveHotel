@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,7 @@ import { Calendar, MapPin, Users, Clock, ArrowLeft, Heart, Share2 } from 'lucide
 import Link from 'next/link'
 import MainLayout from '@/components/layout/main-layout'
 import { ParticipantProfilePopup } from '@/components/participant-profile-popup'
-import { formatEventDateTime, getEventImage } from '@/lib/event-presentation'
+import { experienceLabels, formatEventDateTime, getEventImage } from '@/lib/event-presentation'
 
 interface Event {
   id: string
@@ -27,6 +27,7 @@ interface Event {
   payment_mode: 'sur_place' | 'online'
   conditions: string
   max_participants: number
+  is_participating: boolean
   participant_count: number
   image: string
   category: string
@@ -47,18 +48,10 @@ interface EventDetailPageProps {
 
 export default function EventDetailPage({ event }: EventDetailPageProps) {
   const { user } = useAuth()
-  const [isParticipating, setIsParticipating] = useState(false)
-  const [participantCount, setParticipantCount] = useState(event.participant_count)
+  const [isParticipating, setIsParticipating] = useState(Boolean(event.is_participating))
+  const [participantCount, setParticipantCount] = useState(Number(event.participant_count))
   const [loading, setLoading] = useState(false)
   const [participants, setParticipants] = useState(event.participants)
-
-  // Vérifier si l'utilisateur participe déjà
-  useEffect(() => {
-    if (user && participants) {
-      const participating = participants.some(p => p.id === user.id)
-      setIsParticipating(participating)
-    }
-  }, [user, participants])
 
   const handleParticipation = async () => {
     if (!user?.id) {
@@ -213,7 +206,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
           {event.category && (
             <div className="absolute bottom-4 left-4">
               <Badge variant="secondary" className="bg-white/90 text-black">
-                {event.category}
+                {experienceLabels[event.experience_type || event.category] || event.category}
               </Badge>
             </div>
           )}

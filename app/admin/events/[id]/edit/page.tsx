@@ -179,8 +179,9 @@ export default function AdminEditEventPage() {
                     category={form.category}
                     experienceType={form.category}
                   />
-                  <select name="category" value={form.category} onChange={handleChange} className="w-full border rounded p-2">
+                  <select name="category" disabled={form.category === "libertine"} value={form.category} onChange={handleChange} className="w-full border rounded p-2">
                     <option value="">Catégorie</option>
+                    {form.category === "libertine" && <option value="libertine">Sortie du cercle</option>}
                     {categories.map(cat => (
                       <option key={cat.value} value={cat.value}>{cat.label}</option>
                     ))}
