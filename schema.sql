@@ -165,6 +165,7 @@ CREATE TABLE messages
     content TEXT NOT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     -- Renamed from 'read'
+    delivered_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );

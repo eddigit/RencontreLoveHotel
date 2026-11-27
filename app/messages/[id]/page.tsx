@@ -1,11 +1,14 @@
 'use client'
 
+import { PresenceDot } from '@/components/presence-dot'
 import type React from 'react'
 import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowLeft,
+  Check,
+  CheckCheck,
   ChevronUp,
   Clock3,
   Flag,
@@ -28,8 +31,11 @@ import { ConversationList, formatInboxMessageDate, type InboxConversation } from
 import { getConversationThread } from '@/actions/conversation-thread'
 import MainLayout from '@/components/layout/main-layout'
 import {
+  acknowledgeConversationMessageDelivery,
   getConversationMessagesAfter,
   getConversationMessagesBefore,
+  getConversationMessageReceipts,
+  getConversationSummary,
   getUserConversations,
   markConversationMessagesAsRead,
   sendMessage
@@ -60,6 +66,8 @@ interface Message {
   sender_id: string
   content: string
   created_at: string
+  delivered_at?: string | null
+  is_read?: boolean
   sender_name?: string
   sender_avatar?: string
   sender_gender?: string | null
@@ -75,6 +83,7 @@ interface ConversationDetails {
   other_user_gender?: string | null
   other_user_profile_status?: string | null
   other_user_online?: boolean
+  other_user_last_seen_at?: string | null
 }
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
@@ -100,6 +109,15 @@ function messageDayLabel (value: string) {
   if (date >= todayStart) return 'Aujourd’hui'
   if (date >= yesterdayStart) return 'Hier'
   return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+function formatLastSeen (value?: string | null) {
+  if (!value) return 'Hors ligne'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Hors ligne'
+  return `Vu le ${new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris'
+  }).format(date)}`
 }
 
 function renderAttachment (attachment: MessageAttachment) {
@@ -152,6 +170,22 @@ function toMessageAttachment (attachment: PendingAttachment): MessageAttachment 
   }
 }
 
+function MessageReceipt ({ message }: { message: Message }) {
+  if (message.id.startsWith('optimistic-')) {
+    return <Clock3 className='h-3.5 w-3.5 text-[#4b4741]' aria-label='Envoi en cours' />
+  }
+
+  if (message.is_read) {
+    return <CheckCheck className='h-3.5 w-3.5 text-[#164a80]' aria-label='Lu' />
+  }
+
+  if (message.delivered_at) {
+    return <CheckCheck className='h-3.5 w-3.5 text-[#4b4741]' aria-label='Reçu' />
+  }
+
+  return <Check className='h-3.5 w-3.5 text-[#4b4741]' aria-label='Envoyé' />
+}
+
 export default function ConversationPage ({
   params
 }: {
@@ -173,8 +207,6 @@ export default function ConversationPage ({
   const [recording, setRecording] = useState(false)
   const [reportingMessageId, setReportingMessageId] = useState<string | null>(null)
   const [reportFeedback, setReportFeedback] = useState<string | null>(null)
-  const [syncing, setSyncing] = useState(false)
-  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
   const [hasEarlierMessages, setHasEarlierMessages] = useState(false)
   const [loadingEarlierMessages, setLoadingEarlierMessages] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
@@ -190,11 +222,15 @@ export default function ConversationPage ({
   const audioChunksRef = useRef<Blob[]>([])
   const audioStreamRef = useRef<MediaStream | null>(null)
   const messagesRef = useRef<Message[]>([])
+  const messageElementRefs = useRef(new Map<string, HTMLDivElement>())
+  const lastPresenceRefreshAtRef = useRef(0)
   const preservedScrollRef = useRef<{ height: number; top: number } | null>(null)
   const refocusComposerAfterSendRef = useRef(false)
   const isAtLatestRef = useRef(true)
   const shouldScrollToLatestRef = useRef(true)
   const desktopConversationListLoadedRef = useRef(false)
+  const [visibleIncomingMessageIds, setVisibleIncomingMessageIds] = useState<string[]>([])
+  const [receiptRetryTick, setReceiptRetryTick] = useState(0)
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const scrollContainer = messageScrollRef.current
@@ -227,6 +263,82 @@ export default function ConversationPage ({
   useEffect(() => {
     messagesRef.current = messages
   }, [messages])
+
+  // Read receipts are limited to message bubbles that actually intersect the
+  // reading area; background polling and off-screen history cannot mark read.
+  useEffect(() => {
+    const root = messageScrollRef.current
+    if (!root || !session?.user?.id || typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(entries => {
+      const visibleIds = entries
+        .filter(entry => entry.isIntersecting)
+        .map(entry => entry.target.getAttribute('data-message-id'))
+        .filter((messageId): messageId is string => Boolean(messageId))
+      if (visibleIds.length === 0) return
+      setVisibleIncomingMessageIds(previous => Array.from(new Set([...previous, ...visibleIds])))
+    }, { root, threshold: 0.6 })
+
+    for (const [messageId, element] of messageElementRefs.current) {
+      if (element && messagesRef.current.some(message => message.id === messageId && message.sender_id !== session.user?.id)) observer.observe(element)
+    }
+
+    return () => observer.disconnect()
+  }, [messages, session?.user?.id])
+
+  // Any message inserted into the client state has been fetched by the
+  // recipient, even if it is below the current scroll position. Delivery is
+  // therefore independent from reading.
+  useEffect(() => {
+    if (!session?.user?.id || !id || document.visibilityState === 'hidden') return
+
+    const receivedMessageIds = messages
+      .filter(message => message.sender_id !== session.user.id && !message.id.startsWith('optimistic-') && !message.delivered_at)
+      .map(message => message.id)
+      .slice(0, 80)
+    if (receivedMessageIds.length === 0) return
+
+    let cancelled = false
+    void acknowledgeConversationMessageDelivery({ conversationId: id, messageIds: receivedMessageIds }).then(() => {
+      if (cancelled) return
+      setMessages(previous => previous.map(message => receivedMessageIds.includes(message.id)
+        ? { ...message, delivered_at: message.delivered_at || new Date().toISOString() }
+        : message))
+    }).catch(error => {
+      console.error('Failed to record message delivery:', error)
+      window.setTimeout(() => {
+        if (!cancelled) setReceiptRetryTick(value => value + 1)
+      }, 5000)
+    })
+    return () => { cancelled = true }
+  }, [id, messages, receiptRetryTick, session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id || !id || document.visibilityState === 'hidden') return
+
+    const readMessageIds = visibleIncomingMessageIds
+      .filter(messageId => {
+        const message = messages.find(item => item.id === messageId)
+        return Boolean(message && message.sender_id !== session.user!.id && !message.id.startsWith('optimistic-') && !message.is_read)
+      })
+      .slice(0, 80)
+    if (readMessageIds.length === 0) return
+
+    let cancelled = false
+    void markConversationMessagesAsRead(id, session.user.id, readMessageIds).then(() => {
+      if (cancelled) return
+      setMessages(previous => previous.map(message => readMessageIds.includes(message.id)
+        ? { ...message, is_read: true }
+        : message))
+      void markResourceAsRead(`/messages/${id}`)
+    }).catch(error => {
+      console.error('Failed to record message reading:', error)
+      window.setTimeout(() => {
+        if (!cancelled) setReceiptRetryTick(value => value + 1)
+      }, 5000)
+    })
+    return () => { cancelled = true }
+  }, [id, markResourceAsRead, messages, receiptRetryTick, session?.user?.id, visibleIncomingMessageIds])
 
   useEffect(() => {
     if (sending || !refocusComposerAfterSendRef.current) return
@@ -296,7 +408,6 @@ export default function ConversationPage ({
         setShowJumpToLatest(false)
         setMessages(fetchedMessages as Message[])
         setHasEarlierMessages(fetchedMessages.length === 80)
-        setLastSyncedAt(new Date())
         if (currentConv) {
           setConversationDetails({
             id: currentConv.id,
@@ -305,15 +416,13 @@ export default function ConversationPage ({
             other_user_avatar: currentConv.other_user_avatar,
             other_user_gender: currentConv.other_user_gender,
             other_user_profile_status: currentConv.other_user_profile_status,
-            other_user_online: Boolean(currentConv.other_user_online)
+            other_user_online: Boolean(currentConv.other_user_online),
+            other_user_last_seen_at: currentConv.other_user_last_seen_at
           })
         } else {
           setError('Conversation introuvable ou non autorisée.')
         }
 
-        // Les accusés n'empêchent jamais l'ouverture du fil : ils peuvent être rejoués au prochain passage.
-        void Promise.allSettled([markConversationMessagesAsRead(id, session.user.id)])
-        void markResourceAsRead(`/messages/${id}`)
       } catch (error) {
         console.error('Failed to fetch conversation data:', error)
         if (error instanceof Error && error.message.includes('Access denied')) {
@@ -373,19 +482,57 @@ export default function ConversationPage ({
       const afterCursor = lastMessage?.created_at || '1970-01-01T00:00:00.000Z'
 
       inFlight = true
-      setSyncing(true)
-
       try {
-        const freshMessages = await getConversationMessagesAfter(
-          id,
-          afterCursor,
-          authenticatedUserId
-        ) as Message[]
+        const refreshPresence = Date.now() - lastPresenceRefreshAtRef.current >= 30_000
+        if (refreshPresence) lastPresenceRefreshAtRef.current = Date.now()
+        const [freshMessages, currentConv] = await Promise.all([
+          getConversationMessagesAfter(id, afterCursor, authenticatedUserId) as Promise<Message[]>,
+          refreshPresence
+            ? getConversationSummary(id, authenticatedUserId).catch(error => {
+                console.error('Failed to refresh conversation presence:', error)
+                return null
+              })
+            : Promise.resolve(null)
+        ])
+        if (cancelled) return
 
-        if (cancelled || freshMessages.length === 0) {
-          setLastSyncedAt(new Date())
-          return
+        if (currentConv) {
+          setConversationDetails(previous => ({
+            id: currentConv.id,
+            other_user_id: currentConv.other_user_id,
+            other_user_name: currentConv.other_user_name,
+            other_user_avatar: currentConv.other_user_avatar,
+            other_user_gender: currentConv.other_user_gender,
+            other_user_profile_status: currentConv.other_user_profile_status,
+            other_user_online: Boolean(currentConv.other_user_online),
+            other_user_last_seen_at: currentConv.other_user_last_seen_at
+          }))
         }
+
+        const visibleOutgoingIds = currentMessages
+          .filter(message => message.sender_id === authenticatedUserId && !message.id.startsWith('optimistic-') && !message.is_read)
+          .slice(-80)
+          .map(message => message.id)
+        if (visibleOutgoingIds.length > 0) {
+          const receipts = await getConversationMessageReceipts({
+            conversationId: id,
+            messageIds: visibleOutgoingIds
+          })
+          if (cancelled) return
+          const receiptById = new Map(receipts.map(receipt => [receipt.id, receipt]))
+          setMessages(previousMessages => {
+            let changed = false
+            const nextMessages = previousMessages.map(message => {
+              const receipt = receiptById.get(message.id)
+              if (!receipt || (message.delivered_at === receipt.delivered_at && Boolean(message.is_read) === receipt.is_read)) return message
+              changed = true
+              return { ...message, delivered_at: receipt.delivered_at, is_read: receipt.is_read }
+            })
+            return changed ? nextMessages : previousMessages
+          })
+        }
+
+        if (freshMessages.length === 0) return
 
         const existingIds = new Set(messagesRef.current.map(item => item.id))
         const unseenMessages = freshMessages.filter(item => !existingIds.has(item.id))
@@ -398,26 +545,27 @@ export default function ConversationPage ({
               ...unseenMessages.filter(item => !prevIds.has(item.id))
             ]
           })
-
-          if (unseenMessages.some(item => item.sender_id !== authenticatedUserId)) {
-            await markConversationMessagesAsRead(id, authenticatedUserId)
-            void markResourceAsRead(`/messages/${id}`)
-          }
         }
 
-        setLastSyncedAt(new Date())
       } catch (error) {
         console.error('Failed to sync new messages:', error)
       } finally {
         inFlight = false
-        if (!cancelled) setSyncing(false)
       }
     }
 
     const interval = setInterval(syncNewMessages, 2500)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        lastPresenceRefreshAtRef.current = 0
+        void syncNewMessages()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       cancelled = true
       clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [session?.user?.id, id, loading, error, loadingEarlierMessages, markResourceAsRead])
 
@@ -663,11 +811,9 @@ export default function ConversationPage ({
     ? 'Chargement…'
     : error
       ? 'Action requise'
-      : syncing
-        ? 'Synchronisation…'
-        : lastSyncedAt
-          ? `Synchronisé à ${lastSyncedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
-          : 'Disponible pour échanger'
+      : conversationDetails?.other_user_online
+        ? 'En ligne'
+        : formatLastSeen(conversationDetails?.other_user_last_seen_at)
 
   return (
     <MainLayout user={session?.user}>
@@ -688,10 +834,12 @@ export default function ConversationPage ({
                 >
                   <ArrowLeft className='h-5 w-5' aria-hidden='true' />
                 </Link>
-                <div className='relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87]/35'>
-                  <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil'} className='h-full w-full object-cover' />
+                <div className='relative h-10 w-10 shrink-0'>
+                  <div className='h-full w-full overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87]/35'>
+                    <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil'} className='h-full w-full object-cover' />
+                  </div>
                   {conversationDetails?.other_user_online && (
-                    <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#191714] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
+                    <PresenceDot className='-bottom-0.5 -right-0.5' />
                   )}
                 </div>
                 <div className='min-w-0'>
@@ -782,7 +930,14 @@ export default function ConversationPage ({
                                 <span className='h-px flex-1 bg-white/10' />
                               </div>
                             )}
-                            <div className={mine ? 'flex items-start justify-end gap-3' : 'flex items-start justify-start gap-3'}>
+                            <div
+                              ref={element => {
+                                if (element) messageElementRefs.current.set(msg.id, element)
+                                else messageElementRefs.current.delete(msg.id)
+                              }}
+                              data-message-id={msg.id}
+                              className={mine ? 'flex items-start justify-end gap-3' : 'flex items-start justify-start gap-3'}
+                            >
                               <div className={mine ? 'hidden sm:block w-8 shrink-0' : 'hidden sm:block relative mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-[#aaa69e]/30'}>
                                 {!mine && <MemberAvatarImage src={msg.sender_avatar || conversationDetails?.other_user_avatar} gender={msg.sender_gender || conversationDetails?.other_user_gender} profileStatus={msg.sender_profile_status || conversationDetails?.other_user_profile_status} alt='' className='h-full w-full object-cover' />}
                               </div>
@@ -820,6 +975,7 @@ export default function ConversationPage ({
                               <div className={mine ? 'mt-1 flex items-center justify-end gap-1 text-xs text-white/75' : 'mt-1 flex items-center justify-end gap-1 text-xs text-[#aaa69e]'}>
                                 <Clock3 className='h-3 w-3' aria-hidden='true' />
                                 <time dateTime={msg.created_at}>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
+                                {mine && <MessageReceipt message={msg} />}
                               </div>
                             </div>
                           </div>
@@ -932,9 +1088,11 @@ export default function ConversationPage ({
 
           {!loading && !error && <aside className='hidden min-h-0 overflow-y-auto border-l border-[#5d3f3f]/35 bg-[#191714] xl:col-start-3 xl:block'>
             <div className='border-b border-[#5d3f3f]/35 p-5 text-center'>
-              <div className='relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87] ring-offset-2 ring-offset-[#191714]'>
-                <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil du membre'} className='h-full w-full object-cover' />
-                {conversationDetails?.other_user_online && <span className='absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border-2 border-[#191714] bg-[#35e48d]' />}
+              <div className='relative mx-auto h-20 w-20'>
+                <div className='h-full w-full overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87] ring-offset-2 ring-offset-[#191714]'>
+                  <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil du membre'} className='h-full w-full object-cover' />
+                </div>
+                {conversationDetails?.other_user_online && <PresenceDot className='-bottom-0.5 -right-0.5' />}
               </div>
               <h3 className='mt-4 text-lg font-bold text-[#f1eee8]'>{conversationDetails?.other_user_name || 'Membre du Cercle'}</h3>
               <p className='mt-1 text-xs text-[#e5d1aa]'>Membre du Cercle privé</p>

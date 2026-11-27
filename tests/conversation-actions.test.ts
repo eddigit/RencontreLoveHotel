@@ -18,6 +18,10 @@ vi.mock('@/lib/notification-service', () => ({
   createNotificationInternal: vi.fn()
 }))
 
+vi.mock('@/lib/message-delivery-receipts', () => ({
+  ensureMessageDeliveryReceiptSchema: vi.fn().mockResolvedValue(undefined)
+}))
+
 // mock logger module
 vi.mock('../utils/logger', () => ({
   log: vi.fn()
@@ -34,6 +38,8 @@ import {
   getConversationMessagesAfter,
   getConversationMessagesBefore,
   getConversationMessages,
+  acknowledgeConversationMessageDelivery,
+  getConversationMessageReceipts,
   markConversationMessagesAsRead,
   sendMessage
 } from '../actions/conversation-actions'
@@ -159,7 +165,8 @@ describe('conversation-actions', () => {
 
     const result = await markConversationMessagesAsRead(
       '550e8400-e29b-41d4-a716-446655440001',
-      '550e8400-e29b-41d4-a716-446655440099'
+      '550e8400-e29b-41d4-a716-446655440099',
+      ['550e8400-e29b-41d4-a716-446655440111']
     )
 
     expect(result.updatedCount).toBe(1)
@@ -167,9 +174,48 @@ describe('conversation-actions', () => {
       expect.stringContaining('UPDATE messages'),
       [
         '550e8400-e29b-41d4-a716-446655440001',
-        '550e8400-e29b-41d4-a716-446655440099'
+        '550e8400-e29b-41d4-a716-446655440099',
+        ['550e8400-e29b-41d4-a716-446655440111']
       ]
     )
+    expect((sql.query as any).mock.calls[1][0]).toContain('id = ANY($3::uuid[])')
+  })
+
+  it('does not mark an entire conversation read without rendered message IDs', async () => {
+    await expect(markConversationMessagesAsRead(
+      '550e8400-e29b-41d4-a716-446655440001',
+      '550e8400-e29b-41d4-a716-446655440099'
+    )).resolves.toEqual({ updatedCount: 0 })
+    expect(sql.query).not.toHaveBeenCalled()
+  })
+
+  it('persists a monotonic delivery receipt only for messages received by the authenticated participant', async () => {
+    ;(getServerSession as any).mockResolvedValue({ user: { id: '550e8400-e29b-41d4-a716-446655440099' } })
+    ;(sql.query as any).mockResolvedValueOnce([{ ok: true }]).mockResolvedValueOnce([{ id: '550e8400-e29b-41d4-a716-446655440111' }])
+
+    await expect(acknowledgeConversationMessageDelivery({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      messageIds: ['550e8400-e29b-41d4-a716-446655440111']
+    })).resolves.toEqual({ deliveredCount: 1, deliveredMessageIds: ['550e8400-e29b-41d4-a716-446655440111'] })
+
+    const [query] = (sql.query as any).mock.calls[1]
+    expect(query).toContain('sender_id != $2')
+    expect(query).toContain('delivered_at IS NULL')
+    expect(query).not.toContain('is_read = true')
+  })
+
+  it('returns only receipt states for the authenticated sender’s own messages', async () => {
+    ;(getServerSession as any).mockResolvedValue({ user: { id: '550e8400-e29b-41d4-a716-446655440099' } })
+    ;(sql.query as any).mockResolvedValueOnce([{ ok: true }]).mockResolvedValueOnce([])
+
+    await getConversationMessageReceipts({
+      conversationId: '550e8400-e29b-41d4-a716-446655440001',
+      messageIds: ['550e8400-e29b-41d4-a716-446655440111']
+    })
+
+    const [query] = (sql.query as any).mock.calls[1]
+    expect(query).toContain('sender_id = $2')
+    expect(query).toContain('delivered_at')
   })
 
   it('fetches only messages created after a known timestamp', async () => {

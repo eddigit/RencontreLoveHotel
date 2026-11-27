@@ -1,5 +1,6 @@
 'use client'
 
+import { PresenceDot } from '@/components/presence-dot'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -523,10 +524,7 @@ export default function DiscoverPage () {
                       <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10'>
                         {mediaImage(profileImage(profile), profile.name)}
                         {profile.online && (
-                          <span
-                            aria-label='En ligne'
-                            className='absolute right-1 top-1 h-2.5 w-2.5 rounded-full border border-[#170321] bg-[#35e48d]'
-                          />
+                          <PresenceDot className='right-1 top-1' />
                         )}
                       </div>
                       <div className='w-full min-w-0'>
@@ -607,10 +605,7 @@ export default function DiscoverPage () {
                           <div className='relative h-full w-full overflow-hidden rounded-full'>
                             {mediaImage(profileImage(member), member.name)}
                           </div>
-                          <span
-                            aria-label='En ligne'
-                            className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#191714] bg-[#35e48d]'
-                          />
+                          <PresenceDot className='bottom-0 right-0' />
                         </div>
                         <span className='truncate text-sm font-bold'>{member.name}</span>
                       </Link>

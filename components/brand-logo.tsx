@@ -6,18 +6,15 @@ export function BrandLogo({
   priority?: boolean
 }) {
   return (
-    <div className={compact ? 'flex min-w-0 items-center gap-2.5' : 'flex justify-center'}>
-      <span className={`relative block aspect-square shrink-0 ${compact ? 'w-9 sm:w-10' : 'w-14 max-w-full'}`}>
-        <img
-          src='/joug-champagne.svg'
-          alt={compact ? '' : 'Joug Rencontres'}
-          width={300}
-          height={300}
-          loading={priority ? 'eager' : 'lazy'}
-          className='block h-full w-full object-contain'
-        />
-      </span>
-      {compact && <span className='truncate font-serif text-base tracking-tight text-[#d6bc87] sm:text-lg'>Joug Rencontres</span>}
-    </div>
+    <img
+      src='/joug-rencontre.webp'
+      alt='Joug Rencontre'
+      width={520}
+      height={438}
+      loading={priority ? 'eager' : 'lazy'}
+      className={compact
+        ? 'block h-14 w-auto max-w-full object-contain'
+        : 'mx-auto block h-auto w-32 max-w-full object-contain'}
+    />
   )
 }

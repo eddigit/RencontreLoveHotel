@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { PresenceDot } from '@/components/presence-dot'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, MessageCircle, Plus, Search } from 'lucide-react'
@@ -9,12 +10,14 @@ import { Input } from '@/components/ui/input'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
-import { getUserConversations } from '@/actions/conversation-actions'
+import { acknowledgeConversationMessageDelivery, getUserConversations } from '@/actions/conversation-actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 import { MemberAvatarImage } from '@/components/member-avatar-image'
 
 export interface InboxConversation {
   id: string
+  last_message_id?: string | null
+  last_message_sender_id?: string | null
   other_user_name: string
   last_message: string | null
   last_message_date: string | null
@@ -46,15 +49,17 @@ function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: 
   const avatarSize = size === 'large' ? 'h-14 w-14' : 'h-11 w-11'
 
   return (
-    <div className={`relative ${avatarSize} shrink-0 overflow-hidden rounded-full border border-[#494136] bg-[#24211d]`}>
-      <MemberAvatarImage
-        src={conversation.other_user_avatar}
-        gender={conversation.other_user_gender}
-        profileStatus={conversation.other_user_profile_status}
-        alt={conversation.other_user_name || 'Profil'}
-        className='h-full w-full object-cover'
-      />
-      {conversation.other_user_online && <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#16181f] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
+    <div className={`relative ${avatarSize} shrink-0`}>
+      <div className='h-full w-full overflow-hidden rounded-full border border-[#494136] bg-[#24211d]'>
+        <MemberAvatarImage
+          src={conversation.other_user_avatar}
+          gender={conversation.other_user_gender}
+          profileStatus={conversation.other_user_profile_status}
+          alt={conversation.other_user_name || 'Profil'}
+          className='h-full w-full object-cover'
+        />
+      </div>
+      {conversation.other_user_online && <PresenceDot className='-bottom-0.5 -right-0.5' />}
     </div>
   )
 }
@@ -65,8 +70,12 @@ export function ConversationList ({ conversations, loading, activeConversationId
   activeConversationId?: string
   showHeading?: boolean
 }) {
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<InboxFilter>('all')
+  const previewAckedIds = useRef(new Set<string>())
+  const previewAckInFlightIds = useRef(new Set<string>())
+  const [previewAckRetryTick, setPreviewAckRetryTick] = useState(0)
   const unreadCount = conversations.filter(conversation => conversation.has_unread_messages).length
   const visibleConversations = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -75,6 +84,29 @@ export function ConversationList ({ conversations, loading, activeConversationId
       return matchesSearch && (filter === 'all' || conversation.has_unread_messages)
     })
   }, [conversations, filter, search])
+
+  // A visible preview confirms delivery, but opening the message thread is the
+  // only action that creates a read receipt.
+  useEffect(() => {
+    for (const conversation of visibleConversations) {
+      const messageId = conversation.last_message_id
+      if (!messageId || !conversation.has_unread_messages || conversation.last_message_sender_id === user?.id) continue
+      if (previewAckedIds.current.has(messageId) || previewAckInFlightIds.current.has(messageId)) continue
+
+      previewAckInFlightIds.current.add(messageId)
+      void acknowledgeConversationMessageDelivery({
+        conversationId: conversation.id,
+        messageIds: [messageId]
+      }).then(() => {
+        previewAckedIds.current.add(messageId)
+      }).catch(error => {
+        console.error('Failed to acknowledge inbox preview delivery:', error)
+        window.setTimeout(() => setPreviewAckRetryTick(value => value + 1), 5000)
+      }).finally(() => {
+        previewAckInFlightIds.current.delete(messageId)
+      })
+    }
+  }, [previewAckRetryTick, user?.id, visibleConversations])
 
   return (
     <section aria-label='Liste des conversations' className='flex h-full min-h-0 min-w-0 flex-col bg-[#16181f]'>

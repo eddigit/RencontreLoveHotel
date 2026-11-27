@@ -33,6 +33,11 @@ export const getMessagesSchema = z.object({
   userId: z.string().uuid('ID d\'utilisateur invalide').optional()
 })
 
+export const messageDeliveryReceiptSchema = z.object({
+  conversationId: z.string().uuid('ID de conversation invalide'),
+  messageIds: z.array(z.string().uuid('ID de message invalide')).min(1).max(80)
+})
+
 // ==============================
 // SCHÉMAS DE VALIDATION POUR LES CONVERSATIONS
 // ==============================

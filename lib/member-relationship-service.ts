@@ -3,12 +3,15 @@ import { ensurePresenceSchema, onlinePresenceCondition } from '@/lib/presence'
 
 export type ConversationSummary = {
   id: string
+  last_message_id: string | null
+  last_message_sender_id: string | null
   other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
   other_user_gender?: string | null
   other_user_profile_status?: string | null
   other_user_online?: boolean
+  other_user_last_seen_at?: string | null
   has_unread_messages: boolean
   last_message: string | null
   last_message_date: string | null
@@ -87,11 +90,14 @@ function conversationSummaryQuery(
     )
     SELECT
       vc.id,
+      lm.id AS last_message_id,
+      lm.sender_id AS last_message_sender_id,
       other_user.id AS other_user_id,
       COALESCE(other_user.name, 'Membre') AS other_user_name,
       COALESCE(primary_photo.url, other_user.avatar) AS other_user_avatar,
       other_profile.gender AS other_user_gender,
       other_profile.status AS other_user_profile_status,
+      ${presenceColumn} AS other_user_last_seen_at,
       ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
       EXISTS (
         SELECT 1
@@ -121,7 +127,7 @@ function conversationSummaryQuery(
       LIMIT 1
     ) primary_photo ON TRUE
     LEFT JOIN LATERAL (
-      SELECT m.id, m.content, m.created_at
+      SELECT m.id, m.sender_id, m.content, m.created_at
       FROM messages m
       WHERE m.conversation_id = vc.id
       ORDER BY m.created_at DESC, m.id DESC
@@ -139,7 +145,10 @@ function isMissingAttachmentSchema(error: unknown) {
 
 export async function getMemberConversationSummaries(userId: string, recentOnly = false) {
   const hasPresenceColumn = await ensurePresenceSchema()
-  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'other_user.updated_at'
+  // `updated_at` changes for many reasons (profile edits, admin actions, etc.) and
+  // is not a presence signal. When the explicit heartbeat column is unavailable,
+  // we deliberately show the member as offline rather than inventing presence.
+  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'NULL'
 
   const limit = recentOnly ? ' LIMIT 3' : ''
   try {
@@ -158,7 +167,7 @@ export async function getMemberConversationSummaries(userId: string, recentOnly 
 
 export async function getMemberConversationSummary(userId: string, conversationId: string) {
   const hasPresenceColumn = await ensurePresenceSchema()
-  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'other_user.updated_at'
+  const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'NULL'
 
   try {
     const rows = await sql.query<ConversationSummary[]>(
@@ -182,7 +191,7 @@ export async function getMemberRelationshipOverview(
   const hasPresenceColumn = await ensurePresenceSchema()
   const presenceColumn = hasPresenceColumn
     ? 'other_user.last_seen_at'
-    : 'other_user.updated_at'
+    : 'NULL'
   const rows = await sql.query<RelationshipRow[]>(
     `
       SELECT

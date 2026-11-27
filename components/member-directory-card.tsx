@@ -1,5 +1,6 @@
 'use client'
 
+import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, MessageCircle } from 'lucide-react'
@@ -46,7 +47,7 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
           <Image src={image} alt={`Photo de ${name}`} fill sizes='(min-width: 1536px) 16vw, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw' className='object-cover transition duration-500 group-hover:scale-105' />
         )}
         <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-transparent to-transparent' />
-        {member.online && <span className='absolute right-2.5 top-2.5 h-3 w-3 rounded-full border-2 border-[#121318] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
+        {member.online && <PresenceDot className='right-2.5 top-2.5' />}
         <div className='absolute inset-x-3 bottom-3'>
           <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{name}{member.age ? `, ${member.age}` : ''}</h3>
           <p className='mt-1 flex items-center gap-1 truncate text-xs text-[#aaa69e]'><MapPin className='h-3 w-3 shrink-0 text-[#d6bc87]' />{member.location || 'Localisation non renseignée'}</p>

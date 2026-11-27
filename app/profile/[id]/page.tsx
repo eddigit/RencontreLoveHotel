@@ -1,3 +1,4 @@
+import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -105,10 +106,7 @@ export default async function ProfilePage ({
                   />
                 )}
                 {profileOnline && (
-                  <span
-                    aria-label='En ligne'
-                    className='absolute right-4 top-4 z-10 h-4 w-4 rounded-full border-2 border-[#04070b] bg-[#35e48d]'
-                  />
+                  <PresenceDot className='right-4 top-4' />
                 )}
               </div>
             </div>

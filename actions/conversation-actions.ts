@@ -3,7 +3,7 @@
 import { sql } from "@/lib/db"
 import { log } from "../utils/logger"
 import { createNotificationInternal as createNotification } from '@/lib/notification-service'
-import { messageSchema, getMessagesSchema, createConversationSchema, validateSchema, type MessageAttachmentInput } from "@/lib/validation"
+import { messageSchema, getMessagesSchema, messageDeliveryReceiptSchema, createConversationSchema, validateSchema, type MessageAttachmentInput } from "@/lib/validation"
 import { getServerSession } from "next-auth/next"
 import { authOptions } from "@/lib/auth"
 import {
@@ -17,6 +17,7 @@ import {
   evaluateMessageModeration
 } from '@/lib/moderation-case-service'
 import { enforceMemberContent } from '@/lib/content-safety-service'
+import { ensureMessageDeliveryReceiptSchema } from '@/lib/message-delivery-receipts'
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
 const INITIAL_CONVERSATION_MESSAGE_LIMIT = 80
@@ -315,16 +316,23 @@ export async function getConversationMessagesBefore(
   return messages || []
 }
 
-export async function markConversationMessagesAsRead(conversationId: string, userId?: string) {
+export async function markConversationMessagesAsRead(conversationId: string, userId?: string, messageIds: string[] = []) {
   const validation = validateSchema(getMessagesSchema, { conversationId, userId })
   if (!validation.success) {
     throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
   }
 
+  // Read receipts are only created for messages the client has actually rendered.
+  if (messageIds.length === 0) return { updatedCount: 0 }
+  const receiptValidation = validateSchema(messageDeliveryReceiptSchema, { conversationId, messageIds })
+  if (!receiptValidation.success) {
+    throw new Error(`Paramètres invalides: ${receiptValidation.errors?.join(', ')}`)
+  }
+
   const currentUser = await requireAuth()
   const targetUserId = userId || currentUser.id
 
-  if (targetUserId !== currentUser.id && currentUser.role !== 'admin') {
+  if (targetUserId !== currentUser.id) {
     log('warn', 'Tentative de marquage des messages d’un autre utilisateur', {
       currentUserId: currentUser.id,
       targetUserId
@@ -348,12 +356,85 @@ export async function markConversationMessagesAsRead(conversationId: string, use
      SET is_read = true, updated_at = CURRENT_TIMESTAMP
      WHERE conversation_id = $1
        AND sender_id != $2
+       AND id = ANY($3::uuid[])
        AND COALESCE(is_read, false) = false
      RETURNING id`,
-    [conversationId, targetUserId]
+    [conversationId, targetUserId, receiptValidation.data!.messageIds]
   )
 
   return { updatedCount: updatedRows.length }
+}
+
+/** Records receipt after an authenticated recipient client has received message IDs. */
+export async function acknowledgeConversationMessageDelivery({
+  conversationId,
+  messageIds
+}: {
+  conversationId: string
+  messageIds: string[]
+}) {
+  const validation = validateSchema(messageDeliveryReceiptSchema, { conversationId, messageIds })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
+
+  const currentUser = await requireAuth()
+  const [participant] = await sql.query(
+    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    [conversationId, currentUser.id]
+  )
+  if (!participant) {
+    log('warn', 'Access denied acknowledging message delivery', { conversationId, userId: currentUser.id })
+    throw new Error('Access denied: You are not a participant in this conversation')
+  }
+  await ensureMessageDeliveryReceiptSchema()
+
+  const deliveredRows = await sql.query<Array<{ id: string }>>(
+    `UPDATE messages
+     SET delivered_at = CURRENT_TIMESTAMP
+     WHERE conversation_id = $1
+       AND sender_id != $2
+       AND id = ANY($3::uuid[])
+       AND delivered_at IS NULL
+     RETURNING id`,
+    [conversationId, currentUser.id, validation.data!.messageIds]
+  )
+
+  return { deliveredCount: deliveredRows.length, deliveredMessageIds: deliveredRows.map(row => row.id) }
+}
+
+/** Returns receipt state for this authenticated sender's own visible messages only. */
+export async function getConversationMessageReceipts({
+  conversationId,
+  messageIds
+}: {
+  conversationId: string
+  messageIds: string[]
+}) {
+  const validation = validateSchema(messageDeliveryReceiptSchema, { conversationId, messageIds })
+  if (!validation.success) {
+    throw new Error(`Paramètres invalides: ${validation.errors?.join(', ')}`)
+  }
+
+  const currentUser = await requireAuth()
+  const [participant] = await sql.query(
+    `SELECT 1 FROM conversation_participants cp WHERE cp.conversation_id = $1 AND cp.user_id = $2`,
+    [conversationId, currentUser.id]
+  )
+  if (!participant) {
+    log('warn', 'Access denied reading message receipts', { conversationId, userId: currentUser.id })
+    throw new Error('Access denied: You are not a participant in this conversation')
+  }
+  await ensureMessageDeliveryReceiptSchema()
+
+  return sql.query<Array<{ id: string; is_read: boolean; delivered_at: string | null }>>(
+    `SELECT id, COALESCE(is_read, false) AS is_read, delivered_at
+     FROM messages
+     WHERE conversation_id = $1
+       AND sender_id = $2
+       AND id = ANY($3::uuid[])`,
+    [conversationId, currentUser.id, validation.data!.messageIds]
+  )
 }
 
 export async function sendMessage({ conversationId, senderId, content, attachments }: {
@@ -588,7 +669,10 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   return {
     ...newMessage,
     attachments: savedAttachments,
-    delivery_status: 'delivered' as const,
+    // This confirms persistence/server acceptance only. Recipient delivery is
+    // recorded later by acknowledgeConversationMessageDelivery.
+    delivery_status: 'sent' as const,
+    delivered_at: null,
     moderation_outcome: moderation.outcome,
     case_id: moderationCaseId
   };

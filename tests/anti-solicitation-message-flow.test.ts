@@ -51,7 +51,7 @@ describe('anti-solicitation message delivery', () => {
 
     const result = await sendMessage({ conversationId, senderId, content: 'Bonsoir' })
 
-    expect(result).toMatchObject({ id: 'message-1', delivery_status: 'delivered' })
+    expect(result).toMatchObject({ id: 'message-1', delivery_status: 'sent', delivered_at: null })
     expect(query.mock.calls.some(([sql]) => String(sql).includes('moderation_queue'))).toBe(false)
     expect(createNotification).toHaveBeenCalledWith(expect.objectContaining({ userId: recipientId }))
   })
@@ -130,7 +130,7 @@ describe('anti-solicitation message delivery', () => {
 
     expect(result).toMatchObject({
       id: 'message-2',
-      delivery_status: 'delivered',
+      delivery_status: 'sent',
       moderation_outcome: 'warn',
       case_id: 'case-2'
     })

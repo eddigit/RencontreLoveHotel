@@ -1,5 +1,6 @@
 'use client'
 
+import { PresenceDot } from '@/components/presence-dot'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -359,10 +360,7 @@ function MatchGrid ({
                 {scoreLabel(profile.matchScore)}
               </div>
               {profile.online && (
-                <span
-                  aria-label='En ligne'
-                  className='absolute bottom-3 right-3 h-3.5 w-3.5 rounded-full border-2 border-[#0a0f15] bg-[#35e48d]'
-                />
+                <PresenceDot className='bottom-3 right-3' />
               )}
             </Link>
             <div className='p-4'>
