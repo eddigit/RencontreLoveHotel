@@ -1,3 +1,5 @@
+import { getPublicProfileVerified } from '@/actions/photo-verification-actions'
+import { VerifiedProfileBadge } from '@/components/verified-profile-badge'
 import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -81,6 +83,7 @@ export default async function ProfilePage ({
       )
     : []
 
+  const photoVerified = await getPublicProfileVerified(String(profile.user_id))
   const canShowActions = currentUser && currentUser.id !== profile.user_id
 
   return (
@@ -116,6 +119,7 @@ export default async function ProfilePage ({
 
             <div className='border-t border-[#111821] p-5 sm:p-8'>
               <div className='mb-4 flex flex-wrap gap-2'>
+                {photoVerified && <VerifiedProfileBadge />}
                 {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
                   <MapPin className='mr-1 h-3.5 w-3.5' />
                   {profile.location}

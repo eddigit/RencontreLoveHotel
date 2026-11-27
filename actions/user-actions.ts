@@ -19,6 +19,8 @@ import { eligibleMemberPhotoSql } from '@/lib/member-photo'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 import type { DirectoryProfileType } from '@/lib/member-profile-types'
 import { memberIdentityFromStatus, type MemberStatus } from '@/lib/member-profile-types'
+import { ensurePrivatePhotoVerificationSchema } from '@/lib/photo-verification-schema'
+import { verifiedPhotoPredicateSql } from '@/lib/photo-verification-badge'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
 import { revalidatePath } from 'next/cache'
 import { sendMemberActivityEmail } from '@/lib/member-activity-email'
@@ -254,7 +256,7 @@ export type CommunityMemberDirectoryFilters = {
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
   const currentUser = await requireCurrentUser()
-  await ensureAdminUserStarSchema()
+  await Promise.all([ensureAdminUserStarSchema(), ensurePrivatePhotoVerificationSchema()])
   const requestedPage = Number(input.page || 1)
   const requestedPageSize = Number(input.pageSize || 24)
   const page = Number.isFinite(requestedPage) ? Math.max(1, Math.floor(requestedPage)) : 1
@@ -348,6 +350,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
       SELECT
         u.id,
         u.name,
+        ${verifiedPhotoPredicateSql()} AS photo_verified,
         COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), '')) AS avatar,
         u.created_at,
         up.age,

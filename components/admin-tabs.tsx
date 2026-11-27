@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 const tabs = [
   { label: 'Vue d’ensemble', href: '/admin' },
   { label: 'Utilisateurs', href: '/admin/users' },
+  { label: 'Vérifications photo', href: '/admin/verifications-photo' },
   { label: 'Statistiques', href: '/admin/stats' },
   { label: 'Boîte à idées', href: '/admin/idees' },
   { label: 'Événements', href: '/admin/events' },

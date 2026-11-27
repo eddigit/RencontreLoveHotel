@@ -204,7 +204,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
         ) : null}
       </nav>
 
-      <div className='mt-auto space-y-3 border-t border-white/10 pt-4'>
+      <div className='mt-auto space-y-3 pt-5'>
         {user ? (
           <>
             <Link
@@ -272,7 +272,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
         <div data-site-panel className={cn('min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#171819]/78 shadow-2xl shadow-black/25 backdrop-blur-xl', isMemberShell && styles.panel, isCircleShell && styles.stitchPanel)}>
           {isCircleShell && user ? (
-            <header className={`sticky top-0 z-40 hidden h-16 items-center justify-between border-b px-6 lg:flex ${styles.discoverHeader}`}>
+            <header className={`sticky top-0 z-40 hidden h-16 items-center justify-between px-6 lg:flex ${styles.discoverHeader}`}>
               <form action='/members' className={styles.searchForm} role='search'>
                 <Search aria-hidden className='size-[18px] shrink-0' />
                 <label className='sr-only' htmlFor='discover-member-search'>Rechercher un membre</label>

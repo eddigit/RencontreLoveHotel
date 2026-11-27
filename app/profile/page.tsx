@@ -18,6 +18,8 @@ import { enforceMemberContent } from '@/lib/content-safety-service'
 import { getOwnEmailPreferences, updateOwnEmailPreferences } from '@/actions/email-preference-actions'
 import { EmailPreferencesEditor } from '@/components/email-preferences-editor'
 import { relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
+import { PhotoVerificationRequest } from '@/components/photo-verification-request'
+import { getOwnPhotoVerificationRequest, withdrawPhotoVerificationRequest } from '@/actions/photo-verification-actions'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -336,6 +338,10 @@ export default async function ProfilePage ({
   )
 
   const emailPreferences = await getOwnEmailPreferences().catch(() => null)
+  const photoVerificationRequest = await getOwnPhotoVerificationRequest().catch(() => null)
+  const photoVerificationIdentityKind = profile.status || profile.gender
+    ? (String(profile.status || profile.gender).toLowerCase().includes('couple') ? 'couple' : 'solo')
+    : null
 
   // Fetch user photos
   const photosResult = await sql`
@@ -445,6 +451,19 @@ export default async function ProfilePage ({
               </TabsList>
           <TabsContent value='profile'>
             <div className='space-y-6'>
+              <section className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/[0.06] p-4'>
+                <h3 className='font-black'>Un profil plus rassurant</h3>
+                <p className='mt-1 text-sm text-[#c9c7c2]'>Ajoutez une vérification privée, sans publication de votre preuve.</p>
+                <a href='#photo-verification' className='mt-3 inline-flex rounded-xl bg-[#d6bc87] px-4 py-2 text-sm font-bold text-[#191714] hover:bg-[#e5d1aa]'>Faire vérifier mon profil</a>
+              </section>
+              <div id='photo-verification' className='scroll-mt-6'>
+                <PhotoVerificationRequest
+                  request={photoVerificationRequest}
+                  identityKind={photoVerificationIdentityKind}
+                  pseudonym={dbUser.name || 'Membre'}
+                  onWithdraw={withdrawPhotoVerificationRequest}
+                />
+              </div>
               <UserProfileEditor
                 user={userData}
                 onSave={updateUserProfile}

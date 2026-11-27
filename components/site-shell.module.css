@@ -73,7 +73,6 @@
 
 .discoverHeader {
   background: rgb(24 25 26 / 0.95);
-  border-color: var(--discover-line);
   backdrop-filter: blur(18px);
 }
 
@@ -164,7 +163,6 @@
   --discover-muted: #c9c7c2;
   --discover-accent: #ecebe7;
   background: var(--discover-paper);
-  border-bottom: 1px solid var(--discover-line);
   color: var(--discover-ink);
 }
 
@@ -261,7 +259,6 @@
 }
 
 .stitchRail {
-  border-right: 1px solid var(--discover-line);
   height: 100vh;
   padding: 1rem;
   position: sticky;
@@ -301,7 +298,7 @@
 
 .stitchPanel { background: var(--discover-canvas) !important; }
 
-.stitchMobileHeader { background: var(--discover-paper) !important; }
+.stitchMobileHeader { border-bottom-width: 0; background: var(--discover-paper) !important; }
 .stitchMobileScrim { background: rgb(18 19 24 / 0.72); }
 .stitchMobileRail { background: var(--discover-charcoal) !important; }
 

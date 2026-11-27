@@ -1,5 +1,6 @@
 'use client'
 
+import { VerifiedProfileBadge } from '@/components/verified-profile-badge'
 import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -21,6 +22,7 @@ export type DirectoryMember = {
   open_to_other_couples?: boolean
   open_curtains?: boolean
   libertine?: boolean
+  photo_verified?: boolean
   online?: boolean
 }
 
@@ -39,7 +41,7 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
   const typeLabel = directoryProfileTypeLabel(member)
 
   return (
-    <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87]' aria-label={`Voir le profil de ${name}`}>
+    <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87]' aria-label={`Voir le profil de ${name}${member.photo_verified ? ', profil vérifié' : ''}`}>
       <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#494136] bg-[#191714] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#d6bc87]/60 group-hover:bg-[#24211d]'>
       <div className='relative aspect-[5/4] overflow-hidden bg-[#121318]'>
         {image.startsWith('http') ? (
@@ -48,6 +50,7 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
           <Image src={image} alt={`Photo de ${name}`} fill sizes='(min-width: 1536px) 16vw, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw' className='object-cover transition duration-500 group-hover:scale-105' />
         )}
         <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-transparent to-transparent' />
+        {member.photo_verified && <span className='absolute left-2.5 top-2.5'><VerifiedProfileBadge compact /></span>}
         {member.online && <PresenceDot className='right-2.5 top-2.5' />}
         <div className='absolute inset-x-3 bottom-3'>
           <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{name}{member.age ? `, ${member.age}` : ''}</h3>
