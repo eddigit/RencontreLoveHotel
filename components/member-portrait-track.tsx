@@ -8,7 +8,7 @@ import type { MemberPortrait } from '@/lib/member-portraits'
 import { MemberAvatarImage } from './member-avatar-image'
 import styles from './site-shell.module.css'
 
-export function MemberPortraitTrack({ initial }: { initial: MemberPortrait[] }) {
+export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPortrait[], visitSeed: string }) {
   const [members, setMembers] = useState(initial)
   const track = useRef<HTMLUListElement>(null)
   const offset = useRef(initial.length)
@@ -21,7 +21,7 @@ export function MemberPortraitTrack({ initial }: { initial: MemberPortrait[] }) 
     busy.current = true
     setError(false)
     try {
-      const batch = await nextMemberPortraits(offset.current)
+      const batch = await nextMemberPortraits(offset.current, visitSeed)
       offset.current += batch.length
       more.current = batch.length === 36
       setMembers(previous => {

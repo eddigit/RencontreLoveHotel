@@ -1,11 +1,13 @@
 import Link from 'next/link'
+import { randomUUID } from 'node:crypto'
 import { ArrowUpRight } from 'lucide-react'
 import { listMemberPortraits } from '@/lib/member-portraits'
 import { MemberPortraitTrack } from './member-portrait-track'
 import styles from './site-shell.module.css'
 
 export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
-  const members = await listMemberPortraits(viewerId, 0).catch(() => [])
+  const visitSeed = randomUUID()
+  const members = await listMemberPortraits(viewerId, 0, visitSeed).catch(() => [])
   if (!members.length) return null
 
   return (
@@ -19,7 +21,7 @@ export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
           Explorer <ArrowUpRight aria-hidden className='size-4' />
         </Link>
       </div>
-      <MemberPortraitTrack initial={members} />
+      <MemberPortraitTrack initial={members} visitSeed={visitSeed} />
     </section>
   )
 }

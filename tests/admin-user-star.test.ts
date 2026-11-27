@@ -15,7 +15,7 @@ vi.mock('@/lib/admin-user-star', () => ({
 }))
 
 import { sql } from '@/lib/db'
-import { getAllUsers, setUserAdminStar } from '@/actions/user-actions'
+import { getAllUsers, setUserAdminStar, setModeratorSpotlight } from '@/actions/user-actions'
 
 describe('setUserAdminStar', () => {
   beforeEach(() => {
@@ -64,6 +64,17 @@ describe('setUserAdminStar', () => {
 
     await expect(setUserAdminStar('member-1', true)).rejects.toThrow('photo membre éligible')
     expect(sql).not.toHaveBeenCalled()
+  })
+
+  it('stores the editorial moderator label independently of roles and favorites', async () => {
+    vi.mocked(sql).mockResolvedValueOnce([{ moderator_spotlight_at: '2026-11-27' }])
+    expect(await setModeratorSpotlight('member-1', true)).toBe(true)
+    const query = sqlMock.mock.calls[0][0].join('?')
+    expect(query).toContain('UPDATE users SET moderator_spotlight_at')
+    expect(query).not.toMatch(/admin_starred_at|\brole\b/)
+    requireAdminMock.mockRejectedValueOnce(new Error('admin required'))
+    await expect(setModeratorSpotlight('member-1', false)).rejects.toThrow('admin required')
+    expect(sql).toHaveBeenCalledTimes(1)
   })
 
   it('returns every account with the same selected member photo and eligibility flag', async () => {

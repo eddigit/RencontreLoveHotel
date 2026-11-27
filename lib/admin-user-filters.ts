@@ -9,6 +9,7 @@ export type FilterableAdminUser = {
   gender?: string | null
   profile_status?: string | null
   has_eligible_photo?: boolean
+  moderator_spotlight_at?: string | boolean | null
   admin_starred?: boolean
 }
 
@@ -25,7 +26,7 @@ export function getAdminUserCategory (user: Pick<FilterableAdminUser, 'gender' |
 
 export function filterAdminUsers<T extends FilterableAdminUser> (
   users: T[],
-  filters: { search: string, photo: AdminPhotoFilter, category: AdminUserFilter, starredOnly: boolean, unstarredOnly?: boolean }
+  filters: { search: string, photo: AdminPhotoFilter, category: AdminUserFilter, starredOnly: boolean, unstarredOnly?: boolean, moderatorsOnly?: boolean }
 ) {
   const query = normalise(filters.search)
   return users.filter(user => {
@@ -33,6 +34,7 @@ export function filterAdminUsers<T extends FilterableAdminUser> (
     const matchesPhoto = filters.photo === 'all' || (filters.photo === 'with-photo' ? hasPhoto : !hasPhoto)
     const haystack = `${user.name || ''} ${user.email || ''} ${user.location || ''}`.toLowerCase()
     return matchesPhoto &&
+      (!filters.moderatorsOnly || Boolean(user.moderator_spotlight_at)) &&
       (!filters.starredOnly || Boolean(user.admin_starred)) &&
       (!filters.unstarredOnly || !user.admin_starred) &&
       (filters.category === 'all' || getAdminUserCategory(user) === filters.category) &&

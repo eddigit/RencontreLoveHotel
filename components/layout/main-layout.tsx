@@ -17,7 +17,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   }
 
   return (
-    <div className='admin-shell min-h-screen bg-[radial-gradient(circle_at_10%_0%,rgba(255,59,139,0.18),transparent_28%),linear-gradient(145deg,#12051d,#220a33_55%,#13051f)] text-white'>
+    <div className='admin-shell min-h-screen bg-[#111214] text-[#f2eee6]'>
       <main>{children}</main>
     </div>
   )

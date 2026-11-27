@@ -12,11 +12,18 @@ describe('discovery session state', () => {
       onlineOnly: true
     }
 
-    expect(discoverySnapshotKey('member-1', filters, ' Paris ', 2)).toBe(
-      discoverySnapshotKey('member-1', filters, 'Paris', 2)
+    expect(discoverySnapshotKey('member-1', filters, ' Paris ', 2, 'visit-a')).toBe(
+      discoverySnapshotKey('member-1', filters, 'Paris', 2, 'visit-a')
     )
-    expect(discoverySnapshotKey('member-1', filters, 'Paris', 2))
-      .toContain('lhr-discovery-v5')
+    expect(discoverySnapshotKey('member-1', filters, 'Paris', 2, 'visit-a'))
+      .toContain('lhr-discovery-v6')
+  })
+
+  it('does not reuse a prior visit snapshot for a new discovery visit', () => {
+    const filters = { status: 'all' }
+
+    expect(discoverySnapshotKey('member-1', filters, '', 0, 'visit-a'))
+      .not.toBe(discoverySnapshotKey('member-1', filters, '', 0, 'visit-b'))
   })
 
   it('restores the exact profile order after returning from a member profile', () => {

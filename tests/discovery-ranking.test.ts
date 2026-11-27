@@ -39,6 +39,19 @@ describe('fair discovery ranking', () => {
     expect(ranked[0].id).toBe('photo')
   })
 
+  it('prioritizes moderator spotlights ahead of the existing favorite and photo groups', () => {
+    const ranked = rankDiscoveryCandidates([
+      { id: 'without-photo', hasEligiblePhoto: false, photoPriority: 0 },
+      { id: 'photo', hasEligiblePhoto: true, photoPriority: 1 },
+      { id: 'favorite', hasEligiblePhoto: true, photoPriority: 2 },
+      { id: 'spotlight', hasEligiblePhoto: true, photoPriority: 3 }
+    ], { viewerId: 'viewer', batch: 0 })
+
+    expect(ranked.map(item => item.id)).toEqual([
+      'spotlight', 'favorite', 'photo', 'without-photo'
+    ])
+  })
+
   it('treats legacy native avatars as profiles without a personal photo', () => {
     const ranked = rankDiscoveryCandidates([
       { id: 'legacy-native', image: '/mystical-forest-spirit.png', impressions14d: 0 },
@@ -150,5 +163,32 @@ describe('fair discovery ranking', () => {
       'photo-4'
     ])
     expect(rotated[4].id).toBe('native-13')
+  })
+
+  it('rotates past the first twelve moderator spotlights without duplicating a visible profile', () => {
+    const ranked = [
+      ...Array.from({ length: 26 }, (_, index) => ({
+        id: `spotlight-${index + 1}`,
+        hasEligiblePhoto: true,
+        photoPriority: 3
+      })),
+      ...Array.from({ length: 8 }, (_, index) => ({
+        id: `favorite-${index + 1}`,
+        hasEligiblePhoto: true,
+        photoPriority: 2
+      }))
+    ]
+
+    const first = rotateDiscoveryBatchWithPhotoPriority(ranked, 0, 12).slice(0, 12)
+    const second = rotateDiscoveryBatchWithPhotoPriority(ranked, 1, 12).slice(0, 12)
+    const third = rotateDiscoveryBatchWithPhotoPriority(ranked, 2, 12).slice(0, 12)
+
+    expect(first.map(profile => profile.id)).toEqual(Array.from({ length: 12 }, (_, index) => `spotlight-${index + 1}`))
+    expect(second.map(profile => profile.id)).toEqual(Array.from({ length: 12 }, (_, index) => `spotlight-${index + 13}`))
+    expect(third.map(profile => profile.id)).toEqual([
+      'spotlight-25', 'spotlight-26', 'spotlight-1', 'spotlight-2', 'spotlight-3', 'spotlight-4',
+      'spotlight-5', 'spotlight-6', 'spotlight-7', 'spotlight-8', 'spotlight-9', 'spotlight-10'
+    ])
+    expect(new Set(second.map(profile => profile.id)).size).toBe(second.length)
   })
 })

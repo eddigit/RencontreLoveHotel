@@ -8,7 +8,7 @@ import {
   getAllUsers,
   deleteUserByAdmin,
   getTotalUsersCount,
-  setUserAdminStar
+  setUserAdminStar, setModeratorSpotlight
 } from '@/actions/user-actions'
 import { banUser, unbanUser } from '@/actions/message-actions'
 import MainLayout from '@/components/layout/main-layout'
@@ -37,6 +37,7 @@ interface AdminUser {
   is_banned?: boolean
   status?: string
   admin_starred_at?: string | null
+  moderator_spotlight_at?: string | boolean | null
   admin_starred?: boolean
   has_eligible_photo?: boolean
   // Add any other properties that come from getAllUsers
@@ -76,6 +77,7 @@ export default function AdminUsersPage () {
   const [previewId, setPreviewId] = useState<string | null>(null)
   const preview = previewId ? users.find(member => member.id === previewId) : undefined
   const [starFilter, setStarFilter] = useState<'all' | 'starred' | 'unstarred'>('all')
+  const [moderatorsOnly, setModeratorsOnly] = useState(false)
   const showStarredOnly = starFilter === 'starred'
   const [starUpdatingIds, setStarUpdatingIds] = useState<Set<string>>(() => new Set())
   const pendingStarIds = useRef(new Set<string>())
@@ -138,6 +140,21 @@ export default function AdminUsersPage () {
     }
   }
 
+  const toggleModeratorLabel = async (member: AdminUser) => {
+    if (pendingStarIds.current.has(member.id)) return
+    pendingStarIds.current.add(member.id)
+    setStarUpdatingIds(new Set(pendingStarIds.current))
+    try {
+      const selected = await setModeratorSpotlight(member.id, !member.moderator_spotlight_at)
+      setUsers(current => current.map(item => item.id === member.id ? { ...item, moderator_spotlight_at: selected } : item))
+    } catch {
+      alert('Le statut de présentation n’a pas pu être enregistré.')
+    } finally {
+      pendingStarIds.current.delete(member.id)
+      setStarUpdatingIds(new Set(pendingStarIds.current))
+    }
+  }
+
   const handleToggleAdminStar = async (member: AdminUser) => {
     if (pendingStarIds.current.has(member.id)) return
 
@@ -171,17 +188,17 @@ export default function AdminUsersPage () {
     search,
     photo: photoFilter,
     category: categoryFilter,
-    starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred'
-  }), [users, search, photoFilter, categoryFilter, starFilter, showStarredOnly])
+    starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred', moderatorsOnly
+  }), [users, search, photoFilter, categoryFilter, starFilter, showStarredOnly, moderatorsOnly])
   const categoryCounts = useMemo(() => (Object.keys(categoryLabels) as AdminUserFilter[]).reduce<Record<AdminUserFilter, number>>((counts, category) => {
     counts[category] = filterAdminUsers(users, {
       search,
       photo: photoFilter,
       category,
-      starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred'
+      starredOnly: showStarredOnly, unstarredOnly: starFilter === 'unstarred', moderatorsOnly
     }).length
     return counts
-  }, { all: 0, woman: 0, man: 0, couple: 0, other: 0 }), [users, search, photoFilter, starFilter, showStarredOnly])
+  }, { all: 0, woman: 0, man: 0, couple: 0, other: 0 }), [users, search, photoFilter, starFilter, showStarredOnly, moderatorsOnly])
   const distributionData = useMemo(() => (Object.keys(categoryLabels) as Exclude<AdminUserFilter, 'all'>[])
     .map(category => ({ name: categoryLabels[category], Nombre: filteredUsers.filter(user => getAdminUserCategory(user) === category).length }))
     .filter(item => item.Nombre > 0), [filteredUsers])
@@ -189,7 +206,7 @@ export default function AdminUsersPage () {
   const currentPage = Math.min(page, pageCount)
   const paginatedUsers = filteredUsers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const resetPage = () => setPage(1)
-  const hasActiveFilters = search.trim() || photoFilter !== 'all' || categoryFilter !== 'all' || starFilter !== 'all'
+  const hasActiveFilters = search.trim() || photoFilter !== 'all' || categoryFilter !== 'all' || starFilter !== 'all' || moderatorsOnly
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
@@ -224,10 +241,11 @@ export default function AdminUsersPage () {
                 {([['all', 'Toutes les photos'], ['with-photo', 'Avec photo'], ['without-photo', 'Sans photo']] as const).map(([value, label]) => <Button key={value} size='sm' variant={photoFilter === value ? 'default' : 'outline'} aria-pressed={photoFilter === value} className={photoFilter === value ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setPhotoFilter(value); resetPage() }}>{label}</Button>)}
                 <Button size='sm' variant={showStarredOnly ? 'default' : 'outline'} aria-pressed={showStarredOnly} className={showStarredOnly ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setStarFilter(showStarredOnly ? 'all' : 'starred'); resetPage() }}><Star className='mr-1 h-3.5 w-3.5' fill={showStarredOnly ? 'currentColor' : 'none'} />Favoris</Button>
                 <Button size='sm' variant={starFilter === 'unstarred' ? 'default' : 'outline'} aria-pressed={starFilter === 'unstarred'} onClick={() => { setStarFilter(starFilter === 'unstarred' ? 'all' : 'unstarred'); resetPage() }}>Hors favoris</Button>
+                <Button size='sm' variant={moderatorsOnly ? 'default' : 'outline'} aria-pressed={moderatorsOnly} onClick={() => { setModeratorsOnly(value => !value); resetPage() }}>Modérateurs</Button>
               </div>
               <div className='flex flex-wrap gap-2 border-t border-white/10 pt-4' aria-label='Filtrer par type de profil'>
                 {(Object.keys(categoryLabels) as AdminUserFilter[]).map(value => <Button key={value} size='sm' variant={categoryFilter === value ? 'default' : 'outline'} aria-pressed={categoryFilter === value} aria-label={`${categoryLabels[value]}, ${categoryCounts[value]} résultat${categoryCounts[value] > 1 ? 's' : ''} avec les autres filtres actifs`} className={categoryFilter === value ? 'bg-[#d6b36a] text-[#171719] hover:bg-[#ecd08f]' : 'border-white/15 bg-transparent text-[#e8e1d6] hover:bg-white/10'} onClick={() => { setCategoryFilter(value); resetPage() }}>{categoryLabels[value]} <span className='ml-1 opacity-70' aria-hidden='true'>{categoryCounts[value]}</span></Button>)}
-                {hasActiveFilters && <Button size='sm' variant='ghost' className='text-[#f2d79a] hover:bg-white/10 hover:text-[#f2d79a]' onClick={() => { setSearch(''); setPhotoFilter('all'); setCategoryFilter('all'); setStarFilter('all'); resetPage() }}><X className='mr-1 h-3.5 w-3.5' />Réinitialiser</Button>}
+                {hasActiveFilters && <Button size='sm' variant='ghost' className='text-[#f2d79a] hover:bg-white/10 hover:text-[#f2d79a]' onClick={() => { setSearch(''); setPhotoFilter('all'); setCategoryFilter('all'); setStarFilter('all'); setModeratorsOnly(false); resetPage() }}><X className='mr-1 h-3.5 w-3.5' />Réinitialiser</Button>}
               </div>
             </CardContent>
           </Card>
@@ -274,6 +292,10 @@ export default function AdminUsersPage () {
                         <Star className='mr-1 h-4 w-4' fill={u.admin_starred ? 'currentColor' : 'none'} />
                         {u.admin_starred ? 'Mis en avant' : 'Mettre en avant'}
                       </Button>
+                      <Button size='sm' variant={u.moderator_spotlight_at ? 'default' : 'outline'}
+                        disabled={starUpdatingIds.has(u.id)} aria-pressed={Boolean(u.moderator_spotlight_at)}
+                        title="Statut de présentation. Priorité supérieure quand le profil est aussi favori et possède une photo."
+                        onClick={() => toggleModeratorLabel(u)}>Modérateur</Button>
                       {!u.admin_starred && !u.has_eligible_photo && (
                         <span className='self-center text-xs text-muted-foreground'>Photo membre requise</span>
                       )}

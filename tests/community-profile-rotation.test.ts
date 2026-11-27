@@ -45,7 +45,7 @@ describe('community profile rotation', () => {
     expect(source).toContain('profile.viewer_impressions_14d')
   })
 
-  it('selects starred eligible photos, then eligible photos, before limiting the discovery pool', () => {
+  it('selects moderator spotlights, existing favorites, then eligible photos before limiting the discovery pool', () => {
     const source = readFileSync('actions/user-actions.ts', 'utf8')
     const discoverQuery = source.slice(
       source.indexOf('const profilesQuery'),
@@ -54,10 +54,22 @@ describe('community profile rotation', () => {
 
     expect(discoverQuery).toContain('AS photo_priority')
     expect(discoverQuery).toContain('eligibleMemberPhotoSql')
-    expect(discoverQuery).toContain('u.admin_starred_at IS NOT NULL')
+    expect(discoverQuery).toContain('u.moderator_spotlight_at IS NOT NULL THEN 3')
+    expect(discoverQuery).toContain('u.admin_starred_at IS NOT NULL THEN 2')
     expect(discoverQuery).toContain('photo_priority DESC')
     expect(discoverQuery.indexOf('photo_priority DESC'))
       .toBeLessThan(discoverQuery.indexOf('LIMIT'))
+  })
+
+  it('uses one base ranking then rotates it by URL batch, so reloading does not change a visible batch', () => {
+    const source = readFileSync('actions/user-actions.ts', 'utf8')
+    const ranking = source.slice(
+      source.indexOf('const rankedProfiles = rankDiscoveryCandidates'),
+      source.indexOf("const result = {")
+    )
+
+    expect(ranking).toContain('batch: 0')
+    expect(ranking).toContain('rotateDiscoveryBatchWithPhotoPriority(rankedProfiles, safeBatch, 12)')
   })
 
   it('keeps schema changes out of runtime presence checks', () => {

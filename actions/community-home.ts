@@ -6,10 +6,10 @@ import { getMemberConversationSummaries } from '@/lib/member-relationship-servic
 import { getUpcomingEvents } from './event-actions'
 import { getCommunityMemberStats, getDiscoverProfiles, getOnlineCommunityMembers, getUserMatches } from './user-actions'
 
-export async function getCommunityHome(filters: FilterOptions, batch: number) {
+export async function getCommunityHome(filters: FilterOptions, batch: number, visitSeed = '') {
   const { id } = await requireCurrentUser()
   return Promise.all([
-    getDiscoverProfiles(id, 1, 240, filters, batch),
+    getDiscoverProfiles(id, 1, 240, filters, batch, visitSeed),
     getOnlineCommunityMembers(),
     getUserMatches(id),
     getUpcomingEvents(id),

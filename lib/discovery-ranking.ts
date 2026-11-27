@@ -11,6 +11,7 @@ export type DiscoveryCandidate = {
   avatar?: string | null
   featured?: boolean
   hasEligiblePhoto?: boolean
+  photoPriority?: number | null
   [key: string]: unknown
 }
 
@@ -45,6 +46,10 @@ function freshnessScore(value: string | Date | null | undefined, now: Date) {
 }
 
 export function photoPriority(candidate: DiscoveryCandidate) {
+  const explicitPriority = Number(candidate.photoPriority)
+  if (Number.isFinite(explicitPriority)) {
+    return Math.max(0, Math.min(3, Math.floor(explicitPriority)))
+  }
   if (candidate.hasEligiblePhoto) return candidate.featured ? 2 : 1
   if (candidate.hasEligiblePhoto === false) return 0
   const image = [candidate.avatar, candidate.image]
@@ -106,11 +111,13 @@ export function rotateDiscoveryBatchWithPhotoPriority<T extends DiscoveryCandida
   batch: number,
   windowSize = 12
 ): T[] {
+  const moderatorSpotlights = candidates.filter(candidate => photoPriority(candidate) === 3)
   const starredPortraits = candidates.filter(candidate => photoPriority(candidate) === 2)
   const personalPhotos = candidates.filter(candidate => photoPriority(candidate) === 1)
   const otherProfiles = candidates.filter(candidate => photoPriority(candidate) === 0)
 
   return [
+    ...rotateDiscoveryBatch(moderatorSpotlights, batch, windowSize),
     ...rotateDiscoveryBatch(starredPortraits, batch, windowSize),
     ...rotateDiscoveryBatch(personalPhotos, batch, windowSize),
     ...rotateDiscoveryBatch(otherProfiles, batch, windowSize)

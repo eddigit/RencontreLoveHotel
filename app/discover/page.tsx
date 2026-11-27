@@ -142,11 +142,17 @@ function discoverSearchFromSearchParams(searchParams: URLSearchParams) {
   return searchParams.get('q') || ''
 }
 
+function discoverVisitSeedFromSearchParams(searchParams: URLSearchParams) {
+  const value = searchParams.get('visit') || ''
+  return /^[a-zA-Z0-9-]{8,128}$/.test(value) ? value : ''
+}
+
 function writeDiscoverUrlState(
   router: ReturnType<typeof useRouter>,
   filters: FilterOptions,
   search: string,
-  batch: number
+  batch: number,
+  visitSeed: string
 ) {
   const params = new URLSearchParams()
   const activeMeetingTypes = Object.entries(filters.meetingTypes)
@@ -154,6 +160,7 @@ function writeDiscoverUrlState(
     .map(([key]) => key)
   const trimmedSearch = search.trim()
 
+  if (visitSeed) params.set('visit', visitSeed)
   if (trimmedSearch) params.set('q', trimmedSearch)
   if (batch > 0) params.set('batch', String(batch))
   if (filters.onlineOnly) params.set('onlineOnly', 'true')
@@ -213,6 +220,7 @@ export default function DiscoverPage () {
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
+  const [visitSeed, setVisitSeed] = useState(() => discoverVisitSeedFromSearchParams(initialSearchParams))
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -223,13 +231,15 @@ export default function DiscoverPage () {
     profilesToSave: DiscoverProfile[],
     currentFilters: FilterOptions,
     currentSearch: string,
-    batch: number
+    batch: number,
+    currentVisitSeed: string
   ) => {
     const key = discoverySnapshotKey(
       String(user?.id || ''),
       currentFilters,
       currentSearch,
-      batch
+      batch,
+      currentVisitSeed
     )
     try {
       window.sessionStorage.setItem(
@@ -245,20 +255,22 @@ export default function DiscoverPage () {
     resultProfiles: DiscoverProfile[],
     currentFilters: FilterOptions,
     currentSearch: string,
-    batch: number
+    batch: number,
+    currentVisitSeed: string
   ) => {
     const key = discoverySnapshotKey(
       String(user?.id || ''),
       currentFilters,
       currentSearch,
-      batch
+      batch,
+      currentVisitSeed
     )
     try {
       const storedIds = JSON.parse(window.sessionStorage.getItem(key) || '[]')
       const orderedProfiles = Array.isArray(storedIds)
         ? orderProfilesFromSnapshot(resultProfiles, storedIds)
         : resultProfiles
-      saveProfileOrder(orderedProfiles, currentFilters, currentSearch, batch)
+      saveProfileOrder(orderedProfiles, currentFilters, currentSearch, batch, currentVisitSeed)
       return orderedProfiles
     } catch {
       return resultProfiles
@@ -266,7 +278,7 @@ export default function DiscoverPage () {
   }
 
   const fetchCommunity = useCallback(
-    async (currentFilters?: FilterOptions, batch = 0, currentSearch = '') => {
+    async (currentFilters?: FilterOptions, batch = 0, currentSearch = '', currentVisitSeed = visitSeed) => {
       if (!user?.id) return
 
       const request = ++communityRequest.current
@@ -274,14 +286,15 @@ export default function DiscoverPage () {
       setError(null)
       try {
         const resolvedFilters = currentFilters || filters
-        const [profileResult, onlineResult, matchResult, eventResult, statsResult, threadResult] = await getCommunityHome(resolvedFilters, batch)
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult, threadResult] = await getCommunityHome(resolvedFilters, batch, currentVisitSeed)
         if (request !== communityRequest.current) return
 
         const restoredProfiles = restoreProfileOrder(
           profileResult.profiles || [],
           resolvedFilters,
           currentSearch,
-          batch
+          batch,
+          currentVisitSeed
         )
         setProfiles(restoredProfiles)
         void recordProfileImpressions(
@@ -305,7 +318,7 @@ export default function DiscoverPage () {
         }
       }
     },
-    [user?.id, filters]
+    [user?.id, filters, visitSeed]
   )
 
   useEffect(() => {
@@ -318,6 +331,13 @@ export default function DiscoverPage () {
     const restoredFilters = discoverFiltersFromSearchParams(restoredSearchParams)
     const restoredSearch = discoverSearchFromSearchParams(restoredSearchParams)
     const restoredBatch = discoverBatchFromSearchParams(restoredSearchParams)
+    const restoredVisitSeed = discoverVisitSeedFromSearchParams(restoredSearchParams)
+    if (!restoredVisitSeed) {
+      const generatedVisitSeed = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`
+      setVisitSeed(generatedVisitSeed)
+      writeDiscoverUrlState(router, restoredFilters, restoredSearch, restoredBatch, generatedVisitSeed)
+      return
+    }
     if (localBatchNavigationRef.current === restoredBatch) {
       localBatchNavigationRef.current = null
       setProfileBatch(restoredBatch)
@@ -328,7 +348,8 @@ export default function DiscoverPage () {
     setFilters(restoredFilters)
     setSearchQuery(restoredSearch)
     setProfileBatch(restoredBatch)
-    void fetchCommunity(restoredFilters, restoredBatch, restoredSearch)
+    setVisitSeed(restoredVisitSeed)
+    void fetchCommunity(restoredFilters, restoredBatch, restoredSearch, restoredVisitSeed)
     return () => { communityRequest.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router, searchParamString])
@@ -352,7 +373,7 @@ export default function DiscoverPage () {
   const handleFilterChange = (newFilters: FilterOptions) => {
     setFilters(newFilters)
     setProfileBatch(0)
-    writeDiscoverUrlState(router, newFilters, searchQuery, 0)
+    writeDiscoverUrlState(router, newFilters, searchQuery, 0, visitSeed)
   }
 
   const showAnotherBatch = () => {
@@ -371,8 +392,8 @@ export default function DiscoverPage () {
       localBatchNavigationRef.current = nextBatch
       setProfiles(nextProfiles)
       setProfileBatch(nextBatch)
-      saveProfileOrder(nextProfiles, filters, searchQuery, nextBatch)
-      writeDiscoverUrlState(router, filters, searchQuery, nextBatch)
+      saveProfileOrder(nextProfiles, filters, searchQuery, nextBatch, visitSeed)
+      writeDiscoverUrlState(router, filters, searchQuery, nextBatch, visitSeed)
       void recordProfileImpressions(
         user.id,
         nextProfiles.slice(0, 12).map(profile => profile.id),
@@ -389,7 +410,7 @@ export default function DiscoverPage () {
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
-    writeDiscoverUrlState(router, filters, value, profileBatch)
+    writeDiscoverUrlState(router, filters, value, profileBatch, visitSeed)
   }
 
   const filteredProfiles = useMemo(() => {

@@ -14,7 +14,7 @@ import {
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { log } from "@/utils/logger"
 import { getMemberRelationshipOverview } from '@/lib/member-relationship-service'
-import { rankDiscoveryCandidates } from '@/lib/discovery-ranking'
+import { rankDiscoveryCandidates, rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'
 import { eligibleMemberPhotoSql } from '@/lib/member-photo'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 import type { DirectoryProfileType } from '@/lib/member-profile-types'
@@ -355,6 +355,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
         umt.libertine,
         CASE WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1 ELSE 0 END AS has_personal_photo,
         CASE
+          WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL AND u.moderator_spotlight_at IS NOT NULL THEN 3
           WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL THEN 2
           WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1
           ELSE 0
@@ -392,7 +393,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   }
 }
 
-export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions, batch = 0) {
+export async function getDiscoverProfiles(currentUserId: string, page: number = 1, pageSize: number = 50, filters?: FilterOptions, batch = 0, visitSeed = '') {
   log('info', 'Discover profiles requested', { operation: 'getDiscoverProfiles', page, pageSize });
   await ensureAdminUserStarSchema()
 
@@ -631,6 +632,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       ${onlineCondition} as online,
       u.admin_starred_at IS NOT NULL as featured,
       CASE
+        WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL AND u.moderator_spotlight_at IS NOT NULL THEN 3
         WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} AND u.admin_starred_at IS NOT NULL THEN 2
         WHEN ${eligibleMemberPhotoSql("COALESCE(primary_photo.url, NULLIF(TRIM(u.avatar), ''))", 'primary_photo.url IS NOT NULL')} THEN 1
         ELSE 0
@@ -702,6 +704,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
         matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
         impressions14d: Number(profile.viewer_impressions_14d || 0),
+        photoPriority: Number(profile.photo_priority || 0),
         hasEligiblePhoto: Boolean(profile.has_eligible_photo),
         profileQuality: Math.round((
           (Number(profile.photo_priority || 0) > 0 ? 35 : 0) +
@@ -716,21 +719,25 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     })
     .filter((profile: any) => profile.matchingEligible)
   const safeBatch = Math.max(0, Math.floor(Number(batch) || 0))
+  // Keep a single base ordering. Applying the batch as a window rotation below
+  // makes a URL reload show the same profiles as the in-page "another batch"
+  // action, without relying on a client-side snapshot.
   const rankedProfiles = rankDiscoveryCandidates<any>(mappedProfiles, {
-    viewerId: currentUserId,
-    batch: safeBatch
+    viewerId: `${currentUserId}:${String(visitSeed).slice(0, 128)}`,
+    batch: 0
   })
+  const rotatedProfiles = rotateDiscoveryBatchWithPhotoPriority(rankedProfiles, safeBatch, 12)
 
   const result = {
-    profiles: rankedProfiles,
+    profiles: rotatedProfiles,
     totalCount,
     currentPage: page,
     totalPages: Math.ceil(totalCount / pageSize),
-    hasMore: (offset + rankedProfiles.length) < totalCount
+    hasMore: (offset + rotatedProfiles.length) < totalCount
   };
   log('info', 'Discover profiles completed', {
     operation: 'getDiscoverProfiles',
-    count: rankedProfiles.length,
+    count: rotatedProfiles.length,
     totalCount,
     page
   });
@@ -1074,7 +1081,7 @@ export async function getAllUsers() {
            ${displayedPhoto} AS image,
            ${eligibleMemberPhotoSql(displayedPhoto, 'primary_photo.url IS NOT NULL')} AS has_eligible_photo,
            up.location, up.age, up.gender, up.status AS profile_status,
-           u.is_banned, u.status, u.admin_starred_at,
+           u.is_banned, u.status, u.admin_starred_at, u.moderator_spotlight_at,
            (u.admin_starred_at IS NOT NULL) AS admin_starred
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
@@ -1152,6 +1159,22 @@ export async function updateUserByAdmin(userId: string, { name, email, role, ava
     RETURNING *
   `
   return user
+}
+
+/** Editorial label used only for presentation. */
+export async function setModeratorSpotlight(userId: string, enabled: boolean) {
+  await requireAdmin()
+  if (typeof enabled !== 'boolean') throw new Error('Sélection invalide')
+  await ensureAdminUserStarSchema()
+  const [updated] = await sql`
+    UPDATE users SET moderator_spotlight_at = CASE WHEN ${enabled}
+      THEN COALESCE(moderator_spotlight_at, CURRENT_TIMESTAMP) ELSE NULL END
+    WHERE id = ${userId}
+    RETURNING moderator_spotlight_at
+  `
+  if (!updated) throw new Error('Utilisateur introuvable')
+  revalidatePath('/admin/users')
+  return Boolean(updated.moderator_spotlight_at)
 }
 
 export async function setUserAdminStar(userId: string, starred: boolean) {

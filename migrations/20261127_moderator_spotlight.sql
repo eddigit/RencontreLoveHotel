@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN IF NOT EXISTS moderator_spotlight_at TIMESTAMPTZ;

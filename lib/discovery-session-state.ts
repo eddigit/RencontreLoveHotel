@@ -6,14 +6,16 @@ export function discoverySnapshotKey(
   userId: string,
   filters: unknown,
   search: string,
-  batch: number
+  batch: number,
+  visitSeed = ''
 ) {
   return [
-    'lhr-discovery-v5',
+    'lhr-discovery-v6',
     userId,
     JSON.stringify(filters),
     search.trim().toLowerCase(),
-    Math.max(0, Math.floor(Number(batch) || 0))
+    Math.max(0, Math.floor(Number(batch) || 0)),
+    visitSeed
   ].join(':')
 }
 
