@@ -10,10 +10,10 @@ describe('Progressive Love Hotel encounter concept', () => {
   it('keeps the community home focused on real upcoming meetings', () => {
     const discover = readFile('app/discover/page.tsx')
 
-    expect(discover).toContain('Mon cercle · prochain rendez-vous')
+    expect(discover).toContain('upcomingEvents.map')
     expect(discover).toContain("href='/events'")
     expect(discover).toContain("href='/lieux'")
-    expect(discover).toContain("'/soiree-masquee.webp'")
+    expect(discover).toContain("mediaImage(event.image")
   })
 
   it('positions events as progressive experiences around real Love Hotel places', () => {

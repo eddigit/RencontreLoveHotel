@@ -29,6 +29,14 @@
   border-color: rgb(255 255 255 / 0.14);
 }
 
+.logoLockup img {
+  max-height: 5rem;
+}
+
+.logoLockup span {
+  max-width: 4.25rem;
+}
+
 .nav {
   display: grid;
   gap: 0.3rem;
@@ -115,10 +123,6 @@
   color: var(--discover-ink);
 }
 
-.stripEyebrow {
-  color: var(--discover-accent);
-}
-
 .stripTitle {
   font-family: Georgia, serif;
   font-weight: 400;
@@ -134,7 +138,7 @@
 }
 
 .portraitItem {
-  flex: 0 0 calc((100% - 0.75rem) / 2);
+  flex: 0 0 4.75rem;
 }
 
 .portraitCard {
@@ -164,18 +168,6 @@
 
 .onlineDot {
   background: #16a34a;
-}
-
-@media (min-width: 640px) {
-  .portraitItem {
-    flex-basis: 9rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .portraitItem {
-    flex-basis: auto;
-  }
 }
 
 .panel :global(.lhr-v2-content) > header { color: var(--discover-ink); background: var(--discover-canvas); border-color: var(--discover-line); }

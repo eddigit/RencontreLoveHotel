@@ -7,7 +7,7 @@ describe('Community agenda entry point', () => {
   const jacuzziImageUrl = '/apero-jacuzzi-rencontre.jpg'
 
   it('does not invent a fixed jacuzzi promotion over the real agenda', () => {
-    expect(discover).toContain('Mon cercle · prochain rendez-vous')
+    expect(discover).toContain('upcomingEvents.map')
     expect(discover).toContain("href='/events'")
     expect(discover).not.toContain(jacuzziImageUrl)
     expect(discover).not.toContain('Apéro jacuzzi rencontre')

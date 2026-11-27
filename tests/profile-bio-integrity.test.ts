@@ -17,7 +17,7 @@ describe('profile biography integrity', () => {
     const discover = readFileSync('app/discover/page.tsx', 'utf8')
     const profile = readFileSync('app/profile/[id]/page.tsx', 'utf8')
     const members = readFileSync('app/members/page.tsx', 'utf8')
-    expect(discover).toContain('profile.bio &&')
+    expect(discover).toContain('profile.location || profile.bio ||')
     expect(profile).toContain('profile.bio &&')
     expect(members).toContain('member.bio &&')
   })

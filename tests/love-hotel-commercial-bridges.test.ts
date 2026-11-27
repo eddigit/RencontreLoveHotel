@@ -8,7 +8,7 @@ describe('Love Hotel commercial bridges', () => {
   const loveRooms = fs.readFileSync(path.join(process.cwd(), 'app/love-rooms/page.tsx'), 'utf8')
 
   it('connects the community home to real agenda and place routes', () => {
-    expect(discover).toContain('Mon cercle · prochain rendez-vous')
+    expect(discover).toContain('upcomingEvents.map')
     expect(discover).toContain("href='/events'")
     expect(discover).toContain("href='/lieux'")
   })

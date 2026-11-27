@@ -33,7 +33,7 @@ export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
       ORDER BY online DESC, joined_this_week DESC NULLS LAST,
         (u.avatar ILIKE '%blob.vercel-storage.com/%') DESC NULLS LAST,
         u.created_at DESC NULLS LAST, u.id
-      LIMIT 6
+      LIMIT 12
     `, [viewerId])
   } catch {
     return null
@@ -41,31 +41,28 @@ export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
   if (!members.length) return null
 
   return (
-    <section aria-labelledby='community-portraits-title' className={`overflow-hidden px-4 pb-5 pt-6 sm:px-6 lg:px-8 ${styles.communityStrip}`}>
-      <div className='mb-4 flex items-end justify-between gap-3'>
-        <div>
-          <p className={`text-xs font-bold uppercase tracking-[0.16em] ${styles.stripEyebrow}`}>Communauté</p>
-          <h2 id='community-portraits-title' className={`mt-1 text-2xl font-semibold tracking-tight sm:text-3xl ${styles.stripTitle}`}>À découvrir</h2>
-        </div>
+    <section aria-labelledby='community-portraits-title' className={`overflow-hidden px-4 py-3 sm:px-6 lg:px-8 ${styles.communityStrip}`}>
+      <div className='mb-2 flex items-end justify-between gap-3'>
+        <h2 id='community-portraits-title' className={`text-xl tracking-tight sm:text-2xl ${styles.stripTitle}`}>À découvrir</h2>
         <Link href='/members' className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline ${styles.stripLink}`}>
           Tous les membres <ArrowUpRight aria-hidden className='size-4' />
         </Link>
       </div>
-      <ul className={`flex snap-x gap-3 overflow-x-auto pb-1 sm:gap-4 xl:grid xl:grid-cols-6 ${styles.portraitList}`}>
+      <ul className={`flex snap-x gap-2 overflow-x-auto py-1 ${styles.portraitList}`}>
         {members.map(member => (
-          <li key={member.id} className={`shrink-0 snap-start xl:w-auto ${styles.portraitItem}`}>
-            <Link href={`/profile/${member.id}`} className={`group block rounded-xl focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
-              <div className={`relative flex aspect-[5/4] items-center justify-center overflow-hidden rounded-xl border ${styles.portraitPhoto}`}>
+          <li key={member.id} className={`shrink-0 snap-start ${styles.portraitItem}`}>
+            <Link href={`/profile/${member.id}`} className={`group block text-center rounded-lg focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
+              <div className={`relative mx-auto flex size-14 items-center justify-center overflow-hidden rounded-full border sm:size-16 ${styles.portraitPhoto}`}>
                 {member.image && photoPriority(member) > 0 ? (
                   <img src={member.image} alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
                 ) : (
-                  <span aria-hidden className={`text-4xl font-light ${styles.portraitInitials}`}>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
+                  <span aria-hidden className={`text-lg font-medium ${styles.portraitInitials}`}>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
                 )}
               </div>
-              <span className={`mt-2 block truncate font-semibold ${styles.portraitName}`}>{member.name}</span>
-              <span className={`flex items-center gap-1.5 text-xs ${styles.portraitMeta}`}>
+              <span className={`mt-1 block truncate text-xs font-semibold ${styles.portraitName}`}>{member.name}</span>
+              <span className={`flex items-center justify-center gap-1 text-[11px] ${styles.portraitMeta}`}>
                 {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
-                {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : 'Voir le profil'}
+                {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : ''}
               </span>
             </Link>
           </li>

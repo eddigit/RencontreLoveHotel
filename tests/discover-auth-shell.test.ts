@@ -16,14 +16,14 @@ describe('Discover authenticated shell', () => {
     expect(styles).toContain('--discover-accent: #ecebe7')
   })
 
-  it('presents discoverable members as a two-card mobile photo strip', () => {
+  it('presents discoverable members in a compact scrollable portrait strip', () => {
     const portraits = readFileSync('components/community-portraits.tsx', 'utf8')
     const styles = readFileSync('components/site-shell.module.css', 'utf8')
 
     expect(portraits).toContain('À découvrir')
     expect(portraits).toContain('styles.communityStrip')
     expect(portraits).toContain('styles.onlineDot')
-    expect(styles).toContain('flex: 0 0 calc((100% - 0.75rem) / 2)')
+    expect(styles).toContain('flex: 0 0 4.75rem')
     expect(styles).toContain('background: #16a34a')
     expect(styles).not.toContain('#ffc4df')
     expect(styles).not.toContain('pink')

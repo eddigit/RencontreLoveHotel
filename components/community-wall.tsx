@@ -124,6 +124,7 @@ function avatarInitial(name?: string | null) {
 }
 
 export function CommunityWall({ currentUserId }: CommunityWallProps) {
+  const [composerOpen, setComposerOpen] = useState(false)
   const [posts, setPosts] = useState<CommunityWallPost[]>([])
   const [events, setEvents] = useState<WallEventOption[]>([])
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityWallComment[]>>({})
@@ -199,6 +200,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       setEventId('')
       setDurationHours(24)
       setType('profil')
+      setComposerOpen(false)
       setStatusMessage('Annonce publiée.')
       await loadWall()
     } catch (error) {
@@ -282,19 +284,16 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
 
   return (
     <section id='community-wall' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821] text-[#ecebe7] p-4 shadow-sm'>
-      <div className='mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between'>
-        <div>
-          <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>
-            Mur de la communauté
-          </p>
-          <h2 className='mt-1 text-xl font-black'>Annonces des membres</h2>
-        </div>
-        <Link href='/messages' className='text-sm font-semibold text-[#ecebe7] hover:text-[#ecebe7]'>
-          Messagerie
-        </Link>
+      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
+        <h2 className='text-xl font-semibold'>Fil du cercle</h2>
+        <button type='button' aria-expanded={composerOpen} aria-controls='wall-composer'
+          className='min-h-11 rounded-lg border border-white/20 px-3 text-sm font-semibold hover:bg-white/10 focus-visible:ring-2'
+          onClick={() => setComposerOpen(open => !open)}>
+          {composerOpen ? 'Fermer la rédaction' : 'Publier une annonce'}
+        </button>
       </div>
 
-      <form onSubmit={handleCreatePost} className='rounded-2xl border border-[#41454b] bg-[#0a0f15] p-3'>
+      <form id='wall-composer' hidden={!composerOpen} onSubmit={handleCreatePost} className='rounded-2xl border border-[#41454b] bg-[#0a0f15] p-3'>
         <div className='grid gap-2 sm:grid-cols-3'>
           {postTypeOptions.map(option => {
             const Icon = option.icon

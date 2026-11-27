@@ -12,8 +12,7 @@ import {
   Heart,
   MessageCircle,
   RefreshCw,
-  Search,
-  UsersRound
+  Search
 } from 'lucide-react'
 import { AdvancedFilters, defaultFilters, FilterOptions } from '@/components/advanced-filters'
 import { CommunityWall } from '@/components/community-wall'
@@ -399,19 +398,9 @@ export default function DiscoverPage () {
   const newProfiles = [...filteredProfiles].slice(0, 12)
   const upcomingEvents = events.slice(0, 3)
   const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
-  const memberGrowthLabel = memberStats.newMembersLast24h > 0
-    ? `+${formatCount(memberStats.newMembersLast24h)} en 24 h`
-    : 'Voir les membres'
   const newProfilesSummary = memberStats.totalMembers > 0
     ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} membres.`
     : `Les ${newProfiles.length} derniers profils visibles.`
-  const primaryHomeAction = counts.messages > 0
-    ? { href: '/messages', icon: MessageCircle, title: 'Répondre à vos messages', detail: `${counts.messages} message${counts.messages > 1 ? 's' : ''} attend${counts.messages > 1 ? 'ent' : ''} votre réponse.`, label: 'Ouvrir la messagerie', count: counts.messages }
-    : matches.length > 0
-      ? { href: '/matches', icon: Heart, title: 'Voir vos matchs', detail: `${matches.length} match${matches.length > 1 ? 's' : ''} à découvrir.`, label: 'Voir mes matchs', count: matches.length }
-      : { href: '/members', icon: UsersRound, title: 'Découvrir des profils', detail: 'Explorez selon vos envies, votre ville et le type de rencontre.', label: 'Explorer', count: null }
-  const PrimaryActionIcon = primaryHomeAction.icon
-
   if (isLoading) {
     return (
       <MainLayout user={user}>
@@ -457,123 +446,228 @@ export default function DiscoverPage () {
           </div>
         }
       >
-        <div className='-m-3 min-h-[calc(100vh-8rem)] bg-[#04070b] p-3 text-[#ecebe7] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
-        <section aria-label='Action principale' className='mb-5'>
-          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#41454b] bg-[#111821] p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#c3a86e]'>
-            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111821] text-[#ecebe7]'><PrimaryActionIcon className='h-5 w-5' /></span>
-            <span className='min-w-0 flex-1'><span className='block text-lg font-black'>{primaryHomeAction.title}</span><span className='mt-0.5 block text-sm text-[#c9c7c2]'>{primaryHomeAction.detail}</span></span>
-            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#ecebe7] sm:block'>{primaryHomeAction.count}</span>}
-            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#ecebe7]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
-          </Link>
-        </section>
-
-        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#41454b] bg-[#111821] shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
-          {upcomingEvents.length > 0 ? (
-            <div className='grid sm:grid-cols-[180px_minmax(0,1fr)]'>
-              <div className='relative aspect-[16/10] bg-[#0a0f15] sm:aspect-auto'>{mediaImage(upcomingEvents[0].image || '/soiree-masquee.webp', upcomingEvents[0].title)}</div>
-              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#c9c7c2]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#ecebe7]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
-            </div>
-          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#c9c7c2]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#ecebe7]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
-        </section>
-
-        <div className='space-y-5'>
-          <section className='order-1 min-w-0 space-y-5'>
-            {(counts.matches > 0 || counts.events > 0) && (
-              <section aria-label='À suivre' className='flex flex-wrap gap-2'>
-                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7]'><Heart className='h-4 w-4 text-[#ecebe7]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
-                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7]'><Bell className='h-4 w-4 text-[#ecebe7]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
-                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#ecebe7]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
-              </section>
+        <div className='-m-3 min-h-[calc(100vh-8rem)] overflow-x-hidden bg-[#04070b] p-3 text-[#ecebe7] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
+          <section aria-label='Raccourcis de la communauté' className='mb-4 flex flex-wrap gap-2'>
+            <Link
+              href='/messages'
+              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
+            >
+              <MessageCircle className='h-4 w-4' /> Messages{counts.messages > 0 ? ` · ${counts.messages}` : ''}
+            </Link>
+            <Link
+              href='/matches'
+              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
+            >
+              <Heart className='h-4 w-4' /> Matchs{matches.length > 0 ? ` · ${matches.length}` : ''}
+            </Link>
+            <Link
+              href='#agenda-du-cercle'
+              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold xl:hidden'
+            >
+              <CalendarHeart className='h-4 w-4' /> Agenda
+            </Link>
+            {counts.events > 0 && (
+              <Link
+                href='/notifications'
+                className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
+              >
+                <Bell className='h-4 w-4' /> Alertes · {counts.events}
+              </Link>
             )}
-
-            <div className='relative'>
-              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c9c7c2]' />
-              <Input
-                type='text'
-                placeholder='Rechercher un profil, une ville, une ambiance...'
-                value={searchQuery}
-                onChange={event => handleSearchChange(event.target.value)}
-                className='h-12 rounded-2xl border-[#41454b] bg-[#111821] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
-              />
-            </div>
-
-            {error && (
-              <div className='rounded-2xl border border-red-300 bg-red-50 p-4 text-sm text-red-800'>
-                {error}
-              </div>
-            )}
-
-            <section id='new-profiles' className='scroll-mt-24'>
-              <div className='mb-4 flex items-start justify-between gap-3'>
-                <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Découvrir</p>
-                  <h2 className='mt-1 text-xl font-black'>Des profils qui pourraient vous plaire</h2>
-                  <p className='mt-1 text-sm leading-5 text-[#c9c7c2]'>{newProfilesSummary}</p>
-                </div>
-                <div className='flex shrink-0 flex-col items-end gap-2'>
-                  <div className='flex items-center gap-2'>
-                    <span className='hidden text-right text-xs text-[#c9c7c2] sm:block'>
-                      {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
-                    </span>
-                    <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
-                  </div>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#41454b] bg-[#111821] text-[#ecebe7] hover:bg-[#111821]'>
-                    <RefreshCw className='mr-2 h-3.5 w-3.5' />
-                    {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
-                  </Button>
-                </div>
-              </div>
-              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm'>
-                <span className='font-medium text-[#ecebe7]'>Affinez par type de profil, envies et critères de rencontre.</span>
-                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#ecebe7]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
-              </div>
-              <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
-                {newProfiles.map(profile => (
-                  <Link
-                    key={profile.id}
-                    href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-[#41454b] bg-[#111821] shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#c3a86e]'
-                  >
-                    <div className='relative aspect-[4/5] bg-white/10'>
-                      {mediaImage(profileImage(profile), profile.name)}
-                      {profile.online && (
-                        <span
-                          aria-label='En ligne'
-                          className='absolute right-3 top-3 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]'
-                        />
-                      )}
-                      <div className='absolute inset-0 bg-gradient-to-t from-[#172033]/80 via-transparent to-transparent' />
-                      <div className='absolute bottom-3 left-3 right-3'>
-                        <div className='text-lg font-black'>
-                          {profile.name}{profile.age ? `, ${profile.age}` : ''}
-                        </div>
-                        {typeof profile.matchScore === 'number' && <div className='text-xs text-white/66'>{Math.round(profile.matchScore)}% compatible</div>}
-                      </div>
-                    </div>
-                    {profile.bio && (
-                      <div className='p-3'>
-                        <p className='line-clamp-2 text-sm leading-5 text-[#c9c7c2]'>{profile.bio}</p>
-                      </div>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-
-            <MemberReferralLink />
-            <CommunityWall currentUserId={user.id} />
-
-            <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821]'>
-              <button type='button' onClick={() => setFeedbackOpen(open => !open)} aria-expanded={feedbackOpen} className='flex w-full items-center justify-between gap-4 p-4 text-left'>
-                <span><span className='block font-black'>Une idée ou un problème à signaler ?</span><span className='mt-0.5 block text-sm text-[#c9c7c2]'>Votre retour aide à améliorer la communauté.</span></span>
-                <ChevronDown className={`h-5 w-5 shrink-0 text-[#ecebe7] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {feedbackOpen && <div className='border-t border-[#41454b] p-4'><CommunityFeedbackWidget /></div>}
-            </section>
-
           </section>
-        </div>
+
+          <div className='grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]'>
+            <div className='min-w-0 space-y-5'>
+              <section aria-label='Mur de la communauté' className='min-w-0'>
+                <CommunityWall currentUserId={user.id} />
+              </section>
+
+              <section id='new-profiles' className='scroll-mt-24'>
+                <div className='mb-3 flex flex-wrap items-start justify-between gap-3'>
+                  <div>
+                    <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Découvrir</p>
+                    <h2 className='mt-1 text-lg font-black'>Profils à découvrir</h2>
+                    <p className='mt-1 text-sm leading-5 text-[#c9c7c2]'>{newProfilesSummary}</p>
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
+                    <Button
+                      type='button'
+                      size='sm'
+                      variant='outline'
+                      aria-label='Découvrir d’autres profils'
+                      onClick={showAnotherBatch}
+                      disabled={loading || preparingProfiles || profiles.length <= 12}
+                      className='border-[#41454b] bg-[#111821] text-[#ecebe7] hover:bg-[#111821]'
+                    >
+                      <RefreshCw className='mr-1.5 h-3.5 w-3.5' />
+                      {preparingProfiles ? 'Actualisation...' : 'Autres'}
+                    </Button>
+                  </div>
+                </div>
+                <div className='relative mb-3'>
+                  <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c9c7c2]' />
+                  <Input
+                    type='text'
+                    placeholder='Rechercher un profil, une ville, une ambiance...'
+                    value={searchQuery}
+                    onChange={(event) => handleSearchChange(event.target.value)}
+                    className='h-12 rounded-2xl border-[#41454b] bg-[#111821] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
+                  />
+                </div>
+                {error && (
+                  <div className='rounded-2xl border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100'>
+                    {error}
+                  </div>
+                )}
+                <div className='mb-3 flex flex-wrap items-center justify-between gap-2 text-sm'>
+                  <span className='text-[#c9c7c2]'>{loading ? 'Actualisation...' : `${newProfiles.length} affichés`}</span>
+                  <Link
+                    href='/members'
+                    className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#c3a86e]'
+                  >
+                    Recherche détaillée <ArrowUpRight className='h-4 w-4' />
+                  </Link>
+                </div>
+                <div className='grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2'>
+                  {newProfiles.map((profile) => (
+                    <Link
+                      key={profile.id}
+                      href={`/profile/${profile.id}`}
+                      className='group flex min-w-0 flex-col items-center gap-2 overflow-hidden text-center rounded-xl border border-[#41454b] bg-[#111821] p-2 transition hover:border-[#c3a86e]'
+                    >
+                      <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10'>
+                        {mediaImage(profileImage(profile), profile.name)}
+                        {profile.online && (
+                          <span
+                            aria-label='En ligne'
+                            className='absolute right-1 top-1 h-2.5 w-2.5 rounded-full border border-[#170321] bg-[#35e48d]'
+                          />
+                        )}
+                      </div>
+                      <div className='w-full min-w-0'>
+                        <div className='truncate text-sm font-black'>
+                          {profile.name}
+                          {profile.age ? `, ${profile.age}` : ''}
+                        </div>
+                        <div className='truncate text-xs text-[#c9c7c2]'>
+                          {profile.location || profile.bio || 'Voir le profil'}
+                        </div>
+                        {typeof profile.matchScore === 'number' && (
+                          <div className='mt-0.5 text-xs text-[#c3a86e]'>{Math.round(profile.matchScore)}% compatible</div>
+                        )}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+
+              <MemberReferralLink />
+              <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821]'>
+                <button
+                  type='button'
+                  onClick={() => setFeedbackOpen((open) => !open)}
+                  aria-expanded={feedbackOpen}
+                  className='flex w-full items-center justify-between gap-4 p-4 text-left'
+                >
+                  <span>
+                    <span className='block font-black'>Une idée ou un problème à signaler ?</span>
+                    <span className='mt-0.5 block text-sm text-[#c9c7c2]'>
+                      Votre retour aide à améliorer la communauté.
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={`h-5 w-5 shrink-0 text-[#ecebe7] transition ${feedbackOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {feedbackOpen && (
+                  <div className='border-t border-[#41454b] p-4'>
+                    <CommunityFeedbackWidget />
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <aside id='agenda-du-cercle' aria-label='Agenda et présence' className='min-w-0 scroll-mt-20 space-y-5'>
+              <section aria-labelledby='next-event-title' className='rounded-2xl border border-[#41454b] bg-[#111821] p-4'>
+                <div className='flex items-center justify-between gap-2'>
+                  <h2 id='next-event-title' className='flex items-center gap-2 font-black'>
+                    <CalendarHeart className='h-4 w-4 text-[#c3a86e]' /> Agenda
+                  </h2>
+                  <Link href='/events' className='text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'>
+                    Tout voir
+                  </Link>
+                </div>
+                {upcomingEvents.length > 0 ? (
+                  <div className='mt-3 space-y-3'>
+                    {upcomingEvents.map((event) => (
+                      <Link
+                        key={event.id}
+                        href={`/events/${event.id}`}
+                        className='flex items-center gap-2 rounded-xl bg-[#04070b] p-3 hover:bg-[#0a0f15]'
+                      >
+                        {event.image && (
+                          <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
+                            {mediaImage(event.image, '')}
+                          </span>
+                        )}
+                        <div className='min-w-0'>
+                          <div className='text-sm font-bold'>{event.title}</div>
+                          <p className='mt-1 text-xs text-[#c9c7c2]'>
+                            {eventDateLabel(event.event_date)}
+                            {event.event_time ? ` · ${event.event_time}` : ''} · {event.location}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm text-[#c9c7c2]'>Aucun rendez-vous à venir.</p>
+                )}
+                <Link
+                  href='/lieux'
+                  className='mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'
+                >
+                  Guide des lieux <ArrowUpRight className='h-4 w-4' />
+                </Link>
+              </section>
+              <section
+                aria-labelledby='online-members-title'
+                className='rounded-2xl border border-[#41454b] bg-[#111821] p-4'
+              >
+                <div className='flex items-center justify-between gap-2'>
+                  <h2 id='online-members-title' className='font-black'>
+                    En ligne maintenant
+                  </h2>
+                  <Link href='/members' className='text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'>
+                    Voir
+                  </Link>
+                </div>
+                {onlineMembers.length > 0 ? (
+                  <div className='mt-3 space-y-2'>
+                    {onlineMembers.slice(0, 5).map((member) => (
+                      <Link
+                        key={member.id}
+                        href={`/profile/${member.id}`}
+                        className='flex items-center gap-2 rounded-xl bg-[#04070b] p-2 hover:bg-[#0a0f15]'
+                      >
+                        <div className='relative h-9 w-9 shrink-0 overflow-hidden rounded-full'>
+                          {mediaImage(profileImage(member), member.name)}
+                          <span
+                            aria-label='En ligne'
+                            className='absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border border-[#04070b] bg-[#35e48d]'
+                          />
+                        </div>
+                        <span className='truncate text-sm font-bold'>{member.name}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm text-[#c9c7c2]'>Aucun membre en ligne pour le moment.</p>
+                )}
+              </section>
+            </aside>
+          </div>
         </div>
       </LhrV2Shell>
     </MainLayout>

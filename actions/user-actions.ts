@@ -193,6 +193,11 @@ export async function getOnlineCommunityMembers(limit = 12) {
         AND COALESCE(u.is_banned, false) = false
         AND COALESCE(u.status, 'active') <> 'banned'
         AND ${onlineCondition}
+        AND NOT EXISTS (
+          SELECT 1 FROM user_blocks b
+          WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
+             OR (b.blocker_id = u.id AND b.blocked_id = $1)
+        )
       ORDER BY (u.id = $1) DESC, ${presenceColumn} DESC
       LIMIT $2
     `,
