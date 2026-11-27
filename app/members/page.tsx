@@ -1,43 +1,19 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Filter, MapPin, MessageCircle, RotateCcw, Search, UsersRound, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, RotateCcw, Search } from 'lucide-react'
 import MainLayout from '@/components/layout/main-layout'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
-import { defaultMemberImage } from '@/lib/default-member-image'
-import { directoryProfileTypeLabel } from '@/lib/member-profile-types'
+import { MemberDirectoryCard, orientationLabel, type DirectoryMember } from '@/components/member-directory-card'
 import {
-  getCommunityMemberStats,
   searchCommunityMembers,
   type CommunityMemberDirectoryFilters
 } from '@/actions/user-actions'
-
-type CommunityMember = {
-  id: string
-  name?: string
-  avatar?: string | null
-  age?: number | null
-  location?: string | null
-  profile_status?: string | null
-  gender?: string | null
-  orientation?: string | null
-  bio?: string | null
-  open_to_other_couples?: boolean
-  open_curtains?: boolean
-  libertine?: boolean
-  online?: boolean
-}
-
-type CommunityStats = {
-  totalMembers: number
-  newMembersLast24h: number
-}
 
 const initialFilters: CommunityMemberDirectoryFilters = {
   pageSize: 24,
@@ -104,78 +80,59 @@ function formatCount(value: number) {
   return new Intl.NumberFormat('fr-FR').format(value)
 }
 
-function imageFor(member: CommunityMember) {
-  return defaultMemberImage(member)
-}
-
-function profileTypeLabel(member: CommunityMember) {
-  return directoryProfileTypeLabel(member)
-}
-
-function orientationLabel(value?: string | null) {
-  const labels: Record<string, string> = {
-    hetero: 'Hétéro',
-    straight: 'Hétéro',
-    bi: 'Bi',
-    bisexual: 'Bisexuel',
-    homo: 'Homo',
-    gay: 'Gay',
-    lesbian: 'Lesbienne',
-    pansexual: 'Pansexuel'
-  }
-  return value ? labels[value.toLowerCase()] || value : null
-}
-
 export default function MembersPage() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const searchParamString = searchParams.toString()
-  const [members, setMembers] = useState<CommunityMember[]>([])
-  const [stats, setStats] = useState<CommunityStats>({ totalMembers: 0, newMembersLast24h: 0 })
+  const [members, setMembers] = useState<DirectoryMember[]>([])
   const [filters, setFilters] = useState<CommunityMemberDirectoryFilters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<CommunityMemberDirectoryFilters>(initialFilters)
   const [totalCount, setTotalCount] = useState(0)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const filterToggleRef = useRef<HTMLButtonElement>(null)
+  const filterPanelRef = useRef<HTMLDivElement>(null)
+  const memberRequestRef = useRef(0)
 
   const fetchMembers = async (nextPage = 1, nextFilters = appliedFilters) => {
+    const requestId = ++memberRequestRef.current
     setLoading(true)
     setError(null)
     try {
-      const [directoryResult, statsResult] = await Promise.all([
-        searchCommunityMembers({ ...nextFilters, page: nextPage, pageSize: 24 }),
-        getCommunityMemberStats()
-      ])
-      setMembers(directoryResult.members as CommunityMember[])
+      const directoryResult = await searchCommunityMembers({ ...nextFilters, page: nextPage, pageSize: 24 })
+      if (requestId !== memberRequestRef.current) return
+      setMembers(directoryResult.members as DirectoryMember[])
       setTotalCount(directoryResult.totalCount)
       setPage(directoryResult.currentPage)
       setTotalPages(directoryResult.totalPages)
-      setStats(statsResult)
     } catch (fetchError) {
+      if (requestId !== memberRequestRef.current) return
       console.error('Erreur lors du chargement de l’annuaire membre:', fetchError)
       setError('Impossible de charger les membres pour le moment.')
       setMembers([])
       setTotalCount(0)
       setTotalPages(0)
     } finally {
-      setLoading(false)
+      if (requestId === memberRequestRef.current) setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (isLoading) return
+    if (isLoading) return () => { memberRequestRef.current += 1 }
     if (!user) {
+      memberRequestRef.current += 1
       router.push('/login')
-      return
+      return () => { memberRequestRef.current += 1 }
     }
     const restoredState = filtersFromSearchParams(new URLSearchParams(searchParamString))
     setFilters(restoredState.filters)
     setAppliedFilters(restoredState.filters)
     void fetchMembers(restoredState.page, restoredState.filters)
+    return () => { memberRequestRef.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router, searchParamString])
 
@@ -191,15 +148,6 @@ export default function MembersPage() {
     writeMemberDirectoryUrlState(router, { ...initialFilters }, 1)
   }
 
-  const activeFilterCount = [
-    filters.search?.trim(),
-    filters.profileType !== 'all' ? filters.profileType : '',
-    filters.orientation !== 'all' ? filters.orientation : '',
-    filters.meetingCriterion !== 'all' ? filters.meetingCriterion : '',
-    filters.recent ? 'recent' : '',
-    filters.onlineOnly ? 'online' : ''
-  ].filter(Boolean).length
-
   const appliedCriteria = [
     appliedFilters.search?.trim() ? `Recherche : « ${appliedFilters.search.trim()} »` : null,
     appliedFilters.profileType === 'couple' ? 'Couples' : null,
@@ -213,6 +161,16 @@ export default function MembersPage() {
     appliedFilters.recent ? 'Inscrits depuis 24 h' : null,
     appliedFilters.onlineOnly ? 'En ligne maintenant' : null
   ].filter((criterion): criterion is string => Boolean(criterion))
+  const activeFilterCount = appliedCriteria.length
+
+  useEffect(() => {
+    if (filtersOpen) filterPanelRef.current?.focus()
+  }, [filtersOpen])
+
+  const closeFilters = () => {
+    setFiltersOpen(false)
+    requestAnimationFrame(() => filterToggleRef.current?.focus())
+  }
 
   if (isLoading) {
     return (
@@ -243,104 +201,54 @@ export default function MembersPage() {
     <MainLayout user={user}>
       <LhrV2Shell
         user={user}
-        eyebrow='Annuaire communautaire'
-        title='Rechercher des membres'
-        subtitle='Accédez aux profils visibles de la communauté et trouvez le type de rencontre qui vous correspond.'
+        title='Membres'
       >
         <div className='space-y-5'>
-          <section className='rounded-2xl border border-[#c9c7c2]/25 bg-white/[0.045] p-5'>
-            <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
-              <div className='flex items-center gap-3'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c1121f]/15 text-[#ecebe7]'>
-                  <UsersRound className='h-6 w-6' />
-                </div>
-                <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Communauté visible</p>
-                  <h2 className='text-2xl font-black'>{formatCount(stats.totalMembers)} membres</h2>
-                  <p className='text-sm text-white/58'>Les profils incomplets ou masqués ne sont pas publiés dans cet annuaire.</p>
-                </div>
-              </div>
-              <Link href='/discover#new-profiles' className='text-sm font-bold text-[#ecebe7] hover:text-white'>
-                Voir les nouveaux membres
-              </Link>
-            </div>
-          </section>
-
-          <section className='rounded-2xl border-2 border-[#c9c7c2]/35 bg-white/[0.045] p-5'>
-            <div className='mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
+          <section className='rounded-2xl border border-[#2b3040] bg-[#16181f] p-4 sm:p-5'>
+            <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
               <div>
-                <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Annuaire complet</p>
-                <h2 className='text-xl font-black'>{appliedCriteria.length > 0 ? 'Résultats de la recherche' : 'Tous les membres'}</h2>
-                <p className='mt-1 text-sm text-white/58'>
-                  {formatCount(totalCount)} résultat{totalCount > 1 ? 's' : ''} · 24 profils par page
+                <p className='text-sm text-[#c1c6da]'>
+                  <span aria-live='polite'>{loading ? 'Recherche en cours…' : `${formatCount(totalCount)} ${totalCount === 1 ? 'profil' : 'profils'}`}</span>
+                  <span aria-hidden='true'> · </span>
+                  <Link href='/discover#new-profiles' className='text-[#ffb3b2] hover:text-white'>Nouveaux membres</Link>
                 </p>
               </div>
-              <div className='flex items-center gap-2 self-end sm:self-start'>
-                {activeFilterCount > 0 && <span className='text-xs text-white/55'>{activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''}</span>}
-                <Button
-                  type='button'
-                  variant={filtersOpen ? 'default' : 'outline'}
-                  onClick={() => setFiltersOpen(open => !open)}
-                  aria-expanded={filtersOpen}
-                  className='border-[#c9c7c2]/35'
-                  title='Afficher ou masquer les filtres'
-                >
-                  <Filter className='mr-2 h-4 w-4' />
-                  Filtrer les membres
-                  {activeFilterCount > 0 && <span className='ml-2 rounded-full bg-background/20 px-1.5 py-0.5 text-xs'>{activeFilterCount}</span>}
-                </Button>
+              <div className='flex flex-wrap items-center gap-2 self-end sm:self-start'>
+                {activeFilterCount > 0 && <span className='rounded-full bg-[#ff334b]/15 px-2.5 py-1 text-xs font-semibold text-[#ffb3b2]'>{activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''}</span>}
+                {activeFilterCount > 0 && <Button type='button' variant='ghost' size='sm' onClick={resetFilters} disabled={loading} className='text-[#94a3b8] hover:bg-white/5 hover:text-white'><RotateCcw className='mr-2 h-4 w-4' />Réinitialiser</Button>}
               </div>
             </div>
 
-            <div className='grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end'>
-              <label className='text-sm font-semibold'>
-                Rechercher dans les membres
-                <div className='relative mt-1'>
+            <form onSubmit={event => { event.preventDefault(); applyFilters({ ...filters }) }} className='grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2'>
+              <label className='sr-only' htmlFor='member-search'>Rechercher dans les membres</label>
+              <div className='relative min-w-0'>
                   <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/45' />
                   <Input
+                    id='member-search'
                     type='search'
                     placeholder='Nom ou ville'
                     value={filters.search || ''}
                     onChange={event => setFilters(current => ({ ...current, search: event.target.value }))}
-                    onKeyDown={event => {
-                      if (event.key === 'Enter') applyFilters({ ...filters })
-                    }}
-                    className='h-11 border-white/10 bg-black/20 pl-9 text-white placeholder:text-white/40'
+                    className='h-11 border-[#2b3040] bg-[#1e222d] pl-9 text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#ff334b]'
                   />
-                </div>
-              </label>
-
-              <label className='text-sm font-semibold'>
-                Type de membre
-                <select
-                  value={filters.profileType || 'all'}
-                  onChange={event => applyFilters({ ...filters, profileType: event.target.value as CommunityMemberDirectoryFilters['profileType'] })}
-                  className='mt-1 h-11 w-full rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm text-white'
-                >
-                  <option value='all'>Tous les membres</option>
-                  <option value='couple'>Couples</option>
-                  <option value='woman'>Femmes</option>
-                  <option value='man'>Hommes</option>
-                  <option value='trans'>Personnes trans</option>
-                </select>
-              </label>
-
-              <Button type='button' onClick={() => applyFilters({ ...filters })} disabled={loading} className='bg-[#c1121f] hover:bg-[#c1121f]'>
-                <Search className='mr-2 h-4 w-4' />
-                Rechercher
-              </Button>
-            </div>
+              </div>
+              <Button type='submit' size='icon' disabled={loading} className='h-11 w-11 bg-[#ff334b] text-white hover:bg-[#cc001a]' aria-label='Lancer la recherche'><Search className='h-4 w-4' /></Button>
+              <Button ref={filterToggleRef} type='button' variant='outline' onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls='filtres-avances-membres' aria-label={filtersOpen ? 'Masquer les filtres avancés' : 'Afficher les filtres avancés'} className='h-11 border-[#3b4257] bg-[#1e222d] px-3 text-[#f8fafc] hover:bg-[#34343a] hover:text-white'><Filter className='mr-2 h-4 w-4' />Filtres</Button>
+            </form>
 
             {filtersOpen && (
-              <div className='mt-4 rounded-2xl border border-white/10 bg-black/15 p-4'>
+              <div id='filtres-avances-membres' ref={filterPanelRef} tabIndex={-1} onKeyDown={event => { if (event.key === 'Escape') closeFilters() }} className='mt-4 rounded-xl border border-[#2b3040] bg-[#0d0e13] p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff334b]'>
                 <div className='mb-3 flex items-center justify-between'>
-                  <p className='text-sm font-bold'>Filtrer les membres</p>
-                  <Button type='button' variant='ghost' size='sm' onClick={resetFilters} disabled={loading} className='text-white/70 hover:text-white'>
-                    <RotateCcw className='mr-2 h-4 w-4' />
-                    Réinitialiser
-                  </Button>
+                  <p className='text-sm font-semibold text-[#f8fafc]'>Filtres avancés</p>
+                  <span className='text-xs text-[#94a3b8]'>Échap pour refermer</span>
                 </div>
                 <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
+                  <label className='text-sm font-semibold'>
+                    Type de membre
+                    <select value={filters.profileType || 'all'} onChange={event => applyFilters({ ...filters, profileType: event.target.value as CommunityMemberDirectoryFilters['profileType'] })} className='mt-1 h-10 w-full rounded-md border border-[#2b3040] bg-[#1e222d] px-3 text-sm text-[#f8fafc]'>
+                      <option value='all'>Tous les membres</option><option value='couple'>Couples</option><option value='woman'>Femmes</option><option value='man'>Hommes</option><option value='trans'>Personnes trans</option>
+                    </select>
+                  </label>
                   <label className='text-sm font-semibold'>
                     Orientation
                     <select
@@ -378,7 +286,7 @@ export default function MembersPage() {
                       type='checkbox'
                       checked={Boolean(filters.onlineOnly)}
                       onChange={event => applyFilters({ ...filters, onlineOnly: event.target.checked })}
-                      className='h-4 w-4 accent-[#ff3b8b]'
+                      className='h-4 w-4 accent-[#ff525d]'
                     />
                     En ligne maintenant
                   </label>
@@ -387,7 +295,7 @@ export default function MembersPage() {
                       type='checkbox'
                       checked={Boolean(filters.recent)}
                       onChange={event => applyFilters({ ...filters, recent: event.target.checked })}
-                      className='h-4 w-4 accent-[#ff3b8b]'
+                      className='h-4 w-4 accent-[#ff525d]'
                     />
                     Inscrits depuis 24 h
                   </label>
@@ -395,19 +303,13 @@ export default function MembersPage() {
               </div>
             )}
 
-            <div className='mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
-              <div className='flex flex-wrap gap-2'>
-                {appliedCriteria.length > 0 ? appliedCriteria.map(criterion => (
-                  <span key={criterion} className='rounded-full bg-[#c1121f]/12 px-2.5 py-1 text-xs text-[#ecebe7]'>{criterion}</span>
-                )) : <span className='text-xs text-white/50'>Tous les membres, sans filtre</span>}
+            {appliedCriteria.length > 0 && (
+              <div className='mt-3 flex flex-wrap gap-2'>
+                {appliedCriteria.map(criterion => (
+                  <span key={criterion} className='rounded-full bg-[#292a2f] px-2.5 py-1 text-xs text-[#e3e1e9]'>{criterion}</span>
+                ))}
               </div>
-              {appliedCriteria.length > 0 && (
-                <Button type='button' variant='ghost' size='sm' onClick={resetFilters} disabled={loading} className='text-white/70 hover:text-white'>
-                  <X className='mr-2 h-4 w-4' />
-                  Effacer la recherche
-                </Button>
-              )}
-            </div>
+            )}
           </section>
 
           {error && <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100'>{error}</div>}
@@ -417,58 +319,8 @@ export default function MembersPage() {
           ) : members.length === 0 ? (
             <div className='rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-8 text-center text-white/60'>Aucun membre ne correspond à ces critères.</div>
           ) : (
-            <div className='grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5'>
-              {members.map(member => (
-                <article key={member.id} className='overflow-hidden rounded-2xl border border-white/10 bg-white/[0.045]'>
-                  <Link href={`/profile/${member.id}`} className='group block'>
-                    <div className='relative aspect-[4/3] bg-white/10'>
-                      {imageFor(member).startsWith('http') ? (
-                        <img src={imageFor(member)} alt={member.name || 'Profil membre'} className='h-full w-full object-cover transition group-hover:scale-105' />
-                      ) : (
-                        <Image src={imageFor(member)} alt={member.name || 'Profil membre'} fill className='object-cover transition group-hover:scale-105' sizes='320px' />
-                      )}
-                      <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent' />
-                      {member.online && <span className='absolute right-3 top-3 h-3 w-3 rounded-full border-2 border-[#0a0f15] bg-[#35e48d]' title='En ligne' />}
-                      <div className='absolute bottom-3 left-3 right-3'>
-                        <h3 className='text-lg font-black'>{member.name || 'Membre'}{member.age ? `, ${member.age}` : ''}</h3>
-                        <div className='flex items-center gap-1 text-xs text-white/70'>
-                          <MapPin className='h-3.5 w-3.5' />
-                          {member.location || 'Localisation non renseignée'}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                  <div className='p-3'>
-                    <div className='flex flex-wrap gap-1.5 text-xs'>
-                      <span className='rounded-full bg-[#c1121f]/12 px-2 py-1 text-[#ecebe7]'>{profileTypeLabel(member)}</span>
-                      {orientationLabel(member.orientation) && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>{orientationLabel(member.orientation)}</span>}
-                      {member.open_to_other_couples && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Ouvert aux couples</span>}
-                      {member.open_curtains && <span className='rounded-full bg-[#c1121f]/12 px-2 py-1 text-[#ecebe7]'>Rideaux ouverts</span>}
-                      {member.libertine && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Libertin</span>}
-                    </div>
-                    {member.bio && (
-                      <p className='mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/58'>{member.bio}</p>
-                    )}
-                    <div className='mt-3 flex gap-2'>
-                      <Button asChild size='sm' className='flex-1 bg-[#c1121f] hover:bg-[#c1121f]'>
-                        <Link href={`/profile/${member.id}`}>Voir le profil</Link>
-                      </Button>
-                      <Button
-                        asChild
-                        size='sm'
-                        variant='outline'
-                        className='border-white/12 bg-white/[0.04]'
-                        title='Voir le profil pour matcher ou écrire'
-                      >
-                        <Link href={`/profile/${member.id}`}>
-                          <MessageCircle className='h-4 w-4' />
-                          <span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span>
-                        </Link>
-                      </Button>
-                    </div>
-                  </div>
-                </article>
-              ))}
+            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 2xl:grid-cols-6'>
+              {members.map(member => <MemberDirectoryCard key={member.id} member={member} />)}
             </div>
           )}
 

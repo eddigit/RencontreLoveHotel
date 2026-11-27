@@ -1,0 +1,72 @@
+'use client'
+
+import Image from 'next/image'
+import Link from 'next/link'
+import { MapPin, MessageCircle } from 'lucide-react'
+import { defaultMemberImage } from '@/lib/default-member-image'
+import { directoryProfileTypeLabel } from '@/lib/member-profile-types'
+
+export type DirectoryMember = {
+  id: string
+  name?: string
+  avatar?: string | null
+  age?: number | null
+  location?: string | null
+  profile_status?: string | null
+  gender?: string | null
+  orientation?: string | null
+  bio?: string | null
+  open_to_other_couples?: boolean
+  open_curtains?: boolean
+  libertine?: boolean
+  online?: boolean
+}
+
+export function orientationLabel (value?: string | null) {
+  const labels: Record<string, string> = {
+    hetero: 'Hétéro', straight: 'Hétéro', bi: 'Bi', bisexual: 'Bisexuel',
+    homo: 'Homo', gay: 'Gay', lesbian: 'Lesbienne', pansexual: 'Pansexuel'
+  }
+  return value ? labels[value.toLowerCase()] || value : null
+}
+
+export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
+  const image = defaultMemberImage(member)
+  const profileHref = `/profile/${member.id}`
+  const name = member.name || 'Membre'
+  const typeLabel = directoryProfileTypeLabel(member)
+
+  return (
+    <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff525d]' aria-label={`Voir le profil de ${name}`}>
+      <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#2b3040] bg-[#1a1b21] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#5d3f3f] group-hover:bg-[#1e1f25]'>
+      <div className='relative aspect-[5/4] overflow-hidden bg-[#121318]'>
+        {image.startsWith('http') ? (
+          <img src={image} alt={`Photo de ${name}`} loading='lazy' className='h-full w-full object-cover transition duration-500 group-hover:scale-105' />
+        ) : (
+          <Image src={image} alt={`Photo de ${name}`} fill sizes='(min-width: 1536px) 16vw, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 50vw' className='object-cover transition duration-500 group-hover:scale-105' />
+        )}
+        <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-transparent to-transparent' />
+        {member.online && <span className='absolute right-2.5 top-2.5 h-3 w-3 rounded-full border-2 border-[#121318] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
+        <div className='absolute inset-x-3 bottom-3'>
+          <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{name}{member.age ? `, ${member.age}` : ''}</h3>
+          <p className='mt-1 flex items-center gap-1 truncate text-xs text-[#c1c6da]'><MapPin className='h-3 w-3 shrink-0 text-[#ff525d]' />{member.location || 'Localisation non renseignée'}</p>
+        </div>
+      </div>
+      <div className='flex flex-1 flex-col p-3'>
+        <div className='flex flex-wrap gap-1.5 text-[11px] leading-4'>
+          <span className='rounded-full bg-[#ff334b]/15 px-2 py-1 font-medium text-[#ffb3b2]'>{typeLabel}</span>
+          {orientationLabel(member.orientation) && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
+          {member.open_to_other_couples && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
+          {member.open_curtains && <span className='rounded-full bg-[#ff334b]/15 px-2 py-1 text-[#ffb3b2]'>Rideaux ouverts</span>}
+          {member.libertine && <span className='rounded-full bg-[#292a2f] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
+        </div>
+        {member.bio && <p className='mt-3 line-clamp-2 text-xs leading-5 text-[#94a3b8]'>{member.bio}</p>}
+        <div className='mt-auto flex items-center justify-between pt-3 text-xs'>
+          <span className='font-medium text-[#ffb3b2] transition-colors group-hover:text-white'>Voir le profil</span>
+          <span className='flex h-8 w-8 items-center justify-center rounded-lg border border-[#2b3040] text-[#c1c6da] transition-colors group-hover:bg-[#292a2f] group-hover:text-white' title='Voir le profil pour matcher ou écrire'><MessageCircle className='h-4 w-4' /><span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span></span>
+        </div>
+      </div>
+      </article>
+    </Link>
+  )
+}

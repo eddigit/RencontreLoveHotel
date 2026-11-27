@@ -7,7 +7,7 @@ describe('Discover authenticated shell', () => {
     const styles = readFileSync('components/site-shell.module.css', 'utf8')
 
     expect(shell).toContain("const isMemberShell = Boolean(user)")
-    expect(shell).toContain("const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/events' || pathname === '/conciergerie' || pathname === '/messages' || pathname.startsWith('/messages/')))")
+    expect(shell).toContain("const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/events' || pathname === '/members' || pathname === '/conciergerie' || pathname === '/messages' || pathname.startsWith('/messages/')))")
     expect(shell).toContain('isMemberShell && styles.discoverShell')
     expect(shell).toContain('isMemberShell && styles.rail')
     expect(shell).toContain('isMemberShell && styles.panel')
