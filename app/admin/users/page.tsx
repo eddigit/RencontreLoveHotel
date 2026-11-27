@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/auth-context'
 import { MemberAvatarImage } from '@/components/member-avatar-image'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'; // Pour le graphique
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Star } from 'lucide-react'
 
 // Define a more specific type for user data, including ban status
@@ -55,6 +56,9 @@ export default function AdminUsersPage () {
   const [loading, setLoading] = useState(true)
   const [loadingGenderCounts, setLoadingGenderCounts] = useState(true); // Nouvel état de chargement
   const [search, setSearch] = useState('')
+  const [photosOnly, setPhotosOnly] = useState(false)
+  const [previewId, setPreviewId] = useState<string | null>(null)
+  const preview = previewId ? users.find(member => member.id === previewId) : undefined
   const [showStarredOnly, setShowStarredOnly] = useState(false)
   const [starUpdatingIds, setStarUpdatingIds] = useState<Set<string>>(() => new Set())
   const pendingStarIds = useRef(new Set<string>())
@@ -156,7 +160,7 @@ export default function AdminUsersPage () {
 
   const filteredUsers = users.filter(
     u =>
-      (!showStarredOnly || u.admin_starred) && (
+      (!photosOnly || u.has_eligible_photo) && (!showStarredOnly || u.admin_starred) && (
         !search.trim() || u.name?.toLowerCase().includes(search.trim().toLowerCase()) ||
         u.email?.toLowerCase().includes(search.trim().toLowerCase())
       )
@@ -251,6 +255,10 @@ export default function AdminUsersPage () {
               className='w-full max-w-md border rounded p-2'
             />
             <label className='flex items-center gap-2 text-sm font-medium'>
+              <input type='checkbox' checked={photosOnly} onChange={event => setPhotosOnly(event.target.checked)} />
+              Avec photo de profil
+            </label>
+            <label className='flex items-center gap-2 text-sm font-medium'>
               <input
                 type='checkbox'
                 checked={showStarredOnly}
@@ -274,13 +282,16 @@ export default function AdminUsersPage () {
                 >
                   <CardHeader>
                     <CardTitle className='flex items-center gap-3'>
+                      <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)}
+                        aria-label={`Agrandir la photo de ${u.name || 'ce membre'}`} className='shrink-0 rounded-lg enabled:cursor-zoom-in'>
                       <MemberAvatarImage
                         src={u.image}
                         gender={u.gender}
                         profileStatus={u.profile_status}
                         alt={`Photo de ${u.name || 'membre'}`}
-                        className='h-12 w-12 shrink-0 rounded-full border border-white/15 object-cover'
+                        className='h-20 w-20 shrink-0 rounded-lg border border-white/15 object-cover'
                       />
+                      </button>
                       <span>{u.name}{' '}
                       <span className='text-xs text-muted-foreground'>
                         ({u.role})
@@ -342,6 +353,19 @@ export default function AdminUsersPage () {
             </div>
           )}
         </div>
+        <Dialog open={Boolean(preview)} onOpenChange={open => { if (!open) setPreviewId(null) }}>
+          {preview && <DialogContent className='max-w-lg'>
+            <DialogTitle>{preview.name || 'Profil membre'}</DialogTitle>
+            <DialogDescription>Photo de profil affichée aux membres</DialogDescription>
+            <MemberAvatarImage src={preview.image} gender={preview.gender} profileStatus={preview.profile_status}
+              alt={`Portrait de ${preview.name || 'ce membre'}`} className='max-h-[55dvh] w-full rounded-lg object-contain' />
+            <Button aria-pressed={Boolean(preview.admin_starred)} disabled={starUpdatingIds.has(preview.id)}
+              onClick={() => handleToggleAdminStar(preview)}>
+              <Star className='mr-2 h-4 w-4' fill={preview.admin_starred ? 'currentColor' : 'none'} />
+              {preview.admin_starred ? 'Retirer la mise en avant' : 'Mettre en avant'}
+            </Button>
+          </DialogContent>}
+        </Dialog>
       </MainLayout>
     </ProtectedRoute>
   )

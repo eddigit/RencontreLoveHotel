@@ -1,6 +1,9 @@
 export type EmailPurpose =
   | 'password_reset'
   | 'campaign'
+  | 'message_alert'
+  | 'match_alert'
+  | 'event_alert'
   | 'event'
   | 'community'
   | 'security'
@@ -12,6 +15,9 @@ export type EmailPolicyReason =
   | 'password_reset_not_requested'
   | 'verification_requested'
   | 'campaign_opted_in'
+  | 'activity_opted_in'
+  | 'missing_activity_consent'
+  | 'activity_category_disabled'
   | 'missing_campaign_opt_in'
   | 'opted_out'
   | 'suppressed'
@@ -28,6 +34,10 @@ export type EmailPolicyInput = {
   preference?: {
     campaignOptIn?: boolean | null
     optedOutAt?: string | Date | null
+    activityEmailConsent?: boolean | null
+    messageEmailEnabled?: boolean | null
+    matchEmailEnabled?: boolean | null
+    eventEmailEnabled?: boolean | null
   } | null
   suppressed?: boolean | null
 }
@@ -40,6 +50,9 @@ export type EmailPolicyResult = {
 export function normalizeEmailPurpose(value: string): EmailPurpose {
   if (value === 'password_reset') return 'password_reset'
   if (value === 'campaign') return 'campaign'
+  if (value === 'message_alert') return 'message_alert'
+  if (value === 'match_alert') return 'match_alert'
+  if (value === 'event_alert') return 'event_alert'
   if (value === 'event') return 'event'
   if (value === 'community') return 'community'
   if (value === 'security') return 'security'
@@ -76,14 +89,27 @@ export function canSendEmailForPurpose(
     return { allowed: false, reason: 'suppressed' }
   }
 
-  if (input.preference?.optedOutAt) {
-    return { allowed: false, reason: 'opted_out' }
-  }
-
   if (purpose === 'campaign') {
+    if (input.preference?.optedOutAt) {
+      return { allowed: false, reason: 'opted_out' }
+    }
     return input.preference?.campaignOptIn === true
       ? { allowed: true, reason: 'campaign_opted_in' }
       : { allowed: false, reason: 'missing_campaign_opt_in' }
+  }
+
+  const activityPreferenceByPurpose = {
+    message_alert: input.preference?.messageEmailEnabled,
+    match_alert: input.preference?.matchEmailEnabled,
+    event_alert: input.preference?.eventEmailEnabled
+  } as const
+  if (purpose in activityPreferenceByPurpose) {
+    if (input.preference?.activityEmailConsent !== true) {
+      return { allowed: false, reason: 'missing_activity_consent' }
+    }
+    return activityPreferenceByPurpose[purpose as keyof typeof activityPreferenceByPurpose] === true
+      ? { allowed: true, reason: 'activity_opted_in' }
+      : { allowed: false, reason: 'activity_category_disabled' }
   }
 
   return { allowed: false, reason: 'purpose_blocked_by_default' }

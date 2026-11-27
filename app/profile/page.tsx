@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button'
 import { Camera, CalendarHeart, HeartHandshake, Sparkles, UserRound, Wine } from 'lucide-react'
 import { calculateProfileCompletion } from '@/lib/profile-completion'
 import { enforceMemberContent } from '@/lib/content-safety-service'
+import { getOwnEmailPreferences, updateOwnEmailPreferences } from '@/actions/email-preference-actions'
+import { EmailPreferencesEditor } from '@/components/email-preferences-editor'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -190,6 +192,9 @@ export default async function ProfilePage ({
   searchParams?: Promise<{ tab?: string }>
 }) {
   const requestedTab = (await searchParams)?.tab
+  const activeTab = requestedTab === 'preferences' || requestedTab === 'photos' || requestedTab === 'emails'
+    ? requestedTab
+    : 'profile'
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user // Renamed to avoid conflict
   if (!sessionUser) {
@@ -317,6 +322,8 @@ export default async function ProfilePage ({
     additionalOptionsResult.length > 0 ? additionalOptionsResult[0] : {}
   )
 
+  const emailPreferences = await getOwnEmailPreferences().catch(() => null)
+
   // Fetch user photos
   const photosResult = await sql`
     SELECT * FROM photos WHERE user_id = ${dbUser.id} ORDER BY created_at ASC
@@ -405,11 +412,11 @@ export default async function ProfilePage ({
 
           <section className='min-w-0'>
             <Tabs
-              key={requestedTab === 'photos' ? 'photos' : 'profile'}
-              defaultValue={requestedTab === 'photos' ? 'photos' : 'profile'}
+              key={activeTab}
+              defaultValue={activeTab}
               className='w-full'
             >
-              <TabsList className='mb-5 grid h-auto w-full grid-cols-3 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1'>
+              <TabsList className='mb-5 grid h-auto w-full grid-cols-2 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1 sm:grid-cols-4'>
                 <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Identité
                 </TabsTrigger>
@@ -418,6 +425,9 @@ export default async function ProfilePage ({
                 </TabsTrigger>
                 <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Photos
+                </TabsTrigger>
+                <TabsTrigger value='emails' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
+                  E-mails
                 </TabsTrigger>
               </TabsList>
           <TabsContent value='profile'>
@@ -448,6 +458,15 @@ export default async function ProfilePage ({
               </h3>
               {/* UserPhotosManager handles upload/delete UI */}
               <UserPhotosManager userId={String(dbUser.id)} photos={userPhotos} maxPhotos={10} />
+            </div>
+          </TabsContent>
+          <TabsContent value='emails'>
+            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
+              <h3 className='text-lg font-black'>Préférences e-mail</h3>
+              {emailPreferences ? <EmailPreferencesEditor
+                preferences={emailPreferences}
+                onSave={updateOwnEmailPreferences}
+              /> : <p role="alert">Impossible de charger vos préférences e-mail. Actualisez la page pour réessayer.</p>}
             </div>
           </TabsContent>
         </Tabs>

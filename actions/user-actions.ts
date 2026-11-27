@@ -20,6 +20,7 @@ import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 import type { DirectoryProfileType } from '@/lib/member-profile-types'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
 import { revalidatePath } from 'next/cache'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 type CommunityMemberStats = {
   totalMembers: number
@@ -792,6 +793,7 @@ export async function sendMatchRequest(
       WHERE (user_id_1 = ${requesterId} AND user_id_2 = ${receiverId})
          OR (user_id_1 = ${receiverId} AND user_id_2 = ${requesterId})
     `
+    let matchId = existing[0]?.id as string | undefined
     if (existing.length > 0) {
       const status = existing[0].status
       const pendingIsActive = status === "pending" && (
@@ -827,14 +829,16 @@ export async function sendMatchRequest(
         WHERE id = ${existing[0].id}
       `
     } else {
-      await sql`
+      const [createdMatch] = await sql`
         INSERT INTO user_matches (
           user_id_1, user_id_2, status, match_score, expires_at, context
         ) VALUES (
           ${requesterId}, ${receiverId}, 'pending', ${matchScore},
           CURRENT_TIMESTAMP + INTERVAL '30 days', ${JSON.stringify(safeContext)}::jsonb
         )
+        RETURNING id
       `
+      matchId = createdMatch?.id
     }
     // Send notification to receiver
     await createNotification({
@@ -843,6 +847,14 @@ export async function sendMatchRequest(
       title: 'Nouvelle demande de match',
       description: 'Vous avez reçu une nouvelle demande de match.',
       link: '/matches',
+    })
+    await sendMemberActivityEmail({
+      recipientId: receiverId,
+      purpose: 'match_alert',
+      notificationKey: `match-request:${matchId || `${requesterId}:${receiverId}`}`,
+      subject: 'Une nouvelle demande de match vous attend',
+      text: 'Une nouvelle demande de match est disponible. Connectez-vous pour y répondre.',
+      path: '/matches'
     })
     await trackProductEvent({
       eventName: 'match_request_sent',
@@ -932,6 +944,14 @@ export async function acceptMatchRequest(requesterId: string, receiverId: string
       title: 'Votre demande de match a été acceptée',
       description: 'Votre demande de match a été acceptée !',
       link: `/messages/${conversationId}`,
+    })
+    await sendMemberActivityEmail({
+      recipientId: requesterId,
+      purpose: 'match_alert',
+      notificationKey: `match-accepted:${conversationId}`,
+      subject: 'Votre demande de match a été acceptée',
+      text: 'Votre demande de match a été acceptée. Connectez-vous pour continuer votre échange.',
+      path: `/messages/${conversationId}`
     })
     await trackProductEvent({
       eventName: 'match_accepted',

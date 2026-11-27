@@ -7,6 +7,8 @@ vi.mock('@/lib/db', () => ({
   }
 }))
 
+vi.mock('@/lib/member-activity-email', () => ({ sendMemberActivityEmail: vi.fn() }))
+
 vi.mock('@/lib/notification-service', () => ({
   createNotificationInternal: vi.fn()
 }))

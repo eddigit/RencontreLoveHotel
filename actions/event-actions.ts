@@ -5,6 +5,7 @@ import { notifyEventReservationAdmins } from "@/lib/event-reservation-notificati
 import { requireAdmin, requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
 import { enforceMemberContent } from '@/lib/content-safety-service'
 import { reserveEventSeat } from '@/lib/event-participation'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 const activeExperienceTypes = ['jacuzzi', 'open_curtains', 'libertine'] as const
 type ActiveExperienceType = (typeof activeExperienceTypes)[number]
@@ -442,6 +443,7 @@ export async function subscribeToEvent(eventId: string, userId: string) {
   const [event] = await sql`
     SELECT
       id,
+      title,
       max_participants,
       event_date,
       event_time,
@@ -466,7 +468,17 @@ export async function subscribeToEvent(eventId: string, userId: string) {
   const reservation = await reserveEventSeat(eventId, userId)
   if (reservation === 'full') return { success: false, error: 'Événement complet' }
   if (reservation === 'missing') return { success: false, error: 'Événement introuvable' }
-  if (reservation === 'joined') await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
+  if (reservation === 'joined') {
+    await notifyEventReservationAdmins({ eventId, userId, action: 'join' })
+    await sendMemberActivityEmail({
+      recipientId: userId,
+      purpose: 'event_alert',
+      notificationKey: `event-joined:${eventId}:${userId}`,
+      subject: 'Votre participation à un événement est confirmée',
+      text: 'Votre inscription à un événement est confirmée. Connectez-vous pour consulter les détails.',
+      path: '/events'
+    })
+  }
   return { success: true }
 }
 

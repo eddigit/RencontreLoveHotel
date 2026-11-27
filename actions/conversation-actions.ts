@@ -18,6 +18,7 @@ import {
 } from '@/lib/moderation-case-service'
 import { enforceMemberContent } from '@/lib/content-safety-service'
 import { ensureMessageDeliveryReceiptSchema } from '@/lib/message-delivery-receipts'
+import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
 const INITIAL_CONVERSATION_MESSAGE_LIMIT = 80
@@ -663,6 +664,14 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
       title: 'Nouveau message',
       description: 'Vous avez reçu un nouveau message.',
       link: `/messages/${conversationId}`,
+    })
+    await sendMemberActivityEmail({
+      recipientId: recipient.user_id,
+      purpose: 'message_alert',
+      notificationKey: `message:${newMessage.id}`,
+      subject: 'Nouveau message sur Love Hotel Rencontre',
+      text: 'Vous avez reçu un nouveau message. Connectez-vous pour le consulter en toute confidentialité.',
+      path: `/messages/${conversationId}`
     })
   }
 
