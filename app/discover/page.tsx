@@ -88,7 +88,6 @@ type EventRow = {
 
 type CommunityMemberStats = {
   totalMembers: number
-  newMembersLast24h: number
 }
 
 function isDiscoverStatus(value: string | null): value is FilterOptions['status'] {
@@ -215,10 +214,9 @@ export default function DiscoverPage () {
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [memberStats, setMemberStats] = useState<CommunityMemberStats>({
-    totalMembers: 0,
-    newMembersLast24h: 0
+    totalMembers: 0
   })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
   const [visitSeed, setVisitSeed] = useState(() => discoverVisitSeedFromSearchParams(initialSearchParams))
@@ -605,15 +603,9 @@ export default function DiscoverPage () {
                     Voir
                   </Link>
                 </div>
-                <dl className='my-3 grid grid-cols-2 gap-2 text-center'>
-                  <div className='flex flex-col-reverse rounded-lg bg-[#24211d] py-2'>
-                    <dt className='text-xs text-[#aaa69e]'>Membres du cercle</dt>
-                    <dd className='text-xl font-semibold text-[#d6bc87]'>{loading || error ? '…' : formatCount(memberStats.totalMembers)}</dd>
-                  </div>
-                  <div className='flex flex-col-reverse rounded-lg bg-[#24211d] py-2'>
-                    <dt className='text-xs text-[#aaa69e]'>Nouveaux en 24 h</dt>
-                    <dd className='text-xl font-semibold text-[#d6bc87]'>{loading || error ? '…' : formatCount(memberStats.newMembersLast24h)}</dd>
-                  </div>
+                <dl className='my-3 flex items-baseline justify-between gap-2 rounded-lg bg-[#24211d] px-3 py-2'>
+                  <dt className='text-sm text-[#c4beb3]'>Membres du cercle</dt>
+                  <dd className='text-xl font-semibold text-[#d6bc87]'>{loading || error ? '…' : formatCount(memberStats.totalMembers)}</dd>
                 </dl>
                 {onlineMembers.length > 0 ? (
                   <div className='mt-3 space-y-2'>

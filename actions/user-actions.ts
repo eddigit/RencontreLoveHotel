@@ -1,6 +1,6 @@
 "use server"
 
-import { sql } from "@/lib/db"
+import { sql, withTransaction } from "@/lib/db"
 import { calculateMatchScore, isMutuallyTargeted } from "@/utils/matching-algorithm"
 import { createNotificationInternal as createNotification } from '@/lib/notification-service'
 import { FilterOptions } from "@/components/advanced-filters";
@@ -18,18 +18,48 @@ import { rankDiscoveryCandidates, rotateDiscoveryBatchWithPhotoPriority } from '
 import { eligibleMemberPhotoSql } from '@/lib/member-photo'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
 import type { DirectoryProfileType } from '@/lib/member-profile-types'
+import { memberIdentityFromStatus, type MemberStatus } from '@/lib/member-profile-types'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
 import { revalidatePath } from 'next/cache'
 import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
 type CommunityMemberStats = {
   totalMembers: number
-  newMembersLast24h: number
 }
 
 export async function getUserProfile(userId: string) {
   const user = await sql`
-    SELECT u.id as user_id, u.*, up.id as profile_id, up.*
+    SELECT
+      u.id AS user_id,
+      u.id,
+      u.name,
+      u.email,
+      u.role,
+      u.avatar,
+      u.onboarding_completed,
+      u.is_banned,
+      u.status AS account_status,
+      u.created_at AS user_created_at,
+      u.updated_at AS user_updated_at,
+      u.last_seen_at,
+      u.admin_starred_at,
+      up.id AS profile_id,
+      up.status,
+      up.age,
+      up.orientation,
+      up.bio,
+      up.location,
+      up.gender,
+      up.birthday,
+      up.interests,
+      up.featured,
+      up.display_profile,
+      up.created_at AS profile_created_at,
+      up.updated_at AS profile_updated_at,
+      up.couple_composition,
+      up.seeking_profile_types,
+      up.relationship_intents,
+      up.bdsm_roles
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
     WHERE u.id = ${userId}
@@ -153,41 +183,17 @@ export async function getUserMatches(userId: string) {
 }
 
 export async function getCommunityMemberStats(): Promise<CommunityMemberStats> {
-  const viewer = await requireCurrentUser()
-
-  const [stats] = await sql.query<Array<{
-    total_members: string | number
-    new_members_last_24h: string | number
-  }>>(
-    `
-      SELECT
-        COUNT(*) FILTER (
-          WHERE COALESCE(u.is_banned, false) = false
-            AND COALESCE(u.status, 'active') <> 'banned'
-            AND u.onboarding_completed = TRUE
-            AND up.display_profile = TRUE
-        ) AS total_members,
-        COUNT(*) FILTER (
-          WHERE COALESCE(u.is_banned, false) = false
-            AND COALESCE(u.status, 'active') <> 'banned'
-            AND u.onboarding_completed = TRUE
-            AND up.display_profile = TRUE
-            AND u.created_at >= NOW() - INTERVAL '24 hours'
-            AND u.id <> $1
-            AND NOT EXISTS (SELECT 1 FROM user_blocks b
-              WHERE (b.blocker_id = $1 AND b.blocked_id = u.id)
-                 OR (b.blocker_id = u.id AND b.blocked_id = $1))
-        ) AS new_members_last_24h
-      FROM users u
-      LEFT JOIN user_profiles up ON up.user_id = u.id
-    `,
-    [viewer.id]
-  )
-
-  return {
-    totalMembers: Number(stats?.total_members || 0),
-    newMembersLast24h: Number(stats?.new_members_last_24h || 0)
-  }
+  await requireCurrentUser()
+  const [stats] = await sql.query<Array<{ total_members: string | number }>>(`
+    SELECT COUNT(DISTINCT u.id) AS total_members
+    FROM users u
+    JOIN user_profiles up ON up.user_id = u.id
+    WHERE COALESCE(u.is_banned, false) = false
+      AND COALESCE(u.status, 'active') <> 'banned'
+      AND u.onboarding_completed = TRUE
+      AND up.display_profile = TRUE
+  `)
+  return { totalMembers: Number(stats.total_members) }
 }
 
 export async function getOnlineCommunityMembers(limit = 12) {
@@ -1141,24 +1147,80 @@ export async function getUserCountsByGender(): Promise<{ gender: string; count: 
   }
 }
 
-export async function updateUserByAdmin(userId: string, { name, email, role, avatar }: { name?: string, email?: string, role?: string, avatar?: string }) {
+type AdminProfileType = MemberStatus | 'unspecified'
+
+export async function updateUserByAdmin(userId: string, {
+  name,
+  email,
+  role,
+  avatar,
+  profileType
+}: {
+  name?: string
+  email?: string
+  role?: string
+  avatar?: string
+  /** Explicit administrative correction only; never inferred from an avatar or photo. */
+  profileType?: AdminProfileType
+}) {
   await requireAdmin()
 
   if (role && !['user', 'community_moderator', 'admin'].includes(role)) {
     throw new Error('Rôle utilisateur invalide')
   }
+  if (profileType && !['single_male', 'single_female', 'single_trans', 'couple', 'unspecified'].includes(profileType)) {
+    throw new Error('Type de profil invalide')
+  }
 
-  const [user] = await sql`
-    UPDATE users
-    SET
-      name = COALESCE(${name}, name),
-      email = COALESCE(${email}, email),
-      role = COALESCE(${role}, role),
-      avatar = COALESCE(${avatar}, avatar)
-    WHERE id = ${userId}
-    RETURNING *
-  `
-  return user
+  return withTransaction(async client => {
+    // user_profiles.user_id is not unique in the deployed schema. Serialise
+    // corrections on the parent account instead of relying on an unsafe upsert.
+    const locked = await client.query<{ id: string }>(
+      'SELECT id FROM users WHERE id = $1 FOR UPDATE',
+      [userId]
+    )
+    if (!locked.rows[0]) throw new Error('Utilisateur introuvable')
+
+    const updatedUser = await client.query<{
+      id: string
+      name: string
+      email: string
+      role: string
+      avatar: string | null
+    }>(
+      `UPDATE users
+       SET name = COALESCE($1, name), email = COALESCE($2, email),
+           role = COALESCE($3, role), avatar = COALESCE($4, avatar)
+       WHERE id = $5
+       RETURNING id, name, email, role, avatar`,
+      [name ?? null, email ?? null, role ?? null, avatar ?? null, userId]
+    )
+
+    // Keep the discovery identity consistent by writing the canonical status
+    // and gender together. Preferences, search settings and photos are not
+    // part of this administrative correction.
+    if (profileType) {
+      const identity = profileType === 'unspecified'
+        ? { status: null, gender: null }
+        : memberIdentityFromStatus(profileType)
+      const updatedProfile = await client.query(
+        `UPDATE user_profiles
+         SET status = $1, gender = $2, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = $3
+         RETURNING id`,
+        [identity.status, identity.gender, userId]
+      )
+      if (!updatedProfile.rows[0]) {
+        await client.query(
+          `INSERT INTO user_profiles (id, user_id, status, gender)
+           VALUES (gen_random_uuid(), $1, $2, $3)`,
+          [userId, identity.status, identity.gender]
+        )
+      }
+    }
+
+    return updatedUser.rows[0]
+  })
 }
 
 /** Editorial label used only for presentation. */

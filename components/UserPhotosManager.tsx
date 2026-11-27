@@ -83,6 +83,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
 
   return (
     <div>
+      <p className='mb-3 text-sm text-[#c9c7c2]'>Galerie · {photos.length} / {maxPhotos} photos. Pour préparer le parrainage, ajoutez au moins trois photos différentes et gardez votre profil à jour.</p>
       {message && (
         <div role='status' className='mb-3 rounded-xl border border-emerald-400/25 bg-emerald-500/10 p-3 font-medium text-emerald-100'>{message}</div>
       )}

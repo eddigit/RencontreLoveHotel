@@ -129,7 +129,7 @@ export default function RegisterPage () {
                   Créer un compte
                 </CardTitle>
                 <CardDescription className='text-center'>
-                  {referralToken ? 'Vous avez suivi un lien de parrainage. Créez votre compte pour rejoindre le cercle.' : 'Rejoignez le cercle. L’inscription est libre, avec ou sans parrain.'}
+                  {referralToken ? 'Vous avez suivi un lien de parrainage. Créez votre compte pour rejoindre le cercle.' : 'Rejoignez le cercle : l’inscription est libre. Le parrainage est facultatif et recommandé, jamais obligatoire.'}
                 </CardDescription>
               </CardHeader>
               <CardContent>

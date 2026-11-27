@@ -16,6 +16,7 @@ import {
   MessageCircle,
   Search,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserPlus,
   UserRound,
@@ -46,6 +47,7 @@ const memberNavItems: NavigationItem[] = [
   { href: '/events', label: 'Événements', icon: CalendarDays },
   { href: '/lieux', label: 'Lieux', icon: MapPin },
   { href: '/conciergerie', label: 'Conciergerie', icon: Sparkles },
+  { href: '/community-safety', label: 'Règles', icon: ShieldCheck },
   { href: '/profile', label: 'Profil', icon: UserRound }
 ]
 
@@ -284,6 +286,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
               </form>
               <div className='flex items-center gap-4'>
                 <Link href='/discover#boite-a-idees' className={styles.feedbackLink}>Boîte à idées</Link>
+                <Link href='/community-safety' aria-label='Ouvrir les règles de la communauté' title='Règles de la communauté' className='rounded-xl p-2 text-[#d6bc87] transition hover:bg-white/10 hover:text-[#e5d1aa]'>
+                  <ShieldCheck className='size-5' aria-hidden />
+                </Link>
                 <NotificationsButton />
                 <Link href='/profile' className={styles.headerProfile} aria-label='Ouvrir mon profil'>
                   <span className='hidden text-right xl:block'>
@@ -308,6 +313,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               <BrandLogo compact priority />
             </Link>
             <div className='flex items-center gap-2'>
+              {user ? <Link href='/community-safety' aria-label='Ouvrir les règles de la communauté' className='rounded-xl border border-white/12 bg-white/[0.06] p-2 text-[#d6bc87]'><ShieldCheck className='h-5 w-5' aria-hidden /></Link> : null}
               {user ? <NotificationsButton /> : null}
               <Dialog.Trigger asChild>
               <button

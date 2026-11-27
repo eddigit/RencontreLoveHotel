@@ -269,6 +269,29 @@ export default function EventsPage () {
             </Button>
           </header>
 
+          <section className='mb-6 overflow-hidden rounded-2xl border border-[#d6bc87]/30 bg-[linear-gradient(135deg,rgba(214,188,135,0.12),rgba(22,24,31,1))] p-5 sm:p-6'>
+            <div className='flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between'>
+              <div className='max-w-3xl'>
+                <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#d6bc87]'>Offre partenaire actuelle</p>
+                <h2 className='mt-2 text-2xl font-semibold text-[#f8fafc]'>Réserver au Love Hôtel</h2>
+                <p className='mt-3 text-sm leading-6 text-[#c9c7c2]'>
+                  Love Room, jacuzzi privatif et rideaux ouverts sont disponibles auprès de notre partenaire. Dans le cercle, vous pouvez proposer votre propre événement ou vous inscrire à une date organisée par Joug.
+                </p>
+              </div>
+              <div className='shrink-0'>
+                <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+                  <Link href='/love-rooms?tab=reserve'>Réserver au Love Hôtel</Link>
+                </Button>
+              </div>
+            </div>
+            <div className='mt-5 border-t border-white/10 pt-5'>
+              <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#ffb3b2]'>Objectif janvier 2027</p>
+              <p className='mt-2 max-w-3xl text-sm leading-6 text-[#c9c7c2]'>
+                Nous préparons des rencontres dans des restaurants, clubs, théâtres et lieux privés. Les adresses, les dates et les codes promotionnels réservés aux membres seront annoncés ici à mesure de leur confirmation.
+              </p>
+            </div>
+          </section>
+
           {actionError && (
             <div className='mb-4 rounded-xl border border-red-400/25 bg-red-500/10 p-3 text-sm text-red-100'>
               {actionError}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import MainLayout from '@/components/layout/main-layout'
@@ -11,7 +12,8 @@ import { LoveHotelBookingWidget } from '@/components/love-hotel-booking'
 import ConciergerieForm from '@/components/ConciergerieForm'
 
 export default function LoveRoomsPage () {
-  const [activeTab, setActiveTab] = useState('offers')
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') === 'reserve' ? 'reserve' : 'offers')
 
   return (
     <MainLayout>

@@ -17,6 +17,10 @@ export default function CommunitySafetyPage () {
               Il est interdit de proposer, demander, promouvoir ou négocier un acte ou un rendez-vous sexuel
               contre argent, cadeau, hébergement, transport, service ou avantage quelconque.
             </p>
+            <p className='mt-3 text-white/72'>
+              Toute tentative ou demande de sollicitation sexuelle tarifée est interdite. Lorsqu’un fait est établi
+              après vérification humaine des éléments nécessaires, le compte concerné est banni immédiatement.
+            </p>
           </section>
           <section>
             <h2 className='text-2xl font-bold'>Des services officiels clairement séparés</h2>
@@ -27,11 +31,18 @@ export default function CommunitySafetyPage () {
             </p>
           </section>
           <section>
+            <h2 className='text-2xl font-bold'>Inscription libre, parrainage recommandé</h2>
+            <p className='mt-3 text-white/72'>
+              Joug Rencontre est un cercle ouvert aux adultes. Toute personne majeure peut s’inscrire librement. Le parrainage est facultatif et recommandé : il ne conditionne jamais l’accès à la communauté.
+            </p>
+          </section>
+          <section>
             <h2 className='text-2xl font-bold'>Une modération proportionnée</h2>
             <p className='mt-3 text-white/72'>
               Des signaux automatisés peuvent créer une alerte confidentielle. Aucun bannissement permanent ne repose
-              uniquement sur un mot-clé ou une décision automatisée. Les adhérents-modérateurs habilités accèdent au seul
-              contenu nécessaire, et toute mesure grave bénéficie d’un réexamen humain et d’une possibilité de recours.
+              uniquement sur un mot-clé ou une décision automatisée : le fait est établi par une vérification humaine.
+              Les adhérents-modérateurs habilités accèdent au seul contenu nécessaire, et toute mesure grave bénéficie
+              d’un réexamen humain et d’une possibilité de recours.
             </p>
           </section>
           <section>

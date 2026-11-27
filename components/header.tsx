@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Heart, Menu, Search, X, MessageCircle, Settings } from 'lucide-react'
+import { Heart, Menu, Search, X, MessageCircle, Settings, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { NotificationsButton } from '@/components/notifications-button'
@@ -112,6 +112,11 @@ export function Header ({ session, user }: HeaderProps) {
                     Messages
                   </Button>
                 </Link>
+                <Button asChild variant='ghost' size='icon' className='text-[#d6bc87]'>
+                  <Link href='/community-safety' aria-label='Règles de la communauté' title='Règles de la communauté'>
+                    <ShieldCheck aria-hidden className='h-5 w-5' />
+                  </Link>
+                </Button>
                 {isAdmin && (
                   <Link href='/admin'>
                     <Button
@@ -332,6 +337,19 @@ export function Header ({ session, user }: HeaderProps) {
               >
                 <MessageCircle className='h-5 w-5' />
                 <span>Messages</span>
+              </Link>
+              <Link
+                href='/community-safety'
+                className={cn(
+                  'flex items-center gap-3 p-3 rounded-lg',
+                  pathname === '/community-safety'
+                    ? 'bg-[#ff3b8b]/10 text-[#ff3b8b]'
+                    : 'hover:bg-[#2d1155]/50'
+                )}
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <ShieldCheck className='h-5 w-5' />
+                <span>Règles</span>
               </Link>
               {isAdmin && (
                 <Link
