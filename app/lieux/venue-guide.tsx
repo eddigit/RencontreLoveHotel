@@ -122,11 +122,11 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
   }
 
   return (
-    <div className='min-h-screen bg-[#120821] text-white'>
-      <section className='relative isolate overflow-hidden border-b border-amber-200/10 bg-[radial-gradient(circle_at_12%_8%,rgba(245,158,11,0.22),transparent_27%),radial-gradient(circle_at_85%_18%,rgba(190,24,93,0.3),transparent_28%),linear-gradient(135deg,#19051e_0%,#35102c_52%,#13051e_100%)]'>
+    <div className='min-h-screen bg-[#0a0f15] text-white'>
+      <section className='relative isolate overflow-hidden border-b border-amber-200/10 bg-[radial-gradient(circle_at_12%_8%,rgba(90,97,106,0.22),transparent_27%),radial-gradient(circle_at_85%_18%,rgba(66,72,83,0.3),transparent_28%),linear-gradient(135deg,#0a0f15_0%,#111821_52%,#0a0f15_100%)]'>
         <div className='absolute inset-y-0 right-0 hidden w-1/2 opacity-35 lg:block'>
           <Image src='/guide-love-rooms.webp' alt='' fill priority className='object-cover object-center mix-blend-screen' sizes='50vw' />
-          <div className='absolute inset-0 bg-gradient-to-r from-[#2b0826] via-[#2b0826]/40 to-transparent' />
+          <div className='absolute inset-0 bg-gradient-to-r from-[#0a0f15] via-[#0a0f15]/40 to-transparent' />
         </div>
         <div className='relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24'>
           <p className='inline-flex items-center gap-2 rounded-full border border-amber-200/25 bg-amber-200/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-100'>
@@ -151,7 +151,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
 
         <label className='mt-7 block md:hidden'>
           <span className='sr-only'>Choisir une catégorie de lieux</span>
-          <select value={active.id} onChange={event => selectCategory(event.target.value)} className='w-full rounded-xl border border-amber-200/25 bg-[#2b102d] px-4 py-3 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-amber-300'>
+          <select value={active.id} onChange={event => selectCategory(event.target.value)} className='w-full rounded-xl border border-amber-200/25 bg-[#0a0f15] px-4 py-3 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-amber-300'>
             {categories.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
           </select>
         </label>
@@ -172,7 +172,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
                     : 'border-white/10 bg-white/[0.035] hover:border-amber-200/25 hover:bg-white/[0.07]'
                 }`}
               >
-                <span className={`rounded-xl p-2.5 ${isActive ? 'bg-amber-200 text-[#35102c]' : 'bg-white/8 text-amber-200'}`}><Icon className='h-5 w-5' /></span>
+                <span className={`rounded-xl p-2.5 ${isActive ? 'bg-[#c1121f] text-white' : 'bg-white/8 text-amber-200'}`}><Icon className='h-5 w-5' /></span>
                 <span className='min-w-0'>
                   <span className='block text-sm font-bold text-white'>{category.label}</span>
                   <span className='mt-1 block text-xs leading-5 text-white/55'>{category.confirmed ? 'Référencé' : 'À confirmer'}</span>
@@ -182,12 +182,12 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
           })}
         </nav>
 
-        <section id='venue-details' aria-label={active.label} className='mt-6 overflow-hidden rounded-3xl border border-amber-100/15 bg-[linear-gradient(135deg,rgba(102,28,70,0.82),rgba(29,8,40,0.96))] shadow-2xl shadow-black/20'>
+        <section id='venue-details' aria-label={active.label} className='mt-6 overflow-hidden rounded-3xl border border-amber-100/15 bg-[linear-gradient(135deg,rgba(17,24,33,0.98),rgba(10,15,21,0.96))] shadow-2xl shadow-black/20'>
           <div className='grid lg:grid-cols-[1.15fr_.85fr]'>
             <div className='p-6 sm:p-9'>
               <p className={`text-xs font-bold uppercase tracking-[0.2em] ${active.confirmed ? 'text-amber-200' : 'text-white/50'}`}>{active.eyebrow}</p>
               <div className='mt-4 flex items-start gap-4'>
-                <span className='rounded-2xl bg-amber-200 p-3 text-[#35102c]'><ActiveIcon className='h-7 w-7' /></span>
+                <span className='rounded-2xl bg-[#c1121f] p-3 text-[#ecebe7]'><ActiveIcon className='h-7 w-7' /></span>
                 <div>
                   <h3 className='text-2xl font-semibold sm:text-3xl'>{active.title}</h3>
                   <p className='mt-3 max-w-xl text-sm leading-7 text-white/70 sm:text-base'>{active.summary}</p>
@@ -211,7 +211,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
                   Site officiel du Love Hôtel <ArrowUpRight className='h-4 w-4' />
                 </a>
               ) : null}
-              <Link href={active.cta.href} className='mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-200 px-5 py-3 text-sm font-extrabold text-[#35102c] transition hover:bg-amber-100'>
+              <Link href={active.cta.href} className='mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-200 px-5 py-3 text-sm font-extrabold text-[#ecebe7] transition hover:bg-amber-100'>
                 {active.cta.label}<ArrowUpRight className='h-4 w-4' />
               </Link>
             </div>

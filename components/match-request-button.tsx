@@ -22,12 +22,12 @@ export function MatchRequestButton({ currentUserId, profileUserId }: { currentUs
   }
 
   if (status === "sent") {
-    return <Button disabled className="bg-gray-400">Demande envoyée (en attente)</Button>
+    return <Button disabled className="bg-[#111821] text-[#c9c7c2]">Demande envoyée (en attente)</Button>
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <Button type="button" onClick={handleSend} disabled={pending} className="bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] border-0">
+      <Button type="button" onClick={handleSend} disabled={pending} className="bg-[#c1121f] text-white hover:bg-[#a7101c] border-0">
         {pending ? "Envoi..." : "Envoyer une demande de match"}
       </Button>
       {status === "error" && <span className="text-red-500 text-sm">{error}</span>}

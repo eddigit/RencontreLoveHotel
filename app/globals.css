@@ -4,25 +4,26 @@
 
 @layer base {
   :root {
-    --background: 270 30% 5.9%;
-    --foreground: 0 0% 98%;
-    --card: 270 30% 5.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 270 30% 5.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 300 95% 65%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 330 80% 60%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 270 20% 15.9%;
-    --muted-foreground: 270 5% 64.9%;
-    --accent: 270 20% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 270 20% 15.9%;
-    --input: 270 20% 15.9%;
-    --ring: 300 95% 65%;
+    color-scheme: dark;
+    --background: 214 47% 3%;
+    --foreground: 48 12% 92%;
+    --card: 213 35% 6%;
+    --card-foreground: 48 12% 92%;
+    --popover: 214 32% 10%;
+    --popover-foreground: 48 12% 92%;
+    --primary: 356 83% 41%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 27% 15%;
+    --secondary-foreground: 48 12% 92%;
+    --muted: 214 22% 14%;
+    --muted-foreground: 43 5% 70%;
+    --accent: 214 22% 17%;
+    --accent-foreground: 48 12% 92%;
+    --destructive: 356 83% 35%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 213 12% 24%;
+    --input: 213 12% 24%;
+    --ring: 48 12% 92%;
     --radius: 0.75rem;
   }
 }
@@ -105,20 +106,20 @@ body {
 }
 
 .gradient-bg {
-  background: linear-gradient(135deg, #1a0d2e 0%, #3d1155 100%);
+  background: linear-gradient(135deg, #04070b 0%, #111821 100%);
 }
 
 .profile-gradient {
-  background: linear-gradient(to bottom, rgba(26, 13, 46, 0.8) 0%, rgba(61, 17, 85, 0.9) 100%);
+  background: linear-gradient(to bottom, rgba(4, 7, 11, 0.8) 0%, rgba(17, 24, 33, 0.9) 100%);
 }
 
 .card-gradient {
-  background: linear-gradient(135deg, rgba(26, 13, 46, 0.7) 0%, rgba(61, 17, 85, 0.8) 100%);
+  background: linear-gradient(135deg, rgba(4, 7, 11, 0.7) 0%, rgba(17, 24, 33, 0.8) 100%);
   backdrop-filter: blur(8px);
 }
 
 .live-badge {
-  background: linear-gradient(90deg, #ff3b8b 0%, #ff8cc8 100%);
+  background: linear-gradient(90deg, #a9101b 0%, #c1121f 100%);
   color: white;
   font-size: 0.7rem;
   padding: 0.1rem 0.5rem;
@@ -144,7 +145,7 @@ body {
   left: 0;
   right: 0;
   height: 70%;
-  background: linear-gradient(to top, rgba(26, 13, 46, 0.9) 0%, transparent 100%);
+  background: linear-gradient(to top, rgba(4, 7, 11, 0.9) 0%, transparent 100%);
   z-index: 1;
 }
 
@@ -238,7 +239,7 @@ body {
 }
 
 .btn-gradient {
-  background: linear-gradient(90deg, #ff3b8b 0%, #ff8cc8 100%);
+  background: linear-gradient(90deg, #a9101b 0%, #c1121f 100%);
   border: none;
   color: white;
   font-weight: 600;

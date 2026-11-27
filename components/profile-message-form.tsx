@@ -38,16 +38,16 @@ export function ProfileMessageForm({ recipientId }: { recipientId: string }) {
   }
 
   return (
-    <form onSubmit={handleSend} className="mt-4 rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-4">
+    <form onSubmit={handleSend} className="mt-4 rounded-2xl border border-[#c9c7c2]/20 bg-[#c9c7c2]/10 p-4">
       <div className="mb-3 flex items-center gap-2 font-black text-white">
-        <MessageCircle className="h-4 w-4 text-[#94ffc9]" />
+        <MessageCircle className="h-4 w-4 text-[#c9c7c2]" />
         Conversation fluide
       </div>
       <p className="mb-3 text-sm leading-6 text-white/62">
         Message ouvert après match accepté. Votre échange s’ouvre dans la messagerie complète.
       </p>
       <textarea
-        className="min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.07] p-3 text-white outline-none placeholder:text-white/40 focus:border-[#94ffc9]"
+        className="min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.07] p-3 text-white outline-none placeholder:text-white/40 focus:border-[#c9c7c2]"
         placeholder="Écrivez un message court, élégant, concret..."
         value={message}
         onChange={e => setMessage(e.target.value)}
@@ -55,11 +55,11 @@ export function ProfileMessageForm({ recipientId }: { recipientId: string }) {
         required
       />
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Button type="submit" disabled={sending || !message.trim()} className="rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] border-0">
+        <Button type="submit" disabled={sending || !message.trim()} className="rounded-2xl bg-[#c1121f] text-white hover:bg-[#a7101c] border-0">
           <Send className="mr-2 h-4 w-4" />
           {sending ? "Envoi..." : "Écrire"}
         </Button>
-        {success && <span className="text-sm text-[#94ffc9]">Message envoyé.</span>}
+        {success && <span className="text-sm text-[#c9c7c2]">Message envoyé.</span>}
         {error && <span className="text-sm text-red-200">{error}</span>}
       </div>
     </form>

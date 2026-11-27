@@ -16,7 +16,7 @@ export default async function DiscoverLayout({ children }: { children: ReactNode
   return (
     <>
       {canSeePilot && session?.user?.id && (
-        <Suspense fallback={<div aria-busy='true' aria-label='Chargement des membres' className='h-48 animate-pulse bg-slate-100' />}>
+        <Suspense fallback={<div aria-busy='true' aria-label='Chargement des membres' className='h-48 animate-pulse bg-[#0a0f15]' />}>
           <CommunityPortraits viewerId={session.user.id} />
         </Suspense>
       )}

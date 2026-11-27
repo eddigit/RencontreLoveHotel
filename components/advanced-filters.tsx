@@ -117,24 +117,24 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
           variant='outline'
           size='icon'
           aria-label='Filtres avancés'
-          className='flex-shrink-0 border-slate-200 bg-white text-slate-900 hover:bg-slate-100 hover:text-slate-900 relative'
+          className='flex-shrink-0 border-[#41454b] bg-[#111821] text-[#ecebe7] hover:bg-[#0a0f15] hover:text-[#ecebe7] relative'
         >
           <Filter className='h-4 w-4' />
           {activeFilterCount > 0 && (
-            <Badge className='absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-blue-700'>
+            <Badge className='absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs bg-[#c1121f]'>
               {activeFilterCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className='w-80 max-h-[min(80dvh,var(--radix-popover-content-available-height))] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain bg-white border-slate-200 p-4 text-slate-900 [--primary:228_65%_40%] [--background:0_0%_100%] [--secondary:215_20%_90%]'>
+      <PopoverContent className='w-80 max-h-[min(80dvh,var(--radix-popover-content-available-height))] max-w-[calc(100vw-2rem)] overflow-y-auto overscroll-contain bg-[#111821] border-[#41454b] p-4 text-[#ecebe7] [--primary:228_65%_40%] [--background:0_0%_100%] [--secondary:215_20%_90%]'>
         <div className='flex items-center justify-between mb-4'>
           <h3 className='font-semibold'>Filtres avancés</h3>
           <Button
             variant='ghost'
             size='sm'
             onClick={resetFilters}
-            className='h-8 px-2 text-xs text-slate-600 hover:text-blue-800 hover:bg-blue-50'
+            className='h-8 px-2 text-xs text-[#c9c7c2] hover:text-[#ecebe7] hover:bg-[#111821]'
           >
             Réinitialiser
             <X className='ml-1 h-3 w-3' />
@@ -145,7 +145,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <Label className='text-sm'>Âge</Label>
-              <span className='text-xs text-slate-600'>
+              <span className='text-xs text-[#c9c7c2]'>
                 {filters.ageRange[0]} - {filters.ageRange[1]} ans
               </span>
             </div>
@@ -162,7 +162,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
           <div className='space-y-2'>
             <div className='flex items-center justify-between'>
               <Label className='text-sm'>Distance max</Label>
-              <span className='text-xs text-slate-600'>
+              <span className='text-xs text-[#c9c7c2]'>
                 {filters.distance} km
               </span>
             </div>
@@ -184,7 +184,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
               id='online-only'
               checked={filters.onlineOnly}
               onCheckedChange={checked => updateFilters('onlineOnly', checked)}
-              className='data-[state=checked]:bg-blue-700'
+              className='data-[state=checked]:bg-[#c1121f]'
             />
           </div>
 
@@ -195,21 +195,21 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
               onValueChange={value => updateFilters('status', value)}
               className='flex gap-2'
             >
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='all'
                   id='status-all'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label htmlFor='status-all' className='text-xs cursor-pointer'>
                   Tous
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='single'
                   id='status-single'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='status-single'
@@ -218,11 +218,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Célibataires
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='couple'
                   id='status-couple'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='status-couple'
@@ -231,11 +231,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Couples
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='trans'
                   id='status-trans'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='status-trans'
@@ -254,11 +254,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
               onValueChange={value => updateFilters('orientation', value)}
               className='flex flex-wrap gap-2'
             >
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='all'
                   id='orientation-all'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='orientation-all'
@@ -267,11 +267,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Toutes
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='hetero'
                   id='orientation-hetero'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='orientation-hetero'
@@ -280,11 +280,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Hétéro
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='homo'
                   id='orientation-homo'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='orientation-homo'
@@ -293,11 +293,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Homo
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='bi'
                   id='orientation-bi'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='orientation-bi'
@@ -319,7 +319,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   onCheckedChange={checked =>
                     updateMeetingType('friendly', checked)
                   }
-                  className='data-[state=checked]:bg-blue-700'
+                  className='data-[state=checked]:bg-[#c1121f]'
                 />
                 <Label
                   htmlFor='type-friendly'
@@ -335,7 +335,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   onCheckedChange={checked =>
                     updateMeetingType('romantic', checked)
                   }
-                  className='data-[state=checked]:bg-blue-700'
+                  className='data-[state=checked]:bg-[#c1121f]'
                 />
                 <Label
                   htmlFor='type-romantic'
@@ -351,7 +351,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   onCheckedChange={checked =>
                     updateMeetingType('playful', checked)
                   }
-                  className='data-[state=checked]:bg-blue-700'
+                  className='data-[state=checked]:bg-[#c1121f]'
                 />
                 <Label
                   htmlFor='type-playful'
@@ -367,7 +367,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   onCheckedChange={checked =>
                     updateMeetingType('openCurtains', checked)
                   }
-                  className='data-[state=checked]:bg-blue-700'
+                  className='data-[state=checked]:bg-[#c1121f]'
                 />
                 <Label
                   htmlFor='type-openCurtains'
@@ -383,7 +383,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   onCheckedChange={checked =>
                     updateMeetingType('libertine', checked)
                   }
-                  className='data-[state=checked]:bg-blue-700'
+                  className='data-[state=checked]:bg-[#c1121f]'
                 />
                 <Label
                   htmlFor='type-libertine'
@@ -402,21 +402,21 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
               onValueChange={value => updateFilters('curtainPreference', value)}
               className='flex gap-2'
             >
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='all'
                   id='curtain-all'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label htmlFor='curtain-all' className='text-xs cursor-pointer'>
                   Tous
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='open'
                   id='curtain-open'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='curtain-open'
@@ -425,11 +425,11 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
                   Ouvert
                 </Label>
               </div>
-              <div className='flex items-center space-x-1 rounded-md border border-slate-200 p-2 bg-slate-50'>
+              <div className='flex items-center space-x-1 rounded-md border border-[#41454b] p-2 bg-[#0a0f15]'>
                 <RadioGroupItem
                   value='closed'
                   id='curtain-closed'
-                  className='border-slate-400'
+                  className='border-[#41454b]'
                 />
                 <Label
                   htmlFor='curtain-closed'
@@ -443,7 +443,7 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
 
           <Button
             onClick={() => setOpen(false)}
-            className='w-full bg-blue-700 hover:bg-blue-800 text-white border-0'
+            className='w-full bg-[#c1121f] hover:bg-[#c1121f] text-white border-0'
           >
             Appliquer les filtres
           </Button>

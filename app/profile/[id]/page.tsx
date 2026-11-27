@@ -2,7 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth/next'
-import { CalendarHeart, Heart, MapPin, MessageCircle, Sparkles, Wine } from 'lucide-react'
+import { CalendarHeart, Heart, MapPin, Wine } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
@@ -31,11 +31,6 @@ type SessionUser = {
   role?: string
   avatar?: string
   onboardingCompleted?: boolean
-}
-
-function compatibilityFromProfile (profile: any) {
-  const interests = Array.isArray(profile.interests) ? profile.interests.length : 0
-  return Math.min(96, 86 + interests)
 }
 
 function normalizeProfileRouteId(id: string) {
@@ -91,13 +86,12 @@ export default async function ProfilePage ({
         user={currentUser}
         eyebrow='Profil membre'
         title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
-        subtitle='Une fiche claire pour décider vite : intention, compatibilité, contexte et action.'
-        action={<MemberProfileBackButton />}
+        action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#c1121f] px-4 text-sm font-bold text-white xl:hidden'>Entrer en contact</a>}</>}
       >
-        <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_390px]'>
-          <section className='overflow-hidden rounded-3xl border border-white/10 bg-black/18'>
-            <div className='bg-black/30 p-3 sm:p-5'>
-              <div className='relative mx-auto aspect-[4/5] w-full max-w-[640px] overflow-hidden rounded-lg bg-black/35'>
+        <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
+          <section className='overflow-hidden rounded-3xl border border-[#111821] bg-[#0a0f15] text-[#ecebe7] shadow-2xl shadow-black/30'>
+            <div className='bg-[#04070b] p-3 sm:p-5'>
+              <div className='relative mx-auto aspect-[4/5] w-full max-h-[64svh] max-w-[640px] overflow-hidden rounded-2xl bg-[#111821]'>
                 {avatar.startsWith('http') ? (
                   <img src={avatar} alt={profile.name} className='h-full w-full object-contain' />
                 ) : (
@@ -113,89 +107,47 @@ export default async function ProfilePage ({
                 {profileOnline && (
                   <span
                     aria-label='En ligne'
-                    className='absolute right-4 top-4 z-10 h-4 w-4 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                    className='absolute right-4 top-4 z-10 h-4 w-4 rounded-full border-2 border-[#04070b] bg-[#35e48d]'
                   />
                 )}
               </div>
             </div>
 
-            <div className='border-t border-white/10 p-5 sm:p-8'>
+            <div className='border-t border-[#111821] p-5 sm:p-8'>
               <div className='mb-4 flex flex-wrap gap-2'>
-                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
+                {profile.location && <Badge className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'>
                   <MapPin className='mr-1 h-3.5 w-3.5' />
-                  {profile.location || 'Paris'}
-                </Badge>
-                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
-                  Disponible ce soir
-                </Badge>
-                <Badge className='rounded-full border border-white/12 bg-white/14 px-3 py-1.5 text-white'>
-                  Premium
-                </Badge>
+                  {profile.location}
+                </Badge>}
+                {profileOnline && <Badge className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
               </div>
 
-              <h2 className='text-4xl font-black sm:text-5xl'>
-                {profile.name}
-                {profile.age ? `, ${profile.age}` : ''}
-              </h2>
+
               {profile.bio && (
-                <p className='mt-4 max-w-3xl text-base leading-7 text-white/76'>{profile.bio}</p>
+                <p className='break-words max-w-3xl text-base leading-7 text-[#c9c7c2]'>{profile.bio}</p>
               )}
-
-              <div className='mt-6 grid gap-3 sm:grid-cols-3'>
-                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                  <div className='text-3xl font-black'>{compatibilityFromProfile(profile)}%</div>
-                  <div className='text-sm font-bold text-white/72'>compatibilité</div>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                  <div className='text-3xl font-black'>4 km</div>
-                  <div className='text-sm font-bold text-white/72'>distance</div>
-                </div>
-                <div className='rounded-2xl border border-white/10 bg-white/[0.06] p-4'>
-                  <div className='text-3xl font-black'>{interests.length}</div>
-                  <div className='text-sm font-bold text-white/72'>intérêts</div>
-                </div>
-              </div>
             </div>
           </section>
 
-          <aside className='space-y-4'>
-            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
-              <h3 className='flex items-center gap-2 font-black'>
-                <MessageCircle className='h-4 w-4 text-[#94ffc9]' />
-                Message ouvert
-              </h3>
-              <p className='mt-3 text-sm leading-6 text-white/66'>
-                Après match accepté, la conversation devient disponible avec texte, vocaux, images et vidéos.
-              </p>
-            </div>
+          <aside className='flex flex-col gap-4'>
 
-            {profile.bio && (
-              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-                <h3 className='flex items-center gap-2 font-black'>
-                  <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
-                  Intentions
-                </h3>
-                <p className='mt-3 text-sm leading-6 text-white/68'>{profile.bio}</p>
-              </div>
-            )}
-
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+            {interests.length > 0 && <div className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
               <h3 className='font-black'>Centres d’intérêt</h3>
               <div className='mt-4 flex flex-wrap gap-2'>
-                {(interests.length ? interests : ['Jacuzzi', 'Cocktails', 'Dîner privé']).map((interest: string) => (
+                {interests.map((interest: string) => (
                   <Badge
                     key={interest}
-                    className='rounded-full border border-white/12 bg-white/10 px-3 py-1.5 text-white'
+                    className='rounded-full border border-[#c1121f]/45 bg-[#c1121f]/10 px-3 py-1.5 text-[#ecebe7]'
                   >
                     {interest}
                   </Badge>
                 ))}
               </div>
-            </div>
+            </div>}
 
             {canShowActions && (
-              <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-                <h3 className='font-black'>Actions</h3>
+              <div id='contact' className='order-first scroll-mt-20 rounded-2xl border border-[#c1121f]/45 bg-[#111821] p-5 text-[#ecebe7]'>
+                <h3 className='font-black'>Entrer en contact</h3>
                 <div className='mt-4 space-y-3'>
                   {matchStatus === null && (
                     <MatchRequestButton
@@ -205,7 +157,7 @@ export default async function ProfilePage ({
                   )}
 
                   {matchStatus && matchStatus.status === 'pending' && isRequester && (
-                    <Button disabled className='w-full rounded-2xl bg-white/16'>
+                    <Button disabled className='w-full rounded-2xl bg-[#111821] text-[#c9c7c2]'>
                       Demande envoyée
                     </Button>
                   )}
@@ -222,7 +174,7 @@ export default async function ProfilePage ({
                           if (accepted?.conversationId) redirect(`/messages/${accepted.conversationId}`)
                         }}
                       >
-                        <Button type='submit' className='w-full rounded-2xl bg-[#21b56f] hover:bg-[#25c97d]'>
+                        <Button type='submit' className='w-full rounded-2xl bg-[#c1121f] text-[#ecebe7] hover:bg-[#e01b2a]'>
                           Accepter
                         </Button>
                       </form>
@@ -235,7 +187,7 @@ export default async function ProfilePage ({
                           )
                         }}
                       >
-                        <Button type='submit' variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                        <Button type='submit' variant='outline' className='w-full rounded-2xl border-[#111821] bg-[#0a0f15] text-[#ecebe7] hover:bg-[#111821]'>
                           Refuser
                         </Button>
                       </form>
@@ -255,13 +207,13 @@ export default async function ProfilePage ({
                   )}
 
                   <div className='grid gap-2'>
-                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                    <Button asChild variant='outline' className='w-full rounded-2xl border-[#111821] bg-[#0a0f15] text-[#ecebe7] hover:bg-[#111821]'>
                       <Link href='/love-rooms'>
                         <Wine className='mr-2 h-4 w-4' />
                         Proposer une Love Room
                       </Link>
                     </Button>
-                    <Button asChild variant='outline' className='w-full rounded-2xl border-white/12 bg-white/[0.04]'>
+                    <Button asChild variant='outline' className='w-full rounded-2xl border-[#111821] bg-[#0a0f15] text-[#ecebe7] hover:bg-[#111821]'>
                       <Link href='/events'>
                         <CalendarHeart className='mr-2 h-4 w-4' />
                         Inviter à un Événement
@@ -273,7 +225,7 @@ export default async function ProfilePage ({
               </div>
             )}
 
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+            <div className='rounded-2xl border border-[#111821] bg-[#111821] p-5 text-[#ecebe7]'>
               <h3 className='flex items-center gap-2 font-black'>
                 <Heart className='h-4 w-4 text-[#ff8cc8]' />
                 Galerie

@@ -92,11 +92,11 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
       {uploading && (
         <div className='mb-3 text-sm font-medium text-[#94ffc9]'>Envoi de la photo{uploadProgress > 0 ? ` : ${uploadProgress} %` : '...'}</div>
       )}
-      <div className='flex flex-wrap gap-4 mb-4'>
+      <div className='grid grid-cols-2 gap-3 mb-4 sm:grid-cols-3'>
         {photos.map(photo => (
           <div
             key={photo.id}
-            className='relative w-32 h-32 border rounded overflow-hidden group'
+            className='group relative aspect-square w-full overflow-hidden rounded border border-[#111821] bg-[#04070b]'
           >
             <img
               src={photo.url}
@@ -105,8 +105,9 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
             />
             <button
               type='button'
-              className='absolute top-1 right-1 bg-white bg-opacity-80 rounded-full p-1 text-red-600 hover:bg-opacity-100 transition-opacity opacity-0 group-hover:opacity-100'
+              className='absolute right-1 top-1 grid size-11 place-items-center rounded-full border border-white/20 bg-[#04070b]/90 text-[#ecebe7] hover:bg-[#a7101c] focus-visible:ring-2'
               onClick={() => handleDelete(photo.id)}
+              aria-label='Supprimer la photo'
               title='Supprimer la photo'
               disabled={isPending}
             >
@@ -122,12 +123,12 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
         {photos.length < maxPhotos && (
           <button
             type='button'
-            className='w-32 h-32 border-2 border-dashed border-gray-300 flex items-center justify-center rounded hover:border-blue-400 transition-colors'
+            className='flex aspect-square w-full items-center justify-center rounded border-2 border-dashed border-[#c9c7c2]/40 bg-[#04070b] transition-colors hover:border-[#c1121f]'
             onClick={() => fileInputRef.current?.click()}
             title='Ajouter une photo'
             disabled={isPending || uploading}
           >
-            <span className='text-3xl text-gray-400'>+</span>
+            <span className='text-3xl text-[#c9c7c2]'>+</span>
             <input
               type='file'
               accept='image/jpeg,image/png,image/webp'
@@ -139,10 +140,10 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
           </button>
         )}
       </div>
-      <p className='text-sm text-gray-500'>
+      <p className='text-sm text-[#c9c7c2]'>
         Vous pouvez ajouter jusqu'à {maxPhotos} photos.
       </p>
-      <p className='mt-1 text-sm font-medium text-white/65'>
+      <p className='mt-1 text-sm font-medium text-[#c9c7c2]'>
         Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo. HEIC iPhone : exportez la photo en JPG.
       </p>
     </div>

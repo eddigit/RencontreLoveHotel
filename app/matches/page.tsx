@@ -173,7 +173,7 @@ export default function MatchesPage () {
         title='Matchs'
         subtitle='Demandes à traiter, matchs actifs, conversation ouverte et passage naturel vers une rencontre réelle.'
         action={
-          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+          <Button asChild className='bg-gradient-to-r from-[#a7101c] to-[#c1121f] text-white'>
             <Link href='/discover'>
               <Search className='mr-2 h-4 w-4' />
               Découvrir
@@ -202,13 +202,13 @@ export default function MatchesPage () {
             ) : (
               <Tabs value={activeTab} onValueChange={value => writeMatchesUrlState(router, value as MatchesTab)}>
                 <TabsList className='grid h-auto w-full grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
-                  <TabsTrigger value='active' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  <TabsTrigger value='active' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
                     Matchs actifs
                   </TabsTrigger>
-                  <TabsTrigger value='incoming' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  <TabsTrigger value='incoming' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
                     Demandes reçues
                   </TabsTrigger>
-                  <TabsTrigger value='outgoing' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                  <TabsTrigger value='outgoing' className='rounded-xl data-[state=active]:bg-[#c1121f] data-[state=active]:text-white'>
                     Demandes envoyées
                   </TabsTrigger>
                 </TabsList>
@@ -220,7 +220,7 @@ export default function MatchesPage () {
                     profiles={matches}
                     renderActions={profile => (
                       <>
-                        <Button asChild className='flex-1 bg-[#ff4fa3] text-white hover:bg-[#ff6db4]'>
+                        <Button asChild className='flex-1 bg-[#c1121f] text-white hover:bg-[#c1121f]'>
                           <Link href={`/profile/${profile.id}`}>
                             <MessageCircle className='mr-2 h-4 w-4' />
                             Écrire
@@ -283,9 +283,9 @@ export default function MatchesPage () {
                 Les demandes reçues sont isolées pour action rapide. Une fois acceptée, la relation passe en Conversation ouverte.
               </p>
             </div>
-            <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-5'>
+            <div className='rounded-2xl border border-[#c9c7c2]/20 bg-[#c1121f]/12 p-5'>
               <h3 className='flex items-center gap-2 font-black'>
-                <Sparkles className='h-4 w-4 text-[#ff8cc8]' />
+                <Sparkles className='h-4 w-4 text-[#ecebe7]' />
                 Rencontre réelle
               </h3>
               <p className='mt-3 text-sm leading-6 text-white/62'>
@@ -361,7 +361,7 @@ function MatchGrid ({
               {profile.online && (
                 <span
                   aria-label='En ligne'
-                  className='absolute bottom-3 right-3 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]'
+                  className='absolute bottom-3 right-3 h-3.5 w-3.5 rounded-full border-2 border-[#0a0f15] bg-[#35e48d]'
                 />
               )}
             </Link>

@@ -37,14 +37,14 @@ export function MemberReferralLink() {
   }
 
   if (link === null) return null
-  if (!link) return <p className='text-sm text-slate-600'>Le lien de parrainage est temporairement indisponible.</p>
+  if (!link) return <p className='text-sm text-[#c9c7c2]'>Le lien de parrainage est temporairement indisponible.</p>
   return (
-    <section aria-label='Parrainage facultatif' className='rounded-2xl border border-slate-200 bg-white p-5 text-slate-800'>
+    <section aria-label='Parrainage facultatif' className='rounded-2xl border border-[#41454b] bg-[#111821] p-5 text-[#ecebe7]'>
       <h2 className='text-lg font-bold'>Inviter une personne au cercle</h2>
-      <p className='mt-1 text-sm text-slate-600'>Partagez votre lien personnel avec la personne de votre choix.</p>
+      <p className='mt-1 text-sm text-[#c9c7c2]'>Partagez votre lien personnel avec la personne de votre choix.</p>
       <div className='mt-3 flex gap-2'>
-        <input ref={input} aria-label='Lien de parrainage' readOnly value={link} className='min-w-0 flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm' />
-        <button type='button' onClick={copyLink} className='inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white'>
+        <input ref={input} aria-label='Lien de parrainage' readOnly value={link} className='min-w-0 flex-1 rounded-lg border border-[#41454b] bg-[#0a0f15] px-3 text-sm' />
+        <button type='button' onClick={copyLink} className='inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#c1121f] px-4 text-sm font-semibold text-white'>
           {copyState === 'copied' ? <Check className='size-4' /> : <Copy className='size-4' />}
           {copyState === 'copied' ? 'Copié' : 'Copier'}
         </button>

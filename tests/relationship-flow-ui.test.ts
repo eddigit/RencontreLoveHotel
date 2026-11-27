@@ -2,12 +2,13 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('relationship flow UI', () => {
-  it('makes the profile page explain that messaging opens after accepted match', () => {
+  it('keeps the profile page contact actions and real meeting paths', () => {
     const page = readFileSync('app/profile/[id]/page.tsx', 'utf8')
     const form = readFileSync('components/profile-message-form.tsx', 'utf8')
 
-    expect(page).toContain('Message ouvert')
-    expect(page).toContain('Après match accepté')
+    expect(page).toContain('Entrer en contact')
+    expect(page).toContain('MatchRequestButton')
+    expect(page).toContain('ProfileMessageForm')
     expect(page).toContain('Love Room')
     expect(page).toContain('Événement')
     expect(form).toContain('Conversation fluide')

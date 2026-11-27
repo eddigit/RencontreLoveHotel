@@ -230,7 +230,7 @@ export default function MembersPage() {
         <LhrV2Shell title='Complétez votre profil' subtitle='Votre profil doit être prêt avant de consulter la communauté.' user={user}>
           <div className='max-w-xl rounded-2xl border border-white/10 bg-white/[0.05] p-6'>
             <p className='text-white/70'>Quelques informations sont nécessaires avant d’accéder aux membres.</p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#c1121f] hover:bg-[#c1121f]'>
               Compléter mon profil
             </Button>
           </div>
@@ -248,28 +248,28 @@ export default function MembersPage() {
         subtitle='Accédez aux profils visibles de la communauté et trouvez le type de rencontre qui vous correspond.'
       >
         <div className='space-y-5'>
-          <section className='rounded-2xl border border-[#94ffc9]/25 bg-white/[0.045] p-5'>
+          <section className='rounded-2xl border border-[#c9c7c2]/25 bg-white/[0.045] p-5'>
             <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
               <div className='flex items-center gap-3'>
-                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-[#94ffc9]/15 text-[#94ffc9]'>
+                <div className='flex h-12 w-12 items-center justify-center rounded-2xl bg-[#c1121f]/15 text-[#ecebe7]'>
                   <UsersRound className='h-6 w-6' />
                 </div>
                 <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#94ffc9]'>Communauté visible</p>
+                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Communauté visible</p>
                   <h2 className='text-2xl font-black'>{formatCount(stats.totalMembers)} membres</h2>
                   <p className='text-sm text-white/58'>Les profils incomplets ou masqués ne sont pas publiés dans cet annuaire.</p>
                 </div>
               </div>
-              <Link href='/discover#new-profiles' className='text-sm font-bold text-[#94ffc9] hover:text-white'>
+              <Link href='/discover#new-profiles' className='text-sm font-bold text-[#ecebe7] hover:text-white'>
                 Voir les nouveaux membres
               </Link>
             </div>
           </section>
 
-          <section className='rounded-2xl border-2 border-[#ff8cc8]/35 bg-white/[0.045] p-5'>
+          <section className='rounded-2xl border-2 border-[#c9c7c2]/35 bg-white/[0.045] p-5'>
             <div className='mb-5 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between'>
               <div>
-                <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ff8cc8]'>Annuaire complet</p>
+                <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Annuaire complet</p>
                 <h2 className='text-xl font-black'>{appliedCriteria.length > 0 ? 'Résultats de la recherche' : 'Tous les membres'}</h2>
                 <p className='mt-1 text-sm text-white/58'>
                   {formatCount(totalCount)} résultat{totalCount > 1 ? 's' : ''} · 24 profils par page
@@ -282,7 +282,7 @@ export default function MembersPage() {
                   variant={filtersOpen ? 'default' : 'outline'}
                   onClick={() => setFiltersOpen(open => !open)}
                   aria-expanded={filtersOpen}
-                  className='border-[#ff8cc8]/35'
+                  className='border-[#c9c7c2]/35'
                   title='Afficher ou masquer les filtres'
                 >
                   <Filter className='mr-2 h-4 w-4' />
@@ -315,7 +315,7 @@ export default function MembersPage() {
                 <select
                   value={filters.profileType || 'all'}
                   onChange={event => applyFilters({ ...filters, profileType: event.target.value as CommunityMemberDirectoryFilters['profileType'] })}
-                  className='mt-1 h-11 w-full rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm text-white'
+                  className='mt-1 h-11 w-full rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm text-white'
                 >
                   <option value='all'>Tous les membres</option>
                   <option value='couple'>Couples</option>
@@ -325,7 +325,7 @@ export default function MembersPage() {
                 </select>
               </label>
 
-              <Button type='button' onClick={() => applyFilters({ ...filters })} disabled={loading} className='bg-[#ff3b8b] hover:bg-[#ff62a8]'>
+              <Button type='button' onClick={() => applyFilters({ ...filters })} disabled={loading} className='bg-[#c1121f] hover:bg-[#c1121f]'>
                 <Search className='mr-2 h-4 w-4' />
                 Rechercher
               </Button>
@@ -346,7 +346,7 @@ export default function MembersPage() {
                     <select
                       value={filters.orientation || 'all'}
                       onChange={event => applyFilters({ ...filters, orientation: event.target.value as CommunityMemberDirectoryFilters['orientation'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm text-white'
                     >
                       <option value='all'>Toutes les orientations</option>
                       <option value='hetero'>Hétéro</option>
@@ -364,7 +364,7 @@ export default function MembersPage() {
                     <select
                       value={filters.meetingCriterion || 'all'}
                       onChange={event => applyFilters({ ...filters, meetingCriterion: event.target.value as CommunityMemberDirectoryFilters['meetingCriterion'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm text-white'
                     >
                       <option value='all'>Tous les critères</option>
                       <option value='open_couples'>Ouverts aux couples</option>
@@ -373,7 +373,7 @@ export default function MembersPage() {
                     </select>
                   </label>
 
-                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm font-semibold'>
+                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm font-semibold'>
                     <input
                       type='checkbox'
                       checked={Boolean(filters.onlineOnly)}
@@ -382,7 +382,7 @@ export default function MembersPage() {
                     />
                     En ligne maintenant
                   </label>
-                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#1c082d] px-3 text-sm font-semibold'>
+                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#0a0f15] px-3 text-sm font-semibold'>
                     <input
                       type='checkbox'
                       checked={Boolean(filters.recent)}
@@ -398,7 +398,7 @@ export default function MembersPage() {
             <div className='mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
               <div className='flex flex-wrap gap-2'>
                 {appliedCriteria.length > 0 ? appliedCriteria.map(criterion => (
-                  <span key={criterion} className='rounded-full bg-[#ff8cc8]/12 px-2.5 py-1 text-xs text-[#ffb8dc]'>{criterion}</span>
+                  <span key={criterion} className='rounded-full bg-[#c1121f]/12 px-2.5 py-1 text-xs text-[#ecebe7]'>{criterion}</span>
                 )) : <span className='text-xs text-white/50'>Tous les membres, sans filtre</span>}
               </div>
               {appliedCriteria.length > 0 && (
@@ -428,7 +428,7 @@ export default function MembersPage() {
                         <Image src={imageFor(member)} alt={member.name || 'Profil membre'} fill className='object-cover transition group-hover:scale-105' sizes='320px' />
                       )}
                       <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent' />
-                      {member.online && <span className='absolute right-3 top-3 h-3 w-3 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' />}
+                      {member.online && <span className='absolute right-3 top-3 h-3 w-3 rounded-full border-2 border-[#0a0f15] bg-[#35e48d]' title='En ligne' />}
                       <div className='absolute bottom-3 left-3 right-3'>
                         <h3 className='text-lg font-black'>{member.name || 'Membre'}{member.age ? `, ${member.age}` : ''}</h3>
                         <div className='flex items-center gap-1 text-xs text-white/70'>
@@ -440,17 +440,17 @@ export default function MembersPage() {
                   </Link>
                   <div className='p-3'>
                     <div className='flex flex-wrap gap-1.5 text-xs'>
-                      <span className='rounded-full bg-[#94ffc9]/12 px-2 py-1 text-[#b8ffdb]'>{profileTypeLabel(member)}</span>
+                      <span className='rounded-full bg-[#c1121f]/12 px-2 py-1 text-[#ecebe7]'>{profileTypeLabel(member)}</span>
                       {orientationLabel(member.orientation) && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>{orientationLabel(member.orientation)}</span>}
                       {member.open_to_other_couples && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Ouvert aux couples</span>}
-                      {member.open_curtains && <span className='rounded-full bg-[#ff8cc8]/12 px-2 py-1 text-[#ffb8dc]'>Rideaux ouverts</span>}
+                      {member.open_curtains && <span className='rounded-full bg-[#c1121f]/12 px-2 py-1 text-[#ecebe7]'>Rideaux ouverts</span>}
                       {member.libertine && <span className='rounded-full bg-white/8 px-2 py-1 text-white/65'>Libertin</span>}
                     </div>
                     {member.bio && (
                       <p className='mt-3 line-clamp-2 min-h-10 text-sm leading-5 text-white/58'>{member.bio}</p>
                     )}
                     <div className='mt-3 flex gap-2'>
-                      <Button asChild size='sm' className='flex-1 bg-[#ff3b8b] hover:bg-[#ff62a8]'>
+                      <Button asChild size='sm' className='flex-1 bg-[#c1121f] hover:bg-[#c1121f]'>
                         <Link href={`/profile/${member.id}`}>Voir le profil</Link>
                       </Button>
                       <Button

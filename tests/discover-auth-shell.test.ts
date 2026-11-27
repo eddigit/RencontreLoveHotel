@@ -2,18 +2,18 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('Discover authenticated shell', () => {
-  it('limits the light member shell to the authenticated Discover route', () => {
+  it('uses the dark circle shell on member routes', () => {
     const shell = readFileSync('components/site-shell.tsx', 'utf8')
     const styles = readFileSync('components/site-shell.module.css', 'utf8')
 
-    expect(shell).toContain("const isDiscoverShell = Boolean(user && pathname === '/discover')")
-    expect(shell).toContain('isDiscoverShell && styles.discoverShell')
-    expect(shell).toContain('isDiscoverShell && styles.rail')
-    expect(shell).toContain('isDiscoverShell && styles.panel')
+    expect(shell).toContain("const isMemberShell = Boolean(user)")
+    expect(shell).toContain('isMemberShell && styles.discoverShell')
+    expect(shell).toContain('isMemberShell && styles.rail')
+    expect(shell).toContain('isMemberShell && styles.panel')
     expect(shell).toContain("data-chat-thread={/^\\/messages\\/[^/]+\\/?$/.test(pathname) || undefined}")
-    expect(styles).toContain('--discover-ivory: #f7f4ec')
-    expect(styles).toContain('--discover-charcoal: #191b1c')
-    expect(styles).toContain('--discover-accent: #695322')
+    expect(styles).toContain('--discover-canvas: #04070b')
+    expect(styles).toContain('--discover-charcoal: #04070b')
+    expect(styles).toContain('--discover-accent: #ecebe7')
   })
 
   it('presents discoverable members as a two-card mobile photo strip', () => {

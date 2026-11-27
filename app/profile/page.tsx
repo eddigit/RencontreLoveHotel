@@ -351,7 +351,7 @@ export default async function ProfilePage ({
         title='Profil matching'
         subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations Love Hotel.'
         action={
-          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+          <Button asChild className='bg-[#c1121f] text-[#ecebe7] hover:bg-[#e13b47]'>
             <Link href='/discover'>
               <Sparkles className='mr-2 h-4 w-4' />
               Voir la communauté
@@ -359,63 +359,64 @@ export default async function ProfilePage ({
           </Button>
         }
       >
-        <div className='grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)_300px]'>
+        <div className='-m-3 min-w-0 bg-[#04070b] p-3 text-[#ecebe7] sm:-m-4 sm:p-4 lg:-m-5 lg:p-5'>
+        <div className='grid min-w-0 gap-5 xl:grid-cols-[300px_minmax(0,1fr)_300px]'>
           <aside className='space-y-4'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+            <div className='rounded-2xl border border-[#111821] bg-[#0a0f15] p-5'>
               <div className='flex items-center gap-3'>
-                <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ff3b8b]/18'>
-                  <UserRound className='h-6 w-6 text-[#ff8cc8]' />
+                <div className='flex h-14 w-14 items-center justify-center rounded-2xl bg-[#04070b]'>
+                  <UserRound className='h-6 w-6 text-[#c1121f]' />
                 </div>
                 <div>
                   <h2 className='font-black'>{dbUser.name}</h2>
-                  <p className='text-xs text-[#94ffc9]'>Profil actif</p>
+                  <p className='text-xs text-[#c1121f]'>Profil actif</p>
                 </div>
               </div>
               <div className='mt-5'>
                 <div className='flex items-end justify-between'>
-                  <span className='text-sm text-white/58'>Score profil</span>
+                  <span className='text-sm text-[#c9c7c2]'>Score profil</span>
                   <span className='text-4xl font-black'>{profileScore}%</span>
                 </div>
-                <div className='mt-3 h-2 rounded-full bg-white/10'>
+                <div className='mt-3 h-2 rounded-full bg-[#111821]'>
                   <div
-                    className='h-full rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#94ffc9]'
+                    className='h-full rounded-full bg-[#c1121f]'
                     style={{ width: `${profileScore}%` }}
                   />
                 </div>
                 {profileCompletion.nextActions.length > 0 && (
-                  <p className='mt-3 text-xs leading-5 text-white/55'>
+                  <p className='mt-3 text-xs leading-5 text-[#c9c7c2]'>
                     Prochaine étape : {profileCompletion.nextActions[0]}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+            <div className='rounded-2xl border border-[#111821] bg-[#0a0f15] p-5'>
               <h3 className='font-black'>Ce qui aide à matcher</h3>
               <div className='mt-4 flex flex-wrap gap-2'>
-                <Badge className='rounded-full bg-white/10 text-white'>Statut clair</Badge>
-                <Badge className='rounded-full bg-white/10 text-white'>Photos récentes</Badge>
-                <Badge className='rounded-full bg-white/10 text-white'>Intentions</Badge>
-                <Badge className='rounded-full bg-white/10 text-white'>Disponibilités</Badge>
-                <Badge className='rounded-full bg-white/10 text-white'>Rideaux ouverts</Badge>
+                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Statut clair</Badge>
+                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Photos récentes</Badge>
+                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Intentions</Badge>
+                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Disponibilités</Badge>
+                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Rideaux ouverts</Badge>
               </div>
             </div>
           </aside>
 
-          <section>
+          <section className='min-w-0'>
             <Tabs
               key={requestedTab === 'photos' ? 'photos' : 'profile'}
               defaultValue={requestedTab === 'photos' ? 'photos' : 'profile'}
               className='w-full'
             >
-              <TabsList className='mb-5 grid h-auto grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1'>
-                <TabsTrigger value='profile' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+              <TabsList className='mb-5 grid h-auto w-full grid-cols-3 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1'>
+                <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
                   Identité
                 </TabsTrigger>
-                <TabsTrigger value='preferences' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
                   Matching
                 </TabsTrigger>
-                <TabsTrigger value='photos' className='rounded-xl data-[state=active]:bg-[#ff4fa3] data-[state=active]:text-white'>
+                <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#c1121f] data-[state=active]:text-[#ecebe7] sm:text-sm'>
                   Photos
                 </TabsTrigger>
               </TabsList>
@@ -428,7 +429,7 @@ export default async function ProfilePage ({
             </div>
           </TabsContent>
           <TabsContent value='preferences'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6'>
+            <div className='rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
               <h3 className='text-lg font-black'>Préférences de rencontre</h3>
               {/* PreferencesEditor will handle the form for preferences and meeting types */}
               <PreferencesEditor
@@ -440,9 +441,9 @@ export default async function ProfilePage ({
             </div>
           </TabsContent>
           <TabsContent value='photos'>
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6'>
+            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
               <h3 className='mb-4 flex items-center gap-2 text-lg font-black'>
-                <Camera className='h-5 w-5 text-[#ff8cc8]' />
+                <Camera className='h-5 w-5 text-[#e3bf80]' />
                 Mes photos
               </h3>
               {/* UserPhotosManager handles upload/delete UI */}
@@ -453,48 +454,49 @@ export default async function ProfilePage ({
           </section>
 
           <aside className='space-y-4'>
-            <div className='rounded-2xl border border-[#ff8cc8]/20 bg-[#ff3b8b]/12 p-5'>
+            <div className='rounded-2xl border border-[#6c5735] bg-[#292928] p-5'>
               <h3 className='flex items-center gap-2 font-black'>
-                <Wine className='h-4 w-4 text-[#ff8cc8]' />
+                <Wine className='h-4 w-4 text-[#e3bf80]' />
                 Love Rooms
               </h3>
-              <p className='mt-3 text-sm leading-6 text-white/64'>
+              <p className='mt-3 text-sm leading-6 text-[#d7cfbf]'>
                 Vos préférences aident à proposer une chambre, un apéro jacuzzi ou une bouteille de champagne au bon moment.
               </p>
-              <Button asChild variant='outline' className='mt-4 w-full border-white/12 bg-white/[0.04]'>
+              <Button asChild variant='outline' className='mt-4 w-full border-[#6c5735] bg-[#171818] text-[#fff8e8]'>
                 <Link href='/love-rooms'>Voir les expériences</Link>
               </Button>
             </div>
 
-            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/10 p-5'>
+            <div className='rounded-2xl border border-[#3b3b38] bg-[#232423] p-5'>
               <h3 className='flex items-center gap-2 font-black'>
-                <CalendarHeart className='h-4 w-4 text-[#94ffc9]' />
+                <CalendarHeart className='h-4 w-4 text-[#e3bf80]' />
                 Événements
               </h3>
-              <p className='mt-3 text-sm leading-6 text-white/64'>
+              <p className='mt-3 text-sm leading-6 text-[#d7cfbf]'>
                 Activez les bons champs pour remonter dans les recommandations d’apéros, soirées et rideaux ouverts.
               </p>
-              <Button asChild variant='outline' className='mt-4 w-full border-white/12 bg-white/[0.04]'>
+              <Button asChild variant='outline' className='mt-4 w-full border-[#3b3b38] bg-[#171818] text-[#fff8e8]'>
                 <Link href='/events'>Voir l’agenda</Link>
               </Button>
             </div>
 
-            <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
+            <div className='rounded-2xl border border-[#3b3b38] bg-[#292928] p-5'>
               <h3 className='flex items-center gap-2 font-black'>
-                <HeartHandshake className='h-4 w-4 text-[#ffd166]' />
+                <HeartHandshake className='h-4 w-4 text-[#e3bf80]' />
                 Règle d’échange
               </h3>
-              <p className='mt-3 text-sm leading-6 text-white/64'>
+              <p className='mt-3 text-sm leading-6 text-[#d7cfbf]'>
                 Les messages restent ouverts uniquement après match accepté. Le profil sert donc à obtenir des demandes qualifiées.
               </p>
             </div>
 
             <div className='text-center'>
-              <a href='/unsubscribe' className='text-sm text-red-200 underline hover:text-red-100'>
+              <a href='/unsubscribe' className='text-sm text-[#f1a6a0] underline hover:text-[#ffd0cb]'>
                 Se désinscrire / Supprimer mon compte
               </a>
             </div>
           </aside>
+        </div>
         </div>
       </LhrV2Shell>
     </MainLayout>

@@ -164,7 +164,7 @@ export function UserProfileEditor ({
   }
 
   return (
-    <div className='rounded-2xl border border-white/10 bg-white/[0.045] p-6 text-white'>
+    <div className='rounded-2xl border border-[#111821] bg-[#0a0f15] p-4 text-[#ecebe7] sm:p-6'>
       <form onSubmit={handleSubmit} className='space-y-6'>
         <div className='grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]'>
           <div className='space-y-4'>
@@ -185,7 +185,7 @@ export function UserProfileEditor ({
             >
               <X className='h-4 w-4' />
             </button>
-            <div className='h-48 w-48 overflow-hidden rounded-3xl border border-white/10 bg-white/10 shadow-lg shadow-purple-900/30'>
+            <div className='h-48 w-48 overflow-hidden rounded-3xl border border-[#111821] bg-[#04070b] shadow-lg'>
               <Image
                 src={defaultMemberImage({
                   avatar: form.avatar,
@@ -356,7 +356,7 @@ export function UserProfileEditor ({
                 </span>
               ))}
             </div>
-            <div className='flex gap-2'>
+            <div className='flex flex-col gap-2 sm:flex-row'>
               <Input
                 value={newInterest}
                 onChange={e => setNewInterest(e.target.value)}
@@ -367,7 +367,7 @@ export function UserProfileEditor ({
                 type='button'
                 onClick={handleAddInterest}
                 variant='outline'
-                className='h-12 rounded-2xl border-white/12 bg-white/[0.04]'
+                className='h-12 shrink-0 rounded-2xl border-[#3b3b38] bg-[#111821] text-[#ecebe7]'
               >
                 <Plus className='mr-2 h-4 w-4' />
                 Ajouter
@@ -377,7 +377,7 @@ export function UserProfileEditor ({
           </div>
         </div>
         <div className='flex justify-end'>
-          <Button type='submit' disabled={saving} className='rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white'>
+          <Button type='submit' disabled={saving} className='rounded-2xl bg-[#c1121f] text-[#ecebe7] hover:bg-[#e13b47]'>
             <Save className='mr-2 h-4 w-4' />
             {saving ? 'Enregistrement...' : 'Enregistrer'}
           </Button>

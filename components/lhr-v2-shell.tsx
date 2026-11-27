@@ -22,7 +22,7 @@ export function LhrV2Shell({
       <header className='flex flex-col gap-4 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-5'>
         <div>
           {eyebrow ? (
-            <div className='mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ff8cc8]'>
+            <div className='mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#ecebe7]'>
               <Sparkles className='h-3.5 w-3.5' />
               {eyebrow}
             </div>

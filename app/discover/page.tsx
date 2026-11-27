@@ -416,7 +416,7 @@ export default function DiscoverPage () {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Communauté' subtitle='Chargement de votre espace rencontre.' user={user}>
-          <div className='rounded-2xl border border-[#d9d7d0] bg-[#f6f4ee] p-8 text-[#667085]'>
+          <div className='rounded-2xl border border-[#41454b] bg-[#04070b] p-8 text-[#c9c7c2]'>
             Chargement...
           </div>
         </LhrV2Shell>
@@ -428,11 +428,11 @@ export default function DiscoverPage () {
     return (
       <MainLayout user={user}>
         <LhrV2Shell title='Complétez votre profil' subtitle='Votre profil doit être prêt avant d’entrer dans la communauté.' user={user}>
-          <div className='max-w-xl rounded-2xl border border-[#d9d7d0] bg-[#f6f4ee] p-6 text-[#172033]'>
-            <p className='text-[#667085]'>
+          <div className='max-w-xl rounded-2xl border border-[#41454b] bg-[#04070b] p-6 text-[#ecebe7]'>
+            <p className='text-[#c9c7c2]'>
               Quelques informations sont nécessaires pour proposer des rencontres compatibles.
             </p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#735c29] text-white hover:bg-[#685122]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#c1121f] text-white hover:bg-[#c1121f]'>
               Compléter mon profil
             </Button>
           </div>
@@ -451,49 +451,49 @@ export default function DiscoverPage () {
             <div className='hidden lg:block'>
               <NotificationsButton />
             </div>
-            <Button asChild size='sm' variant='ghost' className='text-[#735c29] hover:bg-[#f6f1e6] hover:text-[#685122]'>
+            <Button asChild size='sm' variant='ghost' className='text-[#ecebe7] hover:bg-[#111821] hover:text-[#ecebe7]'>
               <Link href='#boite-a-idees'>Boîte à idées</Link>
             </Button>
           </div>
         }
       >
-        <div className='-m-3 min-h-[calc(100vh-8rem)] bg-[#f6f4ee] p-3 text-[#172033] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
+        <div className='-m-3 min-h-[calc(100vh-8rem)] bg-[#04070b] p-3 text-[#ecebe7] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
         <section aria-label='Action principale' className='mb-5'>
-          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#ddd4be] bg-white p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#735c29]'>
-            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f6f1e6] text-[#735c29]'><PrimaryActionIcon className='h-5 w-5' /></span>
-            <span className='min-w-0 flex-1'><span className='block text-lg font-black'>{primaryHomeAction.title}</span><span className='mt-0.5 block text-sm text-[#667085]'>{primaryHomeAction.detail}</span></span>
-            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#735c29] sm:block'>{primaryHomeAction.count}</span>}
-            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#685122]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
+          <Link href={primaryHomeAction.href} className='group flex items-center gap-4 rounded-2xl border border-[#41454b] bg-[#111821] p-5 shadow-[0_10px_30px_rgba(23,32,51,0.06)] transition hover:-translate-y-0.5 hover:border-[#c3a86e]'>
+            <span className='flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111821] text-[#ecebe7]'><PrimaryActionIcon className='h-5 w-5' /></span>
+            <span className='min-w-0 flex-1'><span className='block text-lg font-black'>{primaryHomeAction.title}</span><span className='mt-0.5 block text-sm text-[#c9c7c2]'>{primaryHomeAction.detail}</span></span>
+            {primaryHomeAction.count && <span className='hidden text-2xl font-black text-[#ecebe7] sm:block'>{primaryHomeAction.count}</span>}
+            <span className='inline-flex shrink-0 items-center gap-1 text-sm font-bold text-[#ecebe7]'>{primaryHomeAction.label}<ArrowUpRight className='h-4 w-4' /></span>
           </Link>
         </section>
 
-        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#ddd4be] bg-white shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
+        <section aria-labelledby='next-event-title' className='mb-5 overflow-hidden rounded-2xl border border-[#41454b] bg-[#111821] shadow-[0_10px_30px_rgba(23,32,51,0.06)]'>
           {upcomingEvents.length > 0 ? (
             <div className='grid sm:grid-cols-[180px_minmax(0,1fr)]'>
-              <div className='relative aspect-[16/10] bg-[#e7e4dc] sm:aspect-auto'>{mediaImage(upcomingEvents[0].image || '/soiree-masquee.webp', upcomingEvents[0].title)}</div>
-              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#667085]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#685122]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
+              <div className='relative aspect-[16/10] bg-[#0a0f15] sm:aspect-auto'>{mediaImage(upcomingEvents[0].image || '/soiree-masquee.webp', upcomingEvents[0].title)}</div>
+              <div className='p-5'><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Mon cercle · prochain rendez-vous</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>{upcomingEvents[0].title}</h2><p className='mt-2 text-sm text-[#c9c7c2]'>{eventDateLabel(upcomingEvents[0].event_date)}{upcomingEvents[0].event_time ? ` · ${upcomingEvents[0].event_time}` : ''} · {upcomingEvents[0].location}</p><div className='mt-4 flex flex-wrap gap-4 text-sm font-bold text-[#ecebe7]'><Link href={`/events/${upcomingEvents[0].id}`}>Voir le rendez-vous</Link><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>
             </div>
-          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#667085]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#685122]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
+          ) : <div className='flex flex-wrap items-center justify-between gap-3 p-5'><div><p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Mon cercle</p><h2 id='next-event-title' className='mt-1 text-xl font-black'>Préparez votre prochaine sortie</h2><p className='mt-1 text-sm text-[#c9c7c2]'>Découvrez les lieux et les rendez-vous proposés par la communauté.</p></div><div className='flex gap-3 text-sm font-bold text-[#ecebe7]'><Link href='/events'>Agenda</Link><Link href='/lieux'>Guide des lieux</Link></div></div>}
         </section>
 
         <div className='space-y-5'>
           <section className='order-1 min-w-0 space-y-5'>
             {(counts.matches > 0 || counts.events > 0) && (
               <section aria-label='À suivre' className='flex flex-wrap gap-2'>
-                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Heart className='h-4 w-4 text-[#735c29]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
-                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#d9d7d0] bg-white px-3 py-2 text-sm font-bold text-[#172033]'><Bell className='h-4 w-4 text-[#735c29]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
-                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#685122]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
+                {counts.matches > 0 && <Link href='/matches' className='inline-flex items-center gap-2 rounded-full border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7]'><Heart className='h-4 w-4 text-[#ecebe7]' />{counts.matches} match{counts.matches > 1 ? 's' : ''} à consulter</Link>}
+                {counts.events > 0 && <Link href='/events' className='inline-flex items-center gap-2 rounded-full border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7]'><Bell className='h-4 w-4 text-[#ecebe7]' />{counts.events} alerte{counts.events > 1 ? 's' : ''} événement</Link>}
+                <Link href='/notifications' className='inline-flex items-center gap-1 px-2 py-2 text-sm font-bold text-[#ecebe7]'>Voir tout <ArrowUpRight className='h-4 w-4' /></Link>
               </section>
             )}
 
             <div className='relative'>
-              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#667085]' />
+              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#c9c7c2]' />
               <Input
                 type='text'
                 placeholder='Rechercher un profil, une ville, une ambiance...'
                 value={searchQuery}
                 onChange={event => handleSearchChange(event.target.value)}
-                className='h-12 rounded-2xl border-[#d9d7d0] bg-white pl-11 text-[#172033] placeholder:text-[#667085] focus:border-[#735c29]'
+                className='h-12 rounded-2xl border-[#41454b] bg-[#111821] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
               />
             </div>
 
@@ -506,33 +506,33 @@ export default function DiscoverPage () {
             <section id='new-profiles' className='scroll-mt-24'>
               <div className='mb-4 flex items-start justify-between gap-3'>
                 <div>
-                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#685122]'>Découvrir</p>
+                  <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Découvrir</p>
                   <h2 className='mt-1 text-xl font-black'>Des profils qui pourraient vous plaire</h2>
-                  <p className='mt-1 text-sm leading-5 text-[#667085]'>{newProfilesSummary}</p>
+                  <p className='mt-1 text-sm leading-5 text-[#c9c7c2]'>{newProfilesSummary}</p>
                 </div>
                 <div className='flex shrink-0 flex-col items-end gap-2'>
                   <div className='flex items-center gap-2'>
-                    <span className='hidden text-right text-xs text-[#667085] sm:block'>
+                    <span className='hidden text-right text-xs text-[#c9c7c2] sm:block'>
                       {loading ? 'Actualisation...' : `${newProfiles.length} affichés`}
                     </span>
                     <AdvancedFilters value={filters} onFilterChange={handleFilterChange} />
                   </div>
-                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#d9d7d0] bg-white text-[#172033] hover:bg-[#f6f1e6]'>
+                  <Button type='button' size='sm' variant='outline' onClick={showAnotherBatch} disabled={loading || preparingProfiles || profiles.length <= 12} className='border-[#41454b] bg-[#111821] text-[#ecebe7] hover:bg-[#111821]'>
                     <RefreshCw className='mr-2 h-3.5 w-3.5' />
                     {preparingProfiles ? 'Actualisation...' : 'Découvrir d’autres profils'}
                   </Button>
                 </div>
               </div>
-              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#d7e1ff] bg-[#f6f1e6] px-3 py-2 text-sm'>
-                <span className='font-medium text-[#34405a]'>Affinez par type de profil, envies et critères de rencontre.</span>
-                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#685122] hover:text-[#12379e]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
+              <div className='mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm'>
+                <span className='font-medium text-[#ecebe7]'>Affinez par type de profil, envies et critères de rencontre.</span>
+                <Link href='/members' className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#ecebe7]'>Recherche détaillée <ArrowUpRight className='h-4 w-4' /></Link>
               </div>
               <div className='grid gap-3 sm:grid-cols-2 2xl:grid-cols-4'>
                 {newProfiles.map(profile => (
                   <Link
                     key={profile.id}
                     href={`/profile/${profile.id}`}
-                    className='group overflow-hidden rounded-2xl border border-[#d9d7d0] bg-white shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#735c29]'
+                    className='group overflow-hidden rounded-2xl border border-[#41454b] bg-[#111821] shadow-[0_8px_20px_rgba(23,32,51,0.05)] transition hover:-translate-y-0.5 hover:border-[#c3a86e]'
                   >
                     <div className='relative aspect-[4/5] bg-white/10'>
                       {mediaImage(profileImage(profile), profile.name)}
@@ -552,7 +552,7 @@ export default function DiscoverPage () {
                     </div>
                     {profile.bio && (
                       <div className='p-3'>
-                        <p className='line-clamp-2 text-sm leading-5 text-[#667085]'>{profile.bio}</p>
+                        <p className='line-clamp-2 text-sm leading-5 text-[#c9c7c2]'>{profile.bio}</p>
                       </div>
                     )}
                   </Link>
@@ -564,12 +564,12 @@ export default function DiscoverPage () {
             <MemberReferralLink />
             <CommunityWall currentUserId={user.id} />
 
-            <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#d9d7d0] bg-white'>
+            <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821]'>
               <button type='button' onClick={() => setFeedbackOpen(open => !open)} aria-expanded={feedbackOpen} className='flex w-full items-center justify-between gap-4 p-4 text-left'>
-                <span><span className='block font-black'>Une idée ou un problème à signaler ?</span><span className='mt-0.5 block text-sm text-[#667085]'>Votre retour aide à améliorer la communauté.</span></span>
-                <ChevronDown className={`h-5 w-5 shrink-0 text-[#735c29] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
+                <span><span className='block font-black'>Une idée ou un problème à signaler ?</span><span className='mt-0.5 block text-sm text-[#c9c7c2]'>Votre retour aide à améliorer la communauté.</span></span>
+                <ChevronDown className={`h-5 w-5 shrink-0 text-[#ecebe7] transition ${feedbackOpen ? 'rotate-180' : ''}`} />
               </button>
-              {feedbackOpen && <div className='border-t border-[#e7e4dc] p-4'><CommunityFeedbackWidget /></div>}
+              {feedbackOpen && <div className='border-t border-[#41454b] p-4'><CommunityFeedbackWidget /></div>}
             </section>
 
           </section>

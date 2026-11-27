@@ -24,7 +24,7 @@ const questions = [
 
 export default function ConceptPage() {
   return (
-    <article className='min-h-screen bg-[#21151d] px-5 py-12 text-[#f8f1eb] sm:px-10 lg:py-20'>
+    <article className='min-h-screen bg-[#0a0f15] px-5 py-12 text-[#f8f1eb] sm:px-10 lg:py-20'>
       <div className='mx-auto max-w-5xl'>
         <h1 className='max-w-3xl font-serif text-5xl leading-[1.04] sm:text-7xl'>Une rencontre que vous choisissez ensemble.</h1>
         <p className='mt-6 max-w-2xl text-lg leading-8 text-white/75'>Love Hotel Rencontre est un cercle de célibataires et de couples curieux de rencontres libertines. Retrouvez-vous autour d’une table ou d’une soirée, explorez les lieux référencés et inscrivez-vous aux événements qui vous attirent.</p>
@@ -34,7 +34,7 @@ export default function ConceptPage() {
               <h2 className='font-serif text-3xl'>{question.title}</h2>
               <div>
                 <p className='leading-7 text-white/75'>{question.text}</p>
-                <Link href={question.href} className='mt-4 inline-flex items-center gap-2 font-semibold text-[#ffd29f] underline-offset-4 hover:underline'>{question.action}<ArrowUpRight size={16} aria-hidden='true' /></Link>
+                <Link href={question.href} className='mt-4 inline-flex items-center gap-2 font-semibold text-[#ecebe7] underline-offset-4 hover:underline'>{question.action}<ArrowUpRight size={16} aria-hidden='true' /></Link>
               </div>
             </section>
           ))}

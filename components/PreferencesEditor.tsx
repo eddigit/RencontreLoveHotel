@@ -73,37 +73,37 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-5 space-y-6 text-white">
+    <form onSubmit={handleSubmit} className="mt-5 space-y-6 text-[#ecebe7]">
       <section className="grid gap-4 md:grid-cols-2">
         <PreferenceTile
-          icon={<HeartHandshake className="h-5 w-5 text-[#ff8cc8]" />}
+          icon={<HeartHandshake className="h-5 w-5 text-[#c1121f]" />}
           title="Rencontres"
           checked={form.interested_in_dating}
           onCheckedChange={value => setForm(f => ({ ...f, interested_in_dating: value }))}
         />
         <PreferenceTile
-          icon={<CalendarHeart className="h-5 w-5 text-[#94ffc9]" />}
+          icon={<CalendarHeart className="h-5 w-5 text-[#c1121f]" />}
           title="Événements"
           checked={form.interested_in_events}
           onCheckedChange={value => setForm(f => ({ ...f, interested_in_events: value }))}
         />
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <section className="rounded-2xl border border-[#111821] bg-[#04070b] p-5">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-[#ff8cc8]" />
+          <Sparkles className="h-4 w-4 text-[#c1121f]" />
           <h4 className="font-black">Intentions de rencontre</h4>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           {matchingOptions.map(option => (
-            <label key={option.key} className="flex gap-3 rounded-2xl border border-white/10 bg-black/10 p-4">
+            <label key={option.key} className="flex gap-3 rounded-2xl border border-[#111821] bg-[#111821] p-4">
               <Checkbox
                 checked={Boolean(form[option.key])}
                 onCheckedChange={value => setForm(f => ({ ...f, [option.key]: value as boolean }))}
               />
               <span>
                 <span className="block font-bold">{option.label}</span>
-                <span className="mt-1 block text-sm leading-5 text-white/54">{option.hint}</span>
+                <span className="mt-1 block text-sm leading-5 text-[#c9c7c2]">{option.hint}</span>
               </span>
             </label>
           ))}
@@ -111,24 +111,24 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <label className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <label className="flex gap-3 rounded-2xl border border-[#111821] bg-[#111821] p-4">
           <Checkbox
             checked={form.prefer_curtain_open}
             onCheckedChange={value => setForm(f => ({ ...f, prefer_curtain_open: value as boolean }))}
           />
           <span>
             <span className="block font-bold">Rideaux ouverts</span>
-            <span className="text-sm text-white/54">Intéressé par les soirées où les chambres peuvent être ouvertes.</span>
+            <span className="text-sm text-[#c9c7c2]">Intéressé par les soirées où les chambres peuvent être ouvertes.</span>
           </span>
         </label>
-        <label className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <label className="flex gap-3 rounded-2xl border border-[#111821] bg-[#111821] p-4">
           <Checkbox
             checked={form.join_exclusive_events}
             onCheckedChange={value => setForm(f => ({ ...f, join_exclusive_events: value as boolean }))}
           />
           <span>
             <span className="block font-bold">Apéro jacuzzi</span>
-            <span className="text-sm text-white/54">Invitations champagne, jacuzzi, couples et petits groupes.</span>
+            <span className="text-sm text-[#c9c7c2]">Invitations champagne, jacuzzi, couples et petits groupes.</span>
           </span>
         </label>
       </section>
@@ -151,11 +151,11 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={saving} className="rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white">
+        <Button type="submit" disabled={saving} className="rounded-2xl bg-[#c1121f] text-[#ecebe7] hover:bg-[#e13b47]">
           <Save className="mr-2 h-4 w-4" />
           {saving ? "Enregistrement..." : "Enregistrer le matching"}
         </Button>
-        {success && <div className="text-sm text-[#94ffc9]">Préférences enregistrées.</div>}
+        {success && <div className="text-sm text-[#c9c7c2]">Préférences enregistrées.</div>}
       </div>
     </form>
   )
@@ -173,7 +173,7 @@ function PreferenceTile({
   onCheckedChange: (value: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <label className="flex items-center gap-3 rounded-2xl border border-[#111821] bg-[#111821] p-4">
       <Checkbox checked={checked} onCheckedChange={value => onCheckedChange(value as boolean)} />
       {icon}
       <span className="font-bold">{title}</span>

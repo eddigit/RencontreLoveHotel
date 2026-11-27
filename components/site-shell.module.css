@@ -1,12 +1,13 @@
 .discoverShell {
-  --discover-ivory: #f7f4ec;
-  --discover-paper: #fffdf8;
-  --discover-ink: #17223a;
-  --discover-muted: #61708a;
-  --discover-charcoal: #191b1c;
-  --discover-accent: #695322;
-  --discover-line: #dce3ed;
-  background: var(--discover-ivory) !important;
+  color-scheme: dark;
+  --discover-canvas: #04070b;
+  --discover-paper: #0a0f15;
+  --discover-ink: #ecebe7;
+  --discover-muted: #c9c7c2;
+  --discover-charcoal: #04070b;
+  --discover-accent: #ecebe7;
+  --discover-line: #41454b;
+  background: var(--discover-canvas) !important;
   color: var(--discover-ink);
 }
 
@@ -44,7 +45,7 @@
 }
 
 .navigationLinkActive {
-  background: var(--discover-accent);
+  background: #c1121f;
   box-shadow: 0 8px 20px rgb(7 31 74 / 0.28);
   color: white;
 }
@@ -72,7 +73,7 @@
 }
 
 .mobileHeader button[aria-label="Ouvrir le menu"] {
-  background: #eef3fa;
+  background: #111821;
   border-color: var(--discover-line);
 }
 
@@ -104,11 +105,11 @@
 }
 
 .communityStrip {
-  --discover-paper: #202223;
-  --discover-line: #4c4d4b;
-  --discover-ink: #fbf7ed;
-  --discover-muted: #d3cfc4;
-  --discover-accent: #e6cd92;
+  --discover-paper: #0a0f15;
+  --discover-line: #41454b;
+  --discover-ink: #ecebe7;
+  --discover-muted: #c9c7c2;
+  --discover-accent: #ecebe7;
   background: var(--discover-paper);
   border-bottom: 1px solid var(--discover-line);
   color: var(--discover-ink);
@@ -145,12 +146,12 @@
 }
 
 .portraitPhoto {
-  background: #e8edf4;
+  background: #111821;
   border-color: var(--discover-line);
 }
 
 .portraitInitials {
-  color: #40516d;
+  color: #ecebe7;
 }
 
 .portraitName {
@@ -177,4 +178,4 @@
   }
 }
 
-.panel :global(.lhr-v2-content) > header { color: #172033; background: #f6f4ee; border-color: #deddd6; }
+.panel :global(.lhr-v2-content) > header { color: var(--discover-ink); background: var(--discover-canvas); border-color: var(--discover-line); }
