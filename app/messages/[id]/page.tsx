@@ -10,23 +10,27 @@ import {
   Clock3,
   Flag,
   ImageIcon,
+  Images,
+  LockKeyhole,
   Mic,
   Paperclip,
   Send,
   ShieldCheck,
   Square,
+  UserRound,
   Video,
   X
 } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { LhrV2Shell } from '@/components/lhr-v2-shell'
+import { ConversationList, formatInboxMessageDate, type InboxConversation } from '@/components/messages-inbox'
 import { getConversationThread } from '@/actions/conversation-thread'
 import MainLayout from '@/components/layout/main-layout'
 import {
   getConversationMessagesAfter,
   getConversationMessagesBefore,
+  getUserConversations,
   markConversationMessagesAsRead,
   sendMessage
 } from '@/actions/conversation-actions'
@@ -62,6 +66,7 @@ interface Message {
 
 interface ConversationDetails {
   id: string
+  other_user_id: string
   other_user_name: string
   other_user_avatar: string | null
   other_user_online?: boolean
@@ -170,6 +175,8 @@ export default function ConversationPage ({
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [showJumpToLatest, setShowJumpToLatest] = useState(false)
   const [threadHeight, setThreadHeight] = useState<number | null>(null)
+  const [threadConversations, setThreadConversations] = useState<InboxConversation[]>([])
+  const [threadListLoading, setThreadListLoading] = useState(true)
   const messageScrollRef = useRef<null | HTMLDivElement>(null)
   const threadPanelRef = useRef<null | HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -182,6 +189,7 @@ export default function ConversationPage ({
   const refocusComposerAfterSendRef = useRef(false)
   const isAtLatestRef = useRef(true)
   const shouldScrollToLatestRef = useRef(true)
+  const desktopConversationListLoadedRef = useRef(false)
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const scrollContainer = messageScrollRef.current
@@ -287,6 +295,7 @@ export default function ConversationPage ({
         if (currentConv) {
           setConversationDetails({
             id: currentConv.id,
+            other_user_id: currentConv.other_user_id,
             other_user_name: currentConv.other_user_name,
             other_user_avatar: currentConv.other_user_avatar,
             other_user_online: Boolean(currentConv.other_user_online)
@@ -315,6 +324,32 @@ export default function ConversationPage ({
       cancelled = true
     }
   }, [session?.user?.id, id, markResourceAsRead])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!session?.user?.id) return
+    desktopConversationListLoadedRef.current = false
+    setThreadConversations([])
+    const authenticatedUserId = session.user.id
+    const mediaQuery = window.matchMedia('(min-width: 1280px)')
+    const loadDesktopConversationList = () => {
+      if (!mediaQuery.matches || desktopConversationListLoadedRef.current) return
+      desktopConversationListLoadedRef.current = true
+      setThreadListLoading(true)
+      void getUserConversations(authenticatedUserId)
+        .then(items => {
+          if (!cancelled) setThreadConversations((items as InboxConversation[]).map(item => ({ ...item, last_message_date: formatInboxMessageDate(item.last_message_date) })))
+        })
+        .catch(error => console.error('Failed to load conversation list:', error))
+        .finally(() => { if (!cancelled) setThreadListLoading(false) })
+    }
+    loadDesktopConversationList()
+    mediaQuery.addEventListener('change', loadDesktopConversationList)
+    return () => {
+      cancelled = true
+      mediaQuery.removeEventListener('change', loadDesktopConversationList)
+    }
+  }, [session?.user?.id])
 
   useEffect(() => {
     if (!session?.user?.id || !id || loading || error || loadingEarlierMessages) return
@@ -615,6 +650,7 @@ export default function ConversationPage ({
   }
 
   const currentUserId = session?.user?.id
+  const sharedAttachments = messages.flatMap(item => item.attachments || []).slice(-3)
   const canSend = (message.trim().length > 0 || pendingAttachments.length > 0) && !sending && !uploading && !recording
   const conversationStatus = loading
     ? 'Chargement…'
@@ -628,36 +664,24 @@ export default function ConversationPage ({
 
   return (
     <MainLayout user={session?.user}>
-      <LhrV2Shell
-        user={session?.user}
-        eyebrow='Conversation privée'
-        title={conversationDetails?.other_user_name || 'Messages'}
-        subtitle='Un espace privé pour échanger à votre rythme.'
-        action={
-          <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-            <Link href='/messages'>
-              <ArrowLeft className='mr-2 h-4 w-4' />
-              Retour
-            </Link>
-          </Button>
-        }
-      >
+      <div className='p-0 sm:p-3 lg:p-4'>
         <div
           ref={threadPanelRef}
-          className='lhr-thread-panel grid min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.24))] shadow-2xl shadow-black/20 lg:min-h-[620px] lg:grid-cols-[minmax(0,1fr)_300px]'
+          className='lhr-thread-panel grid min-h-0 overflow-hidden rounded-2xl border border-[#5d3f3f]/45 bg-[#121318] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] xl:grid-cols-[300px_minmax(0,1fr)_320px]'
           style={threadHeight ? { height: `${threadHeight}px` } : undefined}
         >
-          <section className='flex min-h-0 flex-col'>
-            <div className='sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#1c0b2a]/95 p-3 backdrop-blur sm:p-4'>
+          {!loading && !error && <aside className='hidden min-h-0 overflow-hidden border-r border-[#5d3f3f]/35 xl:block'><ConversationList conversations={threadConversations} loading={threadListLoading} activeConversationId={id} /></aside>}
+          <section className='flex min-h-0 flex-col bg-[#121318] xl:col-start-2'>
+            <div className='sticky top-0 z-10 flex min-h-16 items-center justify-between gap-3 border-b border-[#5d3f3f]/35 bg-[#1a1b21]/95 px-3 py-2.5 backdrop-blur sm:px-5'>
               <div className='flex min-w-0 items-center gap-3'>
                 <Link
                   href='/messages'
                   aria-label='Retour à la liste des messages'
-                  className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white transition-colors hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff8cc8]'
+                  className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#5d3f3f]/50 bg-[#1e1f25] text-[#e3e1e9] transition-colors hover:bg-[#34343a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff525d]'
                 >
                   <ArrowLeft className='h-5 w-5' aria-hidden='true' />
                 </Link>
-                <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                <div className='relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#34343a] ring-2 ring-[#ff525d]/35'>
                   <Image
                     src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
                     alt={conversationDetails?.other_user_name || 'Profil'}
@@ -666,24 +690,20 @@ export default function ConversationPage ({
                     sizes='48px'
                   />
                   {conversationDetails?.other_user_online && (
-                    <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
+                    <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#1a1b21] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
                   )}
                 </div>
                 <div className='min-w-0'>
-                  <h2 className='truncate font-black'>
+                  <h2 className='truncate text-base font-bold text-[#e3e1e9]'>
                     {conversationDetails?.other_user_name || 'Conversation'}
                   </h2>
-                  <p className='flex items-center gap-1.5 text-xs text-[#94ffc9]'>
-                    <span className={conversationDetails?.other_user_online ? 'h-1.5 w-1.5 rounded-full bg-[#35e48d]' : 'h-1.5 w-1.5 rounded-full bg-white/35'} />
+                  <p className='flex items-center gap-1.5 text-xs text-[#ffb3ac]'>
+                    <span className={conversationDetails?.other_user_online ? 'h-1.5 w-1.5 rounded-full bg-[#35e48d]' : 'h-1.5 w-1.5 rounded-full bg-[#ad8887]'} />
                     {conversationStatus}
                   </p>
                 </div>
               </div>
-              <div className='hidden items-center gap-2 text-xs font-bold text-white/50 sm:flex'>
-                <ImageIcon className='h-4 w-4' />
-                <Mic className='h-4 w-4' />
-                <Video className='h-4 w-4' />
-              </div>
+              {conversationDetails?.other_user_id && <Link href={`/profile/${conversationDetails.other_user_id}`} aria-label={`Voir le profil de ${conversationDetails.other_user_name}`} className='rounded-lg p-2 text-[#ad8887] transition-colors hover:bg-[#34343a] hover:text-[#e3e1e9]'><UserRound className='h-5 w-5' /></Link>}
             </div>
 
             {loading && (
@@ -714,7 +734,7 @@ export default function ConversationPage ({
                   aria-live='polite'
                   aria-relevant='additions'
                   aria-label='Historique des messages'
-                  className='h-full overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_10%,rgba(255,59,139,0.14),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(148,255,201,0.08),transparent_24%)] p-4 sm:p-6'
+                  className='h-full overflow-y-auto overscroll-contain bg-[linear-gradient(180deg,#121318_0%,#0d0e13_100%)] p-3 sm:p-6'
                 >
                   {messages.length === 0 ? (
                     <div className='flex h-full items-center justify-center text-center'>
@@ -726,7 +746,7 @@ export default function ConversationPage ({
                       </div>
                     </div>
                   ) : (
-                    <div className='mx-auto flex max-w-3xl flex-col gap-3'>
+                    <div className='mx-auto flex max-w-3xl flex-col gap-4'>
                       {hasEarlierMessages && (
                         <div className='flex flex-col items-center gap-2 pb-2'>
                           <Button
@@ -761,13 +781,16 @@ export default function ConversationPage ({
                                 <span className='h-px flex-1 bg-white/10' />
                               </div>
                             )}
-                            <div className={mine ? 'flex justify-end' : 'flex justify-start'}>
+                            <div className={mine ? 'flex items-start justify-end gap-3' : 'flex items-start justify-start gap-3'}>
+                              <div className={mine ? 'hidden sm:block w-8 shrink-0' : 'hidden sm:block relative mt-1 h-8 w-8 shrink-0 overflow-hidden rounded-full ring-1 ring-[#ad8887]/30'}>
+                                {!mine && <Image src={msg.sender_avatar || conversationDetails?.other_user_avatar || '/default-member-couple.jpg'} alt='' fill sizes='32px' className='object-cover' />}
+                              </div>
                               <div
                                 className={[
-                                  'max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-lg sm:max-w-[70%]',
+                                  'max-w-[88%] rounded-2xl px-3.5 py-3 text-sm leading-6 shadow-md sm:max-w-[70%]',
                                   mine
-                                    ? 'rounded-br-md bg-[#ff4fa3] text-white shadow-[#ff4fa3]/10'
-                                    : 'rounded-bl-md border border-white/10 bg-white/10 text-white shadow-black/10'
+                                    ? 'rounded-tr-sm border border-[#ff334b]/30 bg-gradient-to-r from-[#cd021b] to-[#ff334b] text-white shadow-[#ff334b]/15'
+                                    : 'rounded-tl-sm border border-[#5d3f3f]/35 bg-[#292a2f] text-[#e3e1e9] shadow-black/20'
                                 ].join(' ')}
                               >
                               {attachments.length > 0 && (
@@ -793,7 +816,7 @@ export default function ConversationPage ({
                                   {reportingMessageId === msg.id ? 'Signalement…' : 'Signaler une sollicitation'}
                                 </Button>
                               )}
-                              <div className={mine ? 'mt-1 flex items-center justify-end gap-1 text-xs text-white/72' : 'mt-1 flex items-center justify-end gap-1 text-xs text-white/42'}>
+                              <div className={mine ? 'mt-1 flex items-center justify-end gap-1 text-xs text-white/75' : 'mt-1 flex items-center justify-end gap-1 text-xs text-[#ad8887]'}>
                                 <Clock3 className='h-3 w-3' aria-hidden='true' />
                                 <time dateTime={msg.created_at}>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
                               </div>
@@ -810,7 +833,7 @@ export default function ConversationPage ({
                     type='button'
                     size='sm'
                     onClick={() => scrollToLatest()}
-                    className='absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[#ff3b8b] px-4 text-white shadow-lg shadow-black/35 hover:bg-[#ff62a8]'
+                    className='absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[#ff334b] px-4 text-white shadow-lg shadow-black/35 hover:bg-[#cc001a]'
                     aria-label='Aller aux derniers messages'
                   >
                     <ChevronUp className='mr-2 h-4 w-4 rotate-180' aria-hidden='true' />
@@ -819,7 +842,7 @@ export default function ConversationPage ({
                 )}
                 </div>
 
-                <div className='border-t border-white/10 bg-[#16051f]/92 p-3 backdrop-blur sm:p-4'>
+                <div className='border-t border-[#5d3f3f]/35 bg-[#1a1b21]/95 p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] backdrop-blur sm:p-4'>
                   {sendError && (
                     <p className='mb-3 rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100'>
                       {sendError}
@@ -833,9 +856,9 @@ export default function ConversationPage ({
                   {pendingAttachments.length > 0 && (
                     <div className='mb-3 flex flex-wrap gap-2'>
                       {pendingAttachments.map((attachment, index) => (
-                        <div key={`${attachment.url}-${index}`} className='flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2 text-xs text-white/72'>
-                          {attachment.mediaType === 'image' && <ImageIcon className='h-3.5 w-3.5 text-[#ff8cc8]' />}
-                          {attachment.mediaType === 'audio' && <Mic className='h-3.5 w-3.5 text-[#94ffc9]' />}
+                        <div key={`${attachment.url}-${index}`} className='flex items-center gap-2 rounded-full border border-[#5d3f3f]/40 bg-[#292a2f] px-3 py-2 text-xs text-[#e3e1e9]'>
+                          {attachment.mediaType === 'image' && <ImageIcon className='h-3.5 w-3.5 text-[#ff525d]' />}
+                          {attachment.mediaType === 'audio' && <Mic className='h-3.5 w-3.5 text-emerald-400' />}
                           {attachment.mediaType === 'video' && <Video className='h-3.5 w-3.5 text-[#ffd166]' />}
                           <span className='max-w-[160px] truncate'>{attachment.fileName}</span>
                           <button
@@ -863,7 +886,7 @@ export default function ConversationPage ({
                       type='button'
                       variant='outline'
                       onClick={() => fileInputRef.current?.click()}
-                      className='h-12 shrink-0 rounded-2xl border-white/12 bg-white/[0.04] px-4'
+                      className='h-12 shrink-0 rounded-xl border border-[#5d3f3f]/45 bg-[#1e1f25] px-3 text-[#ad8887] hover:bg-[#34343a] hover:text-[#e3e1e9]'
                       disabled={uploading || sending || recording || pendingAttachments.length >= 4}
                       aria-label='Ajouter une pièce jointe'
                     >
@@ -874,10 +897,10 @@ export default function ConversationPage ({
                       variant='outline'
                       onClick={startAudioRecording}
                       className={[
-                        'h-12 shrink-0 rounded-2xl border-white/12 px-4',
+                        'h-12 shrink-0 rounded-xl border border-[#5d3f3f]/45 px-3',
                         recording
-                          ? 'bg-[#ff3b8b]/24 text-[#ffb4d8]'
-                          : 'bg-white/[0.04]'
+                          ? 'bg-[#ff334b]/20 text-[#ffb3ac]'
+                          : 'bg-transparent text-[#ad8887] hover:bg-[#34343a] hover:text-[#e3e1e9]'
                       ].join(' ')}
                       disabled={uploading || sending || pendingAttachments.length >= 4}
                       aria-label={recording ? 'Arrêter le vocal' : 'Enregistrer un vocal'}
@@ -889,12 +912,12 @@ export default function ConversationPage ({
                       value={message}
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
-                      className='col-span-3 row-start-1 h-12 w-full min-w-0 flex-1 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/38 focus:border-[#ff62a8]'
+                      className='col-span-3 row-start-1 h-12 w-full min-w-0 flex-1 rounded-xl border-[#5d3f3f]/45 bg-[#1e1f25] px-3 text-[#e3e1e9] placeholder:text-[#ad8887] focus:border-[#ff525d]'
                       disabled={sending || recording}
                     />
                     <Button
                       type='submit' aria-label='Envoyer le message'
-                      className='h-12 shrink-0 justify-self-end rounded-2xl bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-3 text-white hover:opacity-90 sm:px-5'
+                      className='h-12 shrink-0 justify-self-end rounded-xl bg-[#ff334b] px-3 text-white shadow-[0_0_16px_rgba(255,51,75,0.35)] hover:bg-[#cc001a] sm:px-4'
                       disabled={!canSend}
                     >
                       <Send className='h-4 w-4 sm:mr-2' />
@@ -906,36 +929,54 @@ export default function ConversationPage ({
             )}
           </section>
 
-          <aside className='hidden p-5 lg:block'>
-            <div className='rounded-2xl border border-[#94ffc9]/20 bg-[#94ffc9]/[0.055] p-5'>
-              <ShieldCheck className='h-6 w-6 text-[#94ffc9]' />
-              <h3 className='mt-3 font-black'>Échange privé</h3>
-              <p className='mt-3 text-sm leading-6 text-white/62'>
-                Prenez votre temps. Gardez vos échanges et vos médias dans la messagerie du site.
-              </p>
-              <Link href='/community-safety' className='mt-4 inline-flex text-sm font-bold text-[#94ffc9] hover:text-white'>Conseils de sécurité</Link>
+          {!loading && !error && <aside className='hidden min-h-0 overflow-y-auto border-l border-[#5d3f3f]/35 bg-[#1a1b21] xl:col-start-3 xl:block'>
+            <div className='border-b border-[#5d3f3f]/35 p-5 text-center'>
+              <div className='relative mx-auto h-20 w-20 overflow-hidden rounded-full bg-[#34343a] ring-2 ring-[#ff525d] ring-offset-2 ring-offset-[#1a1b21]'>
+                <Image
+                  src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
+                  alt={conversationDetails?.other_user_name || 'Profil du membre'}
+                  fill
+                  sizes='80px'
+                  className='object-cover'
+                />
+                {conversationDetails?.other_user_online && <span className='absolute bottom-1 right-1 h-3.5 w-3.5 rounded-full border-2 border-[#1a1b21] bg-[#35e48d]' />}
+              </div>
+              <h3 className='mt-4 text-lg font-bold text-[#e3e1e9]'>{conversationDetails?.other_user_name || 'Membre du Cercle'}</h3>
+              <p className='mt-1 text-xs text-[#ffb3ac]'>Membre du Cercle privé</p>
+              <div className='mt-4 grid grid-cols-2 gap-2'>
+                <Link href={`/profile/${conversationDetails?.other_user_id || ''}`} className='flex flex-col items-center gap-1 rounded-xl border border-[#5d3f3f]/35 bg-[#1e1f25] p-2.5 text-[11px] text-[#e3e1e9] transition-colors hover:bg-[#34343a]'>
+                  <UserRound className='h-4 w-4 text-[#ff525d]' /> Profil
+                </Link>
+                <Link href='/community-safety' className='flex flex-col items-center gap-1 rounded-xl border border-[#5d3f3f]/35 bg-[#1e1f25] p-2.5 text-[11px] text-[#e3e1e9] transition-colors hover:bg-[#34343a]'>
+                  <ShieldCheck className='h-4 w-4 text-emerald-400' /> Conseils de sécurité
+                </Link>
+              </div>
             </div>
 
-            <div className='mt-4 rounded-2xl border border-white/10 bg-white/[0.045] p-5'>
-              <h3 className='font-black'>Messagerie</h3>
-              <dl className='mt-4 space-y-3 text-sm'>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Messages</dt>
-                  <dd className='font-bold'>{messages.length}</dd>
-                </div>
-                <div className='flex justify-between border-b border-white/8 pb-3'>
-                  <dt className='text-white/58'>Médias</dt>
-                  <dd className='font-bold'>images · audio · vidéo</dd>
-                </div>
-                <div className='flex justify-between'>
-                  <dt className='text-white/58'>Envoi</dt>
-                  <dd className='font-bold'>{uploading ? 'upload' : sending ? 'en cours' : 'prêt'}</dd>
-                </div>
-              </dl>
+            <div className='border-b border-[#5d3f3f]/35 p-4'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-sm font-semibold text-[#e3e1e9]'>Médias partagés</h3>
+                <span className='text-xs text-[#ad8887]'>Chargés dans ce fil</span>
+              </div>
+              {sharedAttachments.length > 0 ? <div className='mt-3 grid grid-cols-3 gap-2'>{sharedAttachments.map((attachment, index) => attachment.media_type === 'image' ? <a key={attachment.id || `${attachment.url}-${index}`} href={attachment.url} target='_blank' rel='noreferrer' className='relative aspect-square overflow-hidden rounded-xl border border-[#5d3f3f]/35'><img src={attachment.url} alt={attachment.file_name || 'Média partagé'} className='h-full w-full object-cover' /></a> : <div key={attachment.id || `${attachment.url}-${index}`} className='flex aspect-square items-center justify-center rounded-xl border border-[#5d3f3f]/35 bg-[#292a2f] text-[#ad8887]'>{attachment.media_type === 'audio' ? <Mic className='h-5 w-5' /> : <Video className='h-5 w-5' />}</div>)}</div> : <div className='mt-3 flex items-center gap-2 rounded-xl border border-[#5d3f3f]/35 bg-[#1e1f25] p-3 text-xs text-[#ad8887]'><Images className='h-4 w-4' /> Aucun média chargé</div>}
             </div>
-          </aside>
+
+            <div className='p-4'>
+              <p className='text-[11px] font-bold uppercase tracking-wider text-[#ad8887]'>Confidentialité & sécurité</p>
+              <div className='mt-3 space-y-2'>
+                <div className='flex items-center justify-between rounded-xl border border-[#5d3f3f]/35 bg-[#1e1f25] p-3 text-xs'>
+                  <span className='flex items-center gap-2 text-[#e3e1e9]'><ShieldCheck className='h-4 w-4 text-emerald-400' /> Échange privé</span>
+                  <span className='font-semibold text-emerald-400'>Actif</span>
+                </div>
+                <div className='flex items-center justify-between rounded-xl border border-[#5d3f3f]/35 bg-[#1e1f25] p-3 text-xs'>
+                  <span className='flex items-center gap-2 text-[#e3e1e9]'><LockKeyhole className='h-4 w-4 text-[#ff525d]' /> Messages</span>
+                  <span className='text-[#ad8887]'>{messages.length} chargés</span>
+                </div>
+              </div>
+            </div>
+          </aside>}
         </div>
-      </LhrV2Shell>
+      </div>
     </MainLayout>
   )
 }

@@ -23,6 +23,8 @@ export interface InboxConversation {
   has_unread_messages: boolean
 }
 
+type InboxFilter = 'all' | 'unread'
+
 const messageDateFormat = new Intl.DateTimeFormat('fr-FR', {
   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris'
 })
@@ -30,10 +32,110 @@ const messageDateFormat = new Intl.DateTimeFormat('fr-FR', {
 function normalizeConversations (items: InboxConversation[]) {
   return items.map(conversation => ({
     ...conversation,
-    last_message_date: conversation.last_message_date
-      ? messageDateFormat.format(new Date(conversation.last_message_date))
-      : ''
+    last_message_date: formatInboxMessageDate(conversation.last_message_date)
   }))
+}
+
+export function formatInboxMessageDate (value: string | null) {
+  return value ? messageDateFormat.format(new Date(value)) : ''
+}
+
+function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: InboxConversation, size?: 'normal' | 'large' }) {
+  const avatarSize = size === 'large' ? 'h-14 w-14' : 'h-11 w-11'
+  const imageSize = size === 'large' ? '56px' : '44px'
+
+  return (
+    <div className={`relative ${avatarSize} shrink-0 overflow-hidden rounded-full border border-[#2b3040] bg-[#1e222d]`}>
+      <Image src={conversation.other_user_avatar || '/default-member-couple.jpg'} alt={conversation.other_user_name || 'Profil'} fill className='object-cover' sizes={imageSize} />
+      {conversation.other_user_online && <span className='absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#16181f] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />}
+    </div>
+  )
+}
+
+export function ConversationList ({ conversations, loading, activeConversationId, showHeading = true }: {
+  conversations: InboxConversation[]
+  loading: boolean
+  activeConversationId?: string
+  showHeading?: boolean
+}) {
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState<InboxFilter>('all')
+  const unreadCount = conversations.filter(conversation => conversation.has_unread_messages).length
+  const visibleConversations = useMemo(() => {
+    const query = search.trim().toLowerCase()
+    return conversations.filter(conversation => {
+      const matchesSearch = !query || conversation.other_user_name?.toLowerCase().includes(query) || conversation.last_message?.toLowerCase().includes(query)
+      return matchesSearch && (filter === 'all' || conversation.has_unread_messages)
+    })
+  }, [conversations, filter, search])
+
+  return (
+    <section aria-label='Liste des conversations' className='flex h-full min-h-0 min-w-0 flex-col bg-[#16181f]'>
+      <div className='border-b border-[#2b3040] px-4 pb-3 pt-4 sm:px-5'>
+        <div className='flex items-start justify-between gap-4'>
+          <div>{showHeading && <h2 className='font-semibold tracking-tight text-[#f8fafc]'>Messagerie privée</h2>}<p className={showHeading ? 'mt-1 text-xs text-[#94a3b8]' : 'text-xs text-[#94a3b8]'}>Vos conversations les plus récentes.</p></div>
+          <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-[#2b3040] bg-[#1e222d] px-2.5 py-1 text-xs font-semibold tabular-nums text-[#e3e1e9]'>{conversations.length}</span>
+        </div>
+        <div className='relative mt-4'>
+          <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]' aria-hidden='true' />
+          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#2b3040] bg-[#1e222d] pl-9 text-sm text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#ff334b]' />
+        </div>
+        <div className='mt-3 flex gap-2 overflow-x-auto pb-0.5' aria-label='Filtres de conversation'>
+          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#ff334b] text-white shadow-[0_0_14px_rgba(255,51,75,0.3)]' : 'border border-[#2b3040] bg-[#1e222d] text-[#94a3b8] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
+          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#ff334b] text-white shadow-[0_0_14px_rgba(255,51,75,0.3)]' : 'border border-[#2b3040] bg-[#1e222d] text-[#94a3b8] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
+        </div>
+      </div>
+
+      <div className='min-h-0 flex-1 overflow-y-auto p-2'>
+        {loading && (
+          <div className='space-y-1.5' aria-label='Chargement des conversations'>
+            {[0, 1, 2, 3].map(item => (
+              <div key={item} className='flex animate-pulse items-center gap-3 rounded-xl p-3'>
+                <div className='h-11 w-11 rounded-full bg-[#2b3040]' />
+                <div className='flex-1 space-y-2'>
+                  <div className='h-3 w-2/5 rounded bg-[#2b3040]' />
+                  <div className='h-3 w-4/5 rounded bg-[#1e222d]' />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && visibleConversations.length === 0 && (
+          <div className='px-4 py-12 text-center'>
+            <MessageCircle className='mx-auto h-9 w-9 text-[#94a3b8]' aria-hidden='true' />
+            <h3 className='mt-3 font-semibold text-[#f8fafc]'>Aucune conversation</h3>
+            <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>
+              {search.trim() || filter === 'unread' ? 'Essayez un autre filtre ou une autre recherche.' : 'Vos conversations apparaîtront ici après un match accepté.'}
+            </p>
+          </div>
+        )}
+        <div className='space-y-1'>
+          {visibleConversations.map(conversation => (
+            <Link
+              href={`/messages/${conversation.id}`}
+              key={conversation.id}
+              aria-current={conversation.id === activeConversationId ? 'page' : undefined}
+              className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#1e222d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff334b] active:scale-[0.99]'
+              aria-label={`Ouvrir la conversation avec ${conversation.other_user_name || 'ce membre'}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
+            >
+              <ConversationAvatar conversation={conversation} />
+              <div className='min-w-0 flex-1'>
+                <div className='flex items-baseline justify-between gap-2'>
+                  <div className='flex min-w-0 items-center gap-1.5'>
+                    <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{conversation.other_user_name}</h3>
+                    {conversation.has_unread_messages && <span className='h-2 w-2 shrink-0 rounded-full bg-[#ff334b] shadow-[0_0_8px_rgba(255,51,75,0.8)]'><span className='sr-only'>Messages non lus</span></span>}
+                  </div>
+                  <span className={`shrink-0 text-[11px] tabular-nums ${conversation.has_unread_messages ? 'font-semibold text-[#ffb3b2]' : 'text-[#94a3b8]'}`}>{conversation.last_message_date}</span>
+                </div>
+                <p className={`mt-1 truncate text-xs leading-5 ${conversation.has_unread_messages ? 'font-medium text-[#e3e1e9]' : 'text-[#94a3b8]'}`}>{conversation.last_message || 'Conversation ouverte'}</p>
+              </div>
+              <ChevronRight aria-hidden='true' className='h-4 w-4 shrink-0 text-[#94a3b8] opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100 sm:opacity-100' />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
 }
 
 export function MessagesInbox ({ initialConversations, initialError = null, initialUserId }: { initialConversations: InboxConversation[], initialError?: string | null, initialUserId: string }) {
@@ -42,7 +144,6 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
   const [conversations, setConversations] = useState(() => normalizeConversations(initialConversations))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(initialError)
-  const [search, setSearch] = useState('')
   const [refreshRequest, setRefreshRequest] = useState(0)
 
   useEffect(() => {
@@ -81,175 +182,43 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
     return () => { cancelled = true; window.clearInterval(interval) }
   }, [authUser?.id, initialUserId, refreshRequest])
 
-  const filteredConversations = useMemo(() => {
-    const query = search.trim().toLowerCase()
-    if (!query) return conversations
-    return conversations.filter(conversation => conversation.other_user_name?.toLowerCase().includes(query) || conversation.last_message?.toLowerCase().includes(query))
-  }, [conversations, search])
-
-  const activeConversation = filteredConversations[0]
+  const activeConversation = conversations[0]
 
   if (!authLoading && authUser?.id !== initialUserId) return null
 
   return (
     <MainLayout user={authUser}>
       <LhrV2Shell
-        user={authUser}
-        title='Messages'
-        action={
-          <Button asChild size='sm' className='h-9 rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-3 text-white hover:opacity-90'>
-            <Link href='/members'>
-              <Plus className='mr-1.5 h-4 w-4' />
-              Découvrir
-            </Link>
-          </Button>
-        }
+        title='Messagerie privée'
+        action={<Button asChild size='sm' className='h-9 rounded-xl bg-[#ff334b] px-3 text-white shadow-[0_0_16px_rgba(255,51,75,0.25)] hover:bg-[#cc001a]'><Link href='/members'><Plus className='mr-1.5 h-4 w-4' />Découvrir</Link></Button>}
       >
-        <div className='grid min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.22))] shadow-2xl shadow-black/20 lg:min-h-[620px] lg:grid-cols-[380px_minmax(0,1fr)] lg:rounded-3xl'>
-          <section aria-label='Liste des conversations' className='min-w-0 border-b border-white/10 p-3 sm:p-4 lg:border-b-0 lg:border-r'>
-            <div className='mb-3 flex items-center justify-between gap-3 px-1'>
-              <div>
-                <h2 className='text-base font-black'>Boîte de réception</h2>
-                <p className='mt-0.5 text-xs text-white/50'>Dernière activité en premier</p>
-              </div>
-              <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black tabular-nums text-white/70'>{conversations.length}</span>
-            </div>
-            <div className='relative mb-3'>
-              <Search className='absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/38' />
-              <Input
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder='Rechercher une conversation'
-                aria-label='Rechercher une conversation'
-                className='h-10 rounded-xl border-white/10 bg-white/[0.06] pl-10 text-sm text-white placeholder:text-white/38'
-              />
-            </div>
-
-            {loading && (
-              <div className='space-y-2' aria-label='Chargement des conversations'>
-                {[0, 1, 2, 3].map(item => (
-                  <div key={item} className='flex animate-pulse items-center gap-3 rounded-2xl bg-white/[0.04] p-3'>
-                    <div className='h-12 w-12 rounded-full bg-white/10' />
-                    <div className='flex-1 space-y-2'><div className='h-3 w-2/5 rounded bg-white/10' /><div className='h-3 w-4/5 rounded bg-white/[0.07]' /></div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {error && (
-              <div className='rounded-2xl border border-red-400/25 bg-red-500/10 p-4 text-sm text-red-100'>
+        <div className='overflow-hidden rounded-2xl border border-[#2b3040] bg-[#0d0e13] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] lg:grid lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]'>
+          {error ? (
+            <div className='p-4 lg:col-span-2'>
+              <div className='rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-100'>
                 <p>{error}</p>
-                <Button size="sm" variant="outline" onClick={() => setRefreshRequest(value => value + 1)}>Réessayer</Button>
+                <Button size='sm' variant='outline' className='mt-3 border-red-200/30 bg-transparent text-red-50 hover:bg-red-500/15 hover:text-white' onClick={() => setRefreshRequest(value => value + 1)}>Réessayer</Button>
               </div>
-            )}
-
-            {!loading && !error && filteredConversations.length === 0 && (
-              <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center'>
-                <MessageCircle className='mx-auto h-8 w-8 text-white/38' />
-                <h2 className='mt-3 font-bold'>Aucune conversation</h2>
-                <p className='mt-2 text-sm text-white/56'>
-                  {search.trim() ? 'Essayez un autre nom ou un mot du dernier message.' : 'Vos conversations apparaîtront ici après un match accepté.'}
-                </p>
-              </div>
-            )}
-
-            <div className='space-y-1.5'>
-              {filteredConversations.map(conversation => (
-                <Link
-                  href={`/messages/${conversation.id}`}
-                  key={conversation.id}
-                  className={[
-                    'group flex min-h-[72px] items-center gap-3 rounded-xl border border-transparent px-2.5 py-2.5 transition active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#94ffc9] sm:px-3',
-                    'hover:border-white/10 hover:bg-white/[0.055]'
-                  ].join(' ')}
-                  aria-label={`Ouvrir la conversation avec ${conversation.other_user_name || 'ce membre'}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
-                >
-                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10 sm:h-14 sm:w-14'>
-                    <Image
-                      src={conversation.other_user_avatar || '/default-member-couple.jpg'}
-                      alt={conversation.other_user_name || 'Profil'}
-                      fill
-                      className='object-cover'
-                      sizes='(max-width: 640px) 48px, 56px'
-                    />
-                    {conversation.other_user_online && (
-                      <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
-                    )}
-                  </div>
-                  <div className='min-w-0 flex-1'>
-                    <div className='flex items-baseline justify-between gap-2'>
-                      <div className='flex min-w-0 items-center gap-1.5'>
-                        <h3 className='truncate text-sm font-black sm:text-base'>
-                          {conversation.other_user_name}
-                        </h3>
-                        {conversation.has_unread_messages && (
-                          <span className='h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff8cc8] ring-2 ring-[#ff3b8b]/20'>
-                            <span className='sr-only'>Messages non lus</span>
-                          </span>
-                        )}
-                      </div>
-                      <span className='shrink-0 text-[11px] font-bold tabular-nums text-white/54'>
-                        {conversation.last_message_date}
-                      </span>
-                    </div>
-                    <p className='mt-1 truncate text-sm leading-5 text-white/56'>
-                      {conversation.last_message || 'Conversation ouverte'}
-                    </p>
-                  </div>
-                  <ChevronRight aria-hidden='true' className='hidden h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-[#ff8cc8] sm:block' />
-                </Link>
-              ))}
             </div>
-          </section>
-
-          <section className='hidden min-h-[620px] flex-col justify-between border-r border-white/10 p-6 lg:flex'>
-            {activeConversation ? (
-              <>
-                <div className='flex items-center justify-between border-b border-white/10 pb-4'>
-                  <div className='flex items-center gap-3'>
-                    <div className='relative h-12 w-12 overflow-hidden rounded-full bg-white/10'>
-                      <Image
-                        src={activeConversation.other_user_avatar || '/default-member-couple.jpg'}
-                        alt={activeConversation.other_user_name}
-                        fill
-                        className='object-cover'
-                        sizes='48px'
-                      />
-                      {activeConversation.other_user_online && (
-                        <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
-                      )}
-                    </div>
-                    <div>
-                      <h2 className='font-black'>{activeConversation.other_user_name}</h2>
-                      <p className='text-xs text-[#94ffc9]'>Conversation disponible</p>
-                    </div>
-                  </div>
-                  <Button asChild variant='outline' className='border-white/12 bg-white/[0.04]'>
-                    <Link href={`/messages/${activeConversation.id}`}>Ouvrir</Link>
-                  </Button>
-                </div>
-
-                <div className='mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 py-8'>
-                  <p className='mb-2 text-center text-xs font-bold uppercase tracking-[0.16em] text-white/38'>Dernier message</p>
-                  <div className='max-w-[78%] rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.075] p-4 text-sm leading-6'>
-                    {activeConversation.last_message ||
-                      'Aucun message pour le moment.'}
-                  </div>
-
-                </div>
-              </>
-            ) : (
-              <div className='flex h-full flex-col items-center justify-center text-center'>
-                <MessageCircle className='h-10 w-10 text-white/32' />
-                <h2 className='mt-4 text-xl font-black'>Sélectionnez une conversation</h2>
-                <p className='mt-2 max-w-sm text-sm leading-6 text-white/56'>
-                   Vos échanges apparaissent ici dès qu’un match est accepté.
-                </p>
-              </div>
-            )}
-          </section>
-
-
+          ) : <ConversationList conversations={conversations} loading={loading} activeConversationId={activeConversation?.id} showHeading={false} />}
+          {!error && <aside className='hidden min-h-0 flex-col border-l border-[#2b3040] bg-[#121318] p-8 lg:flex'>
+             {activeConversation ? (
+               <div className='m-auto w-full max-w-md text-center'>
+                 <div className='mx-auto w-fit'><ConversationAvatar conversation={activeConversation} size='large' /></div>
+                 <p className='mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]'>Conversation récente</p>
+                 <h2 className='mt-2 text-xl font-semibold text-[#f8fafc]'>{activeConversation.other_user_name}</h2>
+                 {activeConversation.other_user_online && <p className='mt-1 text-xs font-medium text-[#35e48d]'>En ligne</p>}
+                 <p className='mt-3 line-clamp-3 text-sm leading-6 text-[#94a3b8]'>{activeConversation.last_message || 'Aucun message pour le moment.'}</p>
+                 <Button asChild className='mt-6 rounded-xl bg-[#ff334b] text-white hover:bg-[#cc001a]'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>
+               </div>
+             ) : (
+               <div className='m-auto max-w-sm text-center'>
+                 <MessageCircle className='mx-auto h-10 w-10 text-[#94a3b8]' aria-hidden='true' />
+                 <h2 className='mt-4 text-xl font-semibold text-[#f8fafc]'>Vos échanges apparaîtront ici</h2>
+                 <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>Commencez par découvrir les membres et créez un match pour ouvrir une conversation.</p>
+               </div>
+             )}
+          </aside>}
         </div>
       </LhrV2Shell>
     </MainLayout>

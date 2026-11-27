@@ -127,7 +127,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigationItems = user ? memberNavItems : visitorNavItems
   const isMemberShell = Boolean(user)
-  const isDiscoverShell = Boolean(user && pathname === '/discover')
+  const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/messages' || pathname.startsWith('/messages/')))
 
   useEffect(() => {
     setMobileOpen(false)
@@ -244,17 +244,17 @@ export function SiteShell({ children }: { children: ReactNode }) {
   )
 
   return (
-    <div data-chat-thread={/^\/messages\/[^/]+\/?$/.test(pathname) || undefined} className={cn('site-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(255,59,139,0.22),transparent_28%),linear-gradient(135deg,#170522_0%,#26063a_52%,#13031f_100%)] text-white', isMemberShell && styles.discoverShell, isDiscoverShell && styles.stitchDiscoverShell)}>
-      <div className={cn('mx-auto grid min-h-screen w-full max-w-[1920px] gap-4 px-2 py-2 sm:px-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-4 lg:py-4', isDiscoverShell && styles.stitchDiscoverGrid)}>
-          <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isDiscoverShell && styles.stitchRail)}>
-          <Link href={user ? '/discover' : '/'} className={cn('mb-5 rounded-2xl border border-white/10 bg-black/50 p-3', isMemberShell && styles.logoLockup, isDiscoverShell && styles.stitchLogoLockup)}>
+    <div data-chat-thread={/^\/messages\/[^/]+\/?$/.test(pathname) || undefined} className={cn('site-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_12%_0%,rgba(255,59,139,0.22),transparent_28%),linear-gradient(135deg,#170522_0%,#26063a_52%,#13031f_100%)] text-white', isMemberShell && styles.discoverShell, isCircleShell && styles.stitchDiscoverShell)}>
+      <div className={cn('mx-auto grid min-h-screen w-full max-w-[1920px] gap-4 px-2 py-2 sm:px-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-4 lg:py-4', isCircleShell && styles.stitchDiscoverGrid)}>
+          <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isCircleShell && styles.stitchRail)}>
+          <Link href={user ? '/discover' : '/'} className={cn('mb-5 rounded-2xl border border-white/10 bg-black/50 p-3', isMemberShell && styles.logoLockup, isCircleShell && styles.stitchLogoLockup)}>
             <BrandLogo priority />
           </Link>
           {navigation}
         </aside>
 
-        <div data-site-panel className={cn('min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#180422]/78 shadow-2xl shadow-black/25 backdrop-blur-xl', isMemberShell && styles.panel, isDiscoverShell && styles.stitchPanel)}>
-          {isDiscoverShell && user ? (
+        <div data-site-panel className={cn('min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#180422]/78 shadow-2xl shadow-black/25 backdrop-blur-xl', isMemberShell && styles.panel, isCircleShell && styles.stitchPanel)}>
+          {isCircleShell && user ? (
             <header className={`sticky top-0 z-40 hidden h-16 items-center justify-between border-b px-6 lg:flex ${styles.discoverHeader}`}>
               <form action='/members' className={styles.searchForm} role='search'>
                 <Search aria-hidden className='size-[18px] shrink-0' />
@@ -288,7 +288,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
               </div>
             </header>
           ) : null}
-          <header className={cn('sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#180422]/95 px-3 backdrop-blur-xl sm:px-4 lg:hidden', isMemberShell && styles.mobileHeader, isDiscoverShell && styles.stitchMobileHeader)}>
+          <header className={cn('sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#180422]/95 px-3 backdrop-blur-xl sm:px-4 lg:hidden', isMemberShell && styles.mobileHeader, isCircleShell && styles.stitchMobileHeader)}>
             <Link href={user ? '/discover' : '/'} className='min-w-0 max-w-[min(60vw,230px)]'>
               <BrandLogo compact priority />
             </Link>
@@ -312,14 +312,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
       </div>
 
       {mobileOpen ? (
-        <div className={cn('fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm lg:hidden', isMemberShell && styles.mobileScrim, isDiscoverShell && styles.stitchMobileScrim)}>
+        <div className={cn('fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm lg:hidden', isMemberShell && styles.mobileScrim, isCircleShell && styles.stitchMobileScrim)}>
           <button
             type='button'
             aria-label='Fermer le menu'
             onClick={() => setMobileOpen(false)}
             className='absolute inset-0 h-full w-full cursor-default'
           />
-          <aside className={cn('absolute right-0 top-0 flex h-full w-[min(88vw,360px)] flex-col border-l border-white/10 bg-[#180422] p-4 shadow-2xl', isMemberShell && styles.mobileRail, isDiscoverShell && styles.stitchMobileRail)}>
+          <aside className={cn('absolute right-0 top-0 flex h-full w-[min(88vw,360px)] flex-col border-l border-white/10 bg-[#180422] p-4 shadow-2xl', isMemberShell && styles.mobileRail, isCircleShell && styles.stitchMobileRail)}>
             <div className='mb-6 flex items-center justify-between gap-3'>
               <BrandLogo compact />
               <button

@@ -2,18 +2,18 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('Discover authenticated shell', () => {
-  it('uses the dark circle shell only on discover', () => {
+  it('uses the dark circle shell on discover and in the messenger', () => {
     const shell = readFileSync('components/site-shell.tsx', 'utf8')
     const styles = readFileSync('components/site-shell.module.css', 'utf8')
 
     expect(shell).toContain("const isMemberShell = Boolean(user)")
-    expect(shell).toContain("const isDiscoverShell = Boolean(user && pathname === '/discover')")
+    expect(shell).toContain("const isCircleShell = Boolean(user && (pathname === '/discover' || pathname === '/messages' || pathname.startsWith('/messages/')))")
     expect(shell).toContain('isMemberShell && styles.discoverShell')
     expect(shell).toContain('isMemberShell && styles.rail')
     expect(shell).toContain('isMemberShell && styles.panel')
-    expect(shell).toContain('isDiscoverShell && styles.stitchDiscoverShell')
-    expect(shell).toContain('isDiscoverShell && styles.stitchRail')
-    expect(shell).toContain('isDiscoverShell && styles.stitchPanel')
+    expect(shell).toContain('isCircleShell && styles.stitchDiscoverShell')
+    expect(shell).toContain('isCircleShell && styles.stitchRail')
+    expect(shell).toContain('isCircleShell && styles.stitchPanel')
     expect(shell).toContain("<form action='/members' className={styles.searchForm} role='search'>")
     expect(shell).toContain("name='search'")
     expect(shell).toContain("data-chat-thread={/^\\/messages\\/[^/]+\\/?$/.test(pathname) || undefined}")
