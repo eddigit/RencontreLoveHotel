@@ -44,7 +44,7 @@ describe('unified public site shell', () => {
     const logo = readWhenPresent(logoPath)
 
     expect(existsSync(logoPath)).toBe(true)
-    expect(logo).toContain("src='/loolyyb-original.png'")
+    expect(logo).toContain("src='/joug-champagne.svg'")
     expect(logo).toContain('aspect-square')
     expect(logo).toContain('object-contain')
     expect(logo).not.toContain('object-cover')
@@ -63,7 +63,7 @@ describe('unified public site shell', () => {
     expect(mainLayout).not.toContain('<Header')
     expect(mainLayout).not.toContain('<Footer')
     expect(v2Shell).not.toContain("<aside className='hidden")
-    expect(v2Shell).not.toContain("src='/loolyyb-original.png'")
+    expect(v2Shell).not.toContain("src='/joug-champagne.svg'")
   })
 
   it('does not render legacy page-level navigation', () => {

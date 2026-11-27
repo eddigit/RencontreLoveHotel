@@ -39,10 +39,6 @@
   max-height: 5rem;
 }
 
-.logoLockup span {
-  max-width: 4.25rem;
-}
-
 .nav {
   display: grid;
   gap: 0.3rem;
@@ -260,7 +256,7 @@
 }
 
 .stitchLogoLockup img { max-height: none; }
-.stitchLogoLockup span { max-width: 5rem; }
+
 
 .stitchDiscoverShell .navigationLink {
   border-radius: 0.5rem;

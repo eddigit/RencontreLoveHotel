@@ -257,7 +257,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       <div className={cn('mx-auto grid min-h-screen w-full max-w-[1920px] gap-4 px-2 py-2 sm:px-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-4 lg:py-4', isCircleShell && styles.stitchDiscoverGrid)}>
           <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isCircleShell && styles.stitchRail)}>
           <Link href={user ? '/discover' : '/'} className={cn('mb-5 rounded-2xl border border-white/10 bg-black/50 p-3', isMemberShell && styles.logoLockup, isCircleShell && styles.stitchLogoLockup)}>
-            <BrandLogo priority />
+            <BrandLogo compact priority />
           </Link>
           {navigation}
         </aside>
