@@ -7,6 +7,7 @@ export type ConversationSummary = {
   other_user_name: string
   other_user_avatar: string | null
   other_user_online?: boolean
+  has_unread_messages: boolean
   last_message: string | null
   last_message_date: string | null
 }
@@ -74,6 +75,12 @@ function conversationSummaryQuery(
         OR viewer_user.role = 'admin'
         OR other_user.role = 'admin'
       )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM user_blocks block
+          WHERE (block.blocker_id = $1 AND block.blocked_id = other.user_id)
+             OR (block.blocker_id = other.user_id AND block.blocked_id = $1)
+        )
         ${conversationFilter}
     )
     SELECT
@@ -82,6 +89,14 @@ function conversationSummaryQuery(
       COALESCE(other_user.name, 'Membre') AS other_user_name,
       other_user.avatar AS other_user_avatar,
       ${onlinePresenceCondition(presenceColumn)} AS other_user_online,
+      EXISTS (
+        SELECT 1
+        FROM messages unread_message
+        WHERE unread_message.conversation_id = vc.id
+          AND unread_message.sender_id != $1
+          AND COALESCE(unread_message.is_read, false) = false
+        LIMIT 1
+      ) AS has_unread_messages,
       CASE
         WHEN NULLIF(TRIM(lm.content), '') IS NOT NULL THEN lm.content
         ${attachmentFallback}

@@ -20,6 +20,7 @@ export interface InboxConversation {
   last_message_date: string | null
   other_user_avatar: string | null
   other_user_online?: boolean
+  has_unread_messages: boolean
 }
 
 const messageDateFormat = new Intl.DateTimeFormat('fr-FR', {
@@ -94,34 +95,33 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
     <MainLayout user={authUser}>
       <LhrV2Shell
         user={authUser}
-        eyebrow='Vos échanges'
         title='Messages'
-        subtitle='Vos conversations privées avec les membres avec qui vous avez un match accepté.'
         action={
-          <Button asChild className='bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] text-white hover:opacity-90'>
+          <Button asChild size='sm' className='h-9 rounded-full bg-gradient-to-r from-[#ff3b8b] to-[#ff8cc8] px-3 text-white hover:opacity-90'>
             <Link href='/members'>
-              <Plus className='mr-2 h-4 w-4' />
-              Trouver un membre
+              <Plus className='mr-1.5 h-4 w-4' />
+              Découvrir
             </Link>
           </Button>
         }
       >
-        <div className='grid min-h-[620px] overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.22))] shadow-2xl shadow-black/20 lg:grid-cols-[380px_minmax(0,1fr)]'>
+        <div className='grid min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.22))] shadow-2xl shadow-black/20 lg:min-h-[620px] lg:grid-cols-[380px_minmax(0,1fr)] lg:rounded-3xl'>
           <section aria-label='Liste des conversations' className='min-w-0 border-b border-white/10 p-3 sm:p-4 lg:border-b-0 lg:border-r'>
-            <div className='mb-4 flex items-center justify-between gap-3 px-1'>
+            <div className='mb-3 flex items-center justify-between gap-3 px-1'>
               <div>
-                <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ff8cc8]'>Boîte de réception</p>
-                <h2 className='mt-1 text-lg font-black'>Vos conversations</h2>
+                <h2 className='text-base font-black'>Boîte de réception</h2>
+                <p className='mt-0.5 text-xs text-white/50'>Dernière activité en premier</p>
               </div>
-              <span className='rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black text-white/70'>{conversations.length}</span>
+              <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs font-black tabular-nums text-white/70'>{conversations.length}</span>
             </div>
-            <div className='relative mb-4'>
-              <Search className='absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/38' />
+            <div className='relative mb-3'>
+              <Search className='absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/38' />
               <Input
                 value={search}
                 onChange={event => setSearch(event.target.value)}
                 placeholder='Rechercher une conversation'
-                className='h-12 rounded-2xl border-white/10 bg-white/[0.06] pl-11 text-white placeholder:text-white/38'
+                aria-label='Rechercher une conversation'
+                className='h-10 rounded-xl border-white/10 bg-white/[0.06] pl-10 text-sm text-white placeholder:text-white/38'
               />
             </div>
 
@@ -154,41 +154,49 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
             )}
 
             <div className='space-y-1.5'>
-              {filteredConversations.map((conversation, index) => (
+              {filteredConversations.map(conversation => (
                 <Link
                   href={`/messages/${conversation.id}`}
                   key={conversation.id}
                   className={[
-                    'group flex items-center gap-3 rounded-2xl border p-3 transition focus:outline-none focus:ring-2 focus:ring-[#94ffc9]',
-                    index === 0 ? 'border-[#ff8cc8]/25 bg-[#ff3b8b]/12 hover:bg-[#ff3b8b]/18' : 'border-transparent hover:border-white/10 hover:bg-white/[0.055]'
+                    'group flex min-h-[72px] items-center gap-3 rounded-xl border border-transparent px-2.5 py-2.5 transition active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#94ffc9] sm:px-3',
+                    'hover:border-white/10 hover:bg-white/[0.055]'
                   ].join(' ')}
+                  aria-label={`Ouvrir la conversation avec ${conversation.other_user_name || 'ce membre'}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
                 >
-                  <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-white/10'>
+                  <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10 sm:h-14 sm:w-14'>
                     <Image
                       src={conversation.other_user_avatar || '/default-member-couple.jpg'}
                       alt={conversation.other_user_name || 'Profil'}
                       fill
                       className='object-cover'
-                      sizes='56px'
+                      sizes='(max-width: 640px) 48px, 56px'
                     />
                     {conversation.other_user_online && (
                       <span className='absolute bottom-0.5 right-0.5 h-3.5 w-3.5 rounded-full border-2 border-[#170321] bg-[#35e48d]' title='En ligne' aria-label='En ligne' />
                     )}
                   </div>
                   <div className='min-w-0 flex-1'>
-                    <div className='flex items-center justify-between gap-3'>
-                      <h3 className='truncate font-black'>
-                        {conversation.other_user_name}
-                      </h3>
-                      <span className='shrink-0 text-xs font-bold text-white/54'>
+                    <div className='flex items-baseline justify-between gap-2'>
+                      <div className='flex min-w-0 items-center gap-1.5'>
+                        <h3 className='truncate text-sm font-black sm:text-base'>
+                          {conversation.other_user_name}
+                        </h3>
+                        {conversation.has_unread_messages && (
+                          <span className='h-2.5 w-2.5 shrink-0 rounded-full bg-[#ff8cc8] ring-2 ring-[#ff3b8b]/20'>
+                            <span className='sr-only'>Messages non lus</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className='shrink-0 text-[11px] font-bold tabular-nums text-white/54'>
                         {conversation.last_message_date}
                       </span>
                     </div>
-                    <p className='mt-1 truncate text-sm text-white/56'>
+                    <p className='mt-1 truncate text-sm leading-5 text-white/56'>
                       {conversation.last_message || 'Conversation ouverte'}
                     </p>
                   </div>
-                  <ChevronRight className='h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-[#ff8cc8]' />
+                  <ChevronRight aria-hidden='true' className='hidden h-4 w-4 shrink-0 text-white/30 transition group-hover:translate-x-0.5 group-hover:text-[#ff8cc8] sm:block' />
                 </Link>
               ))}
             </div>

@@ -260,3 +260,40 @@ body {
     min-width: 0;
   }
 }
+
+/* A member reading a conversation on a phone uses the thread's own navigation. */
+@media (max-width: 1023px) {
+  .site-shell[data-chat-thread],
+  .site-shell[data-chat-thread] > div:first-child,
+  .site-shell[data-chat-thread] [data-site-panel] > main {
+    min-height: 0;
+  }
+
+  .site-shell[data-chat-thread] > div:first-child {
+    display: block;
+    padding: 0;
+  }
+
+  .site-shell[data-chat-thread] [data-site-panel] {
+    border: 0;
+    border-radius: 0;
+    overflow: visible;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .site-shell[data-chat-thread] [data-site-panel] > header,
+  .site-shell[data-chat-thread] [data-site-panel] > footer {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .site-shell[data-chat-thread] .lhr-v2-content > header {
+    display: none;
+  }
+
+  .site-shell[data-chat-thread] .lhr-v2-content > div {
+    padding: 0;
+  }
+}

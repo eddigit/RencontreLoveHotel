@@ -49,6 +49,21 @@ describe('member relationship service', () => {
     expect(query.mock.calls[0][0]).toContain('other_user.last_seen_at')
   })
 
+  it('marks only unread messages received by the scoped viewer and excludes blocked conversations', async () => {
+    query.mockResolvedValueOnce([])
+
+    await getMemberConversationSummaries('member-1')
+
+    const [statement, params] = query.mock.calls[0]
+    expect(params).toEqual(['member-1'])
+    expect(statement).toContain('FROM messages unread_message')
+    expect(statement).toContain('unread_message.sender_id != $1')
+    expect(statement).toContain('COALESCE(unread_message.is_read, false) = false')
+    expect(statement).toContain('LIMIT 1\n      ) AS has_unread_messages')
+    expect(statement).toContain('FROM user_blocks block')
+    expect(statement).toContain('(block.blocker_id = $1 AND block.blocked_id = other.user_id)')
+  })
+
   it('looks up one conversation with an indexed latest-message join instead of scanning all history', async () => {
     query.mockResolvedValueOnce([{ id: 'conversation-1', last_message: 'Bonjour' }])
 

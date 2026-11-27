@@ -1,7 +1,7 @@
 'use client'
 
 import type React from 'react'
-import { use, useEffect, useRef, useState } from 'react'
+import { use, useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {
@@ -168,8 +168,10 @@ export default function ConversationPage ({
   const [hasEarlierMessages, setHasEarlierMessages] = useState(false)
   const [loadingEarlierMessages, setLoadingEarlierMessages] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
-  const messagesEndRef = useRef<null | HTMLDivElement>(null)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
+  const [threadHeight, setThreadHeight] = useState<number | null>(null)
   const messageScrollRef = useRef<null | HTMLDivElement>(null)
+  const threadPanelRef = useRef<null | HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const messageInputRef = useRef<HTMLInputElement | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -178,6 +180,36 @@ export default function ConversationPage ({
   const messagesRef = useRef<Message[]>([])
   const preservedScrollRef = useRef<{ height: number; top: number } | null>(null)
   const refocusComposerAfterSendRef = useRef(false)
+  const isAtLatestRef = useRef(true)
+  const shouldScrollToLatestRef = useRef(true)
+
+  const scrollToLatest = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const scrollContainer = messageScrollRef.current
+    if (!scrollContainer) return
+    isAtLatestRef.current = true
+    setShowJumpToLatest(false)
+    scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior })
+  }, [])
+
+  const updateThreadHeight = useCallback(() => {
+    const panel = threadPanelRef.current
+    if (!panel || typeof window === 'undefined') return
+    const viewport = window.visualViewport
+    const viewportBottom = viewport
+      ? viewport.height + viewport.offsetTop
+      : window.innerHeight
+    const availableHeight = Math.floor(viewportBottom - panel.getBoundingClientRect().top - 12)
+    setThreadHeight(availableHeight > 0 ? availableHeight : null)
+  }, [])
+
+  const handleMessageScroll = () => {
+    const scrollContainer = messageScrollRef.current
+    if (!scrollContainer) return
+    const distanceFromLatest = scrollContainer.scrollHeight - scrollContainer.scrollTop - scrollContainer.clientHeight
+    const atLatest = distanceFromLatest < 96
+    isAtLatestRef.current = atLatest
+    setShowJumpToLatest(!atLatest)
+  }
 
   useEffect(() => {
     messagesRef.current = messages
@@ -199,8 +231,34 @@ export default function ConversationPage ({
       })
       return
     }
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (shouldScrollToLatestRef.current) {
+      shouldScrollToLatestRef.current = false
+      requestAnimationFrame(() => scrollToLatest('auto'))
+      return
+    }
+    if (isAtLatestRef.current) {
+      requestAnimationFrame(() => scrollToLatest('auto'))
+    } else {
+      setShowJumpToLatest(true)
+    }
+  }, [messages, scrollToLatest])
+
+  useEffect(() => {
+    updateThreadHeight()
+    const viewport = window.visualViewport
+    viewport?.addEventListener('resize', updateThreadHeight)
+    viewport?.addEventListener('scroll', updateThreadHeight)
+    window.addEventListener('resize', updateThreadHeight)
+    return () => {
+      viewport?.removeEventListener('resize', updateThreadHeight)
+      viewport?.removeEventListener('scroll', updateThreadHeight)
+      window.removeEventListener('resize', updateThreadHeight)
+    }
+  }, [updateThreadHeight])
+
+  useEffect(() => {
+    updateThreadHeight()
+  }, [loading, error, updateThreadHeight])
 
   useEffect(() => {
     return () => {
@@ -220,6 +278,9 @@ export default function ConversationPage ({
       try {
         const { messages: fetchedMessages, summary: currentConv } = await getConversationThread(id)
         if (cancelled) return
+        shouldScrollToLatestRef.current = true
+        isAtLatestRef.current = true
+        setShowJumpToLatest(false)
         setMessages(fetchedMessages as Message[])
         setHasEarlierMessages(fetchedMessages.length === 80)
         setLastSyncedAt(new Date())
@@ -470,6 +531,9 @@ export default function ConversationPage ({
 
     setSendError(null)
     setSending(true)
+    shouldScrollToLatestRef.current = true
+    isAtLatestRef.current = true
+    setShowJumpToLatest(false)
     const attachmentsToSend = pendingAttachments
     const optimisticMessage: Message = {
       id: `optimistic-${Date.now()}`,
@@ -578,10 +642,21 @@ export default function ConversationPage ({
           </Button>
         }
       >
-        <div className='grid min-h-[calc(100dvh-14rem)] overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.24))] shadow-2xl shadow-black/20 lg:grid-cols-[minmax(0,1fr)_300px]'>
-          <section className='flex min-h-[620px] flex-col'>
+        <div
+          ref={threadPanelRef}
+          className='lhr-thread-panel grid min-h-0 overflow-hidden rounded-3xl border border-white/10 bg-[linear-gradient(145deg,rgba(255,255,255,0.055),rgba(0,0,0,0.24))] shadow-2xl shadow-black/20 lg:min-h-[620px] lg:grid-cols-[minmax(0,1fr)_300px]'
+          style={threadHeight ? { height: `${threadHeight}px` } : undefined}
+        >
+          <section className='flex min-h-0 flex-col'>
             <div className='sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-[#1c0b2a]/95 p-3 backdrop-blur sm:p-4'>
               <div className='flex min-w-0 items-center gap-3'>
+                <Link
+                  href='/messages'
+                  aria-label='Retour à la liste des messages'
+                  className='inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/12 bg-white/[0.06] text-white transition-colors hover:bg-white/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff8cc8]'
+                >
+                  <ArrowLeft className='h-5 w-5' aria-hidden='true' />
+                </Link>
                 <div className='relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-white/10'>
                   <Image
                     src={conversationDetails?.other_user_avatar || '/default-member-couple.jpg'}
@@ -631,7 +706,16 @@ export default function ConversationPage ({
 
             {!loading && !error && (
               <>
-                <div ref={messageScrollRef} className='flex-1 overflow-y-auto bg-[radial-gradient(circle_at_20%_10%,rgba(255,59,139,0.14),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(148,255,201,0.08),transparent_24%)] p-4 sm:p-6'>
+                <div className='relative min-h-0 flex-1'>
+                <div
+                  ref={messageScrollRef}
+                  onScroll={handleMessageScroll}
+                  role='log'
+                  aria-live='polite'
+                  aria-relevant='additions'
+                  aria-label='Historique des messages'
+                  className='h-full overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_10%,rgba(255,59,139,0.14),transparent_28%),radial-gradient(circle_at_80%_0%,rgba(148,255,201,0.08),transparent_24%)] p-4 sm:p-6'
+                >
                   {messages.length === 0 ? (
                     <div className='flex h-full items-center justify-center text-center'>
                       <div>
@@ -718,9 +802,21 @@ export default function ConversationPage ({
                           </div>
                         )
                       })}
-                      <div ref={messagesEndRef} />
                     </div>
                   )}
+                </div>
+                {showJumpToLatest && (
+                  <Button
+                    type='button'
+                    size='sm'
+                    onClick={() => scrollToLatest()}
+                    className='absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[#ff3b8b] px-4 text-white shadow-lg shadow-black/35 hover:bg-[#ff62a8]'
+                    aria-label='Aller aux derniers messages'
+                  >
+                    <ChevronUp className='mr-2 h-4 w-4 rotate-180' aria-hidden='true' />
+                    Derniers messages
+                  </Button>
+                )}
                 </div>
 
                 <div className='border-t border-white/10 bg-[#16051f]/92 p-3 backdrop-blur sm:p-4'>
