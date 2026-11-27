@@ -28,6 +28,7 @@ import { useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ConversationList, formatInboxMessageDate, type InboxConversation } from '@/components/messages-inbox'
+import { displayMemberName } from '@/lib/display-member-name'
 import { getConversationThread } from '@/actions/conversation-thread'
 import MainLayout from '@/components/layout/main-layout'
 import {
@@ -824,7 +825,7 @@ export default function ConversationPage ({
                 </Link>
                 <div className='relative h-10 w-10 shrink-0'>
                   <div className='h-full w-full overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87]/35'>
-                    <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil'} className='h-full w-full object-cover' />
+                    <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={displayMemberName(conversationDetails?.other_user_name, 'Profil')} className='h-full w-full object-cover' />
                   </div>
                   {conversationDetails?.other_user_online && (
                     <PresenceDot className='-bottom-0.5 -right-0.5' />
@@ -832,12 +833,12 @@ export default function ConversationPage ({
                 </div>
                 <div className='min-w-0'>
                   <h2 className='truncate text-base font-bold text-[#f1eee8]'>
-                    {conversationDetails?.other_user_name || 'Conversation'}
+                    {displayMemberName(conversationDetails?.other_user_name, 'Conversation')}
                   </h2>
                   {conversationStatus && <p className='text-xs text-[#e5d1aa]'>{conversationStatus}</p>}
                 </div>
               </div>
-              {conversationDetails?.other_user_id && <Link href={`/profile/${conversationDetails.other_user_id}`} aria-label={`Voir le profil de ${conversationDetails.other_user_name}`} className='rounded-lg p-2 text-[#aaa69e] transition-colors hover:bg-[#302c26] hover:text-[#f1eee8]'><UserRound className='h-5 w-5' /></Link>}
+              {conversationDetails?.other_user_id && <Link href={`/profile/${conversationDetails.other_user_id}`} aria-label={`Voir le profil de ${displayMemberName(conversationDetails.other_user_name)}`} className='rounded-lg p-2 text-[#aaa69e] transition-colors hover:bg-[#302c26] hover:text-[#f1eee8]'><UserRound className='h-5 w-5' /></Link>}
             </div>
 
             {loading && (
@@ -1075,11 +1076,11 @@ export default function ConversationPage ({
             <div className='border-b border-[#5d3f3f]/35 p-5 text-center'>
               <div className='relative mx-auto h-20 w-20'>
                 <div className='h-full w-full overflow-hidden rounded-full bg-[#302c26] ring-2 ring-[#d6bc87] ring-offset-2 ring-offset-[#191714]'>
-                  <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={conversationDetails?.other_user_name || 'Profil du membre'} className='h-full w-full object-cover' />
+                  <MemberAvatarImage src={conversationDetails?.other_user_avatar} gender={conversationDetails?.other_user_gender} profileStatus={conversationDetails?.other_user_profile_status} alt={displayMemberName(conversationDetails?.other_user_name, 'Profil du membre')} className='h-full w-full object-cover' />
                 </div>
                 {conversationDetails?.other_user_online && <PresenceDot className='-bottom-0.5 -right-0.5' />}
               </div>
-              <h3 className='mt-4 text-lg font-bold text-[#f1eee8]'>{conversationDetails?.other_user_name || 'Membre du Cercle'}</h3>
+              <h3 className='mt-4 text-lg font-bold text-[#f1eee8]'>{displayMemberName(conversationDetails?.other_user_name, 'Membre du Cercle')}</h3>
               <p className='mt-1 text-xs text-[#e5d1aa]'>Membre du Cercle privé</p>
               <div className='mt-4 grid grid-cols-2 gap-2'>
                 <Link href={`/profile/${conversationDetails?.other_user_id || ''}`} className='flex flex-col items-center gap-1 rounded-xl border border-[#5d3f3f]/35 bg-[#24211d] p-2.5 text-[11px] text-[#f1eee8] transition-colors hover:bg-[#302c26]'>

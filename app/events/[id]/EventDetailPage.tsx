@@ -13,6 +13,7 @@ import Link from 'next/link'
 import MainLayout from '@/components/layout/main-layout'
 import { ParticipantProfilePopup } from '@/components/participant-profile-popup'
 import { CIRCLE_EVENT_PHOTOS, experienceLabels, formatEventDateTime, getEventImage } from '@/lib/event-presentation'
+import { displayMemberName } from '@/lib/display-member-name'
 
 interface Event {
   id: string
@@ -390,12 +391,12 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                           <Avatar className="w-8 h-8">
                             <AvatarImage src={participant.avatar} />
                             <AvatarFallback>
-                              {participant.name.charAt(0).toUpperCase()}
+                              {displayMemberName(participant.name).charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium truncate hover:text-primary transition-colors">
-                              {participant.name}
+                              {displayMemberName(participant.name)}
                             </div>
                             <div className="text-xs text-gray-500">
                               Inscrit le {new Date(participant.joined_at).toLocaleDateString('fr-FR')}

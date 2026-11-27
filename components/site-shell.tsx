@@ -28,6 +28,7 @@ import { VisitorLandingHeader } from '@/components/visitor-landing-header'
 import { useAuth } from '@/contexts/auth-context'
 import { cn } from '@/lib/utils'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { displayMemberName } from '@/lib/display-member-name'
 import styles from './site-shell.module.css'
 
 type NavigationItem = {
@@ -215,7 +216,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
                 />
               </span>
               <span className='min-w-0'>
-                <span className='block truncate text-sm font-bold text-white'>{user.name}</span>
+                <span className='block truncate text-sm font-bold text-white'>{displayMemberName(user.name)}</span>
                 <span className='block truncate text-xs text-white/50'>Mon profil</span>
               </span>
             </Link>
@@ -281,7 +282,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
                 <NotificationsButton />
                 <Link href='/profile' className={styles.headerProfile} aria-label='Ouvrir mon profil'>
                   <span className='hidden text-right xl:block'>
-                    <span className='block text-sm font-semibold text-[#f8fafc]'>{user.name}</span>
+                    <span className='block text-sm font-semibold text-[#f8fafc]'>{displayMemberName(user.name)}</span>
                     <span className='block text-xs text-[#94a3b8]'>Mon profil</span>
                   </span>
                   <span className='relative size-9 overflow-hidden rounded-full border border-[#3b4257] bg-[#1e222d]'>

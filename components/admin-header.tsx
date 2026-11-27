@@ -3,6 +3,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { BrandLogo } from '@/components/brand-logo'
 import { ExternalLink } from 'lucide-react'
+import { displayMemberName } from '@/lib/display-member-name'
 
 export function AdminHeader({ user }: { user?: any }) {
   return (
@@ -14,7 +15,7 @@ export function AdminHeader({ user }: { user?: any }) {
         <div className='min-w-0'>
           <h1 className='mt-1 text-2xl font-black tracking-tight sm:text-3xl'>Administration</h1>
           <p className='mt-1 break-words text-sm leading-relaxed text-[#c7c3bc]'>
-            Bienvenue{user?.name ? `, ${user.name}` : ''}. Pilotage, activité et sécurité de la communauté.
+            Bienvenue{user?.name ? `, ${displayMemberName(user.name)}` : ''}. Pilotage, activité et sécurité de la communauté.
           </p>
         </div>
       </div>

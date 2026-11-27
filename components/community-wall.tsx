@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
 import { MemberAvatarImage } from './member-avatar-image'
+import { displayMemberName } from '@/lib/display-member-name'
 import {
   CalendarHeart,
   ChevronDown,
@@ -420,12 +421,12 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
             <article key={post.id} className='rounded-xl border border-white/[0.045] bg-[#191714] p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
                 <Link href={`/profile/${post.user_id}`} className='relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
-                  <MemberAvatarImage src={post.author_avatar} gender={post.author_gender} profileStatus={post.author_profile_status} alt={post.author_name || 'Membre'} className='h-full w-full object-cover' />
+                  <MemberAvatarImage src={post.author_avatar} gender={post.author_gender} profileStatus={post.author_profile_status} alt={displayMemberName(post.author_name)} className='h-full w-full object-cover' />
                 </Link>
                 <div className='min-w-0 flex-1'>
                   <div className='flex flex-wrap items-center gap-2'>
                     <Link href={`/profile/${post.user_id}`} className='font-black hover:text-[#f1eee8]'>
-                      {post.author_name || 'Membre'}
+                      {displayMemberName(post.author_name)}
                     </Link>
                     <span className='rounded-full border border-[#494136] bg-[#111821] px-2 py-0.5 text-xs font-bold text-[#f1eee8]'>
                       {typeLabels[post.type]}
@@ -451,7 +452,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                 <div className='mt-3 overflow-hidden rounded-2xl border border-[#494136] bg-[#191714]'>
                   <img
                     src={post.image_url}
-                    alt={`Photo publiée par ${post.author_name || 'un membre'}`}
+                    alt={`Photo publiée par ${displayMemberName(post.author_name, 'un membre')}`}
                     className='max-h-[520px] w-full object-cover'
                   />
                 </div>
@@ -511,12 +512,12 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                   {comments.map(comment => (
                     <div key={comment.id} className='flex gap-2'>
                       <Link href={`/profile/${comment.user_id}`} className='h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
-                        <MemberAvatarImage src={comment.author_avatar} gender={comment.author_gender} profileStatus={comment.author_profile_status} alt={comment.author_name || 'Membre'} className='h-full w-full object-cover' />
+                        <MemberAvatarImage src={comment.author_avatar} gender={comment.author_gender} profileStatus={comment.author_profile_status} alt={displayMemberName(comment.author_name)} className='h-full w-full object-cover' />
                       </Link>
                       <div className='min-w-0 flex-1'>
                         <div className='flex flex-wrap items-center gap-2 text-xs'>
                           <Link href={`/profile/${comment.user_id}`} className='font-bold hover:text-[#f1eee8]'>
-                            {comment.author_name || 'Membre'}
+                            {displayMemberName(comment.author_name)}
                           </Link>
                           <span className='text-[#aaa69e]'>{relativeTime(comment.created_at)}</span>
                         </div>

@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { displayMemberName } from '@/lib/display-member-name'
 
 interface HeaderProps {
   session?: any
@@ -258,7 +259,7 @@ export function Header ({ session, user }: HeaderProps) {
                 />
                 <div>
                   <p className='font-medium'>
-                    {user?.name || 'Utilisateur'}
+                    {displayMemberName(user?.name, 'Utilisateur')}
                   </p>
                   <p className='text-sm text-muted-foreground'>
                     Voir le profil

@@ -1,5 +1,6 @@
 'use client'
 
+import { displayMemberName } from '@/lib/display-member-name'
 import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -263,19 +264,19 @@ export default function AdminUsersPage () {
                   className={`overflow-hidden border-[#d6b36a]/20 bg-[#252529] text-[#f8f2e8] transition hover:border-[#d6b36a]/60 ${u.is_banned ? 'border-red-500 border-2' : ''}`}
                 >
                   <div className='relative aspect-[4/3] bg-[#18181b]'>
-                    <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)} aria-label={`Agrandir la photo de ${u.name || 'ce membre'}`} className='h-full w-full enabled:cursor-zoom-in'>
+                    <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)} aria-label={`Agrandir la photo de ${displayMemberName(u.name, 'ce membre')}`} className='h-full w-full enabled:cursor-zoom-in'>
                       <MemberAvatarImage
                         src={u.image}
                         gender={u.gender}
                         profileStatus={u.profile_status}
-                        alt={`Photo de ${u.name || 'membre'}`}
+                        alt={`Photo de ${displayMemberName(u.name, 'membre')}`}
                         className='h-full w-full object-cover'
                       />
                     </button>
                     {u.admin_starred && <span className='absolute right-3 top-3 rounded-full bg-[#d6b36a] p-2 text-[#171719] shadow-lg'><Star className='h-4 w-4' fill='currentColor' /></span>}
                   </div>
                   <CardContent className='p-4'>
-                    <div className='mb-3 min-w-0'><p className='truncate font-semibold'>{u.name || 'Membre sans nom'} {u.is_banned && <span className='text-xs text-red-400'>(BANNI)</span>}</p><p className='truncate text-xs text-zinc-400'>{u.email || 'Email non renseigné'}</p><p className='mt-1 text-xs text-[#d9d4cb]'>{u.location || 'Localisation non renseignée'} · {u.age ? `${u.age} ans` : 'Âge non renseigné'}</p><div className='mt-2 flex flex-wrap gap-1.5 text-[11px]'><span className='rounded-full border border-[#d6b36a]/30 bg-[#1d1d20] px-2 py-0.5 text-[#f2d79a]'>{profileLabel(u)}</span><span className='rounded-full border border-white/10 bg-[#1d1d20] px-2 py-0.5 text-zinc-300'>Rôle : {u.role || 'utilisateur'}</span></div></div>
+                    <div className='mb-3 min-w-0'><p className='truncate font-semibold'>{displayMemberName(u.name, 'Membre sans nom')} {u.is_banned && <span className='text-xs text-red-400'>(BANNI)</span>}</p><p className='truncate text-xs text-zinc-400'>{u.email || 'Email non renseigné'}</p><p className='mt-1 text-xs text-[#d9d4cb]'>{u.location || 'Localisation non renseignée'} · {u.age ? `${u.age} ans` : 'Âge non renseigné'}</p><div className='mt-2 flex flex-wrap gap-1.5 text-[11px]'><span className='rounded-full border border-[#d6b36a]/30 bg-[#1d1d20] px-2 py-0.5 text-[#f2d79a]'>{profileLabel(u)}</span><span className='rounded-full border border-white/10 bg-[#1d1d20] px-2 py-0.5 text-zinc-300'>Rôle : {u.role || 'utilisateur'}</span></div></div>
                     <div className='mt-4 flex flex-wrap gap-2'>
                       <Button
                         size='sm'
@@ -329,10 +330,10 @@ export default function AdminUsersPage () {
         </div>
         <Dialog open={Boolean(preview)} onOpenChange={open => { if (!open) setPreviewId(null) }}>
           {preview && <DialogContent className='max-w-lg'>
-            <DialogTitle>{preview.name || 'Profil membre'}</DialogTitle>
+            <DialogTitle>{displayMemberName(preview.name, 'Profil membre')}</DialogTitle>
             <DialogDescription>Photo de profil affichée aux membres</DialogDescription>
             <MemberAvatarImage src={preview.image} gender={preview.gender} profileStatus={preview.profile_status}
-              alt={`Portrait de ${preview.name || 'ce membre'}`} className='max-h-[55dvh] w-full rounded-lg object-contain' />
+              alt={`Portrait de ${displayMemberName(preview.name, 'ce membre')}`} className='max-h-[55dvh] w-full rounded-lg object-contain' />
             <Button aria-pressed={Boolean(preview.admin_starred)} disabled={starUpdatingIds.has(preview.id)}
               onClick={() => handleToggleAdminStar(preview)}>
               <Star className='mr-2 h-4 w-4' fill={preview.admin_starred ? 'currentColor' : 'none'} />

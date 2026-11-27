@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { displayMemberName } from '@/lib/display-member-name'
 
 const PERIODS: Array<{ value: AdminStatsPeriodDays; label: string }> = [
   { value: 7, label: '7 jours' },
@@ -120,7 +121,7 @@ export function AdminMemberEngagementStats() {
           <table className='w-full min-w-[1050px] text-sm'>
             <thead className='bg-muted/50 text-left text-xs text-muted-foreground'><tr><th className='px-4 py-3'>Membre</th><th className='px-3 py-3 text-right'>Jours actifs</th><th className='px-3 py-3 text-right'>Connexions</th><th className='px-3 py-3 text-right'>Envoyés</th><th className='px-3 py-3 text-right'>Reçus</th><th className='px-3 py-3 text-right'>Livrés</th><th className='px-3 py-3 text-right'>Lus / non lus</th><th className='px-3 py-3 text-right'>Réponses 1:1</th><th className='px-3 py-3'>Actualités</th><th className='px-3 py-3'>Alertes e-mail</th><th className='px-4 py-3'>Présence</th></tr></thead>
             <tbody className='divide-y divide-border/60'>{visibleMembers.map(member => <tr key={member.userId} className='hover:bg-muted/30'>
-              <td className='px-4 py-3'><div className='font-medium'>{member.name || member.email}</div><div className='text-xs text-muted-foreground'>{member.name ? member.email : ''}</div><Link href={`/admin/users?member=${member.userId}`} className='text-xs text-primary hover:underline'>Voir le portrait</Link></td>
+              <td className='px-4 py-3'><div className='font-medium'>{member.name ? displayMemberName(member.name) : member.email}</div><div className='text-xs text-muted-foreground'>{member.name ? member.email : ''}</div><Link href={`/admin/users?member=${member.userId}`} className='text-xs text-primary hover:underline'>Voir le portrait</Link></td>
               <td className='px-3 py-3 text-right font-medium'>{member.activeDays}</td><td className='px-3 py-3 text-right'>{data.authAuditAvailable ? member.successfulLogins : '—'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.messagesSent : '—'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.messagesReceived : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.deliveredMessages : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? `${member.readMessages} / ${member.unreadMessages}` : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.repliedConversations : 'Indisponible'}</td><td className='px-3 py-3'>{member.emailNewsOptIn === null ? 'Indisponible' : member.emailNewsOptIn ? 'Oui' : 'Non'}</td>
               <td className='px-3 py-3'>{member.emailActivityCategories ? ([
                 member.emailActivityCategories.messages && 'Messages',

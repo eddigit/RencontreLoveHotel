@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { acknowledgeConversationMessageDelivery, getUserConversations } from '@/actions/conversation-actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 import { MemberAvatarImage } from '@/components/member-avatar-image'
+import { displayMemberName } from '@/lib/display-member-name'
 
 export interface InboxConversation {
   id: string
@@ -55,7 +56,7 @@ function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: 
           src={conversation.other_user_avatar}
           gender={conversation.other_user_gender}
           profileStatus={conversation.other_user_profile_status}
-          alt={conversation.other_user_name || 'Profil'}
+          alt={displayMemberName(conversation.other_user_name, 'Profil')}
           className='h-full w-full object-cover'
         />
       </div>
@@ -155,13 +156,13 @@ export function ConversationList ({ conversations, loading, activeConversationId
               key={conversation.id}
               aria-current={conversation.id === activeConversationId ? 'page' : undefined}
               className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#24211d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87] active:scale-[0.99]'
-              aria-label={`Ouvrir la conversation avec ${conversation.other_user_name || 'ce membre'}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
+              aria-label={`Ouvrir la conversation avec ${displayMemberName(conversation.other_user_name, 'ce membre')}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
             >
               <ConversationAvatar conversation={conversation} />
               <div className='min-w-0 flex-1'>
                 <div className='flex items-baseline justify-between gap-2'>
                   <div className='flex min-w-0 items-center gap-1.5'>
-                    <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{conversation.other_user_name}</h3>
+                    <h3 className='truncate text-sm font-semibold text-[#f8fafc]'>{displayMemberName(conversation.other_user_name)}</h3>
                     {conversation.has_unread_messages && <span className='h-2 w-2 shrink-0 rounded-full bg-[#d6bc87] shadow-[0_0_8px_rgba(214,188,135,0.5)]'><span className='sr-only'>Messages non lus</span></span>}
                   </div>
                   <span className={`shrink-0 text-[11px] tabular-nums ${conversation.has_unread_messages ? 'font-semibold text-[#d6bc87]' : 'text-[#94a3b8]'}`}>{conversation.last_message_date}</span>
@@ -245,7 +246,7 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
                <div className='m-auto w-full max-w-md text-center'>
                  <div className='mx-auto w-fit'><ConversationAvatar conversation={activeConversation} size='large' /></div>
                  <p className='mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]'>Conversation récente</p>
-                 <h2 className='mt-2 text-xl font-semibold text-[#f8fafc]'>{activeConversation.other_user_name}</h2>
+                 <h2 className='mt-2 text-xl font-semibold text-[#f8fafc]'>{displayMemberName(activeConversation.other_user_name)}</h2>
                  {activeConversation.other_user_online && <p className='mt-1 text-xs font-medium text-[#35e48d]'>En ligne</p>}
                  <p className='mt-3 line-clamp-3 text-sm leading-6 text-[#94a3b8]'>{activeConversation.last_message || 'Aucun message pour le moment.'}</p>
                  <Button asChild className='mt-6 rounded-xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>

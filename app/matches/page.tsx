@@ -20,6 +20,7 @@ import {
 import { markResourceNotificationsAsRead } from '@/app/actions'
 import { recoverFromStaleServerAction } from '@/lib/server-action-recovery'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { displayMemberName } from '@/lib/display-member-name'
 
 type MatchProfile = {
   id: string
@@ -49,7 +50,7 @@ function writeMatchesUrlState(router: ReturnType<typeof useRouter>, tab: Matches
 function toProfile (relationship: any): MatchProfile {
   return {
     id: relationship.other_user_id,
-    name: relationship.other_user_name || 'Membre',
+    name: displayMemberName(relationship.other_user_name),
     age: relationship.other_user_age,
     location: relationship.other_user_location || 'Paris',
     image: defaultMemberImage({

@@ -16,6 +16,7 @@ import { MemberProfileBackButton } from '@/components/member-profile-back-button
 import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { displayMemberName } from '@/lib/display-member-name'
 import { isUserRecentlySeen } from '@/lib/presence'
 import {
   acceptMatchRequest,
@@ -86,7 +87,7 @@ export default async function ProfilePage ({
       <LhrV2Shell
         user={currentUser}
         eyebrow='Profil membre'
-        title={`${profile.name}${profile.age ? `, ${profile.age}` : ''}`}
+        title={`${displayMemberName(profile.name)}${profile.age ? `, ${profile.age}` : ''}`}
         action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] xl:hidden'>Entrer en contact</a>}</>}
       >
         <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
@@ -94,11 +95,11 @@ export default async function ProfilePage ({
             <div className='bg-[#04070b] p-3 sm:p-5'>
               <div className='relative mx-auto aspect-[4/5] w-full max-h-[64svh] max-w-[640px] overflow-hidden rounded-2xl bg-[#111821]'>
                 {avatar.startsWith('http') ? (
-                  <img src={avatar} alt={profile.name} className='h-full w-full object-contain' />
+                  <img src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-contain' />
                 ) : (
                   <Image
                     src={avatar}
-                    alt={profile.name}
+                    alt={displayMemberName(profile.name)}
                     fill
                     className='object-contain'
                     sizes='(max-width: 1280px) 100vw, 640px'

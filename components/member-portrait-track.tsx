@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { nextMemberPortraits } from '@/actions/member-portraits'
 import type { MemberPortrait } from '@/lib/member-portraits'
 import { MemberAvatarImage } from './member-avatar-image'
+import { displayMemberName } from '@/lib/display-member-name'
 import styles from './site-shell.module.css'
 
 export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPortrait[], visitSeed: string }) {
@@ -56,7 +57,7 @@ export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPor
                 <MemberAvatarImage src={member.image} gender={member.gender} profileStatus={member.profile_status}
                   alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
               </div>
-              <span className={`mt-1 block truncate text-[11px] font-semibold ${styles.portraitName}`}>{member.name}</span>
+              <span className={`mt-1 text-[11px] font-semibold ${styles.portraitName}`}>{displayMemberName(member.name)}</span>
               <span className={`flex min-h-3 items-center justify-center gap-1 text-[10px] ${styles.portraitMeta}`}>
                 {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
                 {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : ''}

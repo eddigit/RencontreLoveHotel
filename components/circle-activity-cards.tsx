@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Heart, MessageCircle } from 'lucide-react'
 import type { ConversationSummary } from '@/lib/member-relationship-service'
 import { MemberAvatarImage } from '@/components/member-avatar-image'
+import { displayMemberName } from '@/lib/display-member-name'
 
 type CardMember = { id: string; name: string; avatar: string | null; gender?: string | null; profileStatus?: string | null }
 
@@ -39,7 +40,7 @@ export function CircleActivityCards({ threads, matches, loading, unread }: {
       {panel.rows.length === 0 && <p className='mb-3 text-sm text-[#aaa69e]'>{loading ? 'Chargement…' : panel.empty}</p>}
       {panel.rows.map(row => <Link key={row.id} href={row.href} className='flex min-h-12 items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-[#24211d]'>
         <Portrait name={row.name} avatar={row.avatar} gender={row.gender} profileStatus={row.profileStatus} />
-        <span className='min-w-0'><span className='block truncate text-sm font-semibold'>{row.name}</span>
+        <span className='min-w-0'><span className='block truncate text-sm font-semibold'>{displayMemberName(row.name)}</span>
           <span className='block truncate text-xs text-[#aaa69e]'>{row.detail}</span></span>
         {row.unread && <span aria-label='Non lu' className='ml-auto size-2 shrink-0 rounded-full bg-[#d6bc87]' />}
       </Link>)}

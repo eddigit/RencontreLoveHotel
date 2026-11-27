@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { MapPin, MessageCircle } from 'lucide-react'
 import { defaultMemberImage } from '@/lib/default-member-image'
 import { directoryProfileTypeLabel } from '@/lib/member-profile-types'
+import { displayMemberName } from '@/lib/display-member-name'
 
 export type DirectoryMember = {
   id: string
@@ -34,7 +35,7 @@ export function orientationLabel (value?: string | null) {
 export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
   const image = defaultMemberImage(member)
   const profileHref = `/profile/${member.id}`
-  const name = member.name || 'Membre'
+  const name = displayMemberName(member.name)
   const typeLabel = directoryProfileTypeLabel(member)
 
   return (

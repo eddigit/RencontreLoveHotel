@@ -181,6 +181,7 @@
 
 .portraitItem {
   flex: 0 0 4.75rem;
+  min-width: 0;
 }
 
 .portraitCard {
@@ -201,6 +202,13 @@
 }
 
 .portraitName {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  line-height: 0.875rem;
+  height: 1.75rem;
   color: var(--discover-ink);
 }
 

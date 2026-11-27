@@ -30,6 +30,7 @@ import { getOnlineCommunityMembers, recordProfileImpressions } from '@/actions/u
 import { getCommunityHome } from '@/actions/community-home'
 import { PRESENCE_HEARTBEAT_MS } from '@/lib/presence-config'
 import { defaultMemberImage } from '@/lib/default-member-image'
+import { displayMemberName } from '@/lib/display-member-name'
 import {
   discoverySnapshotKey,
   orderProfilesFromSnapshot
@@ -550,7 +551,7 @@ export default function DiscoverPage () {
                       </div>
                       <div className='w-full min-w-0'>
                         <div className='truncate text-sm font-black'>
-                          {profile.name}
+                          {displayMemberName(profile.name)}
                           {profile.age ? `, ${profile.age}` : ''}
                         </div>
                         <div className='truncate text-xs text-[#aaa69e]'>
@@ -628,7 +629,7 @@ export default function DiscoverPage () {
                           </div>
                           <PresenceDot className='bottom-0 right-0' />
                         </div>
-                        <span className='truncate text-sm font-bold'>{member.name}</span>
+                        <span className='truncate text-sm font-bold'>{displayMemberName(member.name)}</span>
                       </Link>
                     ))}
                   </div>
