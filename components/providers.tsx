@@ -9,7 +9,7 @@ import { Toaster } from '@/components/ui/toaster'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <NoSSR>
+    <NoSSR fallback={<div className='auth-bootstrap-frame' aria-busy='true' aria-label='Initialisation de la session' />}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
         <SessionProvider>
           <AuthProvider>

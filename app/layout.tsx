@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#120821'
+  themeColor: '#191714'
 }
 
 export default function RootLayout ({
@@ -29,7 +29,7 @@ export default function RootLayout ({
   return (
     <html lang='fr' suppressHydrationWarning>
       <body
-        className={`${inter.className} bg-gradient-to-br from-[#1a0d2e] to-[#3d1155]`}
+        className={`${inter.className} bg-[#191714] text-[#f1eee8]`}
         suppressHydrationWarning
       >
         <Providers>

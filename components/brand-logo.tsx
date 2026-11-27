@@ -1,6 +1,4 @@
-'use client'
-
-import Image from 'next/image'
+import { useId } from 'react'
 
 export function BrandLogo({
   compact = false,
@@ -9,28 +7,33 @@ export function BrandLogo({
   compact?: boolean
   priority?: boolean
 }) {
+  const toneId = useId().replace(/[^a-zA-Z0-9_-]/g, '')
+  const filterId = `loolyyb-tone-${toneId}`
+
   return (
-    <div className={compact ? 'flex min-w-0 max-w-full items-center gap-2 sm:gap-3' : 'w-full max-w-full'}>
-      <span
-        className={`relative block shrink-0 overflow-hidden rounded-xl bg-black/80 ${
-          compact ? 'aspect-[1162/1354] w-9 sm:w-10' : 'mx-auto aspect-[1162/1354] w-full max-w-[148px]'
-        }`}
-      >
-        <Image
-          src='/lhr-official-logo.png'
-          alt='Love Hotel Rencontre'
-          width={1162}
-          height={1354}
-          className='block h-auto w-full object-contain'
-          sizes={compact ? '(max-width: 640px) 36px, 40px' : '148px'}
-          priority={priority}
+    <div className={compact ? 'flex min-w-0 items-center gap-2.5' : 'flex justify-center'}>
+      <span className={`relative block aspect-square shrink-0 ${compact ? 'w-9 sm:w-10' : 'w-14 max-w-full'}`}>
+        <svg aria-hidden='true' width='0' height='0' className='absolute' focusable='false'>
+          <defs>
+            <filter id={filterId} colorInterpolationFilters='sRGB'>
+              {/* The supplied artwork encodes its white symbol in the green channel.
+                  Map that channel to champagne and graphite while preserving its alpha. */}
+              <feColorMatrix type='matrix' values='0 .765 0 0 .0745  0 .663 0 0 .0745  0 .447 0 0 .0824  0 0 0 1 0' />
+            </filter>
+          </defs>
+        </svg>
+        <img
+          src='/loolyyb-original.png'
+          alt='LOOLYYB'
+          width={300}
+          height={300}
+          loading={priority ? 'eager' : 'lazy'}
+          className='block h-full w-full object-contain'
+          style={{ filter: `url(#${filterId})` }}
         />
+        <span aria-hidden='true' className='pointer-events-none absolute inset-[1%] rounded-[8.5%] border border-[#d6bc87]/75' />
       </span>
-      {compact ? (
-        <span className='truncate text-sm font-black tracking-tight text-white sm:text-base'>
-          Love Hotel Rencontre
-        </span>
-      ) : null}
+      {compact && <span className='truncate text-sm font-semibold tracking-tight text-[#f0ece3] sm:text-base'>Love Hotel Rencontre</span>}
     </div>
   )
 }

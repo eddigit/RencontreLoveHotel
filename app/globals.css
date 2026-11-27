@@ -5,7 +5,7 @@
 @layer base {
   :root {
     color-scheme: dark;
-    --background: 214 47% 3%;
+    --background: 40 10% 9%;
     --foreground: 48 12% 92%;
     --card: 213 35% 6%;
     --card-foreground: 48 12% 92%;
@@ -33,6 +33,7 @@
 /* Règles de base pour éviter les débordements horizontaux */
 html,
 body {
+  background: #191714;
   max-width: 100%;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
@@ -40,8 +41,14 @@ body {
 }
 
 body {
+  min-height: 100vh;
   font-family: "Inter", sans-serif;
   @apply bg-background text-foreground;
+}
+
+.auth-bootstrap-frame {
+  min-height: 100dvh;
+  background: #191714;
 }
 
 @layer base {

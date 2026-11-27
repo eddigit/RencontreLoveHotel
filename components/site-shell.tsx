@@ -123,7 +123,7 @@ function NavigationLink({
 
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const [mobileOpen, setMobileOpen] = useState(false)
   const navigationItems = user ? memberNavItems : visitorNavItems
   const isMemberShell = Boolean(user)
@@ -144,13 +144,22 @@ export function SiteShell({ children }: { children: ReactNode }) {
     return children
   }
 
+  // Never use the visitor shell as a provisional state. On a hard reload the
+  // browser does not know the session yet, so keep the initial frame neutral
+  // until NextAuth has resolved it.
+  if (isLoading && pathname !== '/' && !publicStandaloneRoutes.has(pathname)) {
+    return (
+      <div className={styles.authResolvingFrame} aria-busy='true' aria-label='Chargement de la navigation' />
+    )
+  }
+
   const isPublicPresentation = [...publicPresentationRoutes].some(route =>
     pathname === route || pathname.startsWith(`${route}/`)
   )
 
   if (pathname === '/' || (!user && isPublicPresentation)) {
     return (
-      <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#120821] text-white'>
+      <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#191714] text-white'>
         <VisitorLandingHeader isAuthenticated={Boolean(user)} />
         <main>{children}</main>
         <Footer />

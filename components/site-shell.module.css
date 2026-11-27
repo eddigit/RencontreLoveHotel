@@ -11,6 +11,12 @@
   color: var(--discover-ink);
 }
 
+.authResolvingFrame {
+  background: #191714;
+  color: #f1eee8;
+  min-height: 100dvh;
+}
+
 .discoverShell > div {
   gap: 0;
   max-width: none;
@@ -253,7 +259,7 @@
   padding: 0.25rem;
 }
 
-.stitchLogoLockup img { max-height: 2.75rem; }
+.stitchLogoLockup img { max-height: none; }
 .stitchLogoLockup span { max-width: 5rem; }
 
 .stitchDiscoverShell .navigationLink {
