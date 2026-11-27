@@ -22,6 +22,7 @@ import {
   CIRCLE_EVENT_PHOTOS,
   EVENT_TIME_ZONE,
   formatEventDateTime,
+  isEventInCurrentOrNextWeekend,
   isPastEvent,
   sortEventsChronologically
 } from '@/lib/event-presentation'
@@ -68,28 +69,16 @@ function getEventDatePart(event: any) {
   return String(event.event_date).slice(0, 10)
 }
 
-function getTodayInParis() {
-  return new Intl.DateTimeFormat('en-CA', {
+function filterEvents(
+  events: any[],
+  filters: { period: string; type: string; venue: string }
+) {
+  const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: EVENT_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
   }).format(new Date())
-}
-
-function isWeekendEvent(event: any) {
-  const datePart = getEventDatePart(event)
-  if (!datePart) return false
-  const date = new Date(`${datePart}T12:00:00`)
-  const day = date.getDay()
-  return day === 0 || day === 6
-}
-
-function filterEvents(
-  events: any[],
-  filters: { period: string; type: string; venue: string }
-) {
-  const today = getTodayInParis()
 
   return events.filter(event => {
     if (filters.type !== 'all' && getEventType(event) !== filters.type) {
@@ -105,7 +94,7 @@ function filterEvents(
     }
 
     if (filters.period === 'weekend') {
-      return isWeekendEvent(event)
+      return isEventInCurrentOrNextWeekend(event)
     }
 
     return true

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -135,10 +136,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }, [pathname])
 
   useEffect(() => {
-    document.body.style.overflow = mobileOpen ? 'hidden' : ''
-    return () => {
-      document.body.style.overflow = ''
-    }
+    if (!mobileOpen) return
+    const desktop = window.matchMedia('(min-width: 1024px)')
+    const closeOnDesktop = () => { if (desktop.matches) setMobileOpen(false) }
+    desktop.addEventListener('change', closeOnDesktop)
+    return () => desktop.removeEventListener('change', closeOnDesktop)
   }, [mobileOpen])
 
   if (pathname.startsWith('/admin')) {
@@ -150,7 +152,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
   // until NextAuth has resolved it.
   if (isLoading && pathname !== '/' && !publicStandaloneRoutes.has(pathname)) {
     return (
-      <div className={styles.authResolvingFrame} aria-busy='true' aria-label='Chargement de la navigation' />
+      <div className={styles.authResolvingFrame} aria-busy='true'>
+        <p role='status'>Chargement de la navigation…</p>
+      </div>
     )
   }
 
@@ -254,9 +258,10 @@ export function SiteShell({ children }: { children: ReactNode }) {
   )
 
   return (
+    <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
     <div data-chat-thread={/^\/messages\/[^/]+\/?$/.test(pathname) || undefined} className={cn('site-shell min-h-screen overflow-x-hidden bg-[#121315] text-white', isMemberShell && styles.discoverShell, isCircleShell && styles.stitchDiscoverShell)}>
       <div className={cn('mx-auto grid min-h-screen w-full max-w-[1920px] gap-4 px-2 py-2 sm:px-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-4 lg:py-4', isCircleShell && styles.stitchDiscoverGrid)}>
-          <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isCircleShell && styles.stitchRail)}>
+          <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col overflow-y-auto rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isCircleShell && styles.stitchRail)}>
           <Link href={user ? '/discover' : '/'} className={cn('mb-5 rounded-2xl p-3', isMemberShell && styles.logoLockup, isCircleShell && styles.stitchLogoLockup)}>
             <BrandLogo priority />
           </Link>
@@ -304,15 +309,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
             </Link>
             <div className='flex items-center gap-2'>
               {user ? <NotificationsButton /> : null}
+              <Dialog.Trigger asChild>
               <button
                 type='button'
                 aria-label='Ouvrir le menu'
-                aria-expanded={mobileOpen}
-                onClick={() => setMobileOpen(true)}
                 className='rounded-xl border border-white/12 bg-white/[0.06] p-2 text-white'
               >
                 <Menu className='h-5 w-5' />
               </button>
+              </Dialog.Trigger>
             </div>
           </header>
 
@@ -321,30 +326,18 @@ export function SiteShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      {mobileOpen ? (
-        <div className={cn('fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm lg:hidden', isMemberShell && styles.mobileScrim, isCircleShell && styles.stitchMobileScrim)}>
-          <button
-            type='button'
-            aria-label='Fermer le menu'
-            onClick={() => setMobileOpen(false)}
-            className='absolute inset-0 h-full w-full cursor-default'
-          />
-          <aside className={cn('absolute right-0 top-0 flex h-full w-[min(88vw,360px)] flex-col border-l border-white/10 bg-[#171819] p-4 shadow-2xl', isMemberShell && styles.mobileRail, isCircleShell && styles.stitchMobileRail)}>
-            <div className='mb-6 flex items-center justify-between gap-3'>
-              <BrandLogo compact />
-              <button
-                type='button'
-                aria-label='Fermer le menu'
-                onClick={() => setMobileOpen(false)}
-                className='rounded-xl border border-white/12 p-2 text-white'
-              >
-                <X className='h-5 w-5' />
-              </button>
-            </div>
-            {navigation}
-          </aside>
+      <Dialog.Overlay className='fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm' />
+      <Dialog.Content aria-describedby={undefined} className={cn('fixed inset-y-0 right-0 z-[101] flex w-[min(88vw,360px)] flex-col overflow-y-auto overscroll-contain border-l border-white/10 bg-[#171819] p-4 shadow-2xl', isMemberShell && styles.mobileRail, isCircleShell && styles.stitchMobileRail)}>
+        <Dialog.Title className='sr-only'>Menu de navigation</Dialog.Title>
+        <div className='mb-6 flex items-center justify-between gap-3'>
+          <BrandLogo compact />
+          <Dialog.Close aria-label='Fermer le menu' className='grid size-11 shrink-0 place-items-center rounded-xl border border-white/12 text-white'>
+            <X className='h-5 w-5' />
+          </Dialog.Close>
         </div>
-      ) : null}
+        {navigation}
+      </Dialog.Content>
     </div>
+    </Dialog.Root>
   )
 }

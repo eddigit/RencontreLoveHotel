@@ -54,6 +54,21 @@ function getDatePart(value?: string | Date | null) {
   return String(value).slice(0, 10)
 }
 
+function addCalendarDays(datePart: string, days: number) {
+  const date = new Date(`${datePart}T12:00:00Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function getParisDatePart(now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: EVENT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(now)
+}
+
 function getTimePart(value?: string | null) {
   if (!value) return '23:59:59'
   const match = String(value).match(/^(\d{2}):(\d{2})(?::(\d{2}))?/)
@@ -79,6 +94,26 @@ export function sortEventsChronologically<T extends EventPresentationInput>(
 
 export function isPastEvent(event: EventPresentationInput, now = new Date()) {
   return getEventDateTimeValue(event) < now.getTime()
+}
+
+/**
+ * Matches the weekend that a member reasonably expects from the "Ce week-end"
+ * filter: the current Saturday/Sunday, or the next one during the week.
+ */
+export function isEventInCurrentOrNextWeekend(
+  event: EventPresentationInput,
+  now = new Date()
+) {
+  const eventDate = getDatePart(event.event_date)
+  if (!eventDate) return false
+
+  const today = getParisDatePart(now)
+  const dayOfWeek = new Date(`${today}T12:00:00Z`).getUTCDay()
+  const daysUntilSaturday = dayOfWeek === 0 ? -1 : 6 - dayOfWeek
+  const saturday = addCalendarDays(today, daysUntilSaturday)
+  const sunday = addCalendarDays(saturday, 1)
+
+  return eventDate === saturday || eventDate === sunday
 }
 
 export function formatEventDateTime(event: EventPresentationInput) {

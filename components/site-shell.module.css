@@ -12,6 +12,9 @@
 }
 
 .authResolvingFrame {
+  display: grid;
+  place-items: center;
+  font-size: 0.875rem;
   background: #191714;
   color: #f1eee8;
   min-height: 100dvh;
@@ -176,7 +179,8 @@
 }
 
 .portraitList {
-  scrollbar-color: #b8c5d6 transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #81745c transparent;
 }
 
 .portraitItem {

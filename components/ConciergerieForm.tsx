@@ -65,11 +65,13 @@ export default function ConciergerieForm() {
   const [besoin, setBesoin] = useState('')
   const [budget, setBudget] = useState('')
   const [submittedMessage, setSubmittedMessage] = useState('')
+  const [submissionStatus, setSubmissionStatus] = useState<'success' | 'error' | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmittedMessage('')
+    setSubmissionStatus(null)
     setIsSubmitting(true)
 
     try {
@@ -93,6 +95,7 @@ export default function ConciergerieForm() {
       const data = await res.json().catch(() => ({}))
 
       if (res.ok) {
+        setSubmissionStatus('success')
         setSubmittedMessage(
           data?.emailSent
             ? 'Votre demande est envoyée à la conciergerie. Vous recevrez une réponse par email.'
@@ -109,12 +112,14 @@ export default function ConciergerieForm() {
         setBesoin('')
         setBudget('')
       } else {
+        setSubmissionStatus('error')
         setSubmittedMessage(
           data?.error || 'Une erreur est survenue, veuillez réessayer.'
         )
       }
     } catch (err) {
       console.error('Erreur réseau conciergerie', err)
+      setSubmissionStatus('error')
       setSubmittedMessage(
         "Impossible d'envoyer la demande, vérifiez votre connexion."
       )
@@ -166,6 +171,7 @@ export default function ConciergerieForm() {
               <span className='text-sm font-medium text-[#e3e1e9]'>Votre nom</span>
               <input
                 type='text'
+                autoComplete='name'
                 value={nom}
                 onChange={e => setNom(e.target.value)}
                 required
@@ -177,6 +183,7 @@ export default function ConciergerieForm() {
               <span className='text-sm font-medium text-[#e3e1e9]'>Votre email</span>
               <input
                 type='email'
+                autoComplete='email'
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
@@ -193,6 +200,7 @@ export default function ConciergerieForm() {
               </span>
               <input
                 type='tel'
+                autoComplete='tel'
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
                 className={inputClass}
@@ -296,7 +304,10 @@ export default function ConciergerieForm() {
           </button>
 
           {submittedMessage && (
-            <p role='status' className='mt-3 rounded-xl border border-[#5d3f3f] bg-[#121318] p-4 text-center text-sm font-medium text-[#e3e1e9]'>
+            <p
+              role={submissionStatus === 'error' ? 'alert' : 'status'}
+              className={`mt-3 rounded-xl border bg-[#121318] p-4 text-center text-sm font-medium text-[#e3e1e9] ${submissionStatus === 'error' ? 'border-[#5d3f3f]' : 'border-[#5f6c4a]'}`}
+            >
               {submittedMessage}
             </p>
           )}

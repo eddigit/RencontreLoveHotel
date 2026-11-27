@@ -141,6 +141,7 @@ export default function RegisterPage () {
                       <Input
                         id='name'
                         name='name'
+                        autoComplete='name'
                         placeholder='John Doe'
                         className='pl-10'
                         value={formData.name}
@@ -157,6 +158,7 @@ export default function RegisterPage () {
                         id='email'
                         name='email'
                         type='email'
+                        autoComplete='email'
                         placeholder='exemple@email.com'
                         className='pl-10'
                         value={formData.email}
@@ -185,6 +187,8 @@ export default function RegisterPage () {
                         type='button'
                         onClick={() => setShowPassword(!showPassword)}
                         className='absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground'
+                        aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                        aria-pressed={showPassword}
                       >
                         {showPassword ? (
                           <EyeOff className='h-4 w-4' />

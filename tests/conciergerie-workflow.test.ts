@@ -33,6 +33,9 @@ describe('conciergerie workflow', () => {
     expect(form).not.toContain("value: 'restaurant'")
     expect(form).toContain('week-end')
     expect(form).toContain('libertin')
+    expect(form).toContain("role={submissionStatus === 'error' ? 'alert' : 'status'}")
+    expect(form).toContain("setSubmissionStatus('error')")
+    expect(form).toContain("setSubmissionStatus('success')")
   })
 
   it('promotes concierge as a main member navigation destination', () => {
