@@ -70,6 +70,50 @@
   color: var(--discover-ink);
 }
 
+.discoverHeader {
+  background: rgb(26 27 33 / 0.94);
+  border-color: var(--discover-line);
+  backdrop-filter: blur(18px);
+}
+
+.searchForm {
+  align-items: center;
+  background: #292a2f;
+  border: 1px solid transparent;
+  border-radius: 0.75rem;
+  color: var(--discover-muted);
+  display: flex;
+  gap: 0.5rem;
+  max-width: 32rem;
+  padding: 0.45rem 0.75rem;
+  transition: border-color 150ms ease, background-color 150ms ease;
+  width: 100%;
+}
+
+.searchForm:focus-within {
+  background: #1a1b21;
+  border-color: var(--discover-accent);
+}
+
+.searchInput {
+  background: transparent;
+  color: var(--discover-ink);
+  font-size: 0.875rem;
+  min-width: 0;
+  outline: none;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: var(--discover-muted);
+}
+
+.headerProfile {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
 .mobileHeader {
   background: var(--discover-paper) !important;
   border-color: var(--discover-line);
@@ -171,3 +215,103 @@
 }
 
 .panel :global(.lhr-v2-content) > header { color: var(--discover-ink); background: var(--discover-canvas); border-color: var(--discover-line); }
+
+/* Stitch reference: deliberately scoped to /discover so the established member shell is unchanged. */
+.stitchDiscoverShell {
+  --discover-canvas: #121318;
+  --discover-paper: #1a1b21;
+  --discover-ink: #e3e1e9;
+  --discover-muted: #e6bdbb;
+  --discover-charcoal: #0d0e13;
+  --discover-accent: #ff525d;
+  --discover-line: #5d3f3f;
+  background: var(--discover-canvas) !important;
+}
+
+.stitchDiscoverGrid {
+  gap: 0;
+  grid-template-columns: 17.5rem minmax(0, 1fr);
+  max-width: none;
+  padding: 0;
+}
+
+.stitchRail {
+  height: 100vh;
+  padding: 1rem;
+  position: sticky;
+  top: 0;
+}
+
+.stitchLogoLockup {
+  align-items: center;
+  background: transparent;
+  border-color: transparent;
+  display: flex;
+  justify-content: flex-start;
+  min-height: 3.25rem;
+  padding: 0.25rem;
+}
+
+.stitchLogoLockup img { max-height: 2.75rem; }
+.stitchLogoLockup span { max-width: 5rem; }
+
+.stitchDiscoverShell .navigationLink {
+  border-radius: 0.5rem;
+  color: var(--discover-muted);
+}
+
+.stitchDiscoverShell .navigationLink:hover {
+  background: #292a2f;
+  color: var(--discover-ink);
+}
+
+.stitchDiscoverShell .navigationLinkActive {
+  background: #292a2f;
+  box-shadow: inset 3px 0 0 var(--discover-accent);
+  color: var(--discover-ink);
+}
+
+.stitchDiscoverShell .profileLink { background: #1a1b21; }
+
+.stitchPanel { background: var(--discover-canvas) !important; }
+
+.stitchMobileHeader { background: var(--discover-paper) !important; }
+.stitchMobileScrim { background: rgb(18 19 24 / 0.72); }
+.stitchMobileRail { background: var(--discover-charcoal) !important; }
+
+.feedbackLink {
+  border-radius: 0.5rem;
+  color: var(--discover-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.55rem;
+}
+
+.feedbackLink:hover { background: #292a2f; color: var(--discover-ink); }
+
+.stitchCommunityStrip {
+  --discover-paper: #1a1b21;
+  --discover-line: #5d3f3f;
+  --discover-ink: #e3e1e9;
+  --discover-muted: #e6bdbb;
+  --discover-accent: #ff525d;
+}
+
+.stitchCommunityStrip .stripTitle {
+  font-family: var(--font-geist-sans), Inter, sans-serif;
+  font-weight: 700;
+}
+
+.stitchCommunityStrip .stripLink { color: var(--discover-muted); }
+.stitchCommunityStrip .stripLink:hover { color: var(--discover-ink); }
+.stitchCommunityStrip .portraitItem { flex-basis: 4.25rem; }
+.stitchCommunityStrip .portraitCard { border-radius: 0.5rem; padding: 0.15rem; }
+.stitchCommunityStrip .portraitPhoto { background: #292a2f; }
+.stitchCommunityStrip .onlineDot {
+  background: #10b981;
+  box-shadow: 0 0 10px rgb(16 185 129 / 0.55);
+}
+
+@media (max-width: 1023px) {
+  .stitchDiscoverGrid { grid-template-columns: 1fr; }
+}

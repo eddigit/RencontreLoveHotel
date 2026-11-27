@@ -2,6 +2,7 @@
 
 import type { FilterOptions } from '@/components/advanced-filters'
 import { requireCurrentUser } from '@/lib/server-auth'
+import { getMemberConversationSummaries } from '@/lib/member-relationship-service'
 import { getUpcomingEvents } from './event-actions'
 import { getCommunityMemberStats, getDiscoverProfiles, getOnlineCommunityMembers, getUserMatches } from './user-actions'
 
@@ -12,6 +13,7 @@ export async function getCommunityHome(filters: FilterOptions, batch: number) {
     getOnlineCommunityMembers(),
     getUserMatches(id),
     getUpcomingEvents(id),
-    getCommunityMemberStats()
+    getCommunityMemberStats(),
+    getMemberConversationSummaries(id, true).catch(() => null)
   ])
 }

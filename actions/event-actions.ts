@@ -114,7 +114,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
           FROM events e
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date::date + COALESCE(e.event_time::time, TIME '23:59:59')) > (NOW() AT TIME ZONE 'Europe/Paris')
             AND e.publication_status = 'published'
           ORDER BY e.event_date ASC, e.event_time ASC
         `
@@ -125,7 +125,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             CASE WHEN ep.id IS NOT NULL THEN true ELSE false END as is_participating
           FROM events e
           LEFT JOIN event_participants ep ON e.id = ep.event_id AND ep.user_id = ${userId}
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date::date + COALESCE(e.event_time::time, TIME '23:59:59')) > (NOW() AT TIME ZONE 'Europe/Paris')
           ORDER BY e.event_date ASC, e.event_time ASC
         `
     return events || []
@@ -136,7 +136,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             e.*, e.creator_id,
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
           FROM events e
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date::date + COALESCE(e.event_time::time, TIME '23:59:59')) > (NOW() AT TIME ZONE 'Europe/Paris')
             AND e.publication_status = 'published'
           ORDER BY e.event_date ASC, e.event_time ASC
         `
@@ -145,7 +145,7 @@ async function getUpcomingEventsQuery(userId?: string, withPublicationStatus = t
             e.*, e.creator_id,
             (SELECT COUNT(*) FROM event_participants ep2 WHERE ep2.event_id = e.id) as participant_count
           FROM events e
-          WHERE e.event_date > NOW()
+          WHERE (e.event_date::date + COALESCE(e.event_time::time, TIME '23:59:59')) > (NOW() AT TIME ZONE 'Europe/Paris')
           ORDER BY e.event_date ASC, e.event_time ASC
     `
     return events || []

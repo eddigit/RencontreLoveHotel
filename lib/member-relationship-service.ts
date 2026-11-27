@@ -124,19 +124,20 @@ function isMissingAttachmentSchema(error: unknown) {
   return error.code === '42P01' || error.code === '42703'
 }
 
-export async function getMemberConversationSummaries(userId: string) {
+export async function getMemberConversationSummaries(userId: string, recentOnly = false) {
   const hasPresenceColumn = await ensurePresenceSchema()
   const presenceColumn = hasPresenceColumn ? 'other_user.last_seen_at' : 'other_user.updated_at'
 
+  const limit = recentOnly ? ' LIMIT 3' : ''
   try {
     return await sql.query<ConversationSummary[]>(
-      conversationSummaryQuery(true, presenceColumn),
+      conversationSummaryQuery(true, presenceColumn) + limit,
       [userId]
     )
   } catch (error) {
     if (!isMissingAttachmentSchema(error)) throw error
     return sql.query<ConversationSummary[]>(
-      conversationSummaryQuery(false, presenceColumn),
+      conversationSummaryQuery(false, presenceColumn) + limit,
       [userId]
     )
   }

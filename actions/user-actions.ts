@@ -119,6 +119,11 @@ export async function getUserMatches(userId: string) {
     JOIN users u1 ON um.user_id_1 = u1.id
     JOIN users u2 ON um.user_id_2 = u2.id
     WHERE (um.user_id_1 = $1 OR um.user_id_2 = $1) AND um.status = 'accepted'
+      AND NOT EXISTS (
+        SELECT 1 FROM user_blocks b
+        WHERE (b.blocker_id = um.user_id_1 AND b.blocked_id = um.user_id_2)
+           OR (b.blocker_id = um.user_id_2 AND b.blocked_id = um.user_id_1)
+      )
     ORDER BY um.match_score DESC
     `,
     [userId]

@@ -41,26 +41,29 @@ export async function CommunityPortraits({ viewerId }: { viewerId: string }) {
   if (!members.length) return null
 
   return (
-    <section aria-labelledby='community-portraits-title' className={`overflow-hidden px-4 py-3 sm:px-6 lg:px-8 ${styles.communityStrip}`}>
-      <div className='mb-2 flex items-end justify-between gap-3'>
-        <h2 id='community-portraits-title' className={`text-xl tracking-tight sm:text-2xl ${styles.stripTitle}`}>À découvrir</h2>
+    <section aria-labelledby='community-portraits-title' className={`overflow-hidden px-4 py-4 sm:px-6 lg:px-8 ${styles.communityStrip} ${styles.stitchCommunityStrip}`}>
+      <div className='mb-3 flex items-center justify-between gap-3'>
+        <div className='flex min-w-0 items-center gap-2'>
+          <span aria-hidden className={`size-2.5 shrink-0 rounded-full ${styles.onlineDot}`} />
+          <h2 id='community-portraits-title' className={`truncate text-base tracking-tight sm:text-xl ${styles.stripTitle}`}>Membres du cercle</h2>
+        </div>
         <Link href='/members' className={`inline-flex shrink-0 items-center gap-1 text-sm font-semibold hover:underline ${styles.stripLink}`}>
-          Tous les membres <ArrowUpRight aria-hidden className='size-4' />
+          Explorer <ArrowUpRight aria-hidden className='size-4' />
         </Link>
       </div>
       <ul className={`flex snap-x gap-2 overflow-x-auto py-1 ${styles.portraitList}`}>
         {members.map(member => (
           <li key={member.id} className={`shrink-0 snap-start ${styles.portraitItem}`}>
             <Link href={`/profile/${member.id}`} className={`group block text-center rounded-lg focus-visible:outline focus-visible:outline-2 ${styles.portraitCard}`}>
-              <div className={`relative mx-auto flex size-14 items-center justify-center overflow-hidden rounded-full border sm:size-16 ${styles.portraitPhoto}`}>
+              <div className={`relative mx-auto flex size-12 items-center justify-center overflow-hidden rounded-full border sm:size-14 ${styles.portraitPhoto}`}>
                 {member.image && photoPriority(member) > 0 ? (
                   <img src={member.image} alt='' className='h-full w-full object-cover transition-transform motion-safe:group-hover:scale-105' />
                 ) : (
                   <span aria-hidden className={`text-lg font-medium ${styles.portraitInitials}`}>{member.name.trim().slice(0, 2).toLocaleUpperCase('fr')}</span>
                 )}
               </div>
-              <span className={`mt-1 block truncate text-xs font-semibold ${styles.portraitName}`}>{member.name}</span>
-              <span className={`flex items-center justify-center gap-1 text-[11px] ${styles.portraitMeta}`}>
+              <span className={`mt-1 block truncate text-[11px] font-semibold ${styles.portraitName}`}>{member.name}</span>
+              <span className={`flex min-h-3 items-center justify-center gap-1 text-[10px] ${styles.portraitMeta}`}>
                 {member.online && <span aria-hidden className={`size-2 rounded-full ${styles.onlineDot}`} />}
                 {member.online ? 'En ligne' : member.joined_this_week ? 'Nouveau profil' : ''}
               </span>

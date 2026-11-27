@@ -37,7 +37,7 @@ describe('community presence dashboard', () => {
     const page = readFileSync('app/discover/page.tsx', 'utf8')
 
     expect(page).toContain("href='/members'")
-    expect(page).toContain("href='/matches'")
+    expect(readFileSync('components/circle-activity-cards.tsx', 'utf8')).toContain("href: '/matches'")
     expect(page).toContain("href='/events'")
     expect(page).toContain("id='new-profiles'")
   })

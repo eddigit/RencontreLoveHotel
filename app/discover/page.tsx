@@ -6,11 +6,8 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowUpRight,
-  Bell,
   CalendarHeart,
   ChevronDown,
-  Heart,
-  MessageCircle,
   RefreshCw,
   Search
 } from 'lucide-react'
@@ -21,7 +18,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MemberReferralLink } from '@/components/member-referral-link'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
-import { NotificationsButton } from '@/components/notifications-button'
+import { CircleAgendaWeek } from '@/components/circle-agenda-week'
+import { CircleActivityCards } from '@/components/circle-activity-cards'
+import type { ConversationSummary } from '@/lib/member-relationship-service'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
 import { useNotifications } from '@/contexts/notification-context'
@@ -198,6 +197,7 @@ export default function DiscoverPage () {
   const [filters, setFilters] = useState<FilterOptions>(() => discoverFiltersFromSearchParams(initialSearchParams))
   const [profiles, setProfiles] = useState<DiscoverProfile[]>([])
   const [onlineMembers, setOnlineMembers] = useState<DiscoverProfile[]>([])
+  const [threads, setThreads] = useState<ConversationSummary[] | null>(null)
   const [matches, setMatches] = useState<MatchRow[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [memberStats, setMemberStats] = useState<CommunityMemberStats>({
@@ -268,7 +268,7 @@ export default function DiscoverPage () {
       setError(null)
       try {
         const resolvedFilters = currentFilters || filters
-        const [profileResult, onlineResult, matchResult, eventResult, statsResult] = await getCommunityHome(resolvedFilters, batch)
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult, threadResult] = await getCommunityHome(resolvedFilters, batch)
         if (request !== communityRequest.current) return
 
         const restoredProfiles = restoreProfileOrder(
@@ -287,6 +287,7 @@ export default function DiscoverPage () {
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
         setMemberStats(statsResult)
+        setThreads(threadResult ?? null)
       } catch (error) {
         if (request !== communityRequest.current) return
         console.error('Error fetching community home:', error)
@@ -399,8 +400,8 @@ export default function DiscoverPage () {
   const upcomingEvents = events.slice(0, 3)
   const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
   const newProfilesSummary = memberStats.totalMembers > 0
-    ? `Les ${newProfiles.length} derniers profils visibles sur ${totalMembersLabel} membres.`
-    : `Les ${newProfiles.length} derniers profils visibles.`
+    ? `${newProfiles.length} profils proposés parmi ${totalMembersLabel} membres.`
+    : `${newProfiles.length} profils proposés.`
   if (isLoading) {
     return (
       <MainLayout user={user}>
@@ -432,54 +433,30 @@ export default function DiscoverPage () {
 
   return (
     <MainLayout user={user}>
-      <LhrV2Shell
-        user={user}
-        title='Mon cercle'
-        action={
-          <div className='flex flex-wrap items-center gap-2'>
-            <div className='hidden lg:block'>
-              <NotificationsButton />
-            </div>
-            <Button asChild size='sm' variant='ghost' className='text-[#ecebe7] hover:bg-[#111821] hover:text-[#ecebe7]'>
-              <Link href='#boite-a-idees'>Boîte à idées</Link>
-            </Button>
+      <div className='mx-auto min-h-screen w-full max-w-[1540px] bg-[#121318] px-3 pb-8 pt-3 text-[#e3e1e9] sm:px-5 lg:px-7'>
+          <h1 className='sr-only'>Mon cercle</h1>
+          <div className='mb-3 flex gap-4 text-sm text-[#ffb3b2] xl:hidden'>
+            <Link href='#agenda-du-cercle'>Présence et agenda ↓</Link>
+            <Link href='#boite-a-idees'>Boîte à idées</Link>
           </div>
-        }
-      >
-        <div className='-m-3 min-h-[calc(100vh-8rem)] overflow-x-hidden bg-[#04070b] p-3 text-[#ecebe7] sm:-m-4 sm:p-5 lg:-m-5 lg:p-6'>
-          <section aria-label='Raccourcis de la communauté' className='mb-4 flex flex-wrap gap-2'>
-            <Link
-              href='/messages'
-              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
-            >
-              <MessageCircle className='h-4 w-4' /> Messages{counts.messages > 0 ? ` · ${counts.messages}` : ''}
-            </Link>
-            <Link
-              href='/matches'
-              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
-            >
-              <Heart className='h-4 w-4' /> Matchs{matches.length > 0 ? ` · ${matches.length}` : ''}
-            </Link>
-            <Link
-              href='#agenda-du-cercle'
-              className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold xl:hidden'
-            >
-              <CalendarHeart className='h-4 w-4' /> Agenda
-            </Link>
-            {counts.events > 0 && (
-              <Link
-                href='/notifications'
-                className='inline-flex items-center gap-2 rounded-xl border border-[#41454b] bg-[#111821] px-3 py-2 text-sm font-bold text-[#ecebe7] hover:border-[#c3a86e]'
-              >
-                <Bell className='h-4 w-4' /> Alertes · {counts.events}
-              </Link>
-            )}
-          </section>
-
-          <div className='grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_19rem]'>
+          <div className='grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(17rem,30%)]'>
             <div className='min-w-0 space-y-5'>
               <section aria-label='Mur de la communauté' className='min-w-0'>
-                <CommunityWall currentUserId={user.id} />
+                <CommunityWall currentUserId={user.id} currentUserName={user.name} currentUserAvatar={user.avatar} betweenComposerAndFeed={
+                  <CircleActivityCards
+                    threads={threads}
+                    loading={loading}
+                    unread={counts.messages}
+                    matches={matches.slice(0, 3).map(match => {
+                      const first = match.user_id_1 !== user.id
+                      return {
+                        id: first ? match.user_id_1 : match.user_id_2,
+                        name: (first ? match.user1_name : match.user2_name) || 'Membre',
+                        avatar: first ? match.user1_avatar : match.user2_avatar
+                      }
+                    })}
+                  />
+                } />
               </section>
 
               <section id='new-profiles' className='scroll-mt-24'>
@@ -498,7 +475,7 @@ export default function DiscoverPage () {
                       aria-label='Découvrir d’autres profils'
                       onClick={showAnotherBatch}
                       disabled={loading || preparingProfiles || profiles.length <= 12}
-                      className='border-[#41454b] bg-[#111821] text-[#ecebe7] hover:bg-[#111821]'
+                      className='border-white/[0.07] bg-[#1a1b21] text-[#ecebe7] hover:bg-[#1a1b21]'
                     >
                       <RefreshCw className='mr-1.5 h-3.5 w-3.5' />
                       {preparingProfiles ? 'Actualisation...' : 'Autres'}
@@ -512,11 +489,11 @@ export default function DiscoverPage () {
                     placeholder='Rechercher un profil, une ville, une ambiance...'
                     value={searchQuery}
                     onChange={(event) => handleSearchChange(event.target.value)}
-                    className='h-12 rounded-2xl border-[#41454b] bg-[#111821] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
+                    className='h-12 rounded-xl border-white/[0.07] bg-[#1a1b21] pl-11 text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#ffb3b2]'
                   />
                 </div>
                 {error && (
-                  <div className='rounded-2xl border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100'>
+                  <div className='rounded-xl border border-red-400/40 bg-red-950/40 p-4 text-sm text-red-100'>
                     {error}
                   </div>
                 )}
@@ -524,7 +501,7 @@ export default function DiscoverPage () {
                   <span className='text-[#c9c7c2]'>{loading ? 'Actualisation...' : `${newProfiles.length} affichés`}</span>
                   <Link
                     href='/members'
-                    className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#c3a86e]'
+                    className='inline-flex items-center gap-1 font-bold text-[#ecebe7] hover:text-[#ffb3b2]'
                   >
                     Recherche détaillée <ArrowUpRight className='h-4 w-4' />
                   </Link>
@@ -534,7 +511,7 @@ export default function DiscoverPage () {
                     <Link
                       key={profile.id}
                       href={`/profile/${profile.id}`}
-                      className='group flex min-w-0 flex-col items-center gap-2 overflow-hidden text-center rounded-xl border border-[#41454b] bg-[#111821] p-2 transition hover:border-[#c3a86e]'
+                      className='group flex min-w-0 flex-col items-center gap-2 overflow-hidden text-center rounded-xl border border-white/[0.07] bg-[#1a1b21] p-2 transition hover:border-[#ffb3b2]'
                     >
                       <div className='relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-white/10'>
                         {mediaImage(profileImage(profile), profile.name)}
@@ -554,7 +531,7 @@ export default function DiscoverPage () {
                           {profile.location || profile.bio || 'Voir le profil'}
                         </div>
                         {typeof profile.matchScore === 'number' && (
-                          <div className='mt-0.5 text-xs text-[#c3a86e]'>{Math.round(profile.matchScore)}% compatible</div>
+                          <div className='mt-0.5 text-xs text-[#ffb3b2]'>{Math.round(profile.matchScore)}% compatible</div>
                         )}
                       </div>
                     </Link>
@@ -563,7 +540,7 @@ export default function DiscoverPage () {
               </section>
 
               <MemberReferralLink />
-              <section id='boite-a-idees' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821]'>
+              <section id='boite-a-idees' className='scroll-mt-24 rounded-xl border border-white/[0.07] bg-[#1a1b21]'>
                 <button
                   type='button'
                   onClick={() => setFeedbackOpen((open) => !open)}
@@ -581,7 +558,7 @@ export default function DiscoverPage () {
                   />
                 </button>
                 {feedbackOpen && (
-                  <div className='border-t border-[#41454b] p-4'>
+                  <div className='border-t border-white/[0.07] p-4'>
                     <CommunityFeedbackWidget />
                   </div>
                 )}
@@ -589,67 +566,35 @@ export default function DiscoverPage () {
             </div>
 
             <aside id='agenda-du-cercle' aria-label='Agenda et présence' className='min-w-0 scroll-mt-20 space-y-5'>
-              <section aria-labelledby='next-event-title' className='rounded-2xl border border-[#41454b] bg-[#111821] p-4'>
-                <div className='flex items-center justify-between gap-2'>
-                  <h2 id='next-event-title' className='flex items-center gap-2 font-black'>
-                    <CalendarHeart className='h-4 w-4 text-[#c3a86e]' /> Agenda
-                  </h2>
-                  <Link href='/events' className='text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'>
-                    Tout voir
-                  </Link>
-                </div>
-                {upcomingEvents.length > 0 ? (
-                  <div className='mt-3 space-y-3'>
-                    {upcomingEvents.map((event) => (
-                      <Link
-                        key={event.id}
-                        href={`/events/${event.id}`}
-                        className='flex items-center gap-2 rounded-xl bg-[#04070b] p-3 hover:bg-[#0a0f15]'
-                      >
-                        {event.image && (
-                          <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
-                            {mediaImage(event.image, '')}
-                          </span>
-                        )}
-                        <div className='min-w-0'>
-                          <div className='text-sm font-bold'>{event.title}</div>
-                          <p className='mt-1 text-xs text-[#c9c7c2]'>
-                            {eventDateLabel(event.event_date)}
-                            {event.event_time ? ` · ${event.event_time}` : ''} · {event.location}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <p className='mt-3 text-sm text-[#c9c7c2]'>Aucun rendez-vous à venir.</p>
-                )}
-                <Link
-                  href='/lieux'
-                  className='mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'
-                >
-                  Guide des lieux <ArrowUpRight className='h-4 w-4' />
-                </Link>
-              </section>
               <section
                 aria-labelledby='online-members-title'
-                className='rounded-2xl border border-[#41454b] bg-[#111821] p-4'
+                className='rounded-xl border border-white/[0.07] bg-[#1a1b21] p-4'
               >
                 <div className='flex items-center justify-between gap-2'>
                   <h2 id='online-members-title' className='font-black'>
-                    En ligne maintenant
+                    Présence en direct
                   </h2>
-                  <Link href='/members' className='text-sm font-bold text-[#ecebe7] hover:text-[#c3a86e]'>
+                  <Link href='/members' className='text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'>
                     Voir
                   </Link>
                 </div>
+                <dl className='my-3 grid grid-cols-2 gap-2 text-center'>
+                  <div className='flex flex-col-reverse rounded-lg bg-[#292a2f] py-2'>
+                    <dt className='text-xs text-[#c9c7c2]'>Membres du cercle</dt>
+                    <dd className='text-xl font-semibold text-[#ffb3b2]'>{loading || error ? '…' : formatCount(memberStats.totalMembers)}</dd>
+                  </div>
+                  <div className='flex flex-col-reverse rounded-lg bg-[#292a2f] py-2'>
+                    <dt className='text-xs text-[#c9c7c2]'>Nouveaux en 24 h</dt>
+                    <dd className='text-xl font-semibold text-[#ffb3b2]'>{loading || error ? '…' : formatCount(memberStats.newMembersLast24h)}</dd>
+                  </div>
+                </dl>
                 {onlineMembers.length > 0 ? (
                   <div className='mt-3 space-y-2'>
                     {onlineMembers.slice(0, 5).map((member) => (
                       <Link
                         key={member.id}
                         href={`/profile/${member.id}`}
-                        className='flex items-center gap-2 rounded-xl bg-[#04070b] p-2 hover:bg-[#0a0f15]'
+                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-2 hover:bg-[#0a0f15]'
                       >
                         <div className='relative h-9 w-9 shrink-0 overflow-hidden rounded-full'>
                           {mediaImage(profileImage(member), member.name)}
@@ -663,13 +608,62 @@ export default function DiscoverPage () {
                     ))}
                   </div>
                 ) : (
-                  <p className='mt-3 text-sm text-[#c9c7c2]'>Aucun membre en ligne pour le moment.</p>
+                  <p className='mt-3 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de la présence…' : error ? 'Présence temporairement indisponible.' : 'Aucun membre en ligne pour le moment.'}</p>
                 )}
               </section>
+              <section aria-labelledby='next-event-title' className='rounded-xl border border-white/[0.07] bg-[#1a1b21] p-4'>
+                <div className='flex items-center justify-between gap-2'>
+                  <h2 id='next-event-title' className='flex items-center gap-2 font-black'>
+                    <CalendarHeart className='h-4 w-4 text-[#ffb3b2]' /> Agenda
+                  </h2>
+                  <Link href='/events' className='text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'>
+                    Tout voir
+                  </Link>
+                </div>
+                <CircleAgendaWeek events={events} />
+                {upcomingEvents.length > 0 ? (
+                  <div className='mt-3 space-y-3'>
+                    {upcomingEvents.map((event) => (
+                      <Link
+                        key={event.id}
+                        href={`/events/${event.id}`}
+                        className='flex items-center gap-2 rounded-xl bg-[#121318] p-3 hover:bg-[#0a0f15]'
+                      >
+                        {event.image && (
+                          <span className='relative size-12 shrink-0 overflow-hidden rounded-lg'>
+                            {mediaImage(event.image, '')}
+                          </span>
+                        )}
+                        <div className='min-w-0'>
+                          <div className='text-sm font-bold'>{event.title}</div>
+                          <p className='mt-1 text-xs text-[#c9c7c2]'>
+                            {eventDateLabel(event.event_date)}
+                            {event.event_time ? ` · ${event.event_time.slice(0, 5)}` : ''} · {event.location}
+                          </p>
+                          {event.participant_count != null && (
+                            <span className='mt-1 block text-xs text-[#ffb3b2]'>
+                              {Number(event.participant_count)} inscrit{Number(event.participant_count) > 1 ? 's' : ''} · Voir le rendez-vous →
+                            </span>
+                          )}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className='mt-3 text-sm text-[#c9c7c2]'>{loading ? 'Chargement de l’agenda…' : error ? 'Agenda temporairement indisponible.' : 'Aucun rendez-vous à venir.'}</p>
+                )}
+                <Link
+                  href='/lieux'
+                  className='mt-3 inline-flex items-center gap-1 text-sm font-bold text-[#ecebe7] hover:text-[#ffb3b2]'
+                >
+                  Guide des lieux <ArrowUpRight className='h-4 w-4' />
+                </Link>
+                <Link href='/events/new' className='mt-4 block rounded-lg border border-white/10 py-2 text-center text-sm font-semibold hover:bg-[#292a2f]'>Proposer un événement</Link>
+              </section>
+              <Link href='/community-safety' className='block rounded-xl bg-[#1a1b21] p-4 text-sm text-[#e3e1e9] hover:bg-[#292a2f]'>Confidentialité et sécurité du cercle ↗</Link>
             </aside>
           </div>
         </div>
-      </LhrV2Shell>
     </MainLayout>
   )
 }

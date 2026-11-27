@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
 import {
   CalendarHeart,
@@ -41,6 +41,9 @@ type WallEventOption = {
 
 type CommunityWallProps = {
   currentUserId: string
+  currentUserName?: string | null
+  currentUserAvatar?: string | null
+  betweenComposerAndFeed?: ReactNode
 }
 
 const postTypeOptions: Array<{
@@ -123,8 +126,7 @@ function avatarInitial(name?: string | null) {
   return (name || 'M').slice(0, 1).toUpperCase()
 }
 
-export function CommunityWall({ currentUserId }: CommunityWallProps) {
-  const [composerOpen, setComposerOpen] = useState(false)
+export function CommunityWall({ currentUserId, currentUserName, currentUserAvatar, betweenComposerAndFeed }: CommunityWallProps) {
   const [posts, setPosts] = useState<CommunityWallPost[]>([])
   const [events, setEvents] = useState<WallEventOption[]>([])
   const [commentsByPost, setCommentsByPost] = useState<Record<string, CommunityWallComment[]>>({})
@@ -200,7 +202,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
       setEventId('')
       setDurationHours(24)
       setType('profil')
-      setComposerOpen(false)
       setStatusMessage('Annonce publiée.')
       await loadWall()
     } catch (error) {
@@ -283,57 +284,31 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
   }
 
   return (
-    <section id='community-wall' className='scroll-mt-24 rounded-2xl border border-[#41454b] bg-[#111821] text-[#ecebe7] p-4 shadow-sm'>
-      <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
-        <h2 className='text-xl font-semibold'>Fil du cercle</h2>
-        <button type='button' aria-expanded={composerOpen} aria-controls='wall-composer'
-          className='min-h-11 rounded-lg border border-white/20 px-3 text-sm font-semibold hover:bg-white/10 focus-visible:ring-2'
-          onClick={() => setComposerOpen(open => !open)}>
-          {composerOpen ? 'Fermer la rédaction' : 'Publier une annonce'}
-        </button>
-      </div>
-
-      <form id='wall-composer' hidden={!composerOpen} onSubmit={handleCreatePost} className='rounded-2xl border border-[#41454b] bg-[#0a0f15] p-3'>
-        <div className='grid gap-2 sm:grid-cols-3'>
-          {postTypeOptions.map(option => {
-            const Icon = option.icon
-            const selected = type === option.value
-            return (
-              <button
-                key={option.value}
-                type='button'
-                aria-pressed={selected}
-                onClick={() => setType(option.value)}
-                className={`flex min-h-[58px] items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
-                  selected
-                    ? 'border-[#c3a86e] bg-[#111821] text-[#ecebe7]'
-                    : 'border-[#41454b] bg-[#0a0f15] text-[#c9c7c2] hover:border-[#41454b]'
-                }`}
-              >
-                <Icon className='h-4 w-4 shrink-0' />
-                <span className='min-w-0'>
-                  <span className='block text-sm font-black leading-5'>{option.label}</span>
-                  <span className='block truncate text-xs text-[#c9c7c2]'>{option.detail}</span>
-                </span>
-              </button>
-            )
-          })}
-        </div>
-
-        <div className='mt-3'>
+    <section id='community-wall' className='scroll-mt-24 text-[#ecebe7]'>
+      <form id='wall-composer' onSubmit={handleCreatePost} className='rounded-xl bg-[#1a1b21] p-4 shadow-sm'>
+        <div className='flex items-start gap-3'>
+          <div className='h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#292a2f]'>
+            {currentUserAvatar ? (
+              <img src={currentUserAvatar} alt={currentUserName || 'Votre profil'} className='h-full w-full object-cover' />
+            ) : (
+              <span className='flex h-full w-full items-center justify-center text-sm font-semibold text-[#e3e1e9]'>
+                {avatarInitial(currentUserName)}
+              </span>
+            )}
+          </div>
           <Textarea
             value={body}
             onChange={event => setBody(event.target.value.slice(0, 500))}
-            placeholder='Votre annonce pour la communauté...'
-            className='min-h-[84px] resize-none rounded-xl border-[#41454b] bg-[#0a0f15] text-[#ecebe7] placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
+            placeholder='Proposez une sortie ou partagez un mot avec le cercle…'
+            aria-label='Votre publication'
+            className='min-h-[72px] resize-none rounded-xl border-0 bg-[#292a2f] px-3 py-2.5 text-sm text-[#e3e1e9] placeholder:text-[#ad8887] focus-visible:ring-2 focus-visible:ring-[#ff525d]'
           />
-          <div className='mt-1 text-right text-xs text-[#c9c7c2]'>{remainingChars} caractères</div>
         </div>
 
-        <div className='mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start'>
-          <label className='inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[#41454b] bg-[#0a0f15] px-3 text-sm font-bold text-[#c9c7c2] transition hover:border-[#41454b] hover:text-[#ecebe7]'>
-            <ImagePlus className='h-4 w-4' />
-            {imageFile ? 'Changer la photo' : 'Ajouter une photo'}
+        <div className='mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3'>
+          <label className='inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#292a2f] px-3 text-xs font-semibold text-[#e6bdbb] transition hover:text-[#e3e1e9]'>
+            <ImagePlus className='h-4 w-4 text-[#ff525d]' />
+            {imageFile ? 'Photo choisie' : 'Média'}
             <input
               type='file'
               accept='image/jpeg,image/png,image/webp'
@@ -341,13 +316,31 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
               onChange={handleImageChange}
             />
           </label>
-          <p className='text-xs leading-5 text-[#c9c7c2] sm:text-right'>
-            JPG, PNG ou WebP. 8 Mo max.
-          </p>
+          <label className='inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#292a2f] px-2 text-xs font-semibold text-[#e6bdbb]'>
+            <CalendarHeart className='h-4 w-4 text-[#ff525d]' />
+            <span className='sr-only'>Type de publication</span>
+            <select
+              value={type}
+              onChange={event => setType(event.target.value as WallPostType)}
+              className='h-full max-w-[11rem] bg-transparent pr-5 text-xs text-[#e6bdbb] outline-none'
+              aria-label='Type de publication'
+            >
+              {postTypeOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+          <span className='ml-auto text-xs text-[#ad8887]'>{remainingChars}</span>
+          <Button
+            type='submit'
+            disabled={submitting || !canSubmit}
+            className='h-9 bg-[#ff525d] px-3 text-xs font-semibold text-[#5b000f] hover:bg-[#ffb3ac]'
+          >
+            <Send className='mr-1.5 h-3.5 w-3.5' />
+            {submitting ? 'Publication…' : 'Publier'}
+          </Button>
         </div>
 
         {imagePreview && (
-          <div className='mt-3 overflow-hidden rounded-2xl border border-[#41454b] bg-[#0a0f15]'>
+          <div className='mt-3 overflow-hidden rounded-xl bg-[#292a2f]'>
             <div className='relative aspect-[4/3] max-h-[360px] w-full'>
               <img
                 src={imagePreview}
@@ -357,7 +350,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
               <button
                 type='button'
                 onClick={() => setImageFile(null)}
-                className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#41454b] bg-[#0a0f15] text-[#ecebe7] shadow-lg transition hover:bg-[#111821]'
+                className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1a1b21] text-[#e3e1e9] shadow-lg transition hover:bg-[#292a2f]'
                 aria-label='Retirer la photo'
               >
                 <X className='h-4 w-4' />
@@ -370,7 +363,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
           <select
             value={eventId}
             onChange={event => setEventId(event.target.value)}
-            className='mt-2 h-11 w-full rounded-xl border border-[#41454b] bg-[#0a0f15] px-3 text-sm text-[#ecebe7] outline-none focus:border-[#c3a86e]'
+            className='mt-3 h-10 w-full rounded-lg border-0 bg-[#292a2f] px-3 text-sm text-[#e3e1e9] outline-none focus:ring-2 focus:ring-[#ff525d]'
           >
             <option value=''>Associer un événement existant (optionnel)</option>
             {events.map(event => (
@@ -382,7 +375,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
         )}
 
         {type === 'dispo_rideaux_ouverts' && (
-          <div className='mt-2 flex gap-2'>
+          <div className='mt-3 flex gap-2'>
             {[24, 48].map(value => (
               <button
                 key={value}
@@ -391,8 +384,8 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                 onClick={() => setDurationHours(value as 24 | 48)}
                 className={`h-10 flex-1 rounded-xl border text-sm font-bold transition ${
                   durationHours === value
-                    ? 'border-[#c3a86e] bg-[#111821] text-[#ecebe7]'
-                    : 'border-[#41454b] bg-[#0a0f15] text-[#c9c7c2]'
+                    ? 'border-[#ff525d] bg-[#292a2f] text-[#e3e1e9]'
+                    : 'border-transparent bg-[#292a2f] text-[#e6bdbb]'
                 }`}
               >
                 {value} h
@@ -401,19 +394,6 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
           </div>
         )}
 
-        <div className='mt-3 flex items-center justify-between gap-3'>
-          <p className='text-xs text-[#c9c7c2]'>
-            Texte et photo optionnelle. Les annonces filtrées partent en modération.
-          </p>
-          <Button
-            type='submit'
-            disabled={submitting || !canSubmit}
-            className='bg-[#c1121f] text-white hover:opacity-90'
-          >
-            <Send className='mr-2 h-4 w-4' />
-            {submitting ? 'Publication...' : 'Publier'}
-          </Button>
-        </div>
       </form>
 
       {statusMessage && (
@@ -421,6 +401,8 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
           {statusMessage}
         </div>
       )}
+
+      {betweenComposerAndFeed && <div className='mt-4'>{betweenComposerAndFeed}</div>}
 
       <div className='mt-4 space-y-3'>
         {loading && (
@@ -442,7 +424,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
           const commentCount = Number(post.comment_count || 0)
           const expiration = expirationLabel(post.expires_at)
           return (
-            <article key={post.id} className='rounded-2xl border border-[#41454b] bg-[#0a0f15] p-4'>
+            <article key={post.id} className='rounded-xl border border-white/[0.045] bg-[#1a1b21] p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
                 <Link href={`/profile/${post.user_id}`} className='relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#0a0f15]'>
                   {post.author_avatar ? (
@@ -578,7 +560,7 @@ export function CommunityWall({ currentUserId }: CommunityWallProps) {
                         setCommentDrafts(current => ({ ...current, [post.id]: value }))
                       }}
                       placeholder='Écrire un commentaire...'
-                      className='h-10 min-w-0 flex-1 rounded-full border border-[#41454b] bg-[#0a0f15] px-3 text-sm text-[#ecebe7] outline-none placeholder:text-[#c9c7c2] focus:border-[#c3a86e]'
+                      className='h-10 min-w-0 flex-1 rounded-full border border-[#41454b] bg-[#0a0f15] px-3 text-sm text-[#ecebe7] outline-none placeholder:text-[#c9c7c2] focus:border-[#ff525d]'
                     />
                     <Button
                       type='button'
