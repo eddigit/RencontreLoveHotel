@@ -42,11 +42,11 @@ export function MemberPortraitTrack({ initial, visitSeed }: { initial: MemberPor
   }
   function slide(direction: number) {
     const el = track.current
-    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: 'smooth' })
+    if (el) el.scrollBy({ left: direction * el.clientWidth * 0.85, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })
     if (direction > 0) nearEnd()
   }
   return <div className='relative'>
-    <div className='absolute bottom-full right-24 mb-3 hidden gap-2 sm:flex'>
+    <div className={`absolute bottom-full right-24 mb-1 hidden gap-1 sm:flex ${styles.portraitControls}`}>
       <button type='button' aria-label='Membres précédents' onClick={() => slide(-1)}><ChevronLeft size={20} /></button>
       <button type='button' aria-label='Membres suivants' onClick={() => slide(1)}><ChevronRight size={20} /></button>
     </div>
