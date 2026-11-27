@@ -13,6 +13,7 @@ import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { MemberProfileBackButton } from '@/components/member-profile-back-button'
+import { ProfileVisitTracker } from '@/components/profile-visit-tracker'
 import { sql } from '@/lib/db'
 import { authOptions } from '@/lib/auth'
 import { defaultMemberImage } from '@/lib/default-member-image'
@@ -90,6 +91,7 @@ export default async function ProfilePage ({
         title={`${displayMemberName(profile.name)}${profile.age ? `, ${profile.age}` : ''}`}
         action={<><MemberProfileBackButton />{canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] xl:hidden'>Entrer en contact</a>}</>}
       >
+        {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
         <div className='grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]'>
           <section className='overflow-hidden rounded-3xl border border-[#111821] bg-[#0a0f15] text-[#ecebe7] shadow-2xl shadow-black/30'>
             <div className='bg-[#04070b] p-3 sm:p-5'>

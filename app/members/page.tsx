@@ -210,8 +210,9 @@ export default function MembersPage() {
                 <p className='text-sm text-[#c1c6da]'>
                   <span aria-live='polite'>{loading ? 'Recherche en cours…' : `${formatCount(totalCount)} ${totalCount === 1 ? 'profil' : 'profils'}`}</span>
                   <span aria-hidden='true'> · </span>
-                  <Link href='/discover#new-profiles' className='text-[#d6bc87] hover:text-white'>Nouveaux membres</Link>
+                  <Link href='/discover#new-profiles' className='text-[#d6bc87] hover:text-white'>Profils compatibles</Link>
                 </p>
+                <p className='mt-1 text-xs text-[#b9b5ac]'>Quand vous ouvrez une fiche, le membre peut voir votre visite.</p>
               </div>
               <div className='flex flex-wrap items-center gap-2 self-end sm:self-start'>
                 {activeFilterCount > 0 && <span className='rounded-full bg-[#d6bc87]/15 px-2.5 py-1 text-xs font-semibold text-[#d6bc87]'>{activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''}</span>}

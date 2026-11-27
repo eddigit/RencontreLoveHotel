@@ -125,7 +125,7 @@ describe('matching algorithm', () => {
     expect(calculateMatchScore(couple, openSingle)).toBeGreaterThanOrEqual(75)
   })
 
-  it('requires mutual profile targeting only when both profiles made explicit choices', () => {
+  it('respects each explicit target even when the other member left it open', () => {
     const woman = {
       ...baseProfile,
       id: 'woman',
@@ -145,6 +145,9 @@ describe('matching algorithm', () => {
     expect(isMutuallyTargeted(incompatibleMan, woman)).toBe(false)
     expect(calculateMatchScore(incompatibleMan, woman)).toBe(0)
     expect(isMutuallyTargeted(baseProfile, woman)).toBe(true)
+    expect(isMutuallyTargeted(incompatibleMan, baseProfile)).toBe(false)
+    expect(isMutuallyTargeted(baseProfile, incompatibleMan)).toBe(false)
+    expect(calculateMatchScore(baseProfile, incompatibleMan)).toBe(0)
   })
 
   it('rewards shared intentions and complementary BDSM roles', () => {
@@ -163,6 +166,11 @@ describe('matching algorithm', () => {
     } as any
 
     expect(calculateMatchScore(dominant, submissive)).toBeGreaterThan(calculateMatchScore(dominant, noBdsm))
+  })
+
+  it('gives no automatic points to two empty profiles', () => {
+    const empty = { ...baseProfile, preferences: {} }
+    expect(calculateMatchScore(empty, empty)).toBe(0)
   })
 
   it('does not mistake native avatars for personal photos and ranks real photos first', () => {

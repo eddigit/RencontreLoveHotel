@@ -10,31 +10,44 @@ describe('community profile rotation', () => {
     expect(source).toContain('recordProfileImpressions')
   })
 
-  it('shows twelve profiles and provides another batch control', () => {
+  it('shows compatibility batches sized from the available grid and provides a progressive control', () => {
     const source = readFileSync('app/discover/page.tsx', 'utf8')
-    expect(source).toContain('.slice(0, 12)')
-    expect(source).toContain('Découvrir d’autres profils')
+    expect(source).toContain('DESKTOP_PROFILE_BATCH_SIZE = 18')
+    expect(source).toContain('ResizeObserver(updateColumnCount)')
+    expect(source).toContain('Math.min(DESKTOP_PROFILE_BATCH_SIZE, profileColumnCount * 2)')
+    expect(source).toContain('filteredProfiles.slice(0, visibleProfileCount)')
+    expect(source).toContain('Voir plus')
     expect(source).toContain('profileBatch')
   })
 
-  it('loads another profile batch immediately with one explicit click', () => {
+  it('appends another profile batch immediately with one explicit click', () => {
     const source = readFileSync('app/discover/page.tsx', 'utf8')
     const showAnotherBatch = source.slice(
       source.indexOf('const showAnotherBatch'),
       source.indexOf('const handleSearchChange')
     )
 
-    expect(source).toContain("import { rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'")
-    expect(showAnotherBatch).toContain('rotateDiscoveryBatchWithPhotoPriority(profiles, 1, 12)')
-    expect(showAnotherBatch).toContain('setProfiles(nextProfiles)')
-    expect(showAnotherBatch).toContain('void recordProfileImpressions')
-    expect(showAnotherBatch).not.toContain('await recordProfileImpressions')
+    expect(source).not.toContain("import { rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'")
+    expect(showAnotherBatch).not.toContain('setProfiles(')
+    expect(showAnotherBatch).not.toContain('recordProfileImpressions')
     expect(showAnotherBatch).toContain('localBatchNavigationRef.current = nextBatch')
     expect(showAnotherBatch).toContain('writeDiscoverUrlState')
     expect(source).toContain('if (localBatchNavigationRef.current === restoredBatch)')
     expect(source).not.toContain('preparedProfiles')
     expect(source).not.toContain('preparedBatch')
     expect(source).not.toContain('Afficher ces profils')
+  })
+
+  it('uses only calculated compatibility and records exactly the visible batch', () => {
+    const page = readFileSync('app/discover/page.tsx', 'utf8')
+    const actions = readFileSync('actions/user-actions.ts', 'utf8')
+
+    expect(page).toContain('Number(profile.matchScore) > 0')
+    expect(page).toContain('return Number(right.matchScore) - Number(left.matchScore)')
+    expect(page).toContain('profileBatch * profileBatchSize')
+    expect(page).toContain('currentBatch.map(profile => profile.id)')
+    expect(actions).toContain('.slice(0, 18)')
+    expect(page).toContain('Ajuster mes préférences de matching')
   })
 
   it('uses the connected member impression history across devices', () => {

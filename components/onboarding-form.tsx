@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   memberIdentityFromStatus,
   profileTypeOptions,
+  relationshipIntentOptions,
   seekingProfileTypeOptions,
   type MemberGender,
   type MemberStatus,
@@ -60,10 +61,6 @@ const initialData: OnboardingData = {
   openToOtherCouples: false, specificPreferences: '', joinExclusiveEvents: false, premiumAccess: false
 }
 
-const relationshipIntents = [
-  ['serious', 'Relation sérieuse'], ['regular', 'Relation régulière'], ['casual', 'Rencontre occasionnelle'],
-  ['libertine', 'Relation libertine'], ['friendship', 'Relation amicale']
-] as const
 const bdsmRoles = [
   ['discovery', 'Découverte'], ['dominant', 'Dominant·e'], ['submissive', 'Soumis·e'],
   ['switch', 'Switch'], ['none', 'Sans BDSM']
@@ -219,7 +216,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
         {step === 3 && (
           <div className='space-y-6'>
             <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{seekingProfileTypeOptions.map(option => <Choice key={option.value} id={`seeking-${option.value}`} label={option.label} checked={formData.seekingProfileTypes.includes(option.value)} onChange={() => toggleArrayValue('seekingProfileTypes', option.value)} />)}</div>
-            <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2>{relationshipIntents.map(([value, label]) => <Choice key={value} id={`intent-${value}`} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleArrayValue('relationshipIntents', value)} />)}</div>
+            <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2>{relationshipIntentOptions.map(({ value, label }) => <Choice key={value} id={`intent-${value}`} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleArrayValue('relationshipIntents', value)} />)}</div>
             <div className='space-y-3'><div><h2 className='font-bold'>Affinités BDSM</h2><p className='text-sm text-purple-100/65'>Facultatif. « Sans BDSM » exclut les autres choix.</p></div>{bdsmRoles.map(([value, label]) => <Choice key={value} id={`bdsm-${value}`} label={label} checked={formData.bdsmRoles.includes(value)} onChange={() => value === 'none' ? toggleArrayValue('bdsmRoles', 'none') : toggleArrayValue('bdsmRoles', value)} />)}</div>
           </div>
         )}

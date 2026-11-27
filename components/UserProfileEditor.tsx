@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Camera, Images, Plus, Save, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -20,6 +21,8 @@ import { defaultMemberImage } from '@/lib/default-member-image'
 import {
   memberIdentityFromStatus,
   profileTypeOptions,
+  relationshipIntentOptions,
+  seekingProfileTypeOptions,
   type MemberStatus
 } from '@/lib/member-profile-types'
 import { uploadProfilePhoto } from '@/lib/profile-photo-upload'
@@ -55,6 +58,8 @@ export function UserProfileEditor ({
       gender: user.gender || '',
       birthday: user.birthday || '',
       interests,
+      seekingProfileTypes: Array.isArray(user.seekingProfileTypes) ? user.seekingProfileTypes : [],
+      relationshipIntents: Array.isArray(user.relationshipIntents) ? user.relationshipIntents : [],
       avatar: user.avatar || '',
       display_profile:
         typeof user.display_profile === 'boolean' ? user.display_profile : true // default true
@@ -94,6 +99,15 @@ export function UserProfileEditor ({
       ...form,
       interests: form.interests.filter((i: string) => i !== interest)
     })
+  }
+
+  function toggleMatchingSelection (field: 'seekingProfileTypes' | 'relationshipIntents', value: string) {
+    setForm(current => ({
+      ...current,
+      [field]: current[field].includes(value)
+        ? current[field].filter((item: string) => item !== value)
+        : [...current[field], value]
+    }))
   }
 
   async function handleImageChange (e: React.ChangeEvent<HTMLInputElement>) {
@@ -258,6 +272,29 @@ export function UserProfileEditor ({
             className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40'
             placeholder='Nom public'
           />
+          <div id='matching-preferences' className='sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
+            <h4 className='font-black'>Profils recherchés</h4>
+            <p className='mt-1 text-sm text-white/58'>Choisissez les profils que vous souhaitez rencontrer.</p>
+            <div className='mt-3 grid gap-2 sm:grid-cols-2'>
+              {seekingProfileTypeOptions.map(option => (
+                <label key={option.value} className='flex items-center gap-2 text-sm'>
+                  <Checkbox checked={form.seekingProfileTypes.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('seekingProfileTypes', option.value)} />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className='sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
+            <h4 className='font-black'>Intentions de relation</h4>
+            <div className='mt-3 grid gap-2 sm:grid-cols-2'>
+              {relationshipIntentOptions.map(option => (
+                <label key={option.value} className='flex items-center gap-2 text-sm'>
+                  <Checkbox checked={form.relationshipIntents.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('relationshipIntents', option.value)} />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </div>
           <div>
             <Select
               value={form.status}

@@ -17,6 +17,6 @@ describe('matching incomplete profiles', () => {
   it('does not award compatibility points for criteria missing on both profiles', () => {
     expect(
       calculateMatchScore(incompleteProfile('member-a'), incompleteProfile('member-b'))
-    ).toBe(30)
+    ).toBe(0)
   })
 })

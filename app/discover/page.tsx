@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   CalendarHeart,
   ChevronDown,
-  RefreshCw,
   Search
 } from 'lucide-react'
 import { AdvancedFilters, defaultFilters, FilterOptions } from '@/components/advanced-filters'
@@ -22,6 +21,7 @@ import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { CIRCLE_EVENT_PHOTOS } from '@/lib/event-presentation'
 import { CircleAgendaWeek } from '@/components/circle-agenda-week'
 import { CircleActivityCards } from '@/components/circle-activity-cards'
+import { ProfileVisitors } from '@/components/profile-visitors'
 import type { ConversationSummary } from '@/lib/member-relationship-service'
 import MainLayout from '@/components/layout/main-layout'
 import { useAuth } from '@/contexts/auth-context'
@@ -35,7 +35,10 @@ import {
   discoverySnapshotKey,
   orderProfilesFromSnapshot
 } from '@/lib/discovery-session-state'
-import { rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'
+
+const DESKTOP_PROFILE_BATCH_SIZE = 18
+const MIN_PROFILE_COLUMNS = 3
+const MAX_PROFILE_COLUMNS = 9
 
 type DiscoverProfile = {
   id: string
@@ -47,6 +50,7 @@ type DiscoverProfile = {
   interests?: string[]
   popularity?: number
   matchScore?: number | null
+  matchingEligible?: boolean
   online?: boolean
   is_current_user?: boolean
   created_at?: string | Date | null
@@ -220,11 +224,13 @@ export default function DiscoverPage () {
   const [searchQuery, setSearchQuery] = useState(() => discoverSearchFromSearchParams(initialSearchParams))
   const [profileBatch, setProfileBatch] = useState(() => discoverBatchFromSearchParams(initialSearchParams))
   const [visitSeed, setVisitSeed] = useState(() => discoverVisitSeedFromSearchParams(initialSearchParams))
+  const [profileColumnCount, setProfileColumnCount] = useState(MIN_PROFILE_COLUMNS)
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const communityRequest = useRef(0)
   const localBatchNavigationRef = useRef<number | null>(null)
+  const profileGridRef = useRef<HTMLDivElement>(null)
 
   const saveProfileOrder = (
     profilesToSave: DiscoverProfile[],
@@ -285,22 +291,17 @@ export default function DiscoverPage () {
       setError(null)
       try {
         const resolvedFilters = currentFilters || filters
-        const [profileResult, onlineResult, matchResult, eventResult, statsResult, threadResult] = await getCommunityHome(resolvedFilters, batch, currentVisitSeed)
+        const [profileResult, onlineResult, matchResult, eventResult, statsResult, threadResult] = await getCommunityHome(resolvedFilters, 0, currentVisitSeed)
         if (request !== communityRequest.current) return
 
         const restoredProfiles = restoreProfileOrder(
           profileResult.profiles || [],
           resolvedFilters,
           currentSearch,
-          batch,
+          0,
           currentVisitSeed
         )
         setProfiles(restoredProfiles)
-        void recordProfileImpressions(
-          user.id,
-          restoredProfiles.slice(0, 12).map((profile: DiscoverProfile) => profile.id),
-          batch
-        )
         setOnlineMembers((onlineResult || []) as DiscoverProfile[])
         setMatches((matchResult || []) as MatchRow[])
         setEvents((eventResult || []) as EventRow[])
@@ -348,7 +349,7 @@ export default function DiscoverPage () {
     setSearchQuery(restoredSearch)
     setProfileBatch(restoredBatch)
     setVisitSeed(restoredVisitSeed)
-    void fetchCommunity(restoredFilters, restoredBatch, restoredSearch, restoredVisitSeed)
+    void fetchCommunity(restoredFilters, 0, restoredSearch, restoredVisitSeed)
     return () => { communityRequest.current += 1 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, isLoading, router, searchParamString])
@@ -366,6 +367,25 @@ export default function DiscoverPage () {
   }, [user?.id])
 
   useEffect(() => {
+    const grid = profileGridRef.current
+    if (!grid) return
+
+    const updateColumnCount = () => {
+      const availableWidth = grid.clientWidth
+      const nextColumnCount = Math.max(
+        MIN_PROFILE_COLUMNS,
+        Math.min(MAX_PROFILE_COLUMNS, Math.floor((availableWidth + 8) / 110))
+      )
+      setProfileColumnCount(nextColumnCount)
+    }
+
+    const observer = new ResizeObserver(updateColumnCount)
+    observer.observe(grid)
+    updateColumnCount()
+    return () => observer.disconnect()
+  }, [isLoading, user?.onboardingCompleted])
+
+  useEffect(() => {
     if (window.location.hash === '#boite-a-idees') setFeedbackOpen(true)
   }, [])
 
@@ -380,24 +400,16 @@ export default function DiscoverPage () {
       !user?.id ||
       preparingProfiles ||
       localBatchNavigationRef.current !== null ||
-      profiles.length <= 12
+      filteredProfiles.length <= visibleProfileCount
     ) return
 
     const nextBatch = profileBatch + 1
-    const nextProfiles = rotateDiscoveryBatchWithPhotoPriority(profiles, 1, 12)
     setPreparingProfiles(true)
     setError(null)
     try {
       localBatchNavigationRef.current = nextBatch
-      setProfiles(nextProfiles)
       setProfileBatch(nextBatch)
-      saveProfileOrder(nextProfiles, filters, searchQuery, nextBatch, visitSeed)
       writeDiscoverUrlState(router, filters, searchQuery, nextBatch, visitSeed)
-      void recordProfileImpressions(
-        user.id,
-        nextProfiles.slice(0, 12).map(profile => profile.id),
-        nextBatch
-      )
     } catch (error) {
       console.error('Error loading another profile batch:', error)
       setError("Impossible de charger d'autres profils pour le moment.")
@@ -412,22 +424,50 @@ export default function DiscoverPage () {
     writeDiscoverUrlState(router, filters, value, profileBatch, visitSeed)
   }
 
+  const compatibleProfiles = useMemo(() => (
+    profiles
+      .filter(profile => profile.matchingEligible !== false && Number(profile.matchScore) > 0)
+      .sort((left, right) => {
+        // Modern JavaScript sorting is stable, preserving the server's photo/favorite
+        // priority for profiles with the same calculated compatibility.
+        return Number(right.matchScore) - Number(left.matchScore)
+      })
+  ), [profiles])
+
   const filteredProfiles = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
-    if (!query) return profiles
-    return profiles.filter(
+    if (!query) return compatibleProfiles
+    return compatibleProfiles.filter(
       profile =>
         profile.name?.toLowerCase().includes(query) ||
         profile.location?.toLowerCase().includes(query)
     )
-  }, [profiles, searchQuery])
+  }, [compatibleProfiles, searchQuery])
 
-  const newProfiles = [...filteredProfiles].slice(0, 12)
+  const profileBatchSize = Math.min(DESKTOP_PROFILE_BATCH_SIZE, profileColumnCount * 2)
+  const visibleProfileCount = (profileBatch + 1) * profileBatchSize
+  const newProfiles = filteredProfiles.slice(0, visibleProfileCount)
+  const hasMoreProfiles = filteredProfiles.length > newProfiles.length
   const upcomingEvents = events.slice(0, 3)
   const totalMembersLabel = memberStats.totalMembers > 0 ? formatCount(memberStats.totalMembers) : '...'
   const newProfilesSummary = memberStats.totalMembers > 0
-    ? `${newProfiles.length} profils proposés parmi ${totalMembersLabel} membres.`
-    : `${newProfiles.length} profils proposés.`
+    ? `${newProfiles.length} profils compatibles affichés parmi ${totalMembersLabel} membres.`
+    : `${newProfiles.length} profils compatibles affichés.`
+
+  useEffect(() => {
+    if (!user?.id || loading) return
+    const currentBatch = filteredProfiles.slice(
+      profileBatch * profileBatchSize,
+      visibleProfileCount
+    )
+    if (currentBatch.length === 0) return
+
+    void recordProfileImpressions(
+      user.id,
+      currentBatch.map(profile => profile.id),
+      profileBatch
+    )
+  }, [filteredProfiles, loading, profileBatch, profileBatchSize, user?.id, visibleProfileCount])
   if (isLoading) {
     return (
       <MainLayout user={user}>
@@ -491,7 +531,7 @@ export default function DiscoverPage () {
                 <div className='mb-3 flex flex-wrap items-start justify-between gap-3'>
                   <div>
                     <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#f1eee8]'>Découvrir</p>
-                    <h2 className='mt-1 text-lg font-black'>Profils à découvrir</h2>
+                    <h2 className='mt-1 text-lg font-black'>Profils compatibles</h2>
                     <p className='mt-1 text-sm leading-5 text-[#aaa69e]'>{newProfilesSummary}</p>
                   </div>
                   <div className='flex items-center gap-2'>
@@ -500,13 +540,12 @@ export default function DiscoverPage () {
                       type='button'
                       size='sm'
                       variant='outline'
-                      aria-label='Découvrir d’autres profils'
+                      aria-label='Voir plus de profils compatibles'
                       onClick={showAnotherBatch}
-                      disabled={loading || preparingProfiles || profiles.length <= 12}
+                      disabled={loading || preparingProfiles || !hasMoreProfiles}
                       className='border-white/[0.07] bg-[#191714] text-[#f1eee8] hover:bg-[#191714]'
                     >
-                      <RefreshCw className='mr-1.5 h-3.5 w-3.5' />
-                      {preparingProfiles ? 'Actualisation...' : 'Autres'}
+                      {preparingProfiles ? 'Chargement...' : 'Voir plus'}
                     </Button>
                   </div>
                 </div>
@@ -526,7 +565,7 @@ export default function DiscoverPage () {
                   </div>
                 )}
                 <div className='mb-3 flex flex-wrap items-center justify-between gap-2 text-sm'>
-                  <span className='text-[#aaa69e]'>{loading ? 'Actualisation...' : `${newProfiles.length} affichés`}</span>
+                  <span className='text-[#aaa69e]'>{loading ? 'Actualisation...' : `${newProfiles.length} compatibles affichés`}</span>
                   <Link
                     href='/members'
                     className='inline-flex items-center gap-1 font-bold text-[#f1eee8] hover:text-[#d6bc87]'
@@ -534,7 +573,11 @@ export default function DiscoverPage () {
                     Recherche détaillée <ArrowUpRight className='h-4 w-4' />
                   </Link>
                 </div>
-                <div className='grid grid-cols-[repeat(auto-fill,minmax(6rem,1fr))] gap-2'>
+                <div
+                  ref={profileGridRef}
+                  className='grid gap-2'
+                  style={{ gridTemplateColumns: `repeat(${profileColumnCount}, minmax(0, 1fr))` }}
+                >
                   {newProfiles.map((profile) => (
                     <Link
                       key={profile.id}
@@ -555,15 +598,24 @@ export default function DiscoverPage () {
                         <div className='truncate text-xs text-[#aaa69e]'>
                           {profile.location || profile.bio || 'Voir le profil'}
                         </div>
-                        {typeof profile.matchScore === 'number' && (
-                          <div className='mt-0.5 text-xs text-[#d6bc87]'>{Math.round(profile.matchScore)}% compatible</div>
+                        {typeof profile.matchScore === 'number' && Number.isFinite(profile.matchScore) && (
+                          <div title="Indice d’affinité calculé à partir des préférences renseignées" className='mt-0.5 text-xs text-[#d6bc87]'>{Math.round(profile.matchScore)} % compatible</div>
                         )}
                       </div>
                     </Link>
                   ))}
                 </div>
+                {!loading && newProfiles.length === 0 && (
+                  <div className='mt-3 rounded-xl border border-white/[0.07] bg-[#191714] p-4 text-sm text-[#aaa69e]'>
+                    Aucun profil compatible ne correspond à vos critères pour le moment. Ajustez vos préférences de matching pour élargir la sélection.
+                    <Link href='/profile?tab=profile#matching-preferences' className='mt-2 block font-bold text-[#d6bc87] hover:text-[#f1eee8]'>
+                      Ajuster mes préférences de matching
+                    </Link>
+                  </div>
+                )}
               </section>
 
+              <ProfileVisitors />
               <MemberReferralLink />
               <section id='boite-a-idees' className='scroll-mt-24 rounded-xl border border-white/[0.07] bg-[#191714]'>
                 <button

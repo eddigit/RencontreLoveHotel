@@ -25,6 +25,16 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'notifications-push-pwa',
+    title: 'Notifications push pour la PWA',
+    category: 'Messagerie', status: 'planned', priority: 'Moyenne',
+    phase: 'Après validation du parcours PWA', owner: 'Équipe Joug',
+    note: 'Permettre aux membres qui installent le site de choisir les alertes reçues sur leur appareil.',
+    impact: 'Prévenir d’un nouveau message ou d’une invitation selon les préférences du membre.',
+    nextAction: 'Tester sur iOS et Android puis prévoir activation volontaire, choix des catégories, aperçu discret et désactivation depuis Notifications.',
+    updatedAt: '2026-11-28'
+  },
+  {
     id: "partenaires-janvier",
     title: "Ouvrir le réseau de lieux partenaires",
     category: "Fonctionnel",

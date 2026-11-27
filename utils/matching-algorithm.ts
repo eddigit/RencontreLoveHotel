@@ -102,7 +102,7 @@ function isFemale(profile: NormalizedPreferences) {
 }
 
 function likesGender(source: NormalizedPreferences, target: NormalizedPreferences) {
-  if (isTrans(source) || isTrans(target)) return true
+  if (isTrans(source) || isTrans(target)) return false
   if (isCouple(source)) return source.openToOtherCouples || source.orientation === 'bi'
   if (source.orientation === 'bi' || source.orientation === 'bisexual') return isMale(target) || isFemale(target) || isCouple(target)
   if (source.orientation === 'hetero' || source.orientation === 'straight') {
@@ -111,7 +111,7 @@ function likesGender(source: NormalizedPreferences, target: NormalizedPreference
   if (source.orientation === 'homo' || source.orientation === 'gay') {
     return (isMale(source) && isMale(target)) || (isFemale(source) && isFemale(target))
   }
-  return true
+  return false
 }
 
 function orientationCompatible(a: NormalizedPreferences, b: NormalizedPreferences) {
@@ -122,8 +122,8 @@ function orientationCompatible(a: NormalizedPreferences, b: NormalizedPreference
 export function isMutuallyTargeted(userA: UserProfile, userB: UserProfile) {
   const a = normalizePreferences(userA)
   const b = normalizePreferences(userB)
-  if (a.seekingProfileTypes.length === 0 || b.seekingProfileTypes.length === 0) return true
-  return a.seekingProfileTypes.includes(profileType(b)) && b.seekingProfileTypes.includes(profileType(a))
+  return (!a.seekingProfileTypes.length || a.seekingProfileTypes.includes(profileType(b))) &&
+    (!b.seekingProfileTypes.length || b.seekingProfileTypes.includes(profileType(a)))
 }
 
 function ratioScore(a: string[], b: string[], points: number) {
@@ -169,11 +169,13 @@ export function calculateMatchScore(userA: UserProfile, userB: UserProfile): num
   const b = normalizePreferences(userB)
   if (!isMutuallyTargeted(userA, userB)) return 0
 
-  let score = 30
+  const orientationMatch = orientationCompatible(a, b)
+  const explicitTargetMatch = a.seekingProfileTypes.length > 0 && b.seekingProfileTypes.length > 0
+  let score = explicitTargetMatch || orientationMatch ? 30 : 0
   if (a.relationshipIntents.length > 0 && b.relationshipIntents.length > 0) {
     score += ratioScore(a.relationshipIntents, b.relationshipIntents, 25)
   }
-  if (orientationCompatible(a, b)) score += 20
+  if (orientationMatch) score += 20
   if (a.bdsmRoles.length > 0 && b.bdsmRoles.length > 0 && bdsmCompatible(a.bdsmRoles, b.bdsmRoles)) {
     score += 15
   }
@@ -205,6 +207,6 @@ export function sortProfilesByCompatibility(currentUser: UserProfile, profiles: 
 
 export function filterCompatibleProfiles(currentUser: UserProfile, profiles: UserProfile[], minScore = 50): UserProfile[] {
   return sortProfilesByCompatibility(currentUser, profiles).filter(
-    profile => (profile.matchScore || 0) >= minScore || profile.featured
+    profile => (profile.matchScore || 0) >= minScore
   )
 }

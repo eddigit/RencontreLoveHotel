@@ -27,6 +27,14 @@ export const seekingProfileTypeOptions = [
   { value: 'couple', label: 'Couples' }
 ] as const
 
+export const relationshipIntentOptions = [
+  { value: 'serious', label: 'Relation sérieuse' },
+  { value: 'regular', label: 'Relation régulière' },
+  { value: 'casual', label: 'Rencontre occasionnelle' },
+  { value: 'libertine', label: 'Relation libertine' },
+  { value: 'friendship', label: 'Relation amicale' }
+] as const
+
 export function memberIdentityFromStatus(status: MemberStatus) {
   const gender: MemberGender =
     status === 'couple'

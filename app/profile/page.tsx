@@ -17,6 +17,7 @@ import { calculateProfileCompletion } from '@/lib/profile-completion'
 import { enforceMemberContent } from '@/lib/content-safety-service'
 import { getOwnEmailPreferences, updateOwnEmailPreferences } from '@/actions/email-preference-actions'
 import { EmailPreferencesEditor } from '@/components/email-preferences-editor'
+import { relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 
 export const metadata: Metadata = {
   title: 'Profil | Love Hotel Rencontre',
@@ -39,6 +40,14 @@ async function updateUserProfile (userData: any) {
       .filter(Boolean)
       .join('\n')
   })
+
+  const normalizeSelection = (value: unknown, allowed: readonly { value: string }[]) => {
+    if (!Array.isArray(value)) return null
+    const allowedValues = new Set(allowed.map(option => option.value))
+    return Array.from(new Set(value.map(String).filter(item => allowedValues.has(item))))
+  }
+  const seekingProfileTypes = normalizeSelection(userData.seekingProfileTypes, seekingProfileTypeOptions)
+  const relationshipIntents = normalizeSelection(userData.relationshipIntents, relationshipIntentOptions)
 
   // Update user table
   await sql`
@@ -64,6 +73,8 @@ async function updateUserProfile (userData: any) {
         gender = ${userData.gender || null},
         birthday = ${userData.birthday ? userData.birthday : null},
         interests = ${JSON.stringify(userData.interests || [])},
+        seeking_profile_types = COALESCE(${seekingProfileTypes}::text[], seeking_profile_types),
+        relationship_intents = COALESCE(${relationshipIntents}::text[], relationship_intents),
         display_profile = ${
           typeof userData.display_profile === 'boolean'
             ? userData.display_profile
@@ -73,7 +84,7 @@ async function updateUserProfile (userData: any) {
     `
   } else {
     await sql`
-      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, status, featured, display_profile)
+      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, status, featured, display_profile, seeking_profile_types, relationship_intents)
       VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
@@ -84,7 +95,7 @@ async function updateUserProfile (userData: any) {
       typeof userData.display_profile === 'boolean'
         ? userData.display_profile
         : true
-    })
+      }, ${seekingProfileTypes ?? []}, ${relationshipIntents ?? []})
     `
   }
 }
@@ -292,6 +303,8 @@ export default async function ProfilePage ({
       typeof profile.interests === 'string'
         ? JSON.parse(profile.interests)
         : profile.interests || [],
+    seekingProfileTypes: Array.isArray(profile.seeking_profile_types) ? profile.seeking_profile_types : [],
+    relationshipIntents: Array.isArray(profile.relationship_intents) ? profile.relationship_intents : [],
     display_profile:
       typeof profile.display_profile === 'boolean'
         ? profile.display_profile
@@ -418,16 +431,16 @@ export default async function ProfilePage ({
             >
               <TabsList className='mb-5 grid h-auto w-full grid-cols-2 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1 sm:grid-cols-4'>
                 <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
-                  Identité
+                  Profil
                 </TabsTrigger>
                 <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
                   Matching
                 </TabsTrigger>
                 <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
-                  Photos
+                  Médias
                 </TabsTrigger>
                 <TabsTrigger value='emails' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
-                  E-mails
+                  Notifications
                 </TabsTrigger>
               </TabsList>
           <TabsContent value='profile'>

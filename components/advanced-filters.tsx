@@ -163,17 +163,18 @@ export function AdvancedFilters ({ onFilterChange, value }: AdvancedFiltersProps
             <div className='flex items-center justify-between'>
               <Label className='text-sm'>Distance max</Label>
               <span className='text-xs text-[#c9c7c2]'>
-                {filters.distance} km
+                Indisponible
               </span>
             </div>
             <Slider
+              disabled
               thumbLabels={['Distance maximale']}
               min={5}
               max={100}
               step={5}
               value={[filters.distance]}
-              onValueChange={value => updateFilters('distance', value[0])}
-            />
+              />
+            <p className='text-xs text-[#c9c7c2]'>En attendant le calcul des distances, recherchez une ville par son nom.</p>
           </div>
 
           <div className='flex items-center justify-between'>

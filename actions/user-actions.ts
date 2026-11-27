@@ -417,17 +417,19 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
   let currentUserProfileGender: string | undefined;
   let currentUserProfileOrientation: string | undefined;
+  let hasDeclaredTargets = false;
   const hasPresenceColumn = await ensurePresenceSchema();
   const presenceColumn = hasPresenceColumn ? 'u.last_seen_at' : 'u.updated_at';
   const onlineCondition = onlinePresenceCondition(presenceColumn);
   try {
     const currentUserProfileResult = await sql`
-      SELECT gender, orientation
+      SELECT gender, orientation, seeking_profile_types
       FROM user_profiles
       WHERE user_id = ${currentUserId}
       LIMIT 1;
     `;
     if (currentUserProfileResult && currentUserProfileResult.length > 0) {
+      hasDeclaredTargets = Boolean(currentUserProfileResult[0].seeking_profile_types?.length);
       currentUserProfileGender = currentUserProfileResult[0].gender?.toLowerCase(); // Ensure lowercase
       currentUserProfileOrientation = currentUserProfileResult[0].orientation?.toLowerCase(); // Ensure lowercase
     } else {
@@ -461,7 +463,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       AND (um_existing.status <> 'pending' OR um_existing.expires_at IS NULL OR um_existing.expires_at > NOW())
   )`)
 
-  if (currentUserProfileGender && currentUserProfileOrientation) {
+  if (!hasDeclaredTargets && currentUserProfileGender && currentUserProfileOrientation) {
     const genderOrientationMatchingClauses: string[] = [];
 
     const cUserPGender = currentUserProfileGender; // Already lowercased
@@ -473,8 +475,8 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     const targetTransEntitiesSQL = `(LOWER(up.gender) LIKE '%trans%' OR LOWER(up.status) LIKE '%trans%')`;
 
     // Define SQL conditions for target profile orientations (reusable parts)
-    const targetOrientationHeteroBiCompatibleSQL = `(LOWER(up.orientation) = 'hetero' OR LOWER(up.orientation) = 'straight' OR LOWER(up.orientation) = 'bisexual' OR up.orientation IS NULL OR up.orientation = '')`;
-    const targetOrientationGayBiCompatibleSQL = `(LOWER(up.orientation) = 'gay' OR LOWER(up.orientation) = 'homo' OR LOWER(up.orientation) = 'bisexual' OR up.orientation IS NULL OR up.orientation = '')`;
+    const targetOrientationHeteroBiCompatibleSQL = `(LOWER(up.orientation) = 'hetero' OR LOWER(up.orientation) = 'straight' OR LOWER(up.orientation) IN ('bi', 'bisexual') OR up.orientation IS NULL OR up.orientation = '')`;
+    const targetOrientationGayBiCompatibleSQL = `(LOWER(up.orientation) = 'gay' OR LOWER(up.orientation) = 'homo' OR LOWER(up.orientation) IN ('bi', 'bisexual') OR up.orientation IS NULL OR up.orientation = '')`;
 
     // Determine current user's effective searching role (male/female)
     const isCurrentUserEffectivelyMale = (cUserPGender === 'male' || cUserPGender === 'single_male' || cUserPGender === 'married_male' || cUserPGender === 'couple_mm');
@@ -528,22 +530,18 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       const ageMinPlaceholder = `$${baseParams.length}`;
       baseParams.push(filters.ageRange[1]);
       const ageMaxPlaceholder = `$${baseParams.length}`;
-      // Profiles with NULL age are included if the filter range [minFilterAge, maxFilterAge]
-      // (represented by ageMinPlaceholder and ageMaxPlaceholder respectively)
-      // overlaps with the default assumed range for NULLs [18, 99].
-      // Overlap condition: minFilterAge <= 99 AND maxFilterAge >= 18.
-      whereClauses.push(`((up.age >= ${ageMinPlaceholder} AND up.age <= ${ageMaxPlaceholder}) OR (up.age IS NULL AND ${ageMinPlaceholder} <= 99 AND ${ageMaxPlaceholder} >= 18))`);
+      whereClauses.push(`up.age BETWEEN ${ageMinPlaceholder} AND ${ageMaxPlaceholder}`);
     }
 
     // Status Filter
     if (filters.status && filters.status !== "all") {
       const filterStatus = filters.status.toLowerCase(); // Ensure filter value is lowercase
       if (filterStatus === "single") {
-        whereClauses.push(`(LOWER(up.status) LIKE 'single_%' OR up.status IS NULL OR up.status = '')`);
+        whereClauses.push(`(LOWER(up.status) LIKE 'single_%')`);
       } else if (filterStatus === "couple") {
         baseParams.push('couple'); // Compare with lowercase 'couple'
         const statusPlaceholder = `$${baseParams.length}`;
-        whereClauses.push(`(LOWER(up.status) = ${statusPlaceholder} OR up.status IS NULL OR up.status = '')`);
+        whereClauses.push(`(LOWER(up.status) = ${statusPlaceholder} OR LOWER(up.gender) LIKE 'couple%')`);
       } else if (filterStatus === 'trans') {
         whereClauses.push(`(LOWER(up.status) LIKE '%trans%' OR LOWER(up.gender) LIKE '%trans%')`);
       }
@@ -553,15 +551,14 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
     if (filters.orientation && filters.orientation !== "all") {
       baseParams.push(filters.orientation.toLowerCase()); // Ensure filter value is lowercase
       const orientationPlaceholder = `$${baseParams.length}`;
-      // Compare with lowercase orientation from filter, and allow for NULL target orientation
-      whereClauses.push(`(LOWER(up.orientation) = ${orientationPlaceholder} OR up.orientation IS NULL OR up.orientation = '')`);
+      whereClauses.push(`(LOWER(up.orientation) = ${orientationPlaceholder} OR (LOWER(up.orientation) IN ('bi','bisexual') AND ${orientationPlaceholder} IN ('bi','bisexual')))`);
     }
 
     // Meeting Types Filter
     if (filters.meetingTypes) {
       const activeMeetingTypes = Object.entries(filters.meetingTypes)
         .filter(([, isActive]) => isActive)
-        .map(([type]) => type);
+        .map(([type]) => type === 'openCurtains' ? 'open_curtains' : type);
       if (activeMeetingTypes.length > 0) {
         activeMeetingTypes.forEach(type => {
           if (['friendly', 'romantic', 'playful', 'open_curtains', 'libertine'].includes(type)) {
@@ -754,7 +751,7 @@ export async function recordProfileImpressions(userId: string, profileIds: strin
   await requireSameUserOrAdmin(userId)
   const safeIds = Array.from(new Set(profileIds))
     .filter(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
-    .slice(0, 12)
+    .slice(0, 18)
 
   await trackProductEvents(safeIds.map((subjectId, position) => ({
     eventName: 'profile_impression' as const,
