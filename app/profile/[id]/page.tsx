@@ -110,11 +110,11 @@ export default async function ProfilePage ({
           <MemberProfileBackButton />
           {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
         </div>
-        <header className='overflow-hidden rounded-2xl bg-[#141519]'>
+        <header className='-mx-3 overflow-hidden bg-[#141519] sm:mx-0 sm:rounded-2xl'>
           <div aria-hidden='true' className='hidden sm:block bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "var(--joug-graphite-light), linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
-          <div className='relative sm:-mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 pb-5 sm:px-6'>
+          <div className='relative grid sm:-mt-8 sm:flex sm:flex-wrap sm:items-end gap-x-5 gap-y-4 pb-5 sm:px-6'>
             <div className='flex w-full min-w-0 flex-col gap-4 sm:w-auto sm:flex-1 sm:flex-row sm:items-end sm:gap-5'>
-              <div className='relative aspect-[4/5] max-h-[58svh] w-full shrink-0 bg-[#111214] sm:aspect-square sm:max-h-none sm:w-32 sm:rounded-full sm:ring-4 sm:ring-[#141519]'>
+              <div className='relative aspect-[3/4] max-h-[68svh] w-full shrink-0 bg-[#111214] sm:aspect-square sm:max-h-none sm:w-32 sm:rounded-full sm:ring-4 sm:ring-[#141519]'>
                 {avatar.startsWith('http') ? (
                   <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-cover object-[center_35%] sm:rounded-full' />
                 ) : (
@@ -124,7 +124,7 @@ export default async function ProfilePage ({
                     alt={displayMemberName(profile.name)}
                     fill
                     className='object-cover object-[center_35%] sm:rounded-full'
-                    sizes='(min-width: 640px) 128px, calc(100vw - 24px)'
+                    sizes='(min-width: 640px) 128px, 100vw'
                     priority
                   />
                 )}
