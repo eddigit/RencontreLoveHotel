@@ -25,8 +25,8 @@ describe('message composer media UI', () => {
     expect(page).toContain('scrollContainer.scrollHeight - preservedScroll.height + preservedScroll.top')
     expect(page).toContain("newMessage.delivery_status === 'blocked'")
     expect(page).toContain('newMessage.reason || CONTACT_SAFETY_EXPLANATION')
-    expect(page).toContain('grid grid-cols-[auto_auto_1fr] items-center gap-2 sm:flex')
-    expect(page).toContain("className='col-span-3 row-start-1 h-12 w-full min-w-0 flex-1")
+    expect(page).toContain('grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:flex')
+    expect(page).not.toContain("className='col-span-3 row-start-1 h-12 w-full")
     expect(page).toContain('refocusComposerAfterSendRef')
     expect(page).toContain('messageInputRef.current?.focus()')
     expect(page).toContain('window.visualViewport')
@@ -37,5 +37,13 @@ describe('message composer media UI', () => {
     expect(page).toContain("aria-label='Aller aux derniers messages'")
     expect(page).toContain('isAtLatestRef')
     expect(page).toContain("scrollToLatest('auto')")
+  })
+
+  it('preserves mobile return, empty, and safe-area states', () => {
+    const page = readFileSync('app/messages/[id]/page.tsx', 'utf8')
+
+    expect(page).toContain("aria-label='Retour à la liste des messages'")
+    expect(page).toContain('Premier message')
+    expect(page).toContain('safe-area-inset-bottom')
   })
 })

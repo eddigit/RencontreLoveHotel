@@ -9,6 +9,8 @@ export interface RoadmapItem {
     | 'Fonctionnel'
     | 'Technique'
     | 'Design'
+    | 'Acquisition'
+    | 'Partenariats'
     | 'Infrastructure'
     | 'Base de donnees'
     | 'Messagerie'
@@ -65,6 +67,71 @@ export const roadmapItems: RoadmapItem[] = [
     updatedAt: '2026-11-28'
   },
   {
+    id: "seo-migration-joug",
+    title: "Préparer le plan SEO et préserver les liens lors de la bascule",
+    category: "Acquisition",
+    status: "planned",
+    priority: "Haute",
+    phase: "Avant migration",
+    owner: "Gilles / équipe Joug",
+    note: "Au contrôle du 28 novembre, /robots.txt et /sitemap.xml renvoient vers la connexion. Prévoir ces ressources publiques, relever les pages et requêtes dans Search Console, puis cartographier les anciennes URL vers Joug.",
+    impact: "Préserver la découverte du site et connaître les réservations issues de la recherche.",
+    nextAction: "Prioriser les pages Love Rooms, jacuzzi, sorties et lieux à Paris. Produire une fiche par lieu signé avec informations utiles et réservation. Tester sitemap, adresses canoniques, redirections et exclusion des profils, médias et espaces connectés. Comparer clics, erreurs 404 et conversions à J+7 et J+30.",
+    updatedAt: "2026-11-28"
+  },
+  {
+    id: "mentions-joug",
+    title: "Actualiser les mentions légales avant la migration",
+    category: "Fonctionnel",
+    status: "planned",
+    priority: "Haute",
+    phase: "Avant communication publique",
+    owner: "Gilles / équipe Joug",
+    note: "Confirmer avec Gilles qui édite Joug, qui traite les données et quel rôle conserve chaque établissement.",
+    impact: "Permettre aux membres de savoir qui contacter et aux partenaires de connaître leurs responsabilités.",
+    nextAction: "Faire valider les coordonnées, les mentions, les CGU, la confidentialité, les anciens noms et les contacts de recours. Vérifier les pieds de page, l’inscription et les e-mails puis publier les textes approuvés avec leur date.",
+    updatedAt: "2026-11-28"
+  },
+  {
+    id: "contrat-apport-joug",
+    title: "Formaliser le contrat partenaire et le code promo",
+    category: "Partenariats",
+    status: "planned",
+    priority: "Haute",
+    phase: "Avant le premier pilote",
+    owner: "Gilles / équipe Joug",
+    note: "Proposer une convention d’apport de clientèle sur les réservations de lieux, billets, transport et conciergerie.",
+    impact: "Donner un avantage clair aux membres et chiffrer les réservations réellement apportées au partenaire.",
+    nextAction: "Négocier séparément la remise membre et la commission Joug. Fixer l’assiette, les annulations, les dates de validité, le règlement et l’usage des marques. Attribuer un code par partenaire. Tester une réservation et une annulation puis rapprocher les codes utilisés des ventes honorées, en données agrégées.",
+    updatedAt: "2026-11-28"
+  },
+  {
+    id: "media-reseau-joug",
+    title: "Préparer le plan médias et réseaux sociaux",
+    category: "Acquisition",
+    status: "planned",
+    priority: "Haute",
+    phase: "Après recette et premier partenaire signé",
+    owner: "Gilles / équipe Joug",
+    note: "Construire un calendrier de quatre semaines autour des lieux et des hôtes qui animent les rencontres.",
+    impact: "Transformer une publication en inscription à une sortie puis en deuxième visite du membre.",
+    nextAction: "Semaine 1, présenter le lieu et la prochaine date. Semaine 2, publier une interview de l’hôte et un lien d’inscription. Semaine 3, relayer la sortie via la newsletter consentie, les réseaux du partenaire et un QR code sur place. Semaine 4, partager un bilan anonyme. Obtenir les accords pour les visuels et vérifier les règles de chaque réseau. Suivre inscriptions, présences et réservations par canal.",
+    updatedAt: "2026-11-28"
+  },
+  {
+    id: "pilote-soiree-joug",
+    title: "Piloter une soirée du cercle avec un hôte",
+    category: "Partenariats",
+    status: "planned",
+    priority: "Moyenne",
+    phase: "Pilote de janvier",
+    owner: "Gilles / équipe Joug",
+    note: "Commencer par un accueil dans un restaurant partenaire. Les membres intéressés peuvent prolonger la soirée dans un lieu du réseau, avec transport en option.",
+    impact: "Offrir une raison concrète de revenir sur Joug et un bilan exploitable pour le partenaire.",
+    nextAction: "Confirmer une date, les tarifs, le nombre de places et un hôte joignable. Proposer une liste d’attente. Mesurer présents, codes utilisés et souhait de revenir avant de reconduire le format.",
+    updatedAt: "2026-11-28"
+  },
+  {
     id: "partenaires-janvier",
     title: "Ouvrir le réseau de lieux partenaires",
     category: "Fonctionnel",
@@ -72,9 +139,9 @@ export const roadmapItems: RoadmapItem[] = [
     priority: "Haute",
     phase: "Objectif du 15 janvier 2027",
     owner: "Gilles / équipe Joug",
-    note: "Identifier restaurants, clubs, théâtres et lieux privés.",
+    note: "Constituer un réseau parisien de restaurants, Love Hotels, théâtres érotiques, clubs et espaces libertins, loueurs de limousines et conciergeries coquines.",
     impact: "Proposer des rencontres et des événements avec un lieu et une date confirmés.",
-    nextAction: "Confirmer chaque accord, ses conditions de réservation et les codes promotionnels avant publication.",
+    nextAction: "Relancer le Love Hôtel et les établissements de proximité sur un créneau qu’ils souhaitent remplir. Proposer à chacun un essai sur une date, convenir de la capacité, identifier le responsable des réservations et obtenir son accord écrit avant de le faire apparaître dans l’agenda.",
     updatedAt: "2026-11-28",
   },
   {
@@ -118,7 +185,7 @@ export const roadmapItems: RoadmapItem[] = [
   },
   {
     id: "chatroulette-privee",
-    title: "Étudier les rencontres vidéo aléatoires",
+    title: "Chatroulette privée sur rendez-vous",
     category: "Fonctionnel",
     status: "planned",
     priority: "Basse",
@@ -126,7 +193,7 @@ export const roadmapItems: RoadmapItem[] = [
     owner: "Gilles / équipe Joug",
     note: "Conserver le projet de chatroulette dans la feuille de route interne.",
     impact: "Éviter de proposer un salon vide aux membres.",
-    nextAction: "Réexaminer selon la fréquentation simultanée, puis cadrer consentement, blocage et signalement.",
+    nextAction: "Mesurer la présence simultanée lors de deux soirées pilotes. Sur inscription volontaire, proposer de courts échanges vidéo avant une rencontre partenaire. Prévoir accord mutuel avant caméra, sortie immédiate, blocage, signalement et modération pendant le créneau. Garder le salon hors du menu tant que le pilote ne rassemble pas assez de participants.",
     updatedAt: "2026-11-28",
   },
   {
@@ -149,8 +216,8 @@ export const roadmapItems: RoadmapItem[] = [
     phase: 'Préparation · 28 novembre 2026', owner: 'Gilles',
     note: 'Au contrôle du 27 novembre, aucun compte n’était éligible à une campagne e-mail. Préparer en priorité une annonce interne avec un lien vers les choix de notification.',
     impact: 'Mesurer les retours sur le site et les reprises de conversation après la relance.',
-    nextAction: 'Chiffrer les deux audiences, exclure les comptes inactifs ou bannis et les adresses désabonnées pour l’e-mail. Préparer des brouillons Gmail ciblés dans la boîte de Gilles ou de Joug après confirmation de la boîte expéditrice. Tester sur un compte dédié puis valider avant tout envoi.',
-    updatedAt: '2026-11-27'
+    nextAction: 'Après une recette de messagerie à deux comptes, inviter un petit groupe de membres volontaires à revenir. Leur proposer une action concrète : préciser leurs envies, ajouter un média en choisissant sa visibilité ou répondre à une invitation dans un lieu partenaire. Préparer le brouillon interne et réserver l’e-mail aux membres consentants et joignables. Exclure les comptes suspendus, supprimés et désabonnés. À sept jours, mesurer profils complétés, conversations avec réponse et inscriptions aux sorties. Décider de la vague suivante avec ces résultats et les retours du pilote.',
+    updatedAt: '2026-11-28'
   },
   {
     id: 'domaine-joug-rencontre',
@@ -159,7 +226,7 @@ export const roadmapItems: RoadmapItem[] = [
     phase: 'Décision après la relance', owner: 'Gilles',
     note: 'Étudier Joug.World et un domaine dédié à Rencontre.',
     impact: 'Permettre aux membres de retrouver leur compte, leurs photos et leurs conversations après la transition.',
-    nextAction: 'Choisir le domaine puis préparer les redirections, la connexion Google et les liens des e-mails.',
+    nextAction: 'Choisir avec Gilles l’adresse Rencontre sous Joug.World et son articulation avec Joug BDSM. Tester sur une cible dédiée les connexions Google et Facebook, les identifiants habituels, les liens de vérification et de désabonnement. Basculer seulement après recette, avec redirections permanentes page par page et retour arrière préparé.',
     updatedAt: '2026-11-27'
   },
   {
@@ -177,14 +244,14 @@ export const roadmapItems: RoadmapItem[] = [
   },
   {
     id: 'production-vps2-online',
-    title: 'Production repositionnee sur VPS2',
+    title: 'Hébergement du site public et services VPS2',
     category: 'Infrastructure',
     status: 'ok',
     priority: 'Haute',
     phase: 'Production',
     owner: 'MyBotIA / Damien',
-    note: 'La version validee est servie sur rencontrelovehotel.com via le stack VPS2. Le endpoint version.json repond avec le build 16 deploye le 26 juin 2026.',
-    impact: 'Le client consulte maintenant la nouvelle version en production, sans dependre de Vercel pour le domaine public.',
+    note: 'Le domaine rencontrelovehotel.com sert le déploiement Vercel du projet love-hotel-rencontre. Les conteneurs LHR et bêta sont également présents sur VPS2.',
+    impact: 'Contrôler le déploiement lié au domaine et le parcours connecté après chaque livraison.',
     nextAction: 'Maintenir un controle post-bascule: logs, sauvegardes, disponibilite et parcours critiques apres chaque livraison.',
     updatedAt: '2026-06-26'
   },

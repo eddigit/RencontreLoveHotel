@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   CalendarDays,
+  Bug,
   MapPin,
   Heart,
   Home,
@@ -47,6 +48,7 @@ const memberNavItems: NavigationItem[] = [
   { href: '/events', label: 'Événements', icon: CalendarDays },
   { href: '/lieux', label: 'Lieux', icon: MapPin },
   { href: '/conciergerie', label: 'Conciergerie', icon: Sparkles },
+  { href: '/discover#boite-a-idees', label: 'Signaler un bug', icon: Bug },
   { href: '/community-safety', label: 'Règles', icon: ShieldCheck },
   { href: '/profile', label: 'Profil', icon: UserRound }
 ]

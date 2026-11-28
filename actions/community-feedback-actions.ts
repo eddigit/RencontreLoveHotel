@@ -17,6 +17,10 @@ export type CommunityFeedbackInput = {
   kind: CommunityFeedbackKind
   message: string
   page?: string
+  stepsToReproduce?: string
+  expected?: string
+  observed?: string
+  version?: string
   submissionId?: string
 }
 
@@ -46,10 +50,42 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;')
 }
 
+function normalizeText(value: string | undefined, maxLength: number) {
+  return (value || '').trim().replace(/\r\n/g, '\n').slice(0, maxLength)
+}
+
+function normalizeFeedbackPage(value: string | undefined) {
+  const raw = normalizeText(value, 180)
+  if (!raw) return 'Accueil communauté'
+  try {
+    return new URL(raw, 'https://rencontrelovehotel.com').pathname.slice(0, 180) || 'Accueil communauté'
+  } catch {
+    return 'Accueil communauté'
+  }
+}
+
+function normalizeFeedbackVersion(value: string | undefined) {
+  const version = normalizeText(value, 80).replace(/[^a-zA-Z0-9._ -]/g, '')
+  return version || 'Version non disponible'
+}
+
 function normalizeFeedbackInput(input: CommunityFeedbackInput) {
   const kind = input.kind === 'bug' ? 'bug' : 'suggestion'
-  const message = input.message.trim().slice(0, 2000)
-  const page = (input.page || 'Accueil communauté').trim().slice(0, 180)
+  const page = normalizeFeedbackPage(input.page)
+
+  if (kind === 'bug') {
+    const stepsToReproduce = normalizeText(input.stepsToReproduce, 900)
+    const expected = normalizeText(input.expected, 500)
+    const observed = normalizeText(input.observed, 900)
+    if (stepsToReproduce.length < 4 || expected.length < 4 || observed.length < 4) {
+      throw new Error('Merci de renseigner les étapes, le résultat attendu et ce qui a été observé.')
+    }
+    const version = normalizeFeedbackVersion(input.version)
+    const message = `Étapes pour reproduire :\n${stepsToReproduce}\n\nRésultat attendu :\n${expected}\n\nRésultat observé :\n${observed}\n\nContexte technique (automatique) :\nPage : ${page}\nVersion : ${version}`
+    return { kind, message, page }
+  }
+
+  const message = normalizeText(input.message, 2000)
 
   if (message.length < 8) {
     throw new Error('Merci de préciser votre retour en quelques mots.')
@@ -91,7 +127,7 @@ function safePageSize(value: number | undefined) {
 
 export async function listCommunityFeedbackAdmin(
   filters: CommunityFeedbackAdminFilters = {}
-): Promise<{ items: CommunityFeedbackAdminItem[]; total: number; page: number; pageSize: number }> {
+): Promise<{ items: CommunityFeedbackAdminItem[]; total: number; openBugCount: number; page: number; pageSize: number }> {
   await requireAdmin()
   await ensureFeedbackSchema()
   await recoverHistoricalCommunityFeedbackNotifications()
@@ -99,10 +135,11 @@ export async function listCommunityFeedbackAdmin(
   const kind = filters.kind ? normalizeFeedbackKind(filters.kind) : null
   const page = safePage(filters.page)
   const pageSize = safePageSize(filters.pageSize)
-  const rows = await sql.query<Array<CommunityFeedbackAdminItem & { total_count: string | number }>>(
+  const rows = await sql.query<Array<CommunityFeedbackAdminItem & { total_count: string | number; open_bug_count: string | number }>>(
     `
       SELECT id, reporter_name, kind, message, page, status, created_at,
-        COUNT(*) OVER() AS total_count
+        COUNT(*) OVER() AS total_count,
+        (SELECT COUNT(*) FROM community_feedback WHERE kind = 'bug' AND status IN ('open', 'in_progress')) AS open_bug_count
       FROM community_feedback
       WHERE ($1::text IS NULL OR status = $1)
         AND ($2::text IS NULL OR kind = $2)
@@ -113,6 +150,7 @@ export async function listCommunityFeedbackAdmin(
   )
 
   let total = Number(rows[0]?.total_count || 0)
+  const openBugCount = Number(rows[0]?.open_bug_count || 0)
   if (rows.length === 0 && page > 1) {
     const [count] = await sql.query<Array<{ total: string }>>(
       'SELECT COUNT(*)::text AS total FROM community_feedback WHERE ($1::text IS NULL OR status = $1) AND ($2::text IS NULL OR kind = $2)',
@@ -121,8 +159,9 @@ export async function listCommunityFeedbackAdmin(
     total = Number(count.total)
   }
   return {
-    items: rows.map(({ total_count: _totalCount, ...item }) => item),
+    items: rows.map(({ total_count: _totalCount, open_bug_count: _openBugCount, ...item }) => item),
     total,
+    openBugCount,
     page,
     pageSize
   }
@@ -130,10 +169,14 @@ export async function listCommunityFeedbackAdmin(
 
 export async function updateCommunityFeedbackStatusAdmin(
   feedbackId: string,
-  status: CommunityFeedbackStatus
+  status: CommunityFeedbackStatus,
+  resolutionConfirmed = false
 ) {
   const admin = await requireAdmin()
   const normalizedStatus = normalizeFeedbackStatus(status)
+  if (normalizedStatus === 'resolved' && !resolutionConfirmed) {
+    throw new Error('La résolution doit être confirmée avant de clôturer ce signalement.')
+  }
   await ensureFeedbackSchema()
   const [feedback] = await sql.query<Array<{ id: string }>>(
     `

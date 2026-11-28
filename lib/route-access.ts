@@ -17,6 +17,7 @@ const exactPublicPaths = new Set([
   '/register',
   '/rencontres',
   '/reset-password',
+  '/sw.js',
   '/tarifs-publicite',
   '/terms',
   '/unauthorized',

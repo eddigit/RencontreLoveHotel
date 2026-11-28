@@ -8,6 +8,6 @@ describe('Vercel install configuration', () => {
 
     expect(packageJson.packageManager).toMatch(/^npm@/)
     expect(vercelConfig.installCommand).toBe('npm install --legacy-peer-deps')
-    expect(vercelConfig.buildCommand).toBe('npm run build')
+    expect(vercelConfig.buildCommand).toBe('npm run version && npm run build')
   })
 })

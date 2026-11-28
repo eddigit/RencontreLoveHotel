@@ -15,7 +15,7 @@ export default function TermsPage () {
           <h2 className='text-2xl font-bold mb-4'>
             Conditions Générales d’Utilisation (CGU) – Love Hôtel rencontre
           </h2>
-          <h3 className='text-2xl my-1'>Mentions juridiques</h3>
+          <h3 id='contact' className='text-2xl my-1'>Mentions juridiques</h3>
           <ul className='pb-4'>
             <li><b>Éditeur</b> : SARL L’HORA, RCS 902 899 723</li>
             <li><b>Adresse</b> : 88 rue Saint-Denis, 75001 Paris</li>

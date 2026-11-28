@@ -1016,7 +1016,7 @@ export default function ConversationPage ({
                       ))}
                     </div>
                   )}
-                  <form onSubmit={handleSendMessage} className='grid grid-cols-[auto_auto_1fr] items-center gap-2 sm:flex'>
+                  <form onSubmit={handleSendMessage} className='grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-center gap-2 sm:flex'>
                     <input
                       ref={fileInputRef}
                       type='file'
@@ -1055,7 +1055,7 @@ export default function ConversationPage ({
                       value={message}
                       onChange={event => setMessage(event.target.value)}
                       placeholder={recording ? 'Vocal en cours...' : uploading ? 'Ajout du média...' : sending ? 'Envoi en cours...' : 'Écrire un message...'}
-                      className='col-span-3 row-start-1 h-12 w-full min-w-0 flex-1 rounded-xl border-[#5d3f3f]/45 bg-[#24211d] px-3 text-[#f1eee8] placeholder:text-[#aaa69e] focus:border-[#d6bc87]'
+                      className='h-12 w-full min-w-0 flex-1 rounded-xl border-[#5d3f3f]/45 bg-[#24211d] px-3 text-[#f1eee8] placeholder:text-[#aaa69e] focus:border-[#d6bc87]'
                       disabled={sending || recording}
                     />
                     <Button

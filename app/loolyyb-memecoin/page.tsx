@@ -377,7 +377,7 @@ export default function LoolyyBMemeCoinPage() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-gray-400 hover:text-white transition-colors">
+                  <Link href="/terms#contact" className="text-gray-400 hover:text-white transition-colors">
                     Contact
                   </Link>
                 </li>

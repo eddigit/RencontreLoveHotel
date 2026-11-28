@@ -5,18 +5,19 @@ import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { CheckCircle } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function TarifsPublicitePage() {
-  const [formSubmitted, setFormSubmitted] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    // Ici, vous pourriez ajouter la logique pour envoyer les données du formulaire
-    setFormSubmitted(true)
-    setTimeout(() => setFormSubmitted(false), 5000)
+    const fields = new FormData(e.currentTarget)
+    const subject = `Demande d’espace publicitaire — ${fields.get('plan') || 'Renseignements'}`
+    const body = [fields.get('message'), '', fields.get('name'), fields.get('email'), fields.get('phone')].filter(value => value !== null).join('\n')
+    window.location.href = `mailto:publicite@lovehotel.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+
   }
 
   const selectPlan = (plan: string) => {
@@ -158,13 +159,6 @@ export default function TarifsPublicitePage() {
         >
           <h2 className="text-2xl font-bold mb-6 text-center">Contactez-nous pour réserver votre espace</h2>
 
-          {formSubmitted ? (
-            <div className="text-center py-8">
-              <CheckCircle className="h-16 w-16 mx-auto text-green-400 mb-4" />
-              <h3 className="text-xl font-bold mb-2">Demande envoyée avec succès !</h3>
-              <p>Notre équipe vous contactera dans les plus brefs délais.</p>
-            </div>
-          ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
@@ -172,7 +166,7 @@ export default function TarifsPublicitePage() {
                     Nom complet
                   </label>
                   <Input
-                    id="name"
+                    id="name" name="name"
                     type="text"
                     required
                     className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/60"
@@ -185,7 +179,7 @@ export default function TarifsPublicitePage() {
                     Email
                   </label>
                   <Input
-                    id="email"
+                    id="email" name="email"
                     type="email"
                     required
                     className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/60"
@@ -198,7 +192,7 @@ export default function TarifsPublicitePage() {
                     Téléphone
                   </label>
                   <Input
-                    id="phone"
+                    id="phone" name="phone"
                     type="tel"
                     className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/60"
                     placeholder="Votre numéro de téléphone"
@@ -210,7 +204,7 @@ export default function TarifsPublicitePage() {
                     Formule choisie
                   </label>
                   <Input
-                    id="plan"
+                    id="plan" name="plan"
                     type="text"
                     value={selectedPlan || ""}
                     onChange={(e) => setSelectedPlan(e.target.value)}
@@ -225,7 +219,7 @@ export default function TarifsPublicitePage() {
                   Message
                 </label>
                 <Textarea
-                  id="message"
+                  id="message" name="message"
                   rows={4}
                   required
                   className="w-full bg-white/10 border-white/20 text-white placeholder:text-white/60"
@@ -234,15 +228,15 @@ export default function TarifsPublicitePage() {
               </div>
 
               <div className="text-center">
+                <p className="mb-3">Votre messagerie ouvrira un brouillon que vous pourrez relire et envoyer.</p>
                 <Button
                   type="submit"
                   className="bg-white text-purple-900 hover:bg-gray-100 font-semibold px-8 py-3 rounded-full"
                 >
-                  Envoyer ma demande
+                  Préparer ma demande par e-mail
                 </Button>
               </div>
             </form>
-          )}
         </div>
 
         {/* Informations supplémentaires */}
@@ -252,7 +246,7 @@ export default function TarifsPublicitePage() {
             Nous proposons également des formules sur mesure adaptées à vos besoins spécifiques. Contactez-nous
             directement pour discuter de votre projet.
           </p>
-          <p className="font-semibold">Email: publicite@lovehotel.com | Tél: 01 23 45 67 89</p>
+          <a className="font-semibold underline" href="mailto:publicite@lovehotel.com">publicite@lovehotel.com</a>
         </div>
       </div>
     </div>

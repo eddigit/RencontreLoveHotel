@@ -456,7 +456,10 @@ export async function sendMessage({ conversationId, senderId, content, attachmen
   const currentUser = await requireAuth()
   
   // Vérifier que l'utilisateur ne peut envoyer des messages qu'en son nom
-  if (senderId !== currentUser.id && currentUser.role !== 'admin') {
+  // Sending is always bound to the authenticated member. Administrators can
+  // moderate conversations, but must never be able to impersonate a member
+  // through this member-facing action.
+  if (senderId !== currentUser.id) {
     log('warn', 'Tentative d\'envoi de message au nom d\'un autre utilisateur', { 
       currentUserId: currentUser.id, 
       senderId 

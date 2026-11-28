@@ -1,38 +1,22 @@
-import type { MetadataRoute } from "next"
+import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Love Hotel Rencontres - Rencontres et Événements",
-    short_name: "Love Hotel",
-    description:
-      "Love Hotel Rencontres vous propose des rencontres exclusives et des événements privés dans nos établissements de luxe. Rejoignez notre communauté de 40 000 membres.",
-    start_url: "/",
-    display: "standalone",
-    background_color: "#191714",
-    theme_color: "#191714",
+    id: '/',
+    name: 'Joug Rencontre',
+    short_name: 'Joug',
+    description: 'Le cercle des rencontres, des sorties et des lieux partenaires.',
+    lang: 'fr',
+    start_url: '/',
+    scope: '/',
+    display: 'standalone',
+    background_color: '#171819',
+    theme_color: '#191714',
     icons: [
-      {
-        src: "/icons/icon-192x192.png",
-        sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        src: "/icons/icon-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-      {
-        src: "/icons/icon-maskable-192x192.png",
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "maskable",
-      },
-      {
-        src: "/icons/icon-maskable-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
-      },
-    ],
+      { src: '/icons/joug-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: '/icons/joug-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/icons/joug-maskable-192.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+      { src: '/icons/joug-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' }
+    ]
   }
 }

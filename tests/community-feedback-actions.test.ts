@@ -49,7 +49,8 @@ describe('community feedback actions', () => {
     queryMock.mockResolvedValueOnce([{ id: 'feedback-1' }])
 
     await expect(submitCommunityFeedback({
-      kind: 'bug', message: 'Le bouton ne répond plus.', page: 'Accueil'
+      kind: 'bug', message: '', page: '/members?member=private', version: 'build-123',
+      stepsToReproduce: '1. Ouvrir la fiche.', expected: 'Le bouton répond.', observed: 'Le bouton reste inactif.'
     })).resolves.toEqual({
       success: true,
       feedbackId: 'feedback-1',
@@ -57,7 +58,7 @@ describe('community feedback actions', () => {
     })
 
     expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO community_feedback'), [
-      'member-1', 'member@example.test', 'Membre', 'bug', 'Le bouton ne répond plus.', 'Accueil', null
+      'member-1', 'member@example.test', 'Membre', 'bug', expect.stringContaining('Étapes pour reproduire'), '/members', null
     ])
     expect(createNotificationMock).toHaveBeenCalledWith(expect.objectContaining({
       metadata: expect.objectContaining({ feedbackId: 'feedback-1' }),
@@ -112,12 +113,17 @@ describe('community feedback actions', () => {
     expect(queryMock).not.toHaveBeenCalled()
   })
 
+  it('requires explicit resolution confirmation from the administrator', async () => {
+    await expect(updateCommunityFeedbackStatusAdmin('feedback-1', 'resolved')).rejects.toThrow('doit être confirmée')
+    expect(queryMock).not.toHaveBeenCalled()
+  })
+
   it('changes status with the acting administrator and imports legacy rows idempotently', async () => {
     queryMock
       .mockResolvedValueOnce([{ id: 'feedback-1', status: 'resolved' }])
       .mockResolvedValueOnce([{ id: 'legacy-feedback-1', source_notification_id: 'notification-1' }])
 
-    await expect(updateCommunityFeedbackStatusAdmin('feedback-1', 'resolved')).resolves.toMatchObject({ success: true })
+    await expect(updateCommunityFeedbackStatusAdmin('feedback-1', 'resolved', true)).resolves.toMatchObject({ success: true })
     expect(queryMock).toHaveBeenLastCalledWith(expect.stringContaining('resolved_by'), [
       'feedback-1', 'resolved', 'admin-1'
     ])

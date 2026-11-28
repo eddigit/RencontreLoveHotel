@@ -10,14 +10,15 @@ const labels: Record<Status, string> = { open: 'À lire', in_progress: 'En cours
 export function FeedbackStatusControl({ id, status }: { id: string; status: Status }) {
   const router = useRouter()
   const [notice, setNotice] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<Status>(status)
+  const [resolutionConfirmed, setResolutionConfirmed] = useState(false)
   const [pending, startTransition] = useTransition()
   return <form className="flex flex-wrap items-center gap-3 border-t border-white/10 pt-3" onSubmit={event => {
     event.preventDefault()
-    const selected = new FormData(event.currentTarget).get('status') as Status
     setNotice('')
     startTransition(async () => {
       try {
-        const result = await updateCommunityFeedbackStatusAdmin(id, selected)
+        const result = await updateCommunityFeedbackStatusAdmin(id, selectedStatus, resolutionConfirmed)
         if (!result.success) throw new Error('Retour introuvable')
         setNotice('Statut enregistré.')
         router.refresh()
@@ -27,11 +28,12 @@ export function FeedbackStatusControl({ id, status }: { id: string; status: Stat
     })
   }}>
     <label className="flex flex-wrap items-center gap-2 text-sm text-white/75">Statut
-      <select key={status} name="status" defaultValue={status} disabled={pending} className="min-h-10 rounded-lg border border-white/20 bg-[#1c1d20] px-3 text-white">
+      <select name="status" value={selectedStatus} onChange={event => { setSelectedStatus(event.target.value as Status); setResolutionConfirmed(false) }} disabled={pending} className="min-h-10 rounded-lg border border-white/20 bg-[#1c1d20] px-3 text-white">
         {Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
       </select>
     </label>
-    <button disabled={pending} className="min-h-10 rounded-lg border border-white/20 px-3 text-sm font-semibold hover:bg-white/10">{pending ? 'Enregistrement…' : 'Enregistrer'}</button>
+    {selectedStatus === 'resolved' && <label className="flex items-center gap-2 text-sm text-white/75"><input type="checkbox" checked={resolutionConfirmed} onChange={event => setResolutionConfirmed(event.target.checked)} disabled={pending} />Résolution confirmée</label>}
+    <button disabled={pending || (selectedStatus === 'resolved' && !resolutionConfirmed)} className="min-h-10 rounded-lg border border-white/20 px-3 text-sm font-semibold hover:bg-white/10">{pending ? 'Enregistrement…' : selectedStatus === 'resolved' ? 'Confirmer la résolution' : 'Enregistrer'}</button>
     <span role="status" className="text-sm text-white/75">{notice}</span>
   </form>
 }

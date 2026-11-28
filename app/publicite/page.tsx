@@ -108,7 +108,7 @@ export default function PublicitePage() {
             <h2 className="text-2xl font-bold mb-6">Prêt à augmenter votre visibilité ?</h2>
 
             <div className="flex flex-col md:flex-row justify-center gap-4">
-              <Link href="/contact">
+              <Link href="mailto:publicite@lovehotel.com">
                 <Button className="bg-purple-800 hover:bg-purple-900 text-white px-8 py-3 rounded-full">
                   Contactez-nous
                 </Button>

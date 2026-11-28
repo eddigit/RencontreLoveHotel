@@ -13,6 +13,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   metadataBase: new URL('https://rencontrelovehotel.com'),
   referrer: 'origin',
+  applicationName: 'Joug Rencontre',
+  appleWebApp: { capable: true, title: 'Joug Rencontre', statusBarStyle: 'default' },
+  icons: { icon: '/favicon.ico', apple: [{ url: '/icons/joug-180.png', sizes: '180x180', type: 'image/png' }] },
   title: 'Love Hotel Rencontre',
   description:
     'Rencontres libertines entre adultes à Paris. En solo ou en couple, découvrez la communauté, les Love Rooms du Love Hôtel et les idées de sorties pour un premier rendez-vous.'

@@ -114,6 +114,15 @@ describe('anti-solicitation message delivery', () => {
     expect(query.mock.calls.some(([statement]) => String(statement).includes('INSERT INTO messages'))).toBe(false)
   })
 
+  it('never lets an administrator impersonate a member when sending', async () => {
+    getServerSession.mockResolvedValue({ user: { id: '550e8400-e29b-41d4-a716-446655440099', role: 'admin' } })
+
+    await expect(sendMessage({ conversationId, senderId, content: 'Bonsoir' }))
+      .rejects.toThrow('qu\'en votre nom')
+
+    expect(query).not.toHaveBeenCalled()
+  })
+
   it('delivers a warning outcome and creates a focused case', async () => {
     mockAuthorizedConversation()
     query

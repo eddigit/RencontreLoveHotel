@@ -1,3 +1,4 @@
+import { InstallJoug } from '@/components/install-joug'
 import { Suspense } from 'react'
 import { PublicCommunityActivity } from '@/components/public-community-activity'
 import Image from 'next/image'
@@ -5,13 +6,14 @@ import Link from 'next/link'
 import {
   ArrowRight,
   CalendarDays,
-  Check,
+  LockKeyhole,
   Eye,
   HeartHandshake,
   MapPin,
   MessageCircleHeart,
   Sparkles,
   UsersRound,
+  BadgeCheck,
   Waves,
 } from 'lucide-react'
 
@@ -23,17 +25,17 @@ export default function LandingPage() {
         <div className='absolute left-[8%] top-16 -z-10 h-72 w-72 rounded-full border border-[#cdb984]/15 blur-[1px]' />
         <div className='mx-auto grid w-full max-w-[1440px] items-center gap-10 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:px-12 lg:py-20'>
           <div className='max-w-xl lg:py-6'>
-            <p className='text-[11px] font-bold uppercase tracking-[0.32em] text-[#ecebe7]'>Paris · Cercle privé de rencontres</p>
-            <h1 className='mt-5 max-w-[10ch] font-serif text-[clamp(3.35rem,7vw,6.8rem)] leading-[0.88] tracking-[-0.055em] text-[#ecebe7]'>
-              Rencontres <span className='italic text-[#ecebe7]'>libertines</span>, à votre façon.
+            <p className='text-[11px] font-bold uppercase tracking-[0.32em] text-[#ecebe7]'>Joug Rencontre · Cercle privé pour adultes</p>
+            <h1 className='mt-5 max-w-[13ch] font-serif text-[clamp(3.35rem,7vw,6.8rem)] leading-[0.88] tracking-[-0.055em] text-[#ecebe7]'>
+              Une affinité. <span className='italic text-[#dfc590]'>Un rendez-vous.</span>
             </h1>
             <p className='mt-7 max-w-lg text-base leading-7 text-[#c9c7c2]/75 sm:text-lg sm:leading-8'>
-              Célibataire ou en couple, retrouvez les membres du cercle autour d’un verre, d’une soirée ou d’une escapade en Love Room. Découvrez les sorties proposées et inscrivez-vous depuis leur fiche.
+              En solo ou en couple, explorez vos affinités libertines, échangez en privé et proposez une rencontre à Paris. Un verre, un jacuzzi ou une Love Room à rideaux ouverts : à vous de choisir le lieu et le rythme.
             </p>
             <Suspense fallback={null}><PublicCommunityActivity /></Suspense>
             <div className='mt-8 flex flex-wrap gap-3'>
               <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-[#d6bc87] px-6 py-3.5 text-sm font-extrabold text-[#191714] transition hover:-translate-y-0.5 hover:bg-[#e5d1aa]'>Rejoindre le cercle <ArrowRight className='h-4 w-4' /></Link>
-              <Link href='/lieux' className='inline-flex items-center gap-2 rounded-full border border-[#c9c7c2]/25 px-6 py-3.5 text-sm font-bold text-[#ecebe7] transition hover:border-[#ecebe7]/70 hover:bg-white/[0.06]'>Choisir un type de lieu <MapPin className='h-4 w-4' /></Link>
+              <Link href='/login' className='inline-flex items-center gap-2 rounded-full border border-[#c9c7c2]/25 px-6 py-3.5 text-sm font-bold text-[#ecebe7] transition hover:border-[#ecebe7]/70 hover:bg-white/[0.06]'>Retrouver mon compte <ArrowRight className='h-4 w-4' /></Link>
             </div>
             <p className='mt-3 text-sm text-[#c9c7c2]/75'>Inscription libre · Parrainage facultatif</p>
           </div>
@@ -50,6 +52,33 @@ export default function LandingPage() {
               />
               <div className='absolute inset-0 bg-gradient-to-t from-[#141416]/80 via-transparent to-[#141416]/15' />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section id='communaute' aria-labelledby='application-title' className='bg-[#181918] px-5 py-12 sm:px-8 lg:py-16'>
+        <div className='mx-auto grid max-w-[1280px] gap-9 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16'>
+          <div>
+            <div className='flex items-center gap-3 text-sm font-semibold text-[#e2c997]'>
+              <Image src='/icons/joug-192.png' width={44} height={44} alt='' className='rounded-xl' /> L’application Joug Rencontre
+            </div>
+            <h2 id='application-title' className='my-5 max-w-[17ch] font-serif text-4xl leading-[1.05] sm:text-5xl'>Une communauté qui se rencontre vraiment.</h2>
+            <p className='mb-6 max-w-md leading-7 text-stone-300'>Gardez le cercle à portée de main. Vous y retrouvez vos conversations, vos albums et les invitations aux prochaines sorties.</p>
+            <InstallJoug />
+          </div>
+          <div className='grid gap-x-8 gap-y-6 sm:grid-cols-2'>
+            {[
+              { icon: UsersRound, title: 'Des envies partagées', text: 'Précisez vos affinités et découvrez les profils compatibles avec votre recherche.' },
+              { icon: MessageCircleHeart, title: 'Une conversation à deux', text: 'Après un match, échangez en privé et retrouvez les réponses dans le même fil.' },
+              { icon: LockKeyhole, title: 'Vos albums, vos choix', text: 'Partagez photos et vidéos avec les membres ou accordez à une personne un accès privé d’une heure.' },
+              { icon: BadgeCheck, title: 'Un profil vérifié', text: 'Demandez une vérification volontaire de votre profil. Le cercle voit le badge et votre justificatif reste privé.' }
+            ].map(({icon: Icon, title, text}) => (
+              <article key={title} className='border-t border-[#d6bc87]/25 pt-4'>
+                <Icon size={20} strokeWidth={1.6} className='text-[#d6bc87]' />
+                <h3 className='mb-1 mt-3 font-semibold'>{title}</h3>
+                <p className='text-sm leading-6 text-stone-300'>{text}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>
@@ -122,7 +151,7 @@ export default function LandingPage() {
       <section id='experiences' className='relative py-16 sm:py-20 lg:py-24'>
         <div className='absolute inset-0 -z-10 bg-[radial-gradient(circle_at_85%_35%,rgba(223,139,77,0.17),transparent_24%),linear-gradient(135deg,#04070b,#0a0f15)]' />
         <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
-          <div className='max-w-3xl'><p className='text-[11px] font-bold uppercase tracking-[0.3em] text-[#ecebe7]'>Une communauté en mouvement</p><h2 className='mt-4 font-serif text-4xl leading-none tracking-[-0.04em] sm:text-5xl'>Des expériences à imaginer ensemble.</h2><p className='mt-5 text-lg leading-8 text-[#c9c7c2]/70'>Une rencontre ne se résume pas à un profil. LHR permet de discuter, de poser les limites, puis de choisir un format qui correspond vraiment aux personnes concernées.</p></div>
+          <div className='max-w-3xl'><p className='text-[11px] font-bold uppercase tracking-[0.3em] text-[#ecebe7]'>Une communauté en mouvement</p><h2 className='mt-4 font-serif text-4xl leading-none tracking-[-0.04em] sm:text-5xl'>Des expériences à imaginer ensemble.</h2><p className='mt-5 text-lg leading-8 text-[#c9c7c2]/70'>Une rencontre ne se résume pas à un profil. Joug Rencontre permet de discuter, de poser les limites, puis de choisir un format qui correspond vraiment aux personnes concernées.</p></div>
           <div className='mt-10 grid gap-5 lg:grid-cols-3'>
             <article className='overflow-hidden rounded-[1.7rem] border border-[#c9c7c2]/10 bg-[#202122]'><div className='relative aspect-[16/10]'><Image src='/apero-jacuzzi-rencontre.jpg' alt='Ambiance d’un apéro jacuzzi entre membres' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' /></div><div className='p-6'><Waves className='h-6 w-6 text-[#ecebe7]' /><h3 className='mt-5 font-serif text-3xl'>Apéros jacuzzi</h3><p className='mt-3 leading-7 text-white/64'>Une invitation précise, un groupe choisi et un temps pour faire connaissance sans précipiter la suite.</p></div></article>
             <article className='overflow-hidden rounded-[1.7rem] border border-[#c9c7c2]/10 bg-[#202122]'><div className='relative aspect-[16/10]'><Image src='/paris-event-limousine.png' alt='Ambiance nocturne d’un événement parisien' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 33vw' /></div><div className='p-6'><CalendarDays className='h-6 w-6 text-[#ecebe7]' /><h3 className='mt-5 font-serif text-3xl'>Événements membres</h3><p className='mt-3 leading-7 text-white/64'>Une idée, une date, des personnes intéressées : les rencontres communautaires prennent forme à partir d’un projet partagé.</p></div></article>
@@ -132,9 +161,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id='communaute' className='relative px-4 py-16 sm:px-6 sm:py-20 lg:px-10 lg:py-24'>
-        <div className='mx-auto grid max-w-[1280px] gap-10 rounded-[2rem] border border-[#ecebe7]/20 bg-[radial-gradient(circle_at_82%_15%,rgba(214,188,135,0.09),transparent_25%),linear-gradient(120deg,#111821,#0a0f15_65%)] p-7 sm:p-10 lg:grid-cols-[0.85fr_1.15fr] lg:p-14'><div><p className='text-[11px] font-bold uppercase tracking-[0.3em] text-[#ecebe7]'>Vous donnez le rythme</p><h2 className='mt-4 font-serif text-4xl leading-none tracking-[-0.04em] sm:text-5xl'>Une communauté qui se rencontre vraiment.</h2><p className='mt-5 max-w-md leading-7 text-white/72'>Discutez, affinez vos envies, proposez un moment. LHR est là pour transformer une intention commune en rencontre choisie.</p><Link href='/register' className='mt-8 inline-flex items-center gap-2 rounded-full bg-[#d6bc87] px-6 py-3.5 text-sm font-extrabold text-[#191714] transition hover:bg-[#e5d1aa]'>Créer mon profil <ArrowRight className='h-4 w-4' /></Link></div><div className='grid gap-3 sm:grid-cols-2'>{[{ icon: MessageCircleHeart, title: 'Parlez vrai', text: 'Des échanges directs pour poser envies, limites et affinités.' },{ icon: UsersRound, title: 'Choisissez votre cercle', text: 'À deux, en petit comité ou autour d’un événement ouvert.' },{ icon: CalendarDays, title: 'Proposez un moment', text: 'Une date et un cadre clair pour faire émerger une rencontre.' },{ icon: Check, title: 'Décidez ensemble', text: 'Personne ne décide à votre place du rythme ou de la suite.' }].map(item => { const Icon = item.icon; return <article key={item.title} className='rounded-2xl border border-white/10 bg-[#04070b]/35 p-5'><Icon className='h-6 w-6 text-[#ecebe7]' /><h3 className='mt-5 text-lg font-bold'>{item.title}</h3><p className='mt-2 text-sm leading-6 text-white/65'>{item.text}</p></article> })}</div></div>
-      </section>
+
     </div>
   )
 }

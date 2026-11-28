@@ -111,13 +111,12 @@ export default async function AdminRoadmapPage () {
             <div className='mb-2 flex items-center gap-2 text-primary'>
               <ListChecks className='h-5 w-5' />
               <span className='text-sm font-medium uppercase tracking-wide'>
-                Suivi bêta
+                Joug Rencontre
               </span>
             </div>
             <h1 className='text-3xl font-bold text-white'>Roadmap projet</h1>
             <p className='mt-2 max-w-3xl text-sm text-white/70'>
-              Vue de pilotage pour suivre ce qui est valide, ce qui ne va pas et
-              ce qui a été développé sur la bêta Love Hotel Rencontres.
+              Livraison des fonctionnalités, incidents à corriger et préparation de la relance du cercle.
             </p>
           </div>
           <div className='grid grid-cols-2 gap-3 text-center md:grid-cols-4'>
@@ -140,6 +139,22 @@ export default async function AdminRoadmapPage () {
           </div>
         </div>
 
+        <nav aria-label='Chantiers de relance' className='mb-6 flex flex-wrap gap-2'>
+          {[
+            ['relance-communaute-novembre', 'Retour des membres'],
+            ['partenaires-janvier', 'Réseau partenaire'],
+            ['contrat-apport-joug', 'Contrats et codes promo'],
+            ['media-reseau-joug', 'Médias et réseaux sociaux'],
+            ['seo-migration-joug', 'SEO'],
+            ['domaine-joug-rencontre', 'Domaine Joug'],
+            ['mentions-joug', 'Mentions légales'],
+            ['chatroulette-privee', 'Chatroulette']
+          ].map(([id, label]) => (
+            <a key={id} href={`#${id}`} className='rounded-md bg-white/5 px-3 py-2 text-sm text-[#e3c992] hover:underline'>
+              {label}
+            </a>
+          ))}
+        </nav>
         <div className='grid gap-6 xl:grid-cols-2'>
           {sections.map(section => {
             const Icon = section.icon
