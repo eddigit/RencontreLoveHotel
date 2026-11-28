@@ -235,6 +235,13 @@ export default function ConversationPage ({
     const panel = threadPanelRef.current
     if (!panel || typeof window === 'undefined') return
     const viewport = window.visualViewport
+    const shell = panel.closest<HTMLElement>('[data-chat-thread]')
+    if (window.matchMedia('(max-width: 1023px)').matches && shell) {
+      shell.style.setProperty('--thread-viewport-height', `${viewport?.height ?? window.innerHeight}px`)
+      shell.style.setProperty('--thread-viewport-top', `${viewport?.offsetTop ?? 0}px`)
+      setThreadHeight(null)
+      return
+    }
     const viewportBottom = viewport
       ? viewport.height + viewport.offsetTop
       : window.innerHeight
@@ -806,7 +813,7 @@ export default function ConversationPage ({
 
   return (
     <MainLayout user={session?.user}>
-      <div className='p-0 sm:p-3 lg:p-4'>
+      <div className='thread-layout p-0 sm:p-3 lg:p-4'>
         <div
           ref={threadPanelRef}
           className='lhr-thread-panel grid min-h-0 overflow-hidden rounded-2xl border border-[#454952]/45 bg-[#121318] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] xl:grid-cols-[300px_minmax(0,1fr)_320px]'
