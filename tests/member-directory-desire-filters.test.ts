@@ -26,7 +26,7 @@ describe('member directory desire filters', () => {
 
     expect(directoryQuery).toContain('up.relationship_intents')
     expect(directoryQuery).toContain('relationshipIntent === \'bdsm\'')
-    expect(directoryQuery).toContain('up.bdsm_roles_public IS TRUE')
+    expect(directoryQuery).toContain("(to_jsonb(up)->>'bdsm_roles_public')::boolean IS TRUE")
     expect(directoryQuery).toContain('genericBdsmRoles')
     expect(directoryQuery).toContain('OR (')
     expect(directoryQuery).toContain('AND COALESCE(up.bdsm_roles')

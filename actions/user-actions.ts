@@ -27,7 +27,6 @@ import {
 import { ensurePrivatePhotoVerificationSchema } from '@/lib/photo-verification-schema'
 import { verifiedPhotoPredicateSql } from '@/lib/photo-verification-badge'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
-import { ensureProfileLikesDislikesSchema } from '@/lib/profile-likes-dislikes'
 import { revalidatePath } from 'next/cache'
 import { sendMemberActivityEmail } from '@/lib/member-activity-email'
 
@@ -43,7 +42,6 @@ export async function getUserProfile(userId: string) {
 async function readUserProfile(userId: string, forMatching: boolean) {
   const currentUser = await requireCurrentUser()
   const privateAccess = currentUser.id === userId || currentUser.role === 'admin'
-  await ensureProfileLikesDislikesSchema()
   const user = await sql`
     SELECT
       u.id AS user_id,
@@ -58,7 +56,7 @@ async function readUserProfile(userId: string, forMatching: boolean) {
       u.created_at AS user_created_at,
       u.updated_at AS user_updated_at,
       u.last_seen_at,
-      u.admin_starred_at,
+      (to_jsonb(u)->>'admin_starred_at')::timestamptz AS admin_starred_at,
       up.id AS profile_id,
       up.status,
       up.age,
@@ -68,8 +66,8 @@ async function readUserProfile(userId: string, forMatching: boolean) {
       up.gender,
       CASE WHEN ${privateAccess} THEN up.birthday ELSE NULL END AS birthday,
       up.interests,
-      up.likes,
-      up.dislikes,
+      to_jsonb(up)->>'likes' AS likes,
+      to_jsonb(up)->>'dislikes' AS dislikes,
       up.featured,
       up.display_profile,
       up.created_at AS profile_created_at,
@@ -77,8 +75,11 @@ async function readUserProfile(userId: string, forMatching: boolean) {
       up.couple_composition,
       up.seeking_profile_types,
       up.relationship_intents,
-      CASE WHEN ${privateAccess || forMatching} OR up.bdsm_roles_public IS TRUE THEN up.bdsm_roles ELSE '{}'::text[] END AS bdsm_roles,
-      COALESCE(up.bdsm_roles_public, false) AS bdsm_roles_public
+      -- bdsm_roles_public was added after the first production schema. Reading
+      -- it via JSON keeps an older database able to render /profile/[id] while
+      -- the idempotent migration is rolled out.
+      CASE WHEN ${privateAccess || forMatching} OR COALESCE((to_jsonb(up)->>'bdsm_roles_public')::boolean, false) IS TRUE THEN up.bdsm_roles ELSE '{}'::text[] END AS bdsm_roles,
+      COALESCE((to_jsonb(up)->>'bdsm_roles_public')::boolean, false) AS bdsm_roles_public
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
     WHERE u.id = ${userId} AND (${privateAccess} OR (
@@ -354,7 +355,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
       whereClauses.push(`(
         ${bdsmIntentPlaceholder} = ANY(COALESCE(up.relationship_intents, ARRAY[]::text[]))
         OR (
-          up.bdsm_roles_public IS TRUE
+          (to_jsonb(up)->>'bdsm_roles_public')::boolean IS TRUE
           AND COALESCE(up.bdsm_roles, ARRAY[]::text[]) && ${publicRolesPlaceholder}::text[]
         )
       )`)
@@ -365,7 +366,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
 
   if (bdsmRole) {
     // A precise BDSM role is searchable only when its owner opted into its public use.
-    whereClauses.push('up.bdsm_roles_public IS TRUE')
+    whereClauses.push("(to_jsonb(up)->>'bdsm_roles_public')::boolean IS TRUE")
     whereClauses.push(`${addParam(bdsmRole)} = ANY(COALESCE(up.bdsm_roles, ARRAY[]::text[]))`)
   }
 

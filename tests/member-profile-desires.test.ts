@@ -31,7 +31,11 @@ describe('member profile desires', () => {
     expect(onboarding).toContain('Afficher mes affinités BDSM sur ma fiche publique')
     expect(editor).toContain('bdsmRolesPublic: user.bdsmRolesPublic === true')
     expect(profilePage).toContain('bdsm_roles_public = COALESCE(${bdsmRolesPublic}::boolean, bdsm_roles_public)')
-    expect(actions).toContain("CASE WHEN ${privateAccess || forMatching} OR up.bdsm_roles_public IS TRUE THEN up.bdsm_roles ELSE '{}'::text[] END AS bdsm_roles")
+    expect(actions).toContain("COALESCE((to_jsonb(up)->>'bdsm_roles_public')::boolean, false)")
+    expect(actions).toContain("CASE WHEN ${privateAccess || forMatching} OR COALESCE((to_jsonb(up)->>'bdsm_roles_public')::boolean, false) IS TRUE THEN up.bdsm_roles ELSE '{}'::text[] END AS bdsm_roles")
+    expect(actions).toContain("(to_jsonb(u)->>'admin_starred_at')::timestamptz AS admin_starred_at")
+    expect(actions).toContain("to_jsonb(up)->>'likes' AS likes")
+    expect(actions).toContain("to_jsonb(up)->>'dislikes' AS dislikes")
     expect(consentMigration).toContain('ADD COLUMN IF NOT EXISTS bdsm_roles_public BOOLEAN NOT NULL DEFAULT FALSE')
   })
 
