@@ -56,6 +56,7 @@ const authenticatedApiPrefixes = [
   '/api/events',
   '/api/messages',
   '/api/photos',
+  '/api/private-album',
   '/api/users'
 ]
 

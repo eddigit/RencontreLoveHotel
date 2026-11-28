@@ -20,13 +20,13 @@ export function UserGallery({ photos }: { photos: GalleryPhoto[] }) {
       {photos.map((photo, i) => <button type='button' key={photo.id} onClick={() => setIndex(i)}
         className='aspect-square overflow-hidden rounded-xl focus-visible:outline-2 focus-visible:outline-amber-200'
         aria-label={`Agrandir la photo ${i + 1}`}>
-        <img alt='' src={photo.url} loading='lazy' className='h-full w-full object-cover' />
+        <img data-member-photo alt='' src={photo.url} loading='lazy' className='h-full w-full object-cover' />
       </button>)}
     </div>
     {selected && index !== null && <DialogContent aria-describedby={undefined} className='w-[94vw] max-w-3xl border-white/10 bg-[#131416] text-stone-100'
       onKeyDown={event => { if (event.key === 'ArrowLeft') move(-1); if (event.key === 'ArrowRight') move(1) }}>
       <DialogTitle>Photo {index + 1} sur {photos.length}</DialogTitle>
-      <img src={selected.url} alt={`Photo de galerie ${index + 1}`} className='mx-auto max-h-[68svh] max-w-full object-contain' />
+      <img data-member-photo src={selected.url} alt={`Photo de galerie ${index + 1}`} className='mx-auto max-h-[68svh] max-w-full object-contain' />
       {photos.length > 1 && <div className='flex justify-between'>
         <button type='button' onClick={() => move(-1)} aria-label='Photo précédente' className='p-2'><ChevronLeft /></button>
         <button type='button' onClick={() => move(1)} aria-label='Photo suivante' className='p-2'><ChevronRight /></button>

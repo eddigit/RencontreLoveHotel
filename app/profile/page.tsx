@@ -9,6 +9,7 @@ import { authOptions } from '@/lib/auth'
 import { UserProfileEditor } from '@/components/UserProfileEditor'
 import { PreferencesEditor } from '@/components/PreferencesEditor'
 import { UserPhotosManager } from '@/components/UserPhotosManager'
+import { PrivateAlbumManager } from '@/components/private-album-manager'
 import { LhrV2Shell } from '@/components/lhr-v2-shell'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -503,12 +504,15 @@ export default async function ProfilePage ({
           </TabsContent>
           <TabsContent value='photos'>
             <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
-              <h3 className='mb-4 flex items-center gap-2 text-lg font-black'>
-                <Camera className='h-5 w-5 text-[#e3bf80]' />
-                Mes photos
-              </h3>
-              {/* UserPhotosManager handles upload/delete UI */}
-              <UserPhotosManager userId={String(dbUser.id)} photos={userPhotos} maxPhotos={10} />
+              <PrivateAlbumManager />
+              {userPhotos.length > 0 && (
+                <section className='mt-6'>
+                  <h3 className='mb-4 flex items-center gap-2 text-lg font-black'>
+                    <Camera className='h-5 w-5 text-[#e3bf80]' /> Photos ajoutées précédemment
+                  </h3>
+                  <UserPhotosManager userId={String(dbUser.id)} photos={userPhotos} maxPhotos={10} allowUpload={false} />
+                </section>
+              )}
             </div>
           </TabsContent>
           <TabsContent value='emails'>

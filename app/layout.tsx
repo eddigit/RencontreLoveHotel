@@ -5,6 +5,7 @@ import './globals.css'
 import { Providers } from '@/components/providers'
 import PwaUpdateNotification from '@/components/PwaUpdateNotification'
 import { SiteShell } from '@/components/site-shell'
+import { MemberPhotoGuard } from '@/components/member-photo-guard'
 import { PublicAnalytics } from '@/components/public-analytics'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -36,6 +37,7 @@ export default function RootLayout ({
           <SiteShell>{children}</SiteShell>
           <PwaUpdateNotification />
           <PublicAnalytics />
+          <MemberPhotoGuard />
         </Providers>
       </body>
     </html>

@@ -18,6 +18,7 @@ import MainLayout from '@/components/layout/main-layout'
 import { MatchRequestButton } from '@/components/match-request-button'
 import { ProfileMessageForm } from '@/components/profile-message-form'
 import { UserGallery } from '@/components/UserGallery'
+import { MemberPrivateAlbum } from '@/components/member-private-album'
 import { MemberSafetyMenu } from '@/components/member-safety-menu'
 import { MemberProfileBackButton } from '@/components/member-profile-back-button'
 import { ProfileVisitTracker } from '@/components/profile-visit-tracker'
@@ -114,9 +115,10 @@ export default async function ProfilePage ({
           <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-3 px-4 pb-5 sm:px-6'>
               <div className='relative aspect-square w-28 shrink-0 overflow-hidden rounded-xl bg-[#111214] ring-4 ring-[#181819] sm:w-32'>
                 {avatar.startsWith('http') ? (
-                  <img src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-contain' />
+                  <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-contain' />
                 ) : (
                   <Image
+                    data-member-photo
                     src={avatar}
                     alt={displayMemberName(profile.name)}
                     fill
@@ -154,7 +156,7 @@ export default async function ProfilePage ({
           </ul>}
         </header>
         <nav aria-label='Sections du profil' className='my-4 flex flex-wrap gap-1 rounded-xl bg-[#19191c] p-1.5 text-sm font-semibold text-[#d6bc87] [&_a]:rounded-lg [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-white/10'>
-          <a href='#descriptif'>Présentation</a><a href='#gouts'>Goûts et limites</a><a href='#galerie'>Galerie</a><a href='#mots'>Commentaires</a>
+          <a href='#descriptif'>Présentation</a><a href='#gouts'>Goûts et limites</a><a href='#galerie'>Galerie</a><a href='#album-prive'>Album protégé</a><a href='#mots'>Commentaires</a>
         </nav>
         <div className='grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]'>
           <div className='grid min-w-0 gap-5'>
@@ -171,6 +173,7 @@ export default async function ProfilePage ({
                 <UserGallery photos={photos} />
               </div>
             </section>
+            {canShowActions && <MemberPrivateAlbum ownerId={String(profile.user_id)} />}
             <section id='mots' className='scroll-mt-20 rounded-2xl bg-[#181819] p-5'>
               <h2 className='text-lg font-bold'>Commentaires après rencontre</h2>
               {publicPostMeetingWords.length ? <PublicPostMeetingWordsClient words={publicPostMeetingWords} /> : <p className='mt-2 text-sm text-stone-400'>Aucun mot publié pour le moment.</p>}

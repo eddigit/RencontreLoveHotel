@@ -55,5 +55,6 @@ describe('route access policy', () => {
     expect(requiresVerifiedEmail('/profile')).toBe(true)
     expect(requiresVerifiedEmail('/discover')).toBe(true)
     expect(requiresVerifiedEmail('/api/messages')).toBe(true)
+    expect(requiresVerifiedEmail('/api/private-album/photos/id')).toBe(true)
   })
 })

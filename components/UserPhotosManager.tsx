@@ -13,12 +13,15 @@ interface UserPhotosManagerProps {
   photos: UserPhoto[]
   userId: string
   maxPhotos?: number
+  /** Historical Blob gallery only: it remains visible and removable, but new uploads use PrivateAlbumManager. */
+  allowUpload?: boolean
 }
 
 export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
   photos: initialPhotos,
   userId,
-  maxPhotos = 10
+  maxPhotos = 10,
+  allowUpload = true
 }) => {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -121,7 +124,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
             )}
           </div>
         ))}
-        {photos.length < maxPhotos && (
+        {allowUpload && photos.length < maxPhotos && (
           <button
             type='button'
             className='flex aspect-square w-full items-center justify-center rounded border-2 border-dashed border-[#c9c7c2]/40 bg-[#04070b] transition-colors hover:border-[#c1121f]'
@@ -141,12 +144,7 @@ export const UserPhotosManager: React.FC<UserPhotosManagerProps> = ({
           </button>
         )}
       </div>
-      <p className='text-sm text-[#c9c7c2]'>
-        Vous pouvez ajouter jusqu'à {maxPhotos} photos.
-      </p>
-      <p className='mt-1 text-sm font-medium text-[#c9c7c2]'>
-        Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo. HEIC iPhone : exportez la photo en JPG.
-      </p>
+      {allowUpload ? <><p className='text-sm text-[#c9c7c2]'>Vous pouvez ajouter jusqu'à {maxPhotos} photos.</p><p className='mt-1 text-sm font-medium text-[#c9c7c2]'>Formats acceptés : JPG, PNG ou WebP. Taille maximale : 8 Mo par photo. HEIC iPhone : exportez la photo en JPG.</p></> : <p className='text-sm text-[#c9c7c2]'>Ces photos utilisent l’ancien hébergement. Les liens déjà partagés peuvent encore fonctionner.</p>}
     </div>
   )
 }

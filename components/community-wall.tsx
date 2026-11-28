@@ -450,11 +450,17 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
 
               {post.image_url && (
                 <div className='mt-3 overflow-hidden rounded-2xl border border-[#494136] bg-[#191714]'>
-                  <img
+                  {post.image_url.startsWith('/api/private-album/photos/') && post.image_url.endsWith('?media=video') ? (
+                    <video data-member-photo controls playsInline preload='none' controlsList='nodownload'
+                      aria-label={`Vidéo publiée par ${displayMemberName(post.author_name, 'un membre')}`}
+                      src={post.image_url} className='max-h-[520px] w-full' />
+                  ) : (
+                  <img data-member-photo
                     src={post.image_url}
                     alt={`Photo publiée par ${displayMemberName(post.author_name, 'un membre')}`}
                     className='max-h-[520px] w-full object-cover'
                   />
+                  )}
                 </div>
               )}
 

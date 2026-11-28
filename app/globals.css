@@ -305,3 +305,13 @@ body {
     padding: 0;
   }
 }
+
+[data-member-photo] {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+@media print {
+  [data-member-photo] { visibility: hidden !important; }
+}
