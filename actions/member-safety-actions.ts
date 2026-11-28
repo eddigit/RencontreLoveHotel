@@ -16,6 +16,7 @@ const reportReasons = [
 ] as const
 
 export type MemberReportReason = (typeof reportReasons)[number]
+const MIN_DECLARATION_LENGTH = 20
 
 function validateTarget(currentUserId: string, targetUserId: string) {
   if (!uuidPattern.test(targetUserId) || targetUserId === currentUserId) {
@@ -83,6 +84,11 @@ export async function reportMember(input: {
   }
 
   const details = input.details?.trim().slice(0, 1000) || null
+  // A report with neither a referenced message nor a written account gives the
+  // reviewer nothing to examine.
+  if (input.reason === 'paid_sexual_solicitation' && !input.messageId && (details?.length || 0) < MIN_DECLARATION_LENGTH) {
+    throw new Error(`Décrivez les faits en au moins ${MIN_DECLARATION_LENGTH} caractères, ou signalez le message concerné depuis la conversation`)
+  }
   let report: { id: string } | undefined
   let moderationCaseId: string | null = null
   if (input.reason === 'paid_sexual_solicitation') {

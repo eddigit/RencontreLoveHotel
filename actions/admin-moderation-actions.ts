@@ -35,6 +35,14 @@ export type ModerationQueueItem = {
   matched_keywords: string[]
   excerpt?: string | null
   created_at?: string | Date
+  /** What the reviewer can actually examine for this alert. */
+  evidence_kind?: 'message_excerpt' | 'member_declaration' | 'none'
+  /** Unverified account written by the reporting member, when there is one. */
+  declaration?: string | null
+  /** Whether reporter and reported member share a conversation on the site. */
+  parties_have_conversation?: boolean | null
+  /** Messages the reported member sent to the reporter on the site. */
+  subject_messages_to_reporter?: number | null
 }
 
 export type AdminModerationDashboard = {
@@ -116,7 +124,24 @@ export async function getModerationDashboard(): Promise<AdminModerationDashboard
     safeRows<ModerationQueueItem>(`
       SELECT q.id, q.source_type, q.source_id, q.user_id, q.conversation_id, q.severity, q.status,
              q.reason, q.matched_keywords, q.excerpt, q.created_at, q.investigation_id,
-             COALESCE(NULLIF(u.name, ''), q.subject_pseudonym) AS subject_name
+             COALESCE(NULLIF(u.name, ''), q.subject_pseudonym) AS subject_name,
+             NULLIF(TRIM(q.metadata->'evidence'->>'description'), '') AS declaration,
+             CASE
+               WHEN NULLIF(TRIM(q.excerpt), '') IS NOT NULL THEN 'message_excerpt'
+               WHEN NULLIF(TRIM(q.metadata->'evidence'->>'description'), '') IS NOT NULL THEN 'member_declaration'
+               ELSE 'none'
+             END AS evidence_kind,
+             CASE WHEN q.reporter_id IS NULL OR q.user_id IS NULL THEN NULL ELSE EXISTS (
+               SELECT 1 FROM conversation_participants reporter
+               JOIN conversation_participants subject ON subject.conversation_id = reporter.conversation_id
+               WHERE reporter.user_id = q.reporter_id AND subject.user_id = q.user_id
+             ) END AS parties_have_conversation,
+             CASE WHEN q.reporter_id IS NULL OR q.user_id IS NULL THEN NULL ELSE (
+               SELECT COUNT(*)::int FROM messages m
+               JOIN conversation_participants reporter
+                 ON reporter.conversation_id = m.conversation_id AND reporter.user_id = q.reporter_id
+               WHERE m.sender_id = q.user_id
+             ) END AS subject_messages_to_reporter
       FROM moderation_queue q
       LEFT JOIN users u ON u.id = q.user_id
       ORDER BY q.created_at DESC

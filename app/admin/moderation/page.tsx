@@ -219,9 +219,26 @@ export default function AdminModerationPage () {
                         {item.investigation_id && (
                           <Link href={`/moderation/${item.investigation_id}`} className='mt-2 inline-block text-sm text-[#d6bc87] underline'>Examiner le dossier</Link>
                         )}
+                        <p className='mt-2 text-xs font-semibold' data-testid='moderation-evidence-kind'>
+                          {item.evidence_kind === 'message_excerpt'
+                            ? 'Pièce : extrait de message conservé'
+                            : item.evidence_kind === 'member_declaration'
+                              ? 'Pièce : déclaration écrite du membre, non vérifiée'
+                              : 'Aucune pièce : signalement sans message ni description'}
+                        </p>
                         {item.excerpt && (
                           <p className='mt-2 line-clamp-3 text-sm text-muted-foreground'>
                             {item.source_type === 'user' && item.reason.startsWith('Signalement membre') ? 'Déclaration du membre · ' : ''}{item.excerpt}
+                          </p>
+                        )}
+                        {item.declaration && (
+                          <p className='mt-2 line-clamp-4 text-sm text-muted-foreground'>Déclaration du membre · {item.declaration}</p>
+                        )}
+                        {typeof item.parties_have_conversation === 'boolean' && (
+                          <p className='mt-2 text-xs text-muted-foreground'>
+                            {item.parties_have_conversation
+                              ? `Les deux membres ont une conversation sur le site ; le membre signalé y a écrit ${item.subject_messages_to_reporter || 0} message(s).`
+                              : 'Les deux membres n’ont aucune conversation sur le site : aucun message ne peut étayer ce signalement.'}
                           </p>
                         )}
                         {item.matched_keywords?.length > 0 && (

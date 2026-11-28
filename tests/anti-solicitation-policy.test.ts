@@ -53,6 +53,13 @@ describe('contextual anti-solicitation policy', () => {
     })
   })
 
+  it('recognizes plural and feminine forms of a rule', () => {
+    expect(evaluateAntiSolicitation('Voici mes tarifs', rules).matchedRuleIds).toEqual(['price'])
+    expect(evaluateAntiSolicitation('Des cadeaux ?', rules).matchedRuleIds).toEqual(['gift'])
+    expect(evaluateAntiSolicitation('Je propose des services sexuels', rules).outcome).toBe('hold')
+    expect(evaluateAntiSolicitation('Le tarifaire du lieu', rules).matchedRuleIds).toEqual([])
+  })
+
   it('excludes official LHR commercial sources', () => {
     expect(evaluateAntiSolicitation('Tarif service sexuel', rules, { source: 'official_event' })).toMatchObject({
       outcome: 'allow',

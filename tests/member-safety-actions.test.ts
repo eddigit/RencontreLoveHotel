@@ -99,6 +99,12 @@ describe('member safety actions', () => {
     expect(query.mock.calls[0][0]).toContain("'reference_authorized'")
   })
 
+  it('refuses a paid solicitation report that carries neither a message nor a description', async () => {
+    await expect(reportMember({ targetUserId: targetId, reason: 'paid_sexual_solicitation' })).rejects.toThrow('Décrivez')
+    await expect(reportMember({ targetUserId: targetId, reason: 'paid_sexual_solicitation', details: 'trop court' })).rejects.toThrow('Décrivez')
+    expect(query).not.toHaveBeenCalled()
+  })
+
   it('accepts a dedicated paid sexual solicitation report reason', async () => {
     query
       .mockResolvedValueOnce([{ report_id: 'report-2', investigation_id: 'investigation-2' }])
@@ -106,7 +112,8 @@ describe('member safety actions', () => {
 
     await expect(reportMember({
       targetUserId: targetId,
-      reason: 'paid_sexual_solicitation'
+      reason: 'paid_sexual_solicitation',
+      details: 'Demande d’argent reçue lors d’un échange hors du site.'
     })).resolves.toEqual({ success: true, reportId: 'report-2' })
 
     expect(query.mock.calls[0][1][3]).toBe('paid_sexual_solicitation')

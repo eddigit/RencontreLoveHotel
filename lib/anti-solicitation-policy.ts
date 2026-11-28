@@ -47,9 +47,12 @@ function escapeRegExp(value: string) {
 function matchesRule(content: string, rule: ModerationPolicyRule) {
   const keyword = normalize(rule.keyword)
   if (!keyword) return false
+  // Accept the plural and feminine endings members actually write
+  // ("tarifs", "payante", "cadeaux") without matching longer words.
+  const inflected = keyword.split(' ').map(word => `${escapeRegExp(word)}(?:e|s|es|x)?`)
   const pattern = rule.phrase
-    ? escapeRegExp(keyword).replace(/\\ /g, '\\s+')
-    : `(?:^|[^a-z0-9])${escapeRegExp(keyword)}(?:$|[^a-z0-9])`
+    ? inflected.join('\\s+')
+    : `(?:^|[^a-z0-9])${inflected.join('\\s+')}(?:$|[^a-z0-9])`
   return new RegExp(pattern, 'i').test(content)
 }
 

@@ -15,9 +15,13 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
   function report(reason: MemberReportReason) {
     if (!window.confirm("Signaler ce profil à la modération pour une possible sollicitation avec contrepartie ?")) return
     startTransition(async () => {
-      await reportMember({ targetUserId, reason, details })
-      setDetails('')
-      setFeedback('Déclaration transmise à la modération. Elle sera examinée par une personne.')
+      try {
+        await reportMember({ targetUserId, reason, details })
+        setDetails('')
+        setFeedback('Déclaration transmise à la modération. Elle sera examinée par une personne.')
+      } catch {
+        setFeedback('Le signalement n’a pas pu être transmis. Décrivez les faits en quelques phrases puis réessayez.')
+      }
     })
   }
 
@@ -25,7 +29,7 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
     <div className='space-y-2 border-t border-white/10 pt-3'>
       <p className='text-xs font-semibold uppercase tracking-[0.16em] text-white/45'>Sécurité</p>
       <label className='block text-xs text-white/65'>
-        Contexte facultatif (déclaration, sans coordonnées ni données personnelles)
+        Que s’est-il passé ? (obligatoire, 20 caractères au moins, sans coordonnées ni données personnelles). Si la demande figure dans un message reçu ici, signalez plutôt ce message depuis la conversation : il servira de pièce.
         <textarea
           value={details}
           onChange={event => setDetails(event.target.value)}
@@ -36,7 +40,7 @@ export function MemberSafetyMenu({ targetUserId }: { targetUserId: string }) {
       <div className='grid min-w-0 grid-cols-1 gap-2'>
         <Button
           type='button'
-          disabled={pending}
+          disabled={pending || details.trim().length < 20}
           variant='outline'
           className='h-auto min-h-10 w-full min-w-0 justify-start whitespace-normal rounded-xl border-white/12 bg-white/[0.03] px-3 py-2 text-left text-xs leading-4'
           onClick={() => report('paid_sexual_solicitation')}
