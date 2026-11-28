@@ -42,7 +42,7 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
 
   return (
     <Link href={profileHref} className='group flex min-w-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87]' aria-label={`Voir le profil de ${name}${member.photo_verified ? ', profil vérifié' : ''}`}>
-      <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#494136] bg-[#191714] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#d6bc87]/60 group-hover:bg-[#24211d]'>
+      <article className='flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-[#494136] bg-[#0d0e11] shadow-[0_12px_24px_-12px_rgba(0,0,0,0.8)] transition-colors group-hover:border-[#d6bc87]/60 group-hover:bg-[#191b20]'>
       <div className='relative aspect-[5/4] overflow-hidden bg-[#121318]'>
         {image.startsWith('http') ? (
           <img src={image} alt={`Photo de ${name}`} loading='lazy' className='h-full w-full object-cover transition duration-500 group-hover:scale-105' />
@@ -60,15 +60,15 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
       <div className='flex flex-1 flex-col p-3'>
         <div className='flex flex-wrap gap-1.5 text-[11px] leading-4'>
           <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 font-medium text-[#e5d1aa]'>{typeLabel}</span>
-          {orientationLabel(member.orientation) && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
-          {member.open_to_other_couples && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
+          {orientationLabel(member.orientation) && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
+          {member.open_to_other_couples && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
           {member.open_curtains && <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 text-[#e5d1aa]'>Rideaux ouverts</span>}
-          {member.libertine && <span className='rounded-full bg-[#24211d] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
+          {member.libertine && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
         </div>
         {member.bio && <p className='mt-3 line-clamp-2 text-xs leading-5 text-[#94a3b8]'>{member.bio}</p>}
         <div className='mt-auto flex items-center justify-between pt-3 text-xs'>
           <span className='font-medium text-[#d6bc87] transition-colors group-hover:text-[#e5d1aa]'>Voir le profil</span>
-          <span className='flex h-8 w-8 items-center justify-center rounded-lg border border-[#494136] text-[#c1c6da] transition-colors group-hover:bg-[#24211d] group-hover:text-white' title='Voir le profil pour matcher ou écrire'><MessageCircle className='h-4 w-4' /><span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span></span>
+          <span className='flex h-8 w-8 items-center justify-center rounded-lg border border-[#494136] text-[#c1c6da] transition-colors group-hover:bg-[#191b20] group-hover:text-white' title='Voir le profil pour matcher ou écrire'><MessageCircle className='h-4 w-4' /><span className='sr-only'>Après match accepté, ouvrir le profil pour écrire</span></span>
         </div>
       </div>
       </article>

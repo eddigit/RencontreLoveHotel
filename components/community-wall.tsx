@@ -285,9 +285,9 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
 
   return (
     <section id='community-wall' className='scroll-mt-24 text-[#f1eee8]'>
-      <form id='wall-composer' onSubmit={handleCreatePost} className='rounded-xl bg-[#191714] p-4 shadow-sm'>
+      <form id='wall-composer' onSubmit={handleCreatePost} className='rounded-xl bg-[#0d0e11] p-4 shadow-sm'>
         <div className='flex items-start gap-3'>
-          <div className='h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#24211d]'>
+          <div className='h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#191b20]'>
             <MemberAvatarImage src={currentUserAvatar} gender={currentUserGender} profileStatus={currentUserProfileStatus} alt={currentUserName || 'Votre profil'} className='h-full w-full object-cover' />
           </div>
           <Textarea
@@ -295,12 +295,12 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
             onChange={event => setBody(event.target.value.slice(0, 500))}
             placeholder='Proposez une sortie ou partagez un mot avec le cercle…'
             aria-label='Votre publication'
-            className='min-h-[72px] resize-none rounded-xl border-0 bg-[#24211d] px-3 py-2.5 text-sm text-[#f1eee8] placeholder:text-[#aaa69e] focus-visible:ring-2 focus-visible:ring-[#d6bc87]'
+            className='min-h-[72px] resize-none rounded-xl border-0 bg-[#191b20] px-3 py-2.5 text-sm text-[#f1eee8] placeholder:text-[#aaa69e] focus-visible:ring-2 focus-visible:ring-[#d6bc87]'
           />
         </div>
 
         <div className='mt-3 flex flex-wrap items-center gap-2 border-t border-white/5 pt-3'>
-          <label className='inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#24211d] px-3 text-xs font-semibold text-[#e6bdbb] transition hover:text-[#f1eee8]'>
+          <label className='inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg bg-[#191b20] px-3 text-xs font-semibold text-[#e6bdbb] transition hover:text-[#f1eee8]'>
             <ImagePlus className='h-4 w-4 text-[#d6bc87]' />
             {imageFile ? 'Photo choisie' : 'Média'}
             <input
@@ -310,7 +310,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
               onChange={handleImageChange}
             />
           </label>
-          <label className='inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#24211d] px-2 text-xs font-semibold text-[#e6bdbb]'>
+          <label className='inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#191b20] px-2 text-xs font-semibold text-[#e6bdbb]'>
             <CalendarHeart className='h-4 w-4 text-[#d6bc87]' />
             <span className='sr-only'>Type de publication</span>
             <select
@@ -334,7 +334,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
         </div>
 
         {imagePreview && (
-          <div className='mt-3 overflow-hidden rounded-xl bg-[#24211d]'>
+          <div className='mt-3 overflow-hidden rounded-xl bg-[#191b20]'>
             <div className='relative aspect-[4/3] max-h-[360px] w-full'>
               <img
                 src={imagePreview}
@@ -344,7 +344,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
               <button
                 type='button'
                 onClick={() => setImageFile(null)}
-                className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#191714] text-[#f1eee8] shadow-lg transition hover:bg-[#24211d]'
+                className='absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#0d0e11] text-[#f1eee8] shadow-lg transition hover:bg-[#191b20]'
                 aria-label='Retirer la photo'
               >
                 <X className='h-4 w-4' />
@@ -357,7 +357,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
           <select
             value={eventId}
             onChange={event => setEventId(event.target.value)}
-            className='mt-3 h-10 w-full rounded-lg border-0 bg-[#24211d] px-3 text-sm text-[#f1eee8] outline-none focus:ring-2 focus:ring-[#d6bc87]'
+            className='mt-3 h-10 w-full rounded-lg border-0 bg-[#191b20] px-3 text-sm text-[#f1eee8] outline-none focus:ring-2 focus:ring-[#d6bc87]'
           >
             <option value=''>Associer un événement existant (optionnel)</option>
             {events.map(event => (
@@ -378,8 +378,8 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                 onClick={() => setDurationHours(value as 24 | 48)}
                 className={`h-10 flex-1 rounded-xl border text-sm font-bold transition ${
                   durationHours === value
-                    ? 'border-[#d6bc87] bg-[#24211d] text-[#f1eee8]'
-                    : 'border-transparent bg-[#24211d] text-[#e6bdbb]'
+                    ? 'border-[#d6bc87] bg-[#191b20] text-[#f1eee8]'
+                    : 'border-transparent bg-[#191b20] text-[#e6bdbb]'
                 }`}
               >
                 {value} h
@@ -391,7 +391,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
       </form>
 
       {statusMessage && (
-        <div className='mt-3 rounded-xl border border-[#494136] bg-[#191714] px-3 py-2 text-sm text-[#aaa69e]'>
+        <div className='mt-3 rounded-xl border border-[#494136] bg-[#0d0e11] px-3 py-2 text-sm text-[#aaa69e]'>
           {statusMessage}
         </div>
       )}
@@ -400,13 +400,13 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
 
       <div className='mt-4 space-y-3'>
         {loading && (
-          <div className='rounded-2xl border border-[#494136] bg-[#191714] p-4 text-sm text-[#aaa69e]'>
+          <div className='rounded-2xl border border-[#494136] bg-[#0d0e11] p-4 text-sm text-[#aaa69e]'>
             Chargement du mur...
           </div>
         )}
 
         {!loading && posts.length === 0 && (
-          <div className='rounded-2xl border border-dashed border-[#494136] bg-[#191714] p-5 text-center'>
+          <div className='rounded-2xl border border-dashed border-[#494136] bg-[#0d0e11] p-5 text-center'>
             <p className='font-black'>Le mur est encore calme.</p>
             <p className='mt-2 text-sm text-[#aaa69e]'>Soyez le premier à publier une annonce.</p>
           </div>
@@ -418,9 +418,9 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
           const commentCount = Number(post.comment_count || 0)
           const expiration = expirationLabel(post.expires_at)
           return (
-            <article key={post.id} className='rounded-xl border border-white/[0.045] bg-[#191714] p-4 sm:p-5'>
+            <article key={post.id} className='rounded-xl border border-white/[0.045] bg-[#0d0e11] p-4 sm:p-5'>
               <div className='flex items-start gap-3'>
-                <Link href={`/profile/${post.user_id}`} className='relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
+                <Link href={`/profile/${post.user_id}`} className='relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#0d0e11]'>
                   <MemberAvatarImage src={post.author_avatar} gender={post.author_gender} profileStatus={post.author_profile_status} alt={displayMemberName(post.author_name)} className='h-full w-full object-cover' />
                 </Link>
                 <div className='min-w-0 flex-1'>
@@ -449,7 +449,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
               )}
 
               {post.image_url && (
-                <div className='mt-3 overflow-hidden rounded-2xl border border-[#494136] bg-[#191714]'>
+                <div className='mt-3 overflow-hidden rounded-2xl border border-[#494136] bg-[#0d0e11]'>
                   {post.image_url.startsWith('/api/private-album/photos/') && post.image_url.endsWith('?media=video') ? (
                     <video data-member-photo controls playsInline preload='none' controlsList='nodownload'
                       aria-label={`Vidéo publiée par ${displayMemberName(post.author_name, 'un membre')}`}
@@ -481,7 +481,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                 <button
                   type='button'
                   onClick={() => toggleComments(post.id)}
-                  className='inline-flex items-center gap-2 rounded-full border border-[#494136] bg-[#191714] px-3 py-1.5 text-sm text-[#aaa69e] transition hover:border-[#494136] hover:text-[#f1eee8]'
+                  className='inline-flex items-center gap-2 rounded-full border border-[#494136] bg-[#0d0e11] px-3 py-1.5 text-sm text-[#aaa69e] transition hover:border-[#494136] hover:text-[#f1eee8]'
                 >
                   <MessageCircle className='h-4 w-4' />
                   {commentCount} commentaire{commentCount > 1 ? 's' : ''}
@@ -511,13 +511,13 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
               </div>
 
               {expanded && (
-                <div className='mt-3 space-y-3 rounded-xl border border-[#494136] bg-[#191714] p-3'>
+                <div className='mt-3 space-y-3 rounded-xl border border-[#494136] bg-[#0d0e11] p-3'>
                   {comments.length === 0 && (
                     <p className='text-sm text-[#aaa69e]'>Aucun commentaire pour le moment.</p>
                   )}
                   {comments.map(comment => (
                     <div key={comment.id} className='flex gap-2'>
-                      <Link href={`/profile/${comment.user_id}`} className='h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#191714]'>
+                      <Link href={`/profile/${comment.user_id}`} className='h-8 w-8 shrink-0 overflow-hidden rounded-full bg-[#0d0e11]'>
                         <MemberAvatarImage src={comment.author_avatar} gender={comment.author_gender} profileStatus={comment.author_profile_status} alt={displayMemberName(comment.author_name)} className='h-full w-full object-cover' />
                       </Link>
                       <div className='min-w-0 flex-1'>
@@ -548,7 +548,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                         setCommentDrafts(current => ({ ...current, [post.id]: value }))
                       }}
                       placeholder='Écrire un commentaire...'
-                      className='h-10 min-w-0 flex-1 rounded-full border border-[#494136] bg-[#191714] px-3 text-sm text-[#f1eee8] outline-none placeholder:text-[#aaa69e] focus:border-[#d6bc87]'
+                      className='h-10 min-w-0 flex-1 rounded-full border border-[#494136] bg-[#0d0e11] px-3 text-sm text-[#f1eee8] outline-none placeholder:text-[#aaa69e] focus:border-[#d6bc87]'
                     />
                     <Button
                       type='button'

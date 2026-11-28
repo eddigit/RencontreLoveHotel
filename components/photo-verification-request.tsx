@@ -82,7 +82,7 @@ export function PhotoVerificationRequest ({ request, identityKind, pseudonym, on
   }
 
   return (
-    <section aria-labelledby='photo-verification-title' className='rounded-2xl border border-[#6c5735] bg-[#171818] p-5 text-[#ecebe7]'>
+    <section aria-labelledby='photo-verification-title' className='rounded-2xl border border-[#6c5735] bg-[#121317] p-5 text-[#ecebe7]'>
       <div className='flex gap-3'>
         <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d6bc87]/15'>
           <UserRoundCheck className='h-5 w-5 text-[#d6bc87]' />

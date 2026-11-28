@@ -174,7 +174,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (pathname === '/' || (!user && isPublicPresentation)) {
     return (
-      <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#191714] text-white'>
+      <div className='visitor-landing-shell min-h-screen overflow-x-hidden bg-[#0d0e11] text-white'>
         <VisitorLandingHeader isAuthenticated={Boolean(user)} />
         <main>{children}</main>
         <Footer />
@@ -184,7 +184,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   if (publicStandaloneRoutes.has(pathname)) {
     return (
-      <div className='auth-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(214,188,135,0.08),transparent_34%),linear-gradient(135deg,#121315_0%,#191919_52%,#101113_100%)] text-white'>
+      <div className='auth-shell min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(86,92,104,0.08),transparent_34%),linear-gradient(135deg,#121315_0%,#191919_52%,#101113_100%)] text-white'>
         {children}
       </div>
     )
@@ -279,7 +279,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   return (
     <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
-    <div data-chat-thread={/^\/messages\/[^/]+\/?$/.test(pathname) || undefined} className={cn('site-shell min-h-screen overflow-x-hidden bg-[#121315] text-white', isMemberShell && styles.discoverShell, isCircleShell && styles.stitchDiscoverShell)}>
+    <div data-chat-thread={/^\/messages\/[^/]+\/?$/.test(pathname) || undefined} className={cn('site-shell min-h-screen overflow-x-hidden bg-[#0d0e11] text-white', isMemberShell && styles.discoverShell, isCircleShell && styles.stitchDiscoverShell)}>
       <div className={cn('mx-auto grid min-h-screen w-full max-w-[1920px] gap-4 px-2 py-2 sm:px-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:px-4 lg:py-4', isCircleShell && styles.stitchDiscoverGrid)}>
           <aside className={cn('sticky top-4 hidden h-[calc(100vh-2rem)] flex-col overflow-y-auto rounded-2xl border border-white/10 bg-black/24 p-4 shadow-2xl shadow-black/20 backdrop-blur-xl lg:flex', isMemberShell && styles.rail, isCircleShell && styles.stitchRail)}>
           <Link href={user ? '/discover' : '/'} className={cn('mb-5 rounded-2xl p-3', isMemberShell && styles.logoLockup, isCircleShell && styles.stitchLogoLockup)}>

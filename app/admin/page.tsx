@@ -60,19 +60,19 @@ export default function AdminPage () {
           <AdminTabs />
 
           <section aria-label='Suivi de la communauté' className='mb-8 grid gap-3 md:grid-cols-2'>
-            <Link href='/admin/idees' className='group flex items-center gap-4 rounded-2xl border border-[#d6bc87]/30 bg-[#d6bc87]/[0.07] p-5 transition hover:border-[#d6bc87]/60 focus-visible:ring-2 focus-visible:ring-[#d6bc87]'>
+            <Link href='/admin/idees' className='group flex items-center gap-4 rounded-2xl border border-[#d6bc87]/30 bg-[#15171b] p-5 transition hover:border-[#d6bc87]/60 focus-visible:ring-2 focus-visible:ring-[#d6bc87]'>
               <Lightbulb aria-hidden='true' className='h-6 w-6 shrink-0 text-[#d6bc87]' />
               <div className='min-w-0 flex-1'><h2 className='text-xl font-bold text-white'>Boîte à idées</h2><p className='mt-1 text-sm text-white/70'>Lire et suivre les idées et les problèmes envoyés par les membres.</p></div>
               <ArrowUpRight aria-hidden='true' className='h-5 w-5 shrink-0 text-[#d6bc87]' />
             </Link>
-            <Link href='/admin/moderation' className='group flex items-center gap-4 rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/[0.06] p-5 transition hover:border-[#d6bc87]/60 focus-visible:ring-2 focus-visible:ring-[#d6bc87]'>
+            <Link href='/admin/moderation' className='group flex items-center gap-4 rounded-2xl border border-[#d6bc87]/25 bg-[#15171b] p-5 transition hover:border-[#d6bc87]/60 focus-visible:ring-2 focus-visible:ring-[#d6bc87]'>
               <ShieldCheck aria-hidden='true' className='h-6 w-6 shrink-0 text-[#d6bc87]' />
               <div className='min-w-0 flex-1'><h2 className='text-xl font-bold text-white'>Modération</h2><p className='mt-1 text-sm text-white/70'>Examiner les alertes et ouvrir les dossiers concernés.</p></div>
               <ArrowUpRight aria-hidden='true' className='h-5 w-5 shrink-0 text-[#d6bc87]' />
             </Link>
           </section>
 
-          <section className='mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#d6bc87]/25 bg-[#191a1c] p-5'>
+          <section className='mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#d6bc87]/25 bg-[#15171b] p-5'>
             <div>
               <h2 className='text-lg font-bold'>Audience du site</h2>
               <p className='mt-1 max-w-xl text-sm text-muted-foreground'>Visiteurs mesurés et pages vues, par jour et par domaine. Les espaces membres sont regroupés pour préserver la confidentialité.</p>

@@ -16,7 +16,7 @@ export function NotificationBadge({ count, variant = "primary", size = "sm" }: N
     variant === "primary"
       ? "bg-[#d6bc87] text-[#191714] border-0"
       : variant === "secondary"
-        ? "bg-[#302c24] text-[#e5d1aa] border-0"
+        ? "bg-[#22242a] text-[#e5d1aa] border-0"
         : "bg-destructive text-destructive-foreground"
 
   const badgeSize = size === "sm" ? "h-4 w-4 text-[10px]" : "h-5 w-5 text-xs"

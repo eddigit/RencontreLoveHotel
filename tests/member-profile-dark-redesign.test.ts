@@ -5,7 +5,7 @@ describe('member profile dark redesign', () => {
   it('keeps the portrait, identity and contact action at the start of the profile', () => {
     const page = readFileSync('app/profile/[id]/page.tsx', 'utf8')
 
-    expect(page).toContain("bg-[#181819]")
+    expect(page).toContain("bg-[#141519]")
     expect(page).toContain("Ce membre n’a pas encore rédigé sa présentation.")
     expect(page).toContain("bg-[#111821]")
     expect(page).toContain("text-[#ecebe7]")

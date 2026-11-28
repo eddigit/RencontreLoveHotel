@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 const inputClass =
-  'w-full rounded-xl border border-[#494136] bg-[#191714] px-3.5 py-3 text-[#f4efe5] placeholder:text-[#b8ad9e] outline-none transition focus:border-[#d6bc87] focus:ring-2 focus:ring-[#d6bc87]/25'
+  'w-full rounded-xl border border-[#494136] bg-[#0d0e11] px-3.5 py-3 text-[#f4efe5] placeholder:text-[#b8ad9e] outline-none transition focus:border-[#d6bc87] focus:ring-2 focus:ring-[#d6bc87]/25'
 
 const requestTypes = [
   {
@@ -130,7 +130,7 @@ export default function ConciergerieForm() {
 
   return (
     <section className='w-full py-6 sm:py-8'>
-      <form onSubmit={handleSubmit} className='mx-auto max-w-5xl rounded-2xl border border-[#494136] bg-[#191714] p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] sm:p-6 lg:p-8'>
+      <form onSubmit={handleSubmit} className='mx-auto max-w-5xl rounded-2xl border border-[#494136] bg-[#0d0e11] p-4 shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] sm:p-6 lg:p-8'>
         <div className='border-b border-[#494136] pb-5'>
           <div className='flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-[#d6bc87]'>
             <Sparkles className='h-4 w-4' /> Demande privée
@@ -150,7 +150,7 @@ export default function ConciergerieForm() {
                     'relative cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#d6bc87]',
                     requestType === type.value
                       ? 'border-[#d6bc87] bg-[#d6bc87]/15 text-[#f4efe5]'
-                      : 'border-[#494136] bg-[#191714] text-[#ded6ca] hover:border-[#d6bc87]/60 hover:text-[#f4efe5]'
+                      : 'border-[#494136] bg-[#0d0e11] text-[#ded6ca] hover:border-[#d6bc87]/60 hover:text-[#f4efe5]'
                   ].join(' ')}
                 >
                   <input className='sr-only' type='radio' name='concierge-experience' value={type.value}
@@ -207,7 +207,7 @@ export default function ConciergerieForm() {
                 placeholder='Si vous voulez être rappelé'
               />
             </label>
-            <div className='rounded-xl border border-[#494136] bg-[#191714] p-3 text-sm leading-5 text-[#b8ad9e]'><Mail className='mb-1 h-4 w-4 text-[#d6bc87]' /> Vos coordonnées servent uniquement à répondre à cette demande.</div>
+            <div className='rounded-xl border border-[#494136] bg-[#0d0e11] p-3 text-sm leading-5 text-[#b8ad9e]'><Mail className='mb-1 h-4 w-4 text-[#d6bc87]' /> Vos coordonnées servent uniquement à répondre à cette demande.</div>
           </div>
         </fieldset>
 

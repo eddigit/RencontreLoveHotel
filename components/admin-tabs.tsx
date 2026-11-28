@@ -24,7 +24,7 @@ export function AdminTabs () {
   const pathname = usePathname()
   return (
     <nav
-      className='mb-6 flex gap-1.5 overflow-x-auto md:flex-wrap rounded-2xl border border-white/10 bg-[#191a1c] p-2 shadow-lg shadow-black/10 backdrop-blur-xl'
+      className='mb-6 flex gap-1.5 overflow-x-auto md:flex-wrap rounded-2xl border border-white/10 bg-[#15171b] p-2 shadow-lg shadow-black/10 backdrop-blur-xl'
       aria-label='Navigation administration'
     >
       {tabs.map(tab => {

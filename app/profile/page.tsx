@@ -438,11 +438,11 @@ export default async function ProfilePage ({
             <div className='rounded-2xl border border-[#111821] bg-[#0a0f15] p-5'>
               <h3 className='font-black'>Ce qui aide à matcher</h3>
               <div className='mt-4 flex flex-wrap gap-2'>
-                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Statut clair</Badge>
-                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Photos récentes</Badge>
-                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Intentions</Badge>
-                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Disponibilités</Badge>
-                <Badge className='rounded-full bg-[#3b3b38] text-[#fff8e8]'>Rideaux ouverts</Badge>
+                <Badge className='rounded-full bg-[#282b31] text-[#fff8e8]'>Statut clair</Badge>
+                <Badge className='rounded-full bg-[#282b31] text-[#fff8e8]'>Photos récentes</Badge>
+                <Badge className='rounded-full bg-[#282b31] text-[#fff8e8]'>Intentions</Badge>
+                <Badge className='rounded-full bg-[#282b31] text-[#fff8e8]'>Disponibilités</Badge>
+                <Badge className='rounded-full bg-[#282b31] text-[#fff8e8]'>Rideaux ouverts</Badge>
               </div>
             </div>
           </aside>
@@ -491,7 +491,7 @@ export default async function ProfilePage ({
             </div>
           </TabsContent>
           <TabsContent value='preferences'>
-            <div className='rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
+            <div className='rounded-2xl border border-[#3b3b38] bg-[#1a1c21] p-4 sm:p-6'>
               <h3 className='text-lg font-black'>Préférences de rencontre</h3>
               {/* PreferencesEditor will handle the form for preferences and meeting types */}
               <PreferencesEditor
@@ -503,7 +503,7 @@ export default async function ProfilePage ({
             </div>
           </TabsContent>
           <TabsContent value='photos'>
-            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
+            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#1a1c21] p-4 sm:p-6'>
               <PrivateAlbumManager />
               {userPhotos.length > 0 && (
                 <section className='mt-6'>
@@ -516,7 +516,7 @@ export default async function ProfilePage ({
             </div>
           </TabsContent>
           <TabsContent value='emails'>
-            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#232423] p-4 sm:p-6'>
+            <div className='min-w-0 rounded-2xl border border-[#3b3b38] bg-[#1a1c21] p-4 sm:p-6'>
               <h3 className='text-lg font-black'>Préférences e-mail</h3>
               {emailPreferences ? <EmailPreferencesEditor
                 preferences={emailPreferences}
@@ -536,12 +536,12 @@ export default async function ProfilePage ({
               <p className='mt-3 text-sm leading-6 text-[#d7cfbf]'>
                 Vos préférences aident à proposer une chambre, un apéro jacuzzi ou une bouteille de champagne au bon moment.
               </p>
-              <Button asChild variant='outline' className='mt-4 w-full border-[#6c5735] bg-[#171818] text-[#fff8e8]'>
+              <Button asChild variant='outline' className='mt-4 w-full border-[#6c5735] bg-[#121317] text-[#fff8e8]'>
                 <Link href='/love-rooms'>Voir les expériences</Link>
               </Button>
             </div>
 
-            <div className='rounded-2xl border border-[#3b3b38] bg-[#232423] p-5'>
+            <div className='rounded-2xl border border-[#3b3b38] bg-[#1a1c21] p-5'>
               <h3 className='flex items-center gap-2 font-black'>
                 <CalendarHeart className='h-4 w-4 text-[#e3bf80]' />
                 Événements
@@ -549,7 +549,7 @@ export default async function ProfilePage ({
               <p className='mt-3 text-sm leading-6 text-[#d7cfbf]'>
                 Activez les bons champs pour remonter dans les recommandations d’apéros, soirées et rideaux ouverts.
               </p>
-              <Button asChild variant='outline' className='mt-4 w-full border-[#3b3b38] bg-[#171818] text-[#fff8e8]'>
+              <Button asChild variant='outline' className='mt-4 w-full border-[#3b3b38] bg-[#121317] text-[#fff8e8]'>
                 <Link href='/events'>Voir l’agenda</Link>
               </Button>
             </div>

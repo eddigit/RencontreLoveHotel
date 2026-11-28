@@ -7,7 +7,7 @@ import { displayMemberName } from '@/lib/display-member-name'
 
 export function AdminHeader({ user }: { user?: any }) {
   return (
-    <div className='mb-6 mt-2 flex flex-col gap-5 rounded-3xl border border-white/10 bg-[#191a1c] p-5 shadow-2xl shadow-black/15 backdrop-blur-xl sm:p-6 lg:flex-row lg:items-center lg:justify-between'>
+    <div className='mb-6 mt-2 flex flex-col gap-5 rounded-3xl border border-white/10 bg-[#15171b] p-5 shadow-2xl shadow-black/15 backdrop-blur-xl sm:p-6 lg:flex-row lg:items-center lg:justify-between'>
       <div className='flex min-w-0 items-center gap-4'>
         <Link href='/admin' aria-label='Joug Rencontre — Administration' className='flex w-20 shrink-0 justify-center sm:w-24 [&_img]:h-14 sm:[&_img]:h-16'>
           <BrandLogo compact priority />

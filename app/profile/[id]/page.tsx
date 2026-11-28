@@ -110,11 +110,11 @@ export default async function ProfilePage ({
           <MemberProfileBackButton />
           {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
         </div>
-        <header className='overflow-hidden rounded-2xl bg-[#181819]'>
-          <div aria-hidden='true' className='h-24 bg-[#251f19] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "linear-gradient(0deg, #181819, #15131670 75%), url('/guide-love-rooms.webp')"}} />
+        <header className='overflow-hidden rounded-2xl bg-[#141519]'>
+          <div aria-hidden='true' className='h-24 bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
           <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 px-4 pb-5 sm:px-6'>
             <div className='flex min-w-0 flex-1 items-end gap-3 sm:gap-5'>
-              <div className='relative aspect-square w-20 shrink-0 rounded-full bg-[#111214] ring-4 ring-[#181819] sm:w-32'>
+              <div className='relative aspect-square w-20 shrink-0 rounded-full bg-[#111214] ring-4 ring-[#141519] sm:w-32'>
                 {avatar.startsWith('http') ? (
                   <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full rounded-full object-cover object-[center_35%]' />
                 ) : (
@@ -152,7 +152,7 @@ export default async function ProfilePage ({
             <MeetingCategories selected={categories} />
           </div>
           {desires.length > 0 && <ul aria-label='Envies de rencontre' className='flex flex-wrap gap-2 px-4 pb-5 sm:px-6'>
-            {desires.map(({ value, label }) => <li key={value} className='inline-flex items-center gap-2 rounded-full bg-[#272521] px-3 py-1.5 text-sm text-[#ead6aa]'>
+            {desires.map(({ value, label }) => <li key={value} className='inline-flex items-center gap-2 rounded-full bg-[#1c1e23] px-3 py-1.5 text-sm text-[#ead6aa]'>
               <DesireIcon value={value} className='size-7 shrink-0' />{label}
             </li>)}
           </ul>}
@@ -162,7 +162,7 @@ export default async function ProfilePage ({
         </nav>
         <div className='grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]'>
           <div className='grid min-w-0 gap-5'>
-            <section id='descriptif' className='scroll-mt-20 rounded-2xl bg-[#181819] p-5'>
+            <section id='descriptif' className='scroll-mt-20 rounded-2xl bg-[#141519] p-5'>
               <h2 className='text-xl font-bold'>Présentation</h2>
               <p className='mt-3 whitespace-pre-line break-words leading-7 text-stone-300'>{profile.bio?.trim() || 'Ce membre n’a pas encore rédigé sa présentation.'}</p>
             </section>
@@ -176,7 +176,7 @@ export default async function ProfilePage ({
               </div>
             </section>
             {canShowActions && <MemberPrivateAlbum ownerId={String(profile.user_id)} />}
-            <section id='mots' className='scroll-mt-20 rounded-2xl bg-[#181819] p-5'>
+            <section id='mots' className='scroll-mt-20 rounded-2xl bg-[#141519] p-5'>
               <h2 className='text-lg font-bold'>Commentaires après rencontre</h2>
               {publicPostMeetingWords.length ? <PublicPostMeetingWordsClient words={publicPostMeetingWords} /> : <p className='mt-2 text-sm text-stone-400'>Aucun mot publié pour le moment.</p>}
               {canShowActions && <details className='mt-3'><summary className='cursor-pointer py-2 text-sm font-semibold text-[#d6bc87]'>Laisser un mot après une rencontre</summary><PostMeetingWordForm recipientUserId={String(profile.user_id)} onSubmit={submitPostMeetingWord} /></details>}

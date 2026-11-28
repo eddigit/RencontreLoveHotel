@@ -32,13 +32,13 @@ export function CircleActivityCards({ threads, matches, loading, unread }: {
     }
   ]
   return <div aria-label='Messages et affinités' className='grid gap-3 sm:grid-cols-2'>
-    {panels.map(panel => <section key={panel.href} className='flex min-w-0 flex-col rounded-xl border border-[#494136] bg-[#191714] p-4'>
+    {panels.map(panel => <section key={panel.href} className='flex min-w-0 flex-col rounded-xl border border-[#494136] bg-[#0d0e11] p-4'>
       <div className='mb-3 flex items-center gap-2'><panel.icon aria-hidden className='size-4 text-[#d6bc87]' />
         <h2 className='text-base font-semibold'>{panel.title}</h2>
         {panel.href === '/messages' && unread > 0 && <span className='ml-auto text-xs text-[#d6bc87]'>{unread} non lu{unread > 1 ? 's' : ''}</span>}
       </div>
       {panel.rows.length === 0 && <p className='mb-3 text-sm text-[#aaa69e]'>{loading ? 'Chargement…' : panel.empty}</p>}
-      {panel.rows.map(row => <Link key={row.id} href={row.href} className='flex min-h-12 items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-[#24211d]'>
+      {panel.rows.map(row => <Link key={row.id} href={row.href} className='flex min-h-12 items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-[#191b20]'>
         <Portrait name={row.name} avatar={row.avatar} gender={row.gender} profileStatus={row.profileStatus} />
         <span className='min-w-0'><span className='block truncate text-sm font-semibold'>{displayMemberName(row.name)}</span>
           <span className='block truncate text-xs text-[#aaa69e]'>{row.detail}</span></span>

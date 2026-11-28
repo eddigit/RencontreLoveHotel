@@ -9,8 +9,8 @@ describe('auth bootstrap shell', () => {
     const globals = source('app/globals.css')
     const providers = source('components/providers.tsx')
 
-    expect(layout).toContain("themeColor: '#191714'")
-    expect(layout).toContain('bg-[#191714] text-[#f1eee8]')
+    expect(layout).toContain("themeColor: '#0d0e11'")
+    expect(layout).toContain('bg-[#0d0e11] text-[#f1eee8]')
     expect(layout).not.toContain('from-[#1a0d2e] to-[#3d1155]')
     expect(globals).toContain('.auth-bootstrap-frame')
     expect(providers).toContain("fallback={<div className='auth-bootstrap-frame'")
@@ -36,7 +36,7 @@ describe('auth bootstrap shell', () => {
     expect(source(loadingFiles[0])).toContain('auth-bootstrap-frame')
 
     for (const file of loadingFiles.slice(1)) {
-      expect(source(file)).toContain('#191714')
+      expect(source(file)).toContain('#0d0e11')
     }
   })
 })

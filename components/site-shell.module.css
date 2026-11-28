@@ -15,7 +15,7 @@
   display: grid;
   place-items: center;
   font-size: 0.875rem;
-  background: #191714;
+  background: #0d0e11;
   color: #f1eee8;
   min-height: 100dvh;
 }
@@ -54,7 +54,7 @@
 }
 
 .navigationLinkActive {
-  background: #302c24;
+  background: #22242a;
   box-shadow: inset 2px 0 #d6bc87;
   color: white;
 }
@@ -78,7 +78,7 @@
 
 .searchForm {
   align-items: center;
-  background: #252522;
+  background: #1a1c21;
   border: 1px solid transparent;
   border-radius: 0.75rem;
   color: var(--discover-muted);
@@ -91,7 +91,7 @@
 }
 
 .searchForm:focus-within {
-  background: #1b1c1e;
+  background: #141519;
   border-color: var(--discover-accent);
 }
 
@@ -258,8 +258,8 @@
 
 /* Shared chrome for the community screens. */
 .stitchDiscoverShell {
-  --discover-canvas: #121315;
-  --discover-paper: #1b1c1e;
+  --discover-canvas: #0d0e11;
+  --discover-paper: #141519;
   --discover-ink: #f0ece3;
   --discover-muted: #bbb7ae;
   --discover-charcoal: #101113;
@@ -301,17 +301,17 @@
 }
 
 .stitchDiscoverShell .navigationLink:hover {
-  background: #252522;
+  background: #1a1c21;
   color: var(--discover-ink);
 }
 
 .stitchDiscoverShell .navigationLinkActive {
-  background: #252522;
+  background: #1a1c21;
   box-shadow: inset 3px 0 0 var(--discover-accent);
   color: var(--discover-ink);
 }
 
-.stitchDiscoverShell .profileLink { background: #1b1c1e; }
+.stitchDiscoverShell .profileLink { background: #141519; }
 
 .stitchPanel { background: var(--discover-canvas) !important; }
 
@@ -327,10 +327,10 @@
   padding: 0.4rem 0.55rem;
 }
 
-.feedbackLink:hover { background: #252522; color: var(--discover-ink); }
+.feedbackLink:hover { background: #1a1c21; color: var(--discover-ink); }
 
 .stitchCommunityStrip {
-  --discover-paper: #1b1c1e;
+  --discover-paper: #141519;
   --discover-line: #494136;
   --discover-ink: #f0ece3;
   --discover-muted: #bbb7ae;
@@ -346,7 +346,7 @@
 .stitchCommunityStrip .stripLink:hover { color: var(--discover-ink); }
 .stitchCommunityStrip .portraitItem { flex-basis: 4.25rem; }
 .stitchCommunityStrip .portraitCard { border-radius: 0.5rem; padding: 0.15rem; }
-.stitchCommunityStrip .portraitPhoto { background: #252522; }
+.stitchCommunityStrip .portraitPhoto { background: #1a1c21; }
 .stitchCommunityStrip .onlineDot {
   background: #10b981;
   box-shadow: 0 0 10px rgb(16 185 129 / 0.55);
@@ -367,7 +367,7 @@
   flex-direction: column;
   border-radius: 22px 22px 0 0;
   color: #f0ece3;
-  background: #191a1c;
+  background: #15171b;
   box-shadow: 0 -12px 50px #0005;
   --discover-ink: #f0ece3;
   --discover-muted: #c6c2b8;
@@ -401,7 +401,7 @@
   color: #e6e2db;
 }
 .menuLinks nav a[aria-current='page'] {
-  background: #322e26;
+  background: #22242a;
   color: #fae092;
   box-shadow: inset 0 0 0 1px #d6bc8766;
 }

@@ -253,11 +253,11 @@ export default function MembersPage() {
                     placeholder='Nom ou ville'
                     value={filters.search || ''}
                     onChange={event => setFilters(current => ({ ...current, search: event.target.value }))}
-                    className='h-11 border-[#494136] bg-[#24211d] pl-9 text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#d6bc87]'
+                    className='h-11 border-[#494136] bg-[#191b20] pl-9 text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#d6bc87]'
                   />
               </div>
               <Button type='submit' size='icon' disabled={loading} className='h-11 w-11 bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]' aria-label='Lancer la recherche'><Search className='h-4 w-4' /></Button>
-              <Button ref={filterToggleRef} type='button' variant='outline' onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls='filtres-avances-membres' aria-label={filtersOpen ? 'Masquer les filtres avancés' : 'Afficher les filtres avancés'} className='h-11 border-[#3b4257] bg-[#24211d] px-3 text-[#f8fafc] hover:bg-[#302c26] hover:text-white'><Filter className='mr-2 h-4 w-4' />Filtres</Button>
+              <Button ref={filterToggleRef} type='button' variant='outline' onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls='filtres-avances-membres' aria-label={filtersOpen ? 'Masquer les filtres avancés' : 'Afficher les filtres avancés'} className='h-11 border-[#3b4257] bg-[#191b20] px-3 text-[#f8fafc] hover:bg-[#23262c] hover:text-white'><Filter className='mr-2 h-4 w-4' />Filtres</Button>
             </form>
 
             <div role='group' aria-label='Catégories de rencontre' className='mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap'>
@@ -284,7 +284,7 @@ export default function MembersPage() {
                 <div className='grid gap-3 md:grid-cols-2 xl:grid-cols-3'>
                   <label className='text-sm font-semibold'>
                     Type de membre
-                    <select value={filters.profileType || 'all'} onChange={event => applyFilters({ ...filters, profileType: event.target.value as CommunityMemberDirectoryFilters['profileType'] })} className='mt-1 h-10 w-full rounded-md border border-[#494136] bg-[#24211d] px-3 text-sm text-[#f8fafc]'>
+                    <select value={filters.profileType || 'all'} onChange={event => applyFilters({ ...filters, profileType: event.target.value as CommunityMemberDirectoryFilters['profileType'] })} className='mt-1 h-10 w-full rounded-md border border-[#494136] bg-[#191b20] px-3 text-sm text-[#f8fafc]'>
                       <option value='all'>Tous les membres</option><option value='couple'>Couples</option><option value='woman'>Femmes</option><option value='man'>Hommes</option><option value='trans'>Personnes trans</option>
                     </select>
                   </label>
@@ -293,7 +293,7 @@ export default function MembersPage() {
                     <select
                       value={filters.orientation || 'all'}
                       onChange={event => applyFilters({ ...filters, orientation: event.target.value as CommunityMemberDirectoryFilters['orientation'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#191714] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm text-white'
                     >
                       <option value='all'>Toutes les orientations</option>
                       <option value='hetero'>Hétéro</option>
@@ -311,7 +311,7 @@ export default function MembersPage() {
                     <select
                       value={filters.meetingCriterion || 'all'}
                       onChange={event => applyFilters({ ...filters, meetingCriterion: event.target.value as CommunityMemberDirectoryFilters['meetingCriterion'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#191714] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm text-white'
                     >
                       <option value='all'>Tous les critères</option>
                       <option value='open_couples'>Ouverts aux couples</option>
@@ -325,7 +325,7 @@ export default function MembersPage() {
                     <select
                       value={filters.relationshipIntent || 'all'}
                       onChange={event => applyFilters({ ...filters, relationshipIntent: event.target.value as CommunityMemberDirectoryFilters['relationshipIntent'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#191714] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm text-white'
                     >
                       <option value='all'>Toutes les envies</option>
                       {relationshipIntentOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -337,14 +337,14 @@ export default function MembersPage() {
                     <select
                       value={filters.bdsmRole || 'all'}
                       onChange={event => applyFilters({ ...filters, bdsmRole: event.target.value as CommunityMemberDirectoryFilters['bdsmRole'] })}
-                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#191714] px-3 text-sm text-white'
+                      className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm text-white'
                     >
                       <option value='all'>Toutes les affinités</option>
                       {bdsmRoleOptions.filter(option => option.value !== 'none').map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </label>
 
-                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#191714] px-3 text-sm font-semibold'>
+                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm font-semibold'>
                     <input
                       type='checkbox'
                       checked={Boolean(filters.onlineOnly)}
@@ -353,7 +353,7 @@ export default function MembersPage() {
                     />
                     En ligne maintenant
                   </label>
-                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#191714] px-3 text-sm font-semibold'>
+                  <label className='flex h-10 items-center gap-3 self-end rounded-md border border-white/10 bg-[#0d0e11] px-3 text-sm font-semibold'>
                     <input
                       type='checkbox'
                       checked={Boolean(filters.recent)}
@@ -369,7 +369,7 @@ export default function MembersPage() {
             {appliedCriteria.length > 0 && (
               <div className='mt-3 flex flex-wrap gap-2'>
                 {appliedCriteria.map(criterion => (
-                  <span key={criterion} className='rounded-full bg-[#24211d] px-2.5 py-1 text-xs text-[#f1eee8]'>{criterion}</span>
+                  <span key={criterion} className='rounded-full bg-[#191b20] px-2.5 py-1 text-xs text-[#f1eee8]'>{criterion}</span>
                 ))}
               </div>
             )}

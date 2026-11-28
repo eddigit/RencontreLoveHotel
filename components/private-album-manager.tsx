@@ -296,7 +296,7 @@ export function PrivateAlbumManager() {
   return (
     <section
       aria-labelledby="private-album-title"
-      className="mt-6 rounded-2xl border border-[#d6bc87]/25 bg-[#171818] p-4 sm:p-6"
+      className="mt-6 rounded-2xl border border-[#d6bc87]/25 bg-[#121317] p-4 sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>

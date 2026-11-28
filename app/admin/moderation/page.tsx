@@ -79,7 +79,7 @@ export default function AdminModerationPage () {
           <AdminHeader user={user} />
           <AdminTabs />
 
-          <div className='mb-8 overflow-hidden rounded-3xl border border-[#d6bc87]/20 bg-[linear-gradient(135deg,rgba(214,188,135,0.13),rgba(32,33,35,0.8),rgba(0,0,0,0.18))] p-6 shadow-2xl shadow-black/15 sm:p-8'>
+          <div className='mb-8 overflow-hidden rounded-3xl border border-[#d6bc87]/20 bg-[linear-gradient(135deg,rgba(86,92,104,0.13),rgba(32,33,35,0.8),rgba(0,0,0,0.18))] p-6 shadow-2xl shadow-black/15 sm:p-8'>
             <div className='flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between'>
               <div className='max-w-3xl'>
                 <div className='mb-3 flex items-center gap-2 text-[#d6bc87]'>

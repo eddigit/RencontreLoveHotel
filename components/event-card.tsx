@@ -83,7 +83,7 @@ export function EventCard ({
     : `${attendees} participant${attendees > 1 ? 's' : ''}`
 
   return (
-    <Card className='group flex h-full flex-col overflow-hidden border border-[#494136] bg-[#191714] text-[#f4efe5] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] transition-colors hover:border-[#d6bc87]/70 hover:bg-[#211e1a]'>
+    <Card className='group flex h-full flex-col overflow-hidden border border-[#494136] bg-[#0d0e11] text-[#f4efe5] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] transition-colors hover:border-[#d6bc87]/70 hover:bg-[#15171b]'>
       <div className='relative h-48 shrink-0 overflow-hidden sm:h-52'>
         <Image
           src={eventImage}
@@ -94,11 +94,11 @@ export function EventCard ({
         />
         <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13]/90 via-[#0d0e13]/20 to-transparent' />
         <div className='absolute left-3 top-3 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-2'>
-          {experienceLabel && <span className='inline-flex items-center gap-1 rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'><Sparkles className='h-3 w-3' />{experienceLabel}</span>}
-          {isPast && <span className='rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#b8ad9e] backdrop-blur'>Terminé</span>}
-          {!isPast && isFull && <span className='rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'>Complet</span>}
+          {experienceLabel && <span className='inline-flex items-center gap-1 rounded-md bg-[#0d0e11]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'><Sparkles className='h-3 w-3' />{experienceLabel}</span>}
+          {isPast && <span className='rounded-md bg-[#0d0e11]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#b8ad9e] backdrop-blur'>Terminé</span>}
+          {!isPast && isFull && <span className='rounded-md bg-[#0d0e11]/85 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[#e5d1aa] backdrop-blur'>Complet</span>}
         </div>
-        {venue && <span className='absolute bottom-3 left-3 rounded-md bg-[#191714]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#ded6ca] backdrop-blur'>{venueLabels[venue] || venue}</span>}
+        {venue && <span className='absolute bottom-3 left-3 rounded-md bg-[#0d0e11]/85 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#ded6ca] backdrop-blur'>{venueLabels[venue] || venue}</span>}
       </div>
       <CardContent className='flex flex-1 flex-col p-5'>
         <div className='flex items-center justify-between gap-3 text-xs text-[#ad8887]'>
@@ -134,7 +134,7 @@ export function EventCard ({
         </Button>
 
         {id && (
-          <Button asChild variant='outline' className='w-full rounded-xl border-[#494136] bg-transparent text-[#f4efe5] hover:bg-[#2a261f] hover:text-[#e5d1aa]'>
+          <Button asChild variant='outline' className='w-full rounded-xl border-[#494136] bg-transparent text-[#f4efe5] hover:bg-[#202228] hover:text-[#e5d1aa]'>
             <Link href={`/events/${id}`}>Voir les détails <ArrowRight className='h-4 w-4' /></Link>
           </Button>
         )}

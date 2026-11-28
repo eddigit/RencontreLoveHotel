@@ -9,7 +9,7 @@ export function MeetingCategories({ selected, onToggle }: {
   return <div role='group' aria-label='Catégories de rencontre' className='grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap'>
     {meetingCategories.map(({ value, label }) => {
       const active = selected.includes(value)
-      const style = `flex min-h-12 min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ring-1 ${active ? 'bg-[#292621] text-[#fae092] ring-[#fae092]/65' : 'bg-[#17181c] text-stone-400 ring-white/10'}`
+      const style = `flex min-h-12 min-w-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ring-1 ${active ? 'bg-[#1c1e23] text-[#fae092] ring-[#fae092]/65' : 'bg-[#17181c] text-stone-400 ring-white/10'}`
       const content = <>
         <DesireIcon value={value} className={`size-7 shrink-0 ${active ? '' : 'grayscale opacity-60'}`} />
         <span>{label}</span>

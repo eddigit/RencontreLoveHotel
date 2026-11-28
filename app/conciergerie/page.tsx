@@ -44,7 +44,7 @@ export default async function ConciergeriePage() {
     <MainLayout session={session} user={user}>
       <div className='container py-4 md:py-6'>
         <div className='space-y-7'>
-          <section className='overflow-hidden rounded-2xl border border-[#494136] bg-[#191714] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)]'>
+          <section className='overflow-hidden rounded-2xl border border-[#494136] bg-[#0d0e11] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)]'>
             <div className='grid min-h-[260px] md:grid-cols-[0.9fr_1.1fr]'>
               <div className='relative min-h-[220px] overflow-hidden'>
                   <img
@@ -52,7 +52,7 @@ export default async function ConciergeriePage() {
                     alt='Conciergerie privée Love Hotel'
                     className='absolute inset-0 h-full w-full object-cover'
                   />
-                  <div className='absolute inset-0 bg-gradient-to-t from-[#191714] via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#191714]' />
+                  <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e11] via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#0d0e11]' />
               </div>
               <div className='flex flex-col justify-center p-6 sm:p-8'>
                 <h1 className='max-w-xl text-3xl font-semibold leading-tight text-[#f4efe5] sm:text-4xl'>
@@ -85,7 +85,7 @@ export default async function ConciergeriePage() {
               return (
                 <div
                   key={item.title}
-                  className='rounded-xl border border-[#494136] bg-[#191714] p-5'
+                  className='rounded-xl border border-[#494136] bg-[#0d0e11] p-5'
                 >
                   <Icon className='h-5 w-5 text-[#d6bc87]' />
                   <h3 className='mt-4 font-semibold text-[#f4efe5]'>{item.title}</h3>

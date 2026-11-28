@@ -51,7 +51,7 @@ function ConversationAvatar ({ conversation, size = 'normal' }: { conversation: 
 
   return (
     <div className={`relative ${avatarSize} shrink-0`}>
-      <div className='h-full w-full overflow-hidden rounded-full border border-[#494136] bg-[#24211d]'>
+      <div className='h-full w-full overflow-hidden rounded-full border border-[#494136] bg-[#191b20]'>
         <MemberAvatarImage
           src={conversation.other_user_avatar}
           gender={conversation.other_user_gender}
@@ -114,15 +114,15 @@ export function ConversationList ({ conversations, loading, activeConversationId
       <div className='border-b border-[#494136] px-4 pb-3 pt-4 sm:px-5'>
         <div className='flex items-start justify-between gap-4'>
           <div>{showHeading && <h2 className='font-semibold tracking-tight text-[#f8fafc]'>Messagerie privée</h2>}<p className={showHeading ? 'mt-1 text-xs text-[#94a3b8]' : 'text-xs text-[#94a3b8]'}>Vos conversations les plus récentes.</p></div>
-          <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-[#494136] bg-[#24211d] px-2.5 py-1 text-xs font-semibold tabular-nums text-[#f1eee8]'>{conversations.length}</span>
+          <span aria-label={`${conversations.length} conversation${conversations.length > 1 ? 's' : ''}`} className='rounded-full border border-[#494136] bg-[#191b20] px-2.5 py-1 text-xs font-semibold tabular-nums text-[#f1eee8]'>{conversations.length}</span>
         </div>
         <div className='relative mt-4'>
           <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]' aria-hidden='true' />
-          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#494136] bg-[#191714] pl-9 text-sm text-[#f8fafc] placeholder:text-[#aaa69e] focus-visible:ring-[#d6bc87]' />
+          <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#494136] bg-[#0d0e11] pl-9 text-sm text-[#f8fafc] placeholder:text-[#aaa69e] focus-visible:ring-[#d6bc87]' />
         </div>
         <div className='mt-3 flex gap-2 overflow-x-auto pb-0.5' aria-label='Filtres de conversation'>
-          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#191714] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
-          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#191714] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
+          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
+          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
         </div>
       </div>
 
@@ -131,10 +131,10 @@ export function ConversationList ({ conversations, loading, activeConversationId
           <div className='space-y-1.5' aria-label='Chargement des conversations'>
             {[0, 1, 2, 3].map(item => (
               <div key={item} className='flex animate-pulse items-center gap-3 rounded-xl p-3'>
-                <div className='h-11 w-11 rounded-full bg-[#494136]' />
+                <div className='h-11 w-11 rounded-full bg-[#34363c]' />
                 <div className='flex-1 space-y-2'>
-                  <div className='h-3 w-2/5 rounded bg-[#494136]' />
-                  <div className='h-3 w-4/5 rounded bg-[#24211d]' />
+                  <div className='h-3 w-2/5 rounded bg-[#34363c]' />
+                  <div className='h-3 w-4/5 rounded bg-[#191b20]' />
                 </div>
               </div>
             ))}
@@ -155,7 +155,7 @@ export function ConversationList ({ conversations, loading, activeConversationId
               href={`/messages/${conversation.id}`}
               key={conversation.id}
               aria-current={conversation.id === activeConversationId ? 'page' : undefined}
-              className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#24211d] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87] active:scale-[0.99]'
+              className='group flex min-h-[68px] items-center gap-3 rounded-xl border border-transparent px-3 py-2.5 transition hover:border-[#3b4257] hover:bg-[#191b20] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d6bc87] active:scale-[0.99]'
               aria-label={`Ouvrir la conversation avec ${displayMemberName(conversation.other_user_name, 'ce membre')}${conversation.has_unread_messages ? ', messages non lus' : ''}${conversation.last_message_date ? `. Dernière activité : ${conversation.last_message_date}` : ''}`}
             >
               <ConversationAvatar conversation={conversation} />

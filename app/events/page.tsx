@@ -256,7 +256,7 @@ export default function EventsPage () {
 
   return (
     <MainLayout user={authUser}>
-      <div className='min-h-screen flex flex-col bg-[#191714] text-[#f4efe5]'>
+      <div className='min-h-screen flex flex-col bg-[#0d0e11] text-[#f4efe5]'>
         <div className='container py-4 md:py-6 flex-1'>
           <header className='mb-5 flex flex-col gap-4 border-b border-[#494136] pb-5 sm:flex-row sm:items-end sm:justify-between'>
             <div>
@@ -269,7 +269,7 @@ export default function EventsPage () {
             </Button>
           </header>
 
-          <section className='mb-6 overflow-hidden rounded-2xl border border-[#d6bc87]/30 bg-[linear-gradient(135deg,rgba(214,188,135,0.12),rgba(22,24,31,1))] p-5 sm:p-6'>
+          <section className='mb-6 overflow-hidden rounded-2xl border border-[#d6bc87]/30 bg-[linear-gradient(135deg,rgba(86,92,104,0.12),rgba(22,24,31,1))] p-5 sm:p-6'>
             <div className='flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between'>
               <div className='max-w-3xl'>
                 <p className='text-xs font-semibold uppercase tracking-[0.16em] text-[#d6bc87]'>Offre partenaire actuelle</p>
@@ -300,11 +300,11 @@ export default function EventsPage () {
 
           <section className='mb-6 space-y-6'>
             {!loading && featuredEvent && (
-              <article className='grid overflow-hidden rounded-2xl border border-[#494136] bg-[#191714] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)] lg:grid-cols-[minmax(0,1.1fr),minmax(360px,0.9fr)]'>
+              <article className='grid overflow-hidden rounded-2xl border border-[#494136] bg-[#0d0e11] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.55)] lg:grid-cols-[minmax(0,1.1fr),minmax(360px,0.9fr)]'>
                 <div className='relative min-h-64 lg:min-h-[360px]'>
                   <Image src={featuredEvent.image || CIRCLE_EVENT_PHOTOS.gathering} alt={featuredEvent.title} fill priority sizes='(min-width: 1024px) 52vw, 100vw' className='object-cover' />
                   <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e13] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:to-[#16181f]' />
-                  <p className='absolute left-4 top-4 rounded-md border border-[#494136] bg-[#191714]/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#d6bc87] backdrop-blur'>Date la plus proche</p>
+                  <p className='absolute left-4 top-4 rounded-md border border-[#494136] bg-[#0d0e11]/80 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#d6bc87] backdrop-blur'>Date la plus proche</p>
                 </div>
                 <div className='flex flex-col justify-center p-6 sm:p-8'>
                   <p className='text-xs font-semibold uppercase tracking-[0.14em] text-[#d6bc87]'>{getEventType(featuredEvent) ? categories.find(category => category.value === getEventType(featuredEvent))?.label || getEventType(featuredEvent) : 'Événement'}</p>
@@ -463,7 +463,7 @@ export default function EventsPage () {
             </div>
           </section>
 
-          <section className='mb-6 rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(214,188,135,0.07),rgba(22,24,31,1))] p-5'>
+          <section className='mb-6 rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(86,92,104,0.07),rgba(22,24,31,1))] p-5'>
             <div className='flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between'>
               <div>
                 <p className='text-xs font-bold uppercase tracking-[0.18em] text-[#ffb3b2]'>

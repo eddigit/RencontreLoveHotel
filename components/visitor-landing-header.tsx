@@ -6,7 +6,7 @@ import { BrandLogo } from '@/components/brand-logo'
 
 export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
-    <header className='sticky top-0 z-50 border-b border-[#494136] bg-[#191714]/95 backdrop-blur-xl'>
+    <header className='sticky top-0 z-50 border-b border-[#494136] bg-[#0d0e11]/95 backdrop-blur-xl'>
       <div className='mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-4 px-4 sm:h-20 sm:px-6 lg:px-10'>
         <Link href='/' aria-label='Accueil Love Hotel Rencontre' className='min-w-0 max-w-[min(40vw,230px)] shrink max-sm:[&_.truncate]:hidden'>
           <BrandLogo compact priority />
@@ -33,7 +33,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
             <Link
               href='/login'
               aria-label='Connexion'
-              className='inline-flex items-center gap-2 rounded-full border border-[#494136] px-3 py-2.5 text-sm font-bold text-[#f4efe5] transition hover:bg-[#2a261f] sm:px-4'
+              className='inline-flex items-center gap-2 rounded-full border border-[#494136] px-3 py-2.5 text-sm font-bold text-[#f4efe5] transition hover:bg-[#202228] sm:px-4'
             >
               <LogIn className='h-4 w-4' />
               <span className='min-[381px]:inline max-[380px]:sr-only'>Connexion</span>

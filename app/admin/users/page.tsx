@@ -224,7 +224,7 @@ export default function AdminUsersPage () {
               <p className='text-sm text-[#d9d4cb]'><span className='font-semibold text-[#f2d79a]'>{filteredUsers.length}</span> résultat{filteredUsers.length > 1 ? 's' : ''} affiché{filteredUsers.length > 1 ? 's' : ''} · {totalUsers} comptes</p>
             </div>
           </div>
-          <Card className='mb-6 border-[#d6b36a]/25 bg-[#252529] text-[#f8f2e8]'>
+          <Card className='mb-6 border-[#d6b36a]/25 bg-[#1c1e23] text-[#f8f2e8]'>
             <CardContent className='space-y-4 p-4 sm:p-5'>
               <div className='relative'>
                 <Search className='pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#d6b36a]' />
@@ -261,7 +261,7 @@ export default function AdminUsersPage () {
               {paginatedUsers.map(u => (
                 <Card
                   key={u.id}
-                  className={`overflow-hidden border-[#d6b36a]/20 bg-[#252529] text-[#f8f2e8] transition hover:border-[#d6b36a]/60 ${u.is_banned ? 'border-red-500 border-2' : ''}`}
+                  className={`overflow-hidden border-[#d6b36a]/20 bg-[#1c1e23] text-[#f8f2e8] transition hover:border-[#d6b36a]/60 ${u.is_banned ? 'border-red-500 border-2' : ''}`}
                 >
                   <div className='relative aspect-[4/3] bg-[#18181b]'>
                     <button type='button' disabled={!u.has_eligible_photo} onClick={() => setPreviewId(u.id)} aria-label={`Agrandir la photo de ${displayMemberName(u.name, 'ce membre')}`} className='h-full w-full enabled:cursor-zoom-in'>

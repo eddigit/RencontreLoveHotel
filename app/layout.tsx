@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#191714'
+  themeColor: '#0d0e11'
 }
 
 export default function RootLayout ({
@@ -33,7 +33,7 @@ export default function RootLayout ({
   return (
     <html lang='fr' suppressHydrationWarning>
       <body
-        className={`${inter.className} bg-[#191714] text-[#f1eee8]`}
+        className={`${inter.className} bg-[#0d0e11] text-[#f1eee8]`}
         suppressHydrationWarning
       >
         <Providers>
