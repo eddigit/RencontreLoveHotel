@@ -89,11 +89,13 @@ export async function notifyAdmins(input: AdminNotificationInput) {
   return notifyAdminsInternal(input)
 }
 
-export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
-  const admin = await requireAdmin()
+const MEMBER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const MAX_SELECTED_MEMBERS = 500
+
+function normalizeInternalMessage(input: InternalBroadcastInput) {
   const title = input.title.trim().slice(0, 180)
   const description = input.description.trim().slice(0, 2000)
-  const priority = input.priority || 'normal'
+  const priority: NotificationPriority = input.priority || 'normal'
 
   if (title.length < 3) {
     throw new Error('Titre requis')
@@ -102,6 +104,13 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
   if (description.length < 8) {
     throw new Error('Message requis')
   }
+
+  return { title, description, priority }
+}
+
+export async function sendInternalMessageToAllUsers(input: InternalBroadcastInput) {
+  const admin = await requireAdmin()
+  const message = normalizeInternalMessage(input)
 
   const recipients = await sql.query<{ id: string }[]>(
     `
@@ -115,6 +124,55 @@ export async function sendInternalMessageToAllUsers(input: InternalBroadcastInpu
     [admin.id]
   )
 
+  return deliverInternalMessage(admin.id, recipients, message)
+}
+
+/**
+ * Same in-app delivery as the general broadcast, limited to members the
+ * administrator selected. No e-mail is sent.
+ */
+export async function sendInternalMessageToMembers(
+  input: InternalBroadcastInput & { userIds: string[] }
+) {
+  const admin = await requireAdmin()
+  const message = normalizeInternalMessage(input)
+  const userIds = Array.from(new Set(Array.isArray(input.userIds) ? input.userIds : []))
+
+  if (
+    userIds.length === 0 ||
+    userIds.length > MAX_SELECTED_MEMBERS ||
+    userIds.some(id => typeof id !== 'string' || !MEMBER_ID_PATTERN.test(id))
+  ) {
+    throw new Error(`Sélection invalide : de 1 à ${MAX_SELECTED_MEMBERS} membres`)
+  }
+
+  const recipients = await sql.query<{ id: string }[]>(
+    `
+      SELECT u.id
+      FROM users u
+      WHERE u.id = ANY($2::uuid[])
+        AND COALESCE(u.status, 'active') = 'active'
+        AND COALESCE(u.is_banned, false) = false
+        AND u.id != $1
+      ORDER BY u.created_at ASC
+    `,
+    [admin.id, userIds]
+  )
+
+  const result = await deliverInternalMessage(admin.id, recipients, message)
+  return {
+    ...result,
+    requestedCount: userIds.length,
+    skippedCount: userIds.length - recipients.length
+  }
+}
+
+async function deliverInternalMessage(
+  adminId: string,
+  recipients: { id: string }[],
+  { title, description, priority }: { title: string; description: string; priority: NotificationPriority }
+) {
+  const admin = { id: adminId }
   let messageCount = 0
   let notificationCount = 0
   let createdConversationCount = 0

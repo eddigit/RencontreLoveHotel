@@ -2,8 +2,11 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Activity, AlertTriangle, Clock3, MailCheck, RefreshCw, Search, Users } from 'lucide-react'
+import { Activity, AlertTriangle, Clock3, Mail, MailCheck, MessageSquare, RefreshCw, Search, Star, Users } from 'lucide-react'
 import { getAdminMemberEngagementStats, type AdminMemberEngagementStats, type AdminStatsPeriodDays } from '@/actions/admin-stats-actions'
+import { starSelectedMembers } from '@/actions/admin-member-selection-actions'
+import { createEmailCampaignDraft, previewEmailAudience, type EmailAudiencePreview } from '@/actions/email-campaign-actions'
+import { sendInternalMessageToMembers } from '@/actions/notification-actions'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +18,14 @@ const PERIODS: Array<{ value: AdminStatsPeriodDays; label: string }> = [
   { value: 30, label: '30 jours' },
   { value: 90, label: '90 jours' }
 ]
+
+const EMAIL_REASON_LABELS: Record<string, string> = {
+  campaign_opted_in: 'accord donné',
+  missing_campaign_opt_in: 'accord jamais donné',
+  opted_out: 'refus enregistré',
+  suppressed: 'adresse supprimée',
+  banned_or_inactive: 'compte inactif'
+}
 
 function Metric({ label, value, tone = 'text-foreground' }: { label: string; value: number | null; tone?: string }) {
   return <div className='rounded-lg border border-border/60 bg-background/60 p-3'><div className={`text-2xl font-bold ${tone}`}>{value?.toLocaleString('fr-FR') ?? '—'}</div><div className='mt-1 text-xs text-muted-foreground'>{label}</div></div>
@@ -32,6 +43,13 @@ export function AdminMemberEngagementStats() {
   const [emailCategory, setEmailCategory] = useState<'all' | 'messages' | 'matches' | 'events'>('all')
   const [page, setPage] = useState(0)
   const pageSize = 50
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [panel, setPanel] = useState<'none' | 'message' | 'email'>('none')
+  const [messageTitle, setMessageTitle] = useState('')
+  const [messageBody, setMessageBody] = useState('')
+  const [emailPreview, setEmailPreview] = useState<EmailAudiencePreview | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [feedback, setFeedback] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null)
 
   const requestId = useRef(0)
   const refresh = useCallback(async () => {
@@ -59,11 +77,79 @@ export function AdminMemberEngagementStats() {
       ? data?.members || []
       : data.members.filter(member => `${member.name || ''} ${member.email}`.toLocaleLowerCase('fr-FR').includes(term))
     const filtered = searched.filter(member => (activityFilter === 'all' || (activityFilter === 'active' && member.activeDays > 0) || (activityFilter === 'messages' && (member.messagesSent > 0 || member.messagesReceived > 0))) && (newsFilter === 'all' || (newsFilter === 'optedIn' && member.emailNewsOptIn === true) || (newsFilter === 'optedOut' && member.emailNewsOptIn === false)) && (emailCategory === 'all' || member.emailActivityCategories?.[emailCategory] === true))
-    return [...filtered].sort((left, right) => right[sortBy] - left[sortBy] || (left.name || left.email).localeCompare(right.name || right.email, 'fr'))
+    return [...filtered].sort((left, right) => right[sortBy] - left[sortBy] || (right.lastSeenAt || '').localeCompare(left.lastSeenAt || '') || (left.name || left.email).localeCompare(right.name || right.email, 'fr'))
   }, [data, search, sortBy, activityFilter, newsFilter, emailCategory])
   const pageCount = Math.max(1, Math.ceil(members.length / pageSize))
   const currentPage = Math.min(page, pageCount - 1)
   const visibleMembers = members.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
+
+  const selectedIds = useMemo(() => Array.from(selected), [selected])
+  const memberLabel = useCallback((id: string) => {
+    const member = data?.members.find(candidate => candidate.userId === id)
+    return member ? (member.name ? displayMemberName(member.name) : member.email) : id
+  }, [data])
+
+  function toggleMember(id: string) {
+    setSelected(current => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setEmailPreview(null)
+  }
+  function selectFiltered() { setSelected(new Set(members.slice(0, 500).map(member => member.userId))); setEmailPreview(null) }
+  function clearSelection() { setSelected(new Set()); setPanel('none'); setEmailPreview(null) }
+
+  async function runAction(action: () => Promise<string>) {
+    setBusy(true)
+    setFeedback(null)
+    try {
+      setFeedback({ tone: 'ok', text: await action() })
+    } catch (actionError) {
+      setFeedback({ tone: 'error', text: actionError instanceof Error ? actionError.message : 'Action impossible.' })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  function starSelection() {
+    if (!window.confirm(`Mettre en avant ${selectedIds.length} membre(s) ? Les fiches sans photo personnelle seront ignorées.`)) return
+    runAction(async () => {
+      const result = await starSelectedMembers(selectedIds)
+      const withoutPhoto = result.withoutPhotoIds.map(memberLabel)
+      return `${result.starredCount} fiche(s) mise(s) en avant, ${result.alreadyStarredCount} l’étaient déjà.` +
+        (withoutPhoto.length ? ` Sans photo personnelle, non mises en avant : ${withoutPhoto.join(', ')}.` : '')
+    })
+  }
+
+  function sendMessage() {
+    if (!window.confirm(`Envoyer ce message interne à ${selectedIds.length} membre(s) ? Aucun e-mail ne part.`)) return
+    runAction(async () => {
+      const result = await sendInternalMessageToMembers({ userIds: selectedIds, title: messageTitle, description: messageBody })
+      setPanel('none'); setMessageTitle(''); setMessageBody('')
+      return `Message interne envoyé à ${result.recipientCount} membre(s)` + (result.skippedCount ? `, ${result.skippedCount} écarté(s) (compte inactif ou vous-même).` : '.')
+    })
+  }
+
+  function checkEmailAudience() {
+    setPanel('email')
+    runAction(async () => {
+      const preview = await previewEmailAudience({ audience: 'manual', userIds: selectedIds })
+      setEmailPreview(preview)
+      return `${preview.eligible} membre(s) sur ${preview.total} recevraient une campagne e-mail.`
+    })
+  }
+
+  function createEmailDraft() {
+    runAction(async () => {
+      const { preview } = await createEmailCampaignDraft({
+        name: `Sélection du ${new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })} (${selectedIds.length} membres)`,
+        audienceFilter: { audience: 'manual', userIds: selectedIds }
+      })
+      return `Brouillon créé pour ${preview.eligible} destinataire(s). Rien n’est envoyé : le modèle et l’envoi se règlent dans Campagnes e-mail.`
+    })
+  }
 
   function changeSearch(value: string) { setSearch(value); setPage(0) }
   function changeSort(value: 'activeDays' | 'messagesReceived' | 'unreadMessages' | 'readMessages' | 'repliedConversations') { setSortBy(value); setPage(0) }
@@ -116,11 +202,34 @@ export function AdminMemberEngagementStats() {
           <div><h3 className='flex items-center gap-2 font-semibold'><Users className='h-4 w-4 text-sky-500' />Membres identifiés</h3><p className='text-xs text-muted-foreground'>Jours actifs = jour distinct avec connexion réussie, message envoyé ou présence enregistrée.</p></div>
           <div className='flex w-full flex-wrap gap-2 sm:w-auto'><select value={activityFilter} onChange={event => changeActivity(event.target.value as 'all' | 'active' | 'messages')} aria-label='Filtrer par activité' className='h-10 rounded-md border border-input bg-background px-3 text-sm'><option value='all'>Toute activité</option><option value='active'>Actifs</option><option value='messages'>Avec messages</option></select><select value={newsFilter} onChange={event => changeNews(event.target.value as 'all' | 'optedIn' | 'optedOut')} aria-label='Filtrer par actualités e-mail' disabled={!data.emailPreferencesAvailable} className='h-10 rounded-md border border-input bg-background px-3 text-sm'><option value='all'>Actualités : tous</option><option value='optedIn'>Actualités : oui</option><option value='optedOut'>Actualités : non</option></select><select value={emailCategory} onChange={event => changeEmailCategory(event.target.value as 'all' | 'messages' | 'matches' | 'events')} aria-label='Filtrer par catégorie e-mail' disabled={!data.emailPreferencesAvailable} className='h-10 rounded-md border border-input bg-background px-3 text-sm'><option value='all'>E-mails : catégories</option><option value='messages'>E-mails messages</option><option value='matches'>E-mails matchs</option><option value='events'>E-mails événements</option></select><label className='sr-only' htmlFor='member-stat-sort'>Trier les membres</label><select id='member-stat-sort' value={sortBy} onChange={event => changeSort(event.target.value as 'activeDays' | 'messagesReceived' | 'unreadMessages' | 'readMessages' | 'repliedConversations')} className='h-10 rounded-md border border-input bg-background px-3 text-sm'><option value='activeDays'>Plus actifs</option><option value='messagesReceived'>Plus de reçus 1:1</option><option value='readMessages'>Plus de lus 1:1</option><option value='unreadMessages'>Plus de non lus 1:1</option><option value='repliedConversations'>Plus de réponses 1:1</option></select><div className='relative min-w-0 flex-1 sm:w-72'><Search className='absolute left-3 top-3 h-4 w-4 text-muted-foreground' /><Input value={search} onChange={event => changeSearch(event.target.value)} placeholder='Trouver un membre…' aria-label='Trouver un membre par nom ou email' className='pl-9' /></div></div>
         </div>
+        <div className='rounded-lg border border-primary/30 bg-background/60 p-4' data-testid='member-selection-bar'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <span className='mr-2 text-sm font-semibold'>{selected.size.toLocaleString('fr-FR')} membre(s) sélectionné(s)</span>
+            <Button size='sm' variant='outline' onClick={selectFiltered} disabled={members.length === 0}>Sélectionner les {Math.min(members.length, 500).toLocaleString('fr-FR')} filtrés</Button>
+            <Button size='sm' variant='ghost' onClick={clearSelection} disabled={selected.size === 0}>Tout désélectionner</Button>
+            <span className='flex-1' />
+            <Button size='sm' onClick={() => setPanel(panel === 'message' ? 'none' : 'message')} disabled={selected.size === 0 || busy}><MessageSquare className='mr-2 h-4 w-4' />Message interne</Button>
+            <Button size='sm' variant='outline' onClick={starSelection} disabled={selected.size === 0 || busy}><Star className='mr-2 h-4 w-4' />Mettre en avant</Button>
+            <Button size='sm' variant='outline' onClick={checkEmailAudience} disabled={selected.size === 0 || busy}><Mail className='mr-2 h-4 w-4' />Audience e-mail</Button>
+          </div>
+          {panel === 'message' && selected.size > 0 ? <div className='mt-4 space-y-3'>
+            <Input value={messageTitle} onChange={event => setMessageTitle(event.target.value)} maxLength={180} placeholder='Titre de la notification' aria-label='Titre du message interne' />
+            <textarea value={messageBody} onChange={event => setMessageBody(event.target.value)} maxLength={2000} rows={4} placeholder='Message affiché dans la messagerie du membre' aria-label='Texte du message interne' className='w-full rounded-md border border-input bg-background px-3 py-2 text-sm' />
+            <div className='flex items-center justify-between gap-3'><p className='text-xs text-muted-foreground'>Le message arrive dans la messagerie du site avec une notification. Aucun e-mail n’est envoyé.</p><Button size='sm' onClick={sendMessage} disabled={busy || messageTitle.trim().length < 3 || messageBody.trim().length < 8}>Envoyer à {selected.size} membre(s)</Button></div>
+          </div> : null}
+          {panel === 'email' && emailPreview ? <div className='mt-4 space-y-2 text-sm'>
+            <p><strong>{emailPreview.eligible}</strong> destinataire(s) autorisé(s) sur {emailPreview.total} sélectionné(s). Une campagne ne part qu’aux membres ayant donné leur accord.</p>
+            <ul className='list-disc pl-5 text-muted-foreground'>{Object.entries(emailPreview.reasons).map(([reason, count]) => <li key={reason}>{count} — {EMAIL_REASON_LABELS[reason] || reason}</li>)}</ul>
+            <Button size='sm' variant='outline' onClick={createEmailDraft} disabled={busy || emailPreview.eligible === 0}>Créer un brouillon de campagne</Button>
+          </div> : null}
+          {feedback ? <p role='status' className={`mt-3 text-sm ${feedback.tone === 'ok' ? 'text-emerald-500' : 'text-red-500'}`}>{feedback.text}</p> : null}
+        </div>
         <p aria-live='polite' className='text-sm text-muted-foreground'>{members.length.toLocaleString('fr-FR')} compte(s) correspondant aux filtres</p>
         <div className='overflow-x-auto rounded-lg border border-border/70'>
-          <table className='w-full min-w-[1050px] text-sm'>
-            <thead className='bg-muted/50 text-left text-xs text-muted-foreground'><tr><th className='px-4 py-3'>Membre</th><th className='px-3 py-3 text-right'>Jours actifs</th><th className='px-3 py-3 text-right'>Connexions</th><th className='px-3 py-3 text-right'>Envoyés</th><th className='px-3 py-3 text-right'>Reçus</th><th className='px-3 py-3 text-right'>Livrés</th><th className='px-3 py-3 text-right'>Lus / non lus</th><th className='px-3 py-3 text-right'>Réponses 1:1</th><th className='px-3 py-3'>Actualités</th><th className='px-3 py-3'>Alertes e-mail</th><th className='px-4 py-3'>Présence</th></tr></thead>
-            <tbody className='divide-y divide-border/60'>{visibleMembers.map(member => <tr key={member.userId} className='hover:bg-muted/30'>
+          <table className='w-full min-w-[1180px] text-sm'>
+            <thead className='bg-muted/50 text-left text-xs text-muted-foreground'><tr><th className='w-10 px-3 py-3'><span className='sr-only'>Sélection</span></th><th className='px-4 py-3'>Membre</th><th className='px-3 py-3 text-right'>Jours actifs</th><th className='px-3 py-3 text-right'>Connexions</th><th className='px-3 py-3 text-right'>Envoyés</th><th className='px-3 py-3 text-right'>Reçus</th><th className='px-3 py-3 text-right'>Livrés</th><th className='px-3 py-3 text-right'>Lus / non lus</th><th className='px-3 py-3 text-right'>Réponses 1:1</th><th className='px-3 py-3'>Actualités</th><th className='px-3 py-3'>Alertes e-mail</th><th className='px-4 py-3'>Dernière activité</th></tr></thead>
+            <tbody className='divide-y divide-border/60'>{visibleMembers.map(member => <tr key={member.userId} className={selected.has(member.userId) ? 'bg-primary/10' : 'hover:bg-muted/30'}>
+              <td className='px-3 py-3'><input type='checkbox' className='h-4 w-4' checked={selected.has(member.userId)} onChange={() => toggleMember(member.userId)} aria-label={`Sélectionner ${member.name ? displayMemberName(member.name) : member.email}`} /></td>
               <td className='px-4 py-3'><div className='font-medium'>{member.name ? displayMemberName(member.name) : member.email}</div><div className='text-xs text-muted-foreground'>{member.name ? member.email : ''}</div><Link href={`/admin/users?member=${member.userId}`} className='text-xs text-primary hover:underline'>Voir le portrait</Link></td>
               <td className='px-3 py-3 text-right font-medium'>{member.activeDays}</td><td className='px-3 py-3 text-right'>{data.authAuditAvailable ? member.successfulLogins : '—'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.messagesSent : '—'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.messagesReceived : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.deliveredMessages : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? `${member.readMessages} / ${member.unreadMessages}` : 'Indisponible'}</td><td className='px-3 py-3 text-right'>{data.messageReceiptsAvailable ? member.repliedConversations : 'Indisponible'}</td><td className='px-3 py-3'>{member.emailNewsOptIn === null ? 'Indisponible' : member.emailNewsOptIn ? 'Oui' : 'Non'}</td>
               <td className='px-3 py-3'>{member.emailActivityCategories ? ([
@@ -128,7 +237,7 @@ export function AdminMemberEngagementStats() {
                 member.emailActivityCategories.matches && 'Matchs',
                 member.emailActivityCategories.events && 'Événements'
               ].filter(Boolean).join(', ') || 'Aucune') : 'Indisponible'}</td>
-              <td className='px-4 py-3'><Badge variant={member.online ? 'default' : 'secondary'}>{member.online ? 'En ligne' : member.lastSeenAt ? 'Vu' : 'Aucune'}</Badge></td>
+              <td className='px-4 py-3'>{member.online ? <Badge>En ligne</Badge> : member.lastSeenAt ? <span className='whitespace-nowrap text-xs'>{new Date(member.lastSeenAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span> : <Badge variant='secondary'>Jamais vue</Badge>}</td>
             </tr>)}</tbody>
           </table>
           {members.length === 0 ? <div className='p-5 text-sm text-muted-foreground'>Aucun membre ne correspond à cette recherche.</div> : null}
