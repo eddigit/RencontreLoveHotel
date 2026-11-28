@@ -11,12 +11,12 @@ describe('member profile dark redesign', () => {
     expect(page).toContain("text-[#ecebe7]")
     expect(page).toContain("text-[#c9c7c2]")
     expect(page).toContain("bg-[#d6bc87]")
-    expect(page).toContain("aspect-square w-28")
+    expect(page).toContain("aspect-square w-20")
     for (const section of ['descriptif', 'gouts', 'galerie', 'mots']) {
       expect(page).toContain(`id='${section}'`)
       expect(page).toContain(`href='#${section}'`)
     }
-    expect(page).toContain("className='object-contain'")
+    expect(page).toContain('object-cover object-[center_35%]')
     expect(page.indexOf('Entrer en contact')).toBeLessThan(page.indexOf('Galerie'))
   })
 

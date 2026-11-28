@@ -2,13 +2,13 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 describe('member profile photo framing', () => {
-  it('shows the complete portrait without cropping or covering it with profile text', () => {
+  it('uses a face-focused circular crop at every breakpoint', () => {
     const page = readFileSync('app/profile/[id]/page.tsx', 'utf8')
 
-    expect(page).toContain("aspect-square w-28")
-    expect(page).toContain("className='object-contain'")
-    expect(page).toContain("h-full w-full object-contain")
+    expect(page).toContain("aspect-square w-20")
+    expect(page).toContain('rounded-full')
+    expect(page).toContain('object-cover object-[center_35%]')
+    expect(page).toContain('h-full w-full rounded-full object-cover object-[center_35%]')
     expect(page).not.toContain("absolute inset-x-0 bottom-0")
-    expect(page).not.toContain("className='object-cover'")
   })
 })

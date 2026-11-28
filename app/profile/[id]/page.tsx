@@ -112,38 +112,40 @@ export default async function ProfilePage ({
         </div>
         <header className='overflow-hidden rounded-2xl bg-[#181819]'>
           <div aria-hidden='true' className='h-24 bg-[#251f19] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "linear-gradient(0deg, #181819, #15131670 75%), url('/guide-love-rooms.webp')"}} />
-          <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-3 px-4 pb-5 sm:px-6'>
-              <div className='relative aspect-square w-28 shrink-0 overflow-hidden rounded-xl bg-[#111214] ring-4 ring-[#181819] sm:w-32'>
+          <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 px-4 pb-5 sm:px-6'>
+            <div className='flex min-w-0 flex-1 items-end gap-3 sm:gap-5'>
+              <div className='relative aspect-square w-20 shrink-0 rounded-full bg-[#111214] ring-4 ring-[#181819] sm:w-32'>
                 {avatar.startsWith('http') ? (
-                  <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-contain' />
+                  <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full rounded-full object-cover object-[center_35%]' />
                 ) : (
                   <Image
                     data-member-photo
                     src={avatar}
                     alt={displayMemberName(profile.name)}
                     fill
-                    className='object-contain'
-                    sizes='(min-width: 768px) 128px, 112px'
+                    className='rounded-full object-cover object-[center_35%]'
+                    sizes='(min-width: 640px) 128px, 80px'
                     priority
                   />
                 )}
                 {profileOnline && (
-                  <PresenceDot className='right-4 top-4' />
+                  <PresenceDot className='bottom-[8%] right-[8%]' />
                 )}
               </div>
-            <div className='min-w-0 flex-1'>
-              <h1 className='break-words text-2xl font-bold tracking-tight sm:text-3xl'>{displayMemberName(profile.name)}{profile.age ? `, ${profile.age}` : ''}</h1>
+              <div className='min-w-0 flex-1'>
+                <h1 className='flex min-w-0 whitespace-nowrap text-xl font-bold tracking-tight sm:text-3xl'><span className='truncate' title={displayMemberName(profile.name)}>{displayMemberName(profile.name)}</span>{profile.age ? <span className='shrink-0'>{`, ${profile.age}`}</span> : null}</h1>
                 <div className='mt-2 flex flex-wrap gap-2'>
-                <span className='self-center text-sm text-stone-300'>{directoryProfileTypeLabel(profile)}</span>
-                {photoVerified && <VerifiedProfileBadge />}
-                {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
-                  <MapPin className='mr-1 h-3.5 w-3.5' />
-                  {profile.location}
-                </Badge>}
-                {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
+                  <span className='self-center text-sm text-stone-300'>{directoryProfileTypeLabel(profile)}</span>
+                  {photoVerified && <VerifiedProfileBadge />}
+                  {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
+                    <MapPin className='mr-1 h-3.5 w-3.5' />
+                    {profile.location}
+                  </Badge>}
+                  {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
                 </div>
+              </div>
             </div>
-            {canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714]'>Entrer en contact</a>}
+            {canShowActions && <a href='#contact' className='inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] sm:w-auto'>Entrer en contact</a>}
           </div>
           <div className='px-4 pb-5 sm:px-6'>
             <h2 className='mb-2 text-sm font-semibold text-stone-200'>Catégories de rencontre</h2>
@@ -155,7 +157,7 @@ export default async function ProfilePage ({
             </li>)}
           </ul>}
         </header>
-        <nav aria-label='Sections du profil' className='my-4 flex flex-wrap gap-1 rounded-xl bg-[#19191c] p-1.5 text-sm font-semibold text-[#d6bc87] [&_a]:rounded-lg [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-white/10'>
+        <nav aria-label='Sections du profil' className='my-4 flex flex-nowrap gap-1 overflow-x-auto rounded-xl bg-[#19191c] p-1.5 text-sm font-semibold text-[#d6bc87] [scrollbar-width:none] [&_a]:shrink-0 [&_a]:rounded-lg [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-white/10'>
           <a href='#descriptif'>Présentation</a><a href='#gouts'>Goûts et limites</a><a href='#galerie'>Galerie</a><a href='#album-prive'>Album protégé</a><a href='#mots'>Commentaires</a>
         </nav>
         <div className='grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]'>

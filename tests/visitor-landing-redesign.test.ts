@@ -17,7 +17,7 @@ describe('visitor landing redesign', () => {
     expect(header).toContain("href='/rencontres'")
     expect(header).toContain("href='/login'")
     expect(header).toContain("href='/register'")
-    expect(header).toContain('<span>Connexion</span>')
+    expect(header).toContain("aria-label='Connexion'")
     expect(header).toContain('Inscription')
   })
 
