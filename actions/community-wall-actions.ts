@@ -5,18 +5,12 @@ import { validateImageFile } from '@/lib/image-upload-validation'
 import { requireCurrentUser } from '@/lib/server-auth'
 import { put } from '@vercel/blob'
 import { enforceMemberContent } from '@/lib/content-safety-service'
+import { evaluateAntiSolicitation, type ModerationPolicyRule } from '@/lib/anti-solicitation-policy'
 
 type WallPostType = 'profil' | 'evenement' | 'dispo_rideaux_ouverts'
 type WallStatus = 'active' | 'hidden' | 'removed'
 type ModerationSeverity = 'low' | 'medium' | 'high' | 'critical'
-type ModerationAction = 'flag' | 'hide' | 'escalate'
 type WallSourceType = 'wall_post' | 'wall_comment'
-
-type ModerationRule = {
-  keyword: string
-  severity: ModerationSeverity
-  action: ModerationAction
-}
 
 type CommunityWallFeedOptions = {
   limit?: number
@@ -74,13 +68,6 @@ const validPostTypes: WallPostType[] = [
   'evenement',
   'dispo_rideaux_ouverts'
 ]
-
-const severityRank: Record<ModerationSeverity, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-  critical: 4
-}
 
 function normalizeBody(
   body: string | undefined,
@@ -145,30 +132,34 @@ function normalizeDurationHours(durationHours: number | undefined) {
   return durationHours
 }
 
-function pickSeverity(rules: ModerationRule[]): ModerationSeverity {
-  return rules.reduce<ModerationSeverity>((current, rule) => {
-    return severityRank[rule.severity] > severityRank[current]
-      ? rule.severity
-      : current
-  }, 'low')
-}
-
 function excerptText(body: string) {
   return body.length > 280 ? `${body.slice(0, 277)}...` : body
 }
 
-async function getMatchedModerationRules(body: string) {
-  const rules = await sql.query<ModerationRule[]>(
+/**
+ * Same weighted scale as private messages (whole words, plural and feminine
+ * forms, sum of weights). The wall is public, so a score that only opens a
+ * case in a private message (>= 3) hides the publication until an
+ * administrator has reviewed it. A lone low-weight word changes nothing.
+ */
+async function evaluateWallModeration(body: string) {
+  const rules = await sql.query<ModerationPolicyRule[]>(
     `
-      SELECT keyword, severity, action
+      SELECT id, keyword, category, weight, phrase, active
       FROM moderation_keywords
       WHERE active = true
     `,
     []
   )
 
-  const normalizedBody = body.toLowerCase()
-  return rules.filter(rule => normalizedBody.includes(rule.keyword.toLowerCase()))
+  const evaluation = evaluateAntiSolicitation(body, rules)
+  const matchedIds = new Set(evaluation.matchedRuleIds)
+  return {
+    held: evaluation.outcome !== 'allow',
+    severity: evaluation.severity as ModerationSeverity,
+    score: evaluation.score,
+    keywords: rules.filter(rule => matchedIds.has(rule.id)).map(rule => rule.keyword)
+  }
 }
 
 async function queueWallModeration(input: {
@@ -389,8 +380,8 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
     expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000)
   }
 
-  const matchedRules = body ? await getMatchedModerationRules(body) : []
-  const status: WallStatus = matchedRules.length > 0 ? 'hidden' : 'active'
+  const moderation = body ? await evaluateWallModeration(body) : null
+  const status: WallStatus = moderation?.held ? 'hidden' : 'active'
   let imageUrl: string | null = null
 
   if (imageFile && image) {
@@ -427,16 +418,16 @@ export async function createWallPost(input: CreateWallPostInput | FormData) {
     ]
   )
 
-  if (matchedRules.length > 0) {
+  if (moderation?.held) {
     await queueWallModeration({
       sourceType: 'wall_post',
       sourceId: post.id,
       userId: user.id,
-      severity: pickSeverity(matchedRules),
+      severity: moderation.severity,
       reason: 'Mot-cle detecte dans une annonce du mur',
-      matchedKeywords: matchedRules.map(rule => rule.keyword),
+      matchedKeywords: moderation.keywords,
       excerpt: excerptText(body),
-      metadata: { type, imageUrl }
+      metadata: { type, imageUrl, score: moderation.score }
     })
   }
 
@@ -487,8 +478,8 @@ export async function addWallComment(input: {
     throw new Error("Annonce introuvable ou expiree")
   }
 
-  const matchedRules = await getMatchedModerationRules(body)
-  const status: WallStatus = matchedRules.length > 0 ? 'hidden' : 'active'
+  const moderation = await evaluateWallModeration(body)
+  const status: WallStatus = moderation.held ? 'hidden' : 'active'
 
   const [comment] = await sql.query<Array<{ id: string; status: WallStatus }>>(
     `
@@ -499,16 +490,16 @@ export async function addWallComment(input: {
     [input.postId, user.id, body, status]
   )
 
-  if (matchedRules.length > 0) {
+  if (moderation.held) {
     await queueWallModeration({
       sourceType: 'wall_comment',
       sourceId: comment.id,
       userId: user.id,
-      severity: pickSeverity(matchedRules),
+      severity: moderation.severity,
       reason: 'Mot-cle detecte dans un commentaire du mur',
-      matchedKeywords: matchedRules.map(rule => rule.keyword),
+      matchedKeywords: moderation.keywords,
       excerpt: excerptText(body),
-      metadata: { postId: input.postId }
+      metadata: { postId: input.postId, score: moderation.score }
     })
   }
 
