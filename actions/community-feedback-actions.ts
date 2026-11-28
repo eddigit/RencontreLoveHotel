@@ -58,7 +58,12 @@ function normalizeFeedbackPage(value: string | undefined) {
   const raw = normalizeText(value, 180)
   if (!raw) return 'Accueil communauté'
   try {
-    return new URL(raw, 'https://rencontrelovehotel.com').pathname.slice(0, 180) || 'Accueil communauté'
+    const pathname = new URL(raw, 'https://rencontrelovehotel.com').pathname
+    const anonymized = pathname.split('/').map(segment => {
+      if (/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(segment) || /^\d+$/.test(segment)) return ':id'
+      return segment
+    }).join('/')
+    return anonymized.slice(0, 180) || 'Accueil communauté'
   } catch {
     return 'Accueil communauté'
   }

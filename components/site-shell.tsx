@@ -48,7 +48,6 @@ const memberNavItems: NavigationItem[] = [
   { href: '/events', label: 'Événements', icon: CalendarDays },
   { href: '/lieux', label: 'Lieux', icon: MapPin },
   { href: '/conciergerie', label: 'Conciergerie', icon: Sparkles },
-  { href: '/discover#boite-a-idees', label: 'Signaler un bug', icon: Bug },
   { href: '/community-safety', label: 'Règles', icon: ShieldCheck },
   { href: '/profile', label: 'Profil', icon: UserRound }
 ]
@@ -90,6 +89,13 @@ const publicPresentationRoutes = new Set([
   '/tarifs-publicite',
   '/terms'
 ])
+
+function anonymizeFeedbackPath(pathname: string) {
+  return pathname.split('/').map(segment => {
+    if (/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(segment) || /^\d+$/.test(segment)) return ':id'
+    return segment
+  }).join('/') || '/'
+}
 
 function NavigationLink({
   item,
@@ -196,6 +202,16 @@ export function SiteShell({ children }: { children: ReactNode }) {
             discoverShell={isMemberShell}
           />
         ))}
+        {user ? <NavigationLink
+          item={{
+            href: `/discover?feedback=bug&from=${encodeURIComponent(anonymizeFeedbackPath(pathname))}#boite-a-idees`,
+            label: 'Signaler un bug',
+            icon: Bug
+          }}
+          pathname={pathname}
+          onNavigate={() => setMobileOpen(false)}
+          discoverShell={isMemberShell}
+        /> : null}
         {user?.role === 'admin' ? (
           <NavigationLink
             item={{ href: '/admin', label: 'Administration', icon: Settings }}

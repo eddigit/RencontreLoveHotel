@@ -118,6 +118,18 @@ describe('community feedback actions', () => {
     expect(queryMock).not.toHaveBeenCalled()
   })
 
+  it('keeps only an anonymized route in a bug report context', async () => {
+    queryMock.mockResolvedValueOnce([{ id: 'feedback-2' }])
+    await submitCommunityFeedback({
+      kind: 'bug', message: '',
+      page: '/profile/81abf1c0-e4d0-4a20-b1da-a235e94972a1?coordinates=private',
+      version: 'build-456',
+      stepsToReproduce: 'Ouvrir la fiche.', expected: 'Voir la fiche.', observed: 'L écran est vide.'
+    })
+    expect(queryMock.mock.calls[0][1][5]).toBe('/profile/:id')
+    expect(queryMock.mock.calls[0][1][4]).not.toContain('coordinates')
+  })
+
   it('changes status with the acting administrator and imports legacy rows idempotently', async () => {
     queryMock
       .mockResolvedValueOnce([{ id: 'feedback-1', status: 'resolved' }])

@@ -228,10 +228,16 @@ export default function DiscoverPage () {
   const [profileColumnCount, setProfileColumnCount] = useState(MIN_PROFILE_COLUMNS)
   const [preparingProfiles, setPreparingProfiles] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const feedbackKind = searchParams.get('feedback') === 'bug' ? 'bug' : 'suggestion'
+  const feedbackOrigin = searchParams.get('from') || '/discover'
   const [error, setError] = useState<string | null>(null)
   const communityRequest = useRef(0)
   const localBatchNavigationRef = useRef<number | null>(null)
   const profileGridRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (feedbackKind === 'bug') setFeedbackOpen(true)
+  }, [feedbackKind])
 
   const saveProfileOrder = (
     profilesToSave: DiscoverProfile[],
@@ -637,7 +643,7 @@ export default function DiscoverPage () {
                 </button>
                 {feedbackOpen && (
                   <div className='border-t border-white/[0.07] p-4'>
-                    <CommunityFeedbackWidget />
+                    <CommunityFeedbackWidget initialKind={feedbackKind} originPage={feedbackOrigin} />
                   </div>
                 )}
               </section>

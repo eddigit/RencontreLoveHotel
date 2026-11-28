@@ -18,8 +18,14 @@ const feedbackKinds: Array<{
   { value: 'bug', label: 'Signaler un bug', icon: Bug }
 ]
 
-export function CommunityFeedbackWidget() {
-  const [kind, setKind] = useState<FeedbackKind>('suggestion')
+export function CommunityFeedbackWidget({
+  initialKind = 'suggestion',
+  originPage
+}: {
+  initialKind?: FeedbackKind
+  originPage?: string
+}) {
+  const [kind, setKind] = useState<FeedbackKind>(initialKind)
   const [message, setMessage] = useState('')
   const [stepsToReproduce, setStepsToReproduce] = useState('')
   const [expected, setExpected] = useState('')
@@ -43,7 +49,7 @@ export function CommunityFeedbackWidget() {
     setStatus(null)
 
     try {
-      const page = window.location.pathname
+      const page = originPage || window.location.pathname
       const draft = JSON.stringify([kind, message, stepsToReproduce, expected, observed, page, buildVersion])
       if (submission.current?.draft !== draft) submission.current = { draft, id: crypto.randomUUID() }
       const result = await submitCommunityFeedback({
