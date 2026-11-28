@@ -11,7 +11,7 @@ describe('member profile dark redesign', () => {
     expect(page).toContain("text-[#ecebe7]")
     expect(page).toContain("text-[#c9c7c2]")
     expect(page).toContain("bg-graphite")
-    expect(page).toContain("aspect-square w-20")
+    expect(page).toContain("aspect-[4/5]")
     for (const section of ['descriptif', 'gouts', 'galerie', 'mots']) {
       expect(page).toContain(`id='${section}'`)
       expect(page).toContain(`href='#${section}'`)

@@ -7,7 +7,7 @@ describe('member profile mobile layout', () => {
 
     expect(page).toContain('flex min-w-0 whitespace-nowrap text-xl')
     expect(page).toContain("<span className='shrink-0'>")
-    expect(page).toContain('min-h-11 w-full items-center justify-center')
+    expect(page).toContain('min-h-11 flex-1 items-center')
     expect(page).toContain('sm:w-auto')
   })
 

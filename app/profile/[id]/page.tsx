@@ -111,20 +111,20 @@ export default async function ProfilePage ({
           {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
         </div>
         <header className='overflow-hidden rounded-2xl bg-[#141519]'>
-          <div aria-hidden='true' className='h-24 bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "var(--joug-graphite-light), linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
-          <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 px-4 pb-5 sm:px-6'>
-            <div className='flex min-w-0 flex-1 items-end gap-3 sm:gap-5'>
-              <div className='relative aspect-square w-20 shrink-0 rounded-full bg-[#111214] ring-4 ring-[#141519] sm:w-32'>
+          <div aria-hidden='true' className='hidden sm:block bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "var(--joug-graphite-light), linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
+          <div className='relative sm:-mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 pb-5 sm:px-6'>
+            <div className='flex w-full min-w-0 flex-col gap-4 sm:w-auto sm:flex-1 sm:flex-row sm:items-end sm:gap-5'>
+              <div className='relative aspect-[4/5] max-h-[58svh] w-full shrink-0 bg-[#111214] sm:aspect-square sm:max-h-none sm:w-32 sm:rounded-full sm:ring-4 sm:ring-[#141519]'>
                 {avatar.startsWith('http') ? (
-                  <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full rounded-full object-cover object-[center_35%]' />
+                  <img data-member-photo src={avatar} alt={displayMemberName(profile.name)} className='h-full w-full object-cover object-[center_35%] sm:rounded-full' />
                 ) : (
                   <Image
                     data-member-photo
                     src={avatar}
                     alt={displayMemberName(profile.name)}
                     fill
-                    className='rounded-full object-cover object-[center_35%]'
-                    sizes='(min-width: 640px) 128px, 80px'
+                    className='object-cover object-[center_35%] sm:rounded-full'
+                    sizes='(min-width: 640px) 128px, calc(100vw - 24px)'
                     priority
                   />
                 )}
@@ -132,7 +132,7 @@ export default async function ProfilePage ({
                   <PresenceDot className='bottom-[8%] right-[8%]' />
                 )}
               </div>
-              <div className='min-w-0 flex-1'>
+              <div className='min-w-0 px-4 sm:flex-1 sm:px-0'>
                 <h1 className='flex min-w-0 whitespace-nowrap text-xl font-bold tracking-tight sm:text-3xl'><span className='truncate' title={displayMemberName(profile.name)}>{displayMemberName(profile.name)}</span>{profile.age ? <span className='shrink-0'>{`, ${profile.age}`}</span> : null}</h1>
                 <div className='mt-2 flex flex-wrap gap-2'>
                   <span className='self-center text-sm text-stone-300'>{directoryProfileTypeLabel(profile)}</span>
@@ -145,7 +145,7 @@ export default async function ProfilePage ({
                 </div>
               </div>
             </div>
-            {canShowActions && <a href='#contact' className='inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-graphite px-4 text-sm font-bold text-graphite-ink sm:w-auto'>Entrer en contact</a>}
+            {canShowActions && <a href='#contact' className='mx-4 inline-flex min-h-11 flex-1 items-center sm:mx-0 sm:flex-none justify-center rounded-lg bg-graphite px-4 text-sm font-bold text-graphite-ink sm:w-auto'>Entrer en contact</a>}
           </div>
           <div className='px-4 pb-5 sm:px-6'>
             <h2 className='mb-2 text-sm font-semibold text-stone-200'>Catégories de rencontre</h2>
