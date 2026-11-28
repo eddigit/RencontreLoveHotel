@@ -4,6 +4,7 @@ import type { Notification } from "@/components/notifications-dropdown"
 import type { OnboardingData } from "@/components/onboarding-form"
 import { acceptMatchRequest } from "@/actions/user-actions"
 import { saveOnboardingData } from "@/lib/onboarding-service"
+import { MemberAgeError } from "@/lib/member-age"
 import { createUser, verifyUserCredentials } from "@/lib/user-service"
 import { executeQuery, sql } from "@/lib/db"
 import { requireCurrentUser, requireSameUserOrAdmin } from "@/lib/server-auth"
@@ -140,6 +141,9 @@ export async function saveUserPreferences(userId: string, data: OnboardingData) 
     const success = await saveOnboardingData(userId, data)
     return { success }
   } catch (error) {
+    if (error instanceof MemberAgeError) {
+      return { success: false, error: error.message, reason: 'age' as const }
+    }
     console.error("Erreur lors de la sauvegarde des préférences:", error)
     return { success: false, error: "Erreur lors de la sauvegarde des préférences" }
   }

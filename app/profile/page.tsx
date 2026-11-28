@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { requireAdultAge } from '@/lib/member-age'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -38,6 +39,9 @@ async function updateUserProfile (userData: any) {
   if (!user) {
     redirect('/login')
   }
+  // A minor or incoherent birthday is refused before anything is written.
+  const adultAge = requireAdultAge({ birthday: userData.birthday, declaredAge: undefined }) ??
+    requireAdultAge({ birthday: null, declaredAge: userData.age })
   await ensureProfileLikesDislikesSchema()
   const likes = normalizeProfileTags(userData.likes)
   const dislikes = normalizeProfileTags(userData.dislikes)
@@ -77,7 +81,7 @@ async function updateUserProfile (userData: any) {
       UPDATE user_profiles
       SET
         status = ${userData.status || null},
-        age = ${userData.age || null},
+        age = ${adultAge},
         location = ${userData.location || null},
         orientation = ${userData.orientation || null},
         bio = ${userData.bio || null},
@@ -100,7 +104,7 @@ async function updateUserProfile (userData: any) {
   } else {
     await sql`
       INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, likes, dislikes, status, featured, display_profile, seeking_profile_types, relationship_intents, bdsm_roles, bdsm_roles_public)
-      VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
+      VALUES (gen_random_uuid(), ${user.id}, ${adultAge}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
       userData.gender || null

@@ -1,5 +1,6 @@
 'use client'
 
+import { ageFromBirthday, latestAdultBirthday, MINIMUM_MEMBER_AGE } from '@/lib/member-age'
 import { useState } from 'react'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
 import { OnboardingAvatarStep } from '@/components/onboarding-avatar-step'
@@ -117,9 +118,20 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
     setFormData(previous => ({ ...previous, meetingTypes: { ...previous.meetingTypes, [field]: value } }))
   }
 
+  const birthdayAge = ageFromBirthday(formData.birthday)
+  const birthdayProblem = !formData.birthday
+    ? null
+    : birthdayAge === null
+      ? 'une date de naissance valide'
+      : birthdayAge < MINIMUM_MEMBER_AGE
+        ? 'une date de naissance d’au moins 18 ans'
+        : formData.age && formData.age !== birthdayAge
+          ? `un âge qui correspond à la date de naissance (${birthdayAge} ans)`
+          : null
+
   const isStepValid = () => {
     if (step === 1) {
-      return Boolean(formData.status && formData.age && formData.orientation && formData.birthday && (formData.status !== 'couple' || formData.coupleComposition))
+      return Boolean(formData.status && formData.age && formData.orientation && formData.birthday && !birthdayProblem && (formData.status !== 'couple' || formData.coupleComposition))
     }
     if (step === 2) return true
     if (step === 3) return true
@@ -133,6 +145,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
         !formData.orientation && "l’orientation",
         !formData.age && "l’âge",
         !formData.birthday && 'la date de naissance',
+        birthdayProblem,
         formData.status === 'couple' && !formData.coupleComposition && 'la composition du couple'
       ].filter(Boolean) as string[]
     : []
@@ -207,7 +220,7 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
                   {Array.from({ length: 82 }, (_, index) => index + 18).map(age => <option key={age} value={String(age)}>{age} ans</option>)}
                 </select>
               </div>
-              <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' value={formData.birthday} onInput={event => updateFormData('birthday', event.currentTarget.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
+              <div className='space-y-2'><Label htmlFor='birthday'>Date de naissance</Label><Input id='birthday' type='date' max={latestAdultBirthday()} value={formData.birthday} onInput={event => updateFormData('birthday', event.currentTarget.value)} className='border-purple-800/50 bg-purple-900/20' /></div>
             </div>
             <p className='text-xs leading-5 text-purple-100/65'>Réservé aux personnes majeures. L’âge et la date permettent de contrôler la cohérence du profil.</p>
             {missingIdentityFields.length > 0 && (

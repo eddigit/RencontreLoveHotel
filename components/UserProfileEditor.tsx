@@ -1,5 +1,6 @@
 'use client'
 
+import { latestAdultBirthday } from '@/lib/member-age'
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -380,6 +381,7 @@ export function UserProfileEditor ({
           <Input
             name='birthday'
             type='date'
+            max={latestAdultBirthday()}
             value={form.birthday}
             onChange={handleChange}
             className='h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white'

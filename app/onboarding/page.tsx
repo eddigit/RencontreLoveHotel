@@ -34,6 +34,10 @@ export default function OnboardingPage () {
 
       if (!user?.id) throw new Error('Session utilisateur indisponible.')
       const result = await saveUserPreferences(user.id, data)
+      if (!result.success && 'reason' in result && result.reason === 'age') {
+        toast({ title: 'Date de naissance refusée', description: result.error, variant: 'destructive' })
+        return
+      }
       if (!result.success) throw new Error(result.error || "Impossible d'enregistrer les préférences.")
       await completeOnboarding()
 

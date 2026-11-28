@@ -1,6 +1,7 @@
 import { executeQuery } from "./db"
 import { v4 as uuidv4 } from "uuid"
 import type { OnboardingData } from "@/components/onboarding-form"
+import { requireAdultAge } from "./member-age"
 
 // Sauvegarder les données d'onboarding
 export async function saveOnboardingData(userId: string, data: OnboardingData): Promise<boolean> {
@@ -9,6 +10,8 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
   if (!isValidUUID) {
     throw new Error("L'identifiant utilisateur n'est pas un UUID valide.")
   }
+  // Refused before anything is written: a minor or incoherent birthday.
+  const adultAge = requireAdultAge({ birthday: data.birthday, declaredAge: data.age, birthdayRequired: true })
   try {
     // 1. Mettre à jour le profil utilisateur
     await executeQuery(
@@ -25,7 +28,7 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
           updated_at = CURRENT_TIMESTAMP
     `,
       [
-        uuidv4(), userId, data.status, data.age, data.orientation, data.gender,
+        uuidv4(), userId, data.status, adultAge, data.orientation, data.gender,
         data.birthday || null, data.coupleComposition || null,
         data.seekingProfileTypes || [], data.relationshipIntents || [], data.bdsmRoles || [], data.bdsmRolesPublic === true
       ],
