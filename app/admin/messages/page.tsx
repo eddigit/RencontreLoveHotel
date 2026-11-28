@@ -57,7 +57,7 @@ export default function AdminMessagesPage () {
           <div className='mt-5 grid gap-5 text-white lg:grid-cols-[380px_1fr]'>
             <section className='max-h-[760px] space-y-2 overflow-y-auto rounded-3xl border border-white/10 bg-white/[0.04] p-4'>
               {loading ? <p>Chargement…</p> : conversations.map(conversation => (
-                <article key={conversation.id} className={`rounded-2xl border p-4 ${selected === conversation.id ? 'border-[#d6bc87] bg-[#d6bc87]/15' : 'border-white/10 bg-black/15 hover:border-white/25'}`}>
+                <article key={conversation.id} className={`rounded-2xl border p-4 ${selected === conversation.id ? 'border-[#d6bc87] bg-graphite' : 'border-white/10 bg-black/15 hover:border-white/25'}`}>
                   <button type='button' onClick={() => open(conversation.id)} className='w-full text-left' aria-pressed={selected === conversation.id} aria-label={`Ouvrir la conversation, ${conversation.messageCount} message${conversation.messageCount > 1 ? 's' : ''}`}>
                   <div className='flex items-center justify-between gap-2'><div className='flex -space-x-2'>{conversation.participants.map(participant => <ModerationAvatar key={participant.userId} name={participant.name} src={participant.avatar} className='h-9 w-9' />)}</div><span className='text-xs text-white/45'>{conversation.messageCount} msg</span></div>
                   <p className='mt-3 line-clamp-2 text-sm'>{conversation.lastMessage || 'Conversation vide'}</p>

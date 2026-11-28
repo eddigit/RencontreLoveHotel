@@ -180,7 +180,7 @@ export function MemberPrivateAlbum({ ownerId }: { ownerId: string }) {
           </span>
         )}
       </div>
-      <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-200/[0.06] p-3 text-xs leading-5 text-amber-100">
+      <p className="mt-3 rounded-xl border border-amber-300/20 bg-graphite p-3 text-xs leading-5 text-amber-100">
         <ShieldAlert className="mr-1 inline h-3.5 w-3.5" />
         Captures d’écran et enregistrements interdits. Le navigateur peut
         freiner certains gestes, mais ne peut pas empêcher ni détecter
@@ -253,7 +253,7 @@ export function MemberPrivateAlbum({ ownerId }: { ownerId: string }) {
                 type="button"
                 disabled={requesting || requestState === 'pending'}
                 onClick={() => void askAccess()}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d6bc87]/50 px-4 text-sm font-bold text-[#ead6aa] hover:bg-[#d6bc87]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d6bc87]/50 px-4 text-sm font-bold text-[#ead6aa] hover:bg-graphite disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {requesting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -395,7 +395,7 @@ export default async function ProfilePage ({
         title='Profil matching'
         subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations Love Hotel.'
         action={
-          <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+          <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'>
             <Link href='/discover'>
               <Sparkles className='mr-2 h-4 w-4' />
               Voir la communauté
@@ -454,25 +454,25 @@ export default async function ProfilePage ({
               className='w-full'
             >
               <TabsList className='mb-5 grid h-auto w-full grid-cols-2 rounded-2xl border border-[#111821] bg-[#0a0f15] p-1 sm:grid-cols-4'>
-                <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
+                <TabsTrigger value='profile' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-graphite data-[state=active]:text-graphite-ink sm:text-sm'>
                   Profil
                 </TabsTrigger>
-                <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
+                <TabsTrigger value='preferences' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-graphite data-[state=active]:text-graphite-ink sm:text-sm'>
                   Matching
                 </TabsTrigger>
-                <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
+                <TabsTrigger value='photos' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-graphite data-[state=active]:text-graphite-ink sm:text-sm'>
                   Médias
                 </TabsTrigger>
-                <TabsTrigger value='emails' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-[#d6bc87] data-[state=active]:text-[#191714] sm:text-sm'>
+                <TabsTrigger value='emails' className='min-w-0 rounded-xl px-2 text-xs text-[#c9c7c2] data-[state=active]:bg-graphite data-[state=active]:text-graphite-ink sm:text-sm'>
                   Notifications
                 </TabsTrigger>
               </TabsList>
           <TabsContent value='profile'>
             <div className='space-y-6'>
-              <section className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/[0.06] p-4'>
+              <section className='rounded-2xl border border-[#d6bc87]/25 bg-graphite p-4'>
                 <h3 className='font-black'>Un profil plus rassurant</h3>
                 <p className='mt-1 text-sm text-[#c9c7c2]'>Ajoutez une vérification privée, sans publication de votre preuve.</p>
-                <a href='#photo-verification' className='mt-3 inline-flex rounded-xl bg-[#d6bc87] px-4 py-2 text-sm font-bold text-[#191714] hover:bg-[#e5d1aa]'>Faire vérifier mon profil</a>
+                <a href='#photo-verification' className='mt-3 inline-flex rounded-xl bg-graphite px-4 py-2 text-sm font-bold text-graphite-ink hover:bg-graphite-hover'>Faire vérifier mon profil</a>
               </section>
               <div id='photo-verification' className='scroll-mt-6'>
                 <PhotoVerificationRequest

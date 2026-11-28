@@ -41,7 +41,7 @@ const sections: Array<{
     title: 'Points développés',
     description: 'Changements déjà livrés ou stabilisés sur la bêta.',
     icon: Hammer,
-    badgeClassName: 'border-[#d6bc87]/40 bg-[#d6bc87]/10 text-[#d6bc87]'
+    badgeClassName: 'border-[#d6bc87]/40 bg-graphite text-[#d6bc87]'
   },
   {
     status: 'planned',

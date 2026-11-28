@@ -92,9 +92,9 @@ function StatCard({
 }) {
   const toneClass = {
     default: 'border-white/10 bg-white/[0.05] text-white',
-    pink: 'border-[#d6bc87]/30 bg-[#d6bc87]/10 text-[#d6bc87]',
+    pink: 'border-[#d6bc87]/30 bg-graphite text-[#d6bc87]',
     green: 'border-emerald-300/25 bg-emerald-300/10 text-emerald-100',
-    amber: 'border-amber-300/25 bg-amber-300/10 text-amber-100'
+    amber: 'border-amber-300/25 bg-graphite text-amber-100'
   }[tone]
 
   return (
@@ -244,7 +244,7 @@ export default function AdminOptionsPage () {
             <div className='border-b border-white/10 bg-gradient-to-r from-[#1c1d20] via-[#1c1d20] to-[#1c1d20] p-6 lg:p-8'>
               <div className='flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between'>
                 <div>
-                  <div className='inline-flex items-center gap-2 rounded-full border border-[#d6bc87]/35 bg-[#d6bc87]/15 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#d6bc87]'>
+                  <div className='inline-flex items-center gap-2 rounded-full border border-[#d6bc87]/35 bg-graphite px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#d6bc87]'>
                     <Settings2 className='h-4 w-4' />
                     Console de configuration
                   </div>
@@ -291,7 +291,7 @@ export default function AdminOptionsPage () {
                     {eventCategoryList.map(category => (
                       <div
                         key={category.value}
-                        className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/10 p-4'
+                        className='rounded-2xl border border-[#d6bc87]/25 bg-graphite p-4'
                       >
                         <div className='flex items-center justify-between gap-3'>
                           <p className='font-black text-white'>{category.label}</p>
@@ -302,7 +302,7 @@ export default function AdminOptionsPage () {
                         </p>
                       </div>
                     ))}
-                    <div className='rounded-2xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-100'>
+                    <div className='rounded-2xl border border-amber-300/20 bg-graphite p-4 text-sm leading-6 text-amber-100'>
                       <div className='flex items-start gap-3'>
                         <AlertTriangle className='mt-0.5 h-5 w-5 shrink-0' />
                         <p>
@@ -448,7 +448,7 @@ export default function AdminOptionsPage () {
                       description='Suivi des modules sensibles sans activer d’offre commerciale non finalisée.'
                     />
                     <div className='space-y-3'>
-                      <div className='rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/10 p-4'>
+                      <div className='rounded-2xl border border-[#d6bc87]/25 bg-graphite p-4'>
                         <p className='font-black text-white'>
                           Conciergerie érotique
                         </p>
@@ -539,7 +539,7 @@ export default function AdminOptionsPage () {
                 <Button
                   type='submit'
                   disabled={saving || loading}
-                  className='rounded-2xl bg-[#d6bc87] px-6 py-3 font-black text-[#191714] hover:bg-[#d6bc87]'
+                  className='rounded-2xl bg-graphite px-6 py-3 font-black text-graphite-ink hover:bg-graphite-hover'
                 >
                   <Save className='mr-2 h-4 w-4' />
                   {saving

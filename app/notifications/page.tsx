@@ -89,7 +89,7 @@ export default function NotificationsPage (props: any) {
             {notifications.some(n => !n.read) && (
               <button
                 onClick={markAllAsRead}
-                className='px-3 py-1 rounded bg-primary text-white text-xs hover:bg-primary/80 transition-colors'
+                className='px-3 py-1 rounded bg-graphite text-graphite-ink text-xs hover:bg-graphite-hover transition-colors'
                 type='button'
               >
                 Tout marquer comme lu
@@ -306,7 +306,7 @@ function NotificationCard ({
                   className='rounded-full object-cover'
                 />
               ) : (
-                <div className='h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center'>
+                <div className='h-12 w-12 rounded-full bg-graphite flex items-center justify-center'>
                   {getIcon()}
                 </div>
               )}

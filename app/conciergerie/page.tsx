@@ -62,7 +62,7 @@ export default async function ConciergeriePage() {
                   Préparer une Love Room, organiser un apéro jacuzzi entre couples ou découvrir les chambres à rideaux ouverts. Décrivez à l’équipe le lieu, la date et l’ambiance que vous imaginez.
                 </p>
                 <div className='mt-5'>
-                  <Button asChild className='rounded-xl bg-[#d6bc87] text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-[#e5d1aa]'>
+                  <Button asChild className='rounded-xl bg-graphite text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-graphite-hover'>
                     <Link href='#demande-conciergerie'>Faire une demande</Link>
                   </Button>
                 </div>

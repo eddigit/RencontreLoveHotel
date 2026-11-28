@@ -86,7 +86,7 @@ export function AdminStats() {
           {scaleOptions.map(opt => (
             <button
               key={opt.value}
-              className={`px-3 py-1 rounded border ${scale === opt.value ? "bg-primary text-white" : "bg-muted text-muted-foreground"}`}
+              className={`px-3 py-1 rounded border ${scale === opt.value ? "bg-graphite text-graphite-ink" : "bg-muted text-muted-foreground"}`}
               onClick={() => setScale(opt.value as any)}
             >
               {opt.label}

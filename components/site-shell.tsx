@@ -124,7 +124,7 @@ function NavigationLink({
         active &&
           (discoverShell
             ? styles.navigationLinkActive
-            : 'bg-[#d6bc87]/15 text-white ring-1 ring-white/12')
+            : 'bg-graphite text-white ring-1 ring-white/12')
       )}
     >
       <Icon className='h-4 w-4 shrink-0' />
@@ -266,7 +266,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link
               href='/register'
               onClick={() => setMobileOpen(false)}
-              className='flex items-center justify-center gap-2 rounded-xl bg-[#d6bc87] px-3 py-2.5 text-sm font-bold text-[#191714]'
+              className='flex items-center justify-center gap-2 rounded-xl bg-graphite px-3 py-2.5 text-sm font-bold text-graphite-ink'
             >
               <UserPlus className='h-4 w-4' />
               Inscription

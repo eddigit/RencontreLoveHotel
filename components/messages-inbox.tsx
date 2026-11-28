@@ -121,8 +121,8 @@ export function ConversationList ({ conversations, loading, activeConversationId
           <Input value={search} onChange={event => setSearch(event.target.value)} placeholder='Rechercher une conversation' aria-label='Rechercher une conversation' className='h-10 rounded-xl border-[#494136] bg-[#0d0e11] pl-9 text-sm text-[#f8fafc] placeholder:text-[#aaa69e] focus-visible:ring-[#d6bc87]' />
         </div>
         <div className='mt-3 flex gap-2 overflow-x-auto pb-0.5' aria-label='Filtres de conversation'>
-          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
-          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-[#d6bc87] text-[#191714] shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
+          <button type='button' aria-pressed={filter === 'all'} onClick={() => setFilter('all')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'all' ? 'bg-graphite text-graphite-ink shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Toutes ({conversations.length})</button>
+          <button type='button' aria-pressed={filter === 'unread'} onClick={() => setFilter('unread')} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${filter === 'unread' ? 'bg-graphite text-graphite-ink shadow-[0_0_14px_rgba(214,188,135,0.2)]' : 'border border-[#494136] bg-[#0d0e11] text-[#aaa69e] hover:text-[#f8fafc]'}`}>Non lus{unreadCount > 0 ? ` (${unreadCount})` : ''}</button>
         </div>
       </div>
 
@@ -230,7 +230,7 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
     <MainLayout user={authUser}>
       <LhrV2Shell
         title='Messagerie privée'
-        action={<Button asChild size='sm' className='h-9 rounded-xl bg-[#d6bc87] px-3 text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.2)] hover:bg-[#e5d1aa]'><Link href='/members'><Plus className='mr-1.5 h-4 w-4' />Découvrir</Link></Button>}
+        action={<Button asChild size='sm' className='h-9 rounded-xl bg-graphite px-3 text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.2)] hover:bg-graphite-hover'><Link href='/members'><Plus className='mr-1.5 h-4 w-4' />Découvrir</Link></Button>}
       >
         <div className='overflow-hidden rounded-2xl border border-[#494136] bg-[#0d0e13] shadow-[0_12px_32px_-4px_rgba(0,0,0,0.7)] lg:grid lg:h-[620px] lg:grid-cols-[360px_minmax(0,1fr)]'>
           {error ? (
@@ -249,7 +249,7 @@ export function MessagesInbox ({ initialConversations, initialError = null, init
                  <h2 className='mt-2 text-xl font-semibold text-[#f8fafc]'>{displayMemberName(activeConversation.other_user_name)}</h2>
                  {activeConversation.other_user_online && <p className='mt-1 text-xs font-medium text-[#35e48d]'>En ligne</p>}
                  <p className='mt-3 line-clamp-3 text-sm leading-6 text-[#94a3b8]'>{activeConversation.last_message || 'Aucun message pour le moment.'}</p>
-                 <Button asChild className='mt-6 rounded-xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>
+                 <Button asChild className='mt-6 rounded-xl bg-graphite text-graphite-ink hover:bg-graphite-hover'><Link href={`/messages/${activeConversation.id}`}>Ouvrir la conversation</Link></Button>
                </div>
              ) : (
                <div className='m-auto max-w-sm text-center'>

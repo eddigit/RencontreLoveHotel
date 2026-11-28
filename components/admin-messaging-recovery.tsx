@@ -68,7 +68,7 @@ function trendPresentation(history: MessagingRecoveryHistory) {
     return {
       label: 'Activité en baisse',
       change: signedChange,
-      className: 'border-amber-500/30 bg-amber-500/10 text-amber-600'
+      className: 'border-amber-500/30 bg-graphite text-amber-600'
     }
   }
   return {
@@ -105,10 +105,10 @@ function KpiCard({
   suffix?: string
 }) {
   return (
-    <Card className='border-[#d6bc87]/20 bg-gradient-to-br from-[#d6bc87]/10 via-background to-[#d6bc87]/5'>
+    <Card className='border-[#d6bc87]/20 bg-gradient-to-br from-graphite via-background to-graphite'>
       <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
         <CardTitle className='text-sm font-medium'>{title}</CardTitle>
-        <div className='rounded-lg bg-[#d6bc87]/15 p-2 text-[#d6bc87]'>{icon}</div>
+        <div className='rounded-lg bg-graphite p-2 text-[#d6bc87]'>{icon}</div>
       </CardHeader>
       <CardContent>
         <div className='text-2xl font-bold'>
@@ -245,7 +245,7 @@ export function AdminMessagingRecovery() {
                 onClick={() => setScale(option.value)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                   scale === option.value
-                    ? 'bg-[#d6bc87] text-[#191714]'
+                    ? 'bg-graphite text-graphite-ink'
                     : 'text-muted-foreground hover:bg-muted'
                 }`}
               >
@@ -323,7 +323,7 @@ export function AdminMessagingRecovery() {
               suffix='%'
               icon={<RefreshCw className='h-4 w-4' />}
             />
-            <Card className='border-[#d6bc87]/20 bg-[#d6bc87]/10'>
+            <Card className='border-[#d6bc87]/20 bg-graphite'>
               <CardHeader className='pb-2'>
                 <CardTitle className='text-sm font-medium'>Admin / conciergerie</CardTitle>
               </CardHeader>

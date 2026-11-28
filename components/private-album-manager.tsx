@@ -320,7 +320,7 @@ export function PrivateAlbumManager() {
           Actualiser
         </button>
       </div>
-      <p className="mt-3 rounded-xl border border-amber-300/20 bg-amber-200/[0.06] p-3 text-xs leading-5 text-amber-100">
+      <p className="mt-3 rounded-xl border border-amber-300/20 bg-graphite p-3 text-xs leading-5 text-amber-100">
         Les captures d’écran et l’enregistrement sont interdits. Les protections
         limitent certains gestes dans le navigateur, mais aucun site ne peut
         empêcher ni détecter de façon fiable une capture faite par le système ou
@@ -354,7 +354,7 @@ export function PrivateAlbumManager() {
                 disabled={uploading}
                 onClick={() => { setAudience(value); if (value === 'private') setPublishToFeed(false) }}
                 aria-pressed={audience === value}
-                className={`min-h-14 rounded-xl border p-3 text-left transition ${audience === value ? 'border-[#d6bc87] bg-[#d6bc87]/15 text-[#fff8e8]' : 'border-white/10 text-[#c9c7c2] hover:bg-white/5'}`}
+                className={`min-h-14 rounded-xl border p-3 text-left transition ${audience === value ? 'border-[#d6bc87] bg-graphite text-[#fff8e8]' : 'border-white/10 text-[#c9c7c2] hover:bg-white/5'}`}
               >
                 <span className="flex items-center gap-2 font-bold">
                   <Icon className="h-4 w-4" />
@@ -383,7 +383,7 @@ export function PrivateAlbumManager() {
           type="button"
           onClick={() => inputRef.current?.click()}
           disabled={uploading || photos.length >= 12}
-          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d6bc87]/50 px-4 text-sm font-bold text-[#ead6aa] hover:bg-[#d6bc87]/10 disabled:opacity-60"
+          className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border border-[#d6bc87]/50 px-4 text-sm font-bold text-[#ead6aa] hover:bg-graphite disabled:opacity-60"
         >
           <ImagePlus className="h-4 w-4" />
           Choisir un média
@@ -397,7 +397,7 @@ export function PrivateAlbumManager() {
           disabled={uploading || photos.length >= 12}
         />
         {selectedFile && (
-          <div className="mt-3 rounded-xl border border-[#d6bc87]/30 bg-[#d6bc87]/[0.06] p-3">
+          <div className="mt-3 rounded-xl border border-[#d6bc87]/30 bg-graphite p-3">
             <p
               className="truncate text-sm font-semibold"
               title={selectedFile.name}
@@ -412,7 +412,7 @@ export function PrivateAlbumManager() {
                 type="button"
                 onClick={() => void upload()}
                 disabled={uploading}
-                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] hover:bg-[#e5d1aa] disabled:opacity-60"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-graphite px-4 text-sm font-bold text-graphite-ink hover:bg-graphite-hover disabled:opacity-60"
               >
                 {uploading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -545,7 +545,7 @@ export function PrivateAlbumManager() {
                       type="button"
                       disabled={busyId === request.id}
                       onClick={() => void decide(request.id, 'grant')}
-                      className="min-h-10 rounded-lg bg-[#d6bc87] px-3 text-sm font-bold text-[#191714] disabled:opacity-60"
+                      className="min-h-10 rounded-lg bg-graphite px-3 text-sm font-bold text-graphite-ink disabled:opacity-60"
                     >
                       Accorder 1 h
                     </button>

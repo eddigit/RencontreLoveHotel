@@ -87,7 +87,7 @@ export default function LoginPage () {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className='mb-5 rounded-xl border border-[#d6bc87]/20 bg-[#d6bc87]/8 p-3 text-sm leading-5'>
+                <div className='mb-5 rounded-xl border border-[#d6bc87]/20 bg-graphite p-3 text-sm leading-5'>
                   <strong>Aucune prestation sexuelle rémunérée.</strong> Cette communauté adulte est protégée par des
                   adhérents-modérateurs habilités.{' '}
                   <Link href='/community-safety' className='text-primary hover:underline'>Voir la charte</Link>

@@ -64,14 +64,14 @@ export default function AdminInternalMessagesPage () {
                 Envoyer un message interne à tous les membres actifs. Une conversation admin est créée ou réutilisée, et aucun email n'est envoyé.
               </p>
             </div>
-            <div className='flex items-center gap-2 rounded-full border border-[#d6bc87]/25 bg-[#d6bc87]/10 px-4 py-2 text-sm text-[#d6bc87]'>
+            <div className='flex items-center gap-2 rounded-full border border-[#d6bc87]/25 bg-graphite px-4 py-2 text-sm text-[#d6bc87]'>
               <Users className='h-4 w-4' />
               Membres actifs
             </div>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-graphite px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -138,7 +138,7 @@ export default function AdminInternalMessagesPage () {
                   <Button
                     type='submit'
                     disabled={sending}
-                    className='w-full bg-[#d6bc87] text-[#191714]'
+                    className='w-full bg-graphite text-graphite-ink'
                   >
                     {sending ? 'Envoi...' : 'Envoyer à tous les membres'}
                   </Button>

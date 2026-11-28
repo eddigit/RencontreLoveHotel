@@ -66,7 +66,7 @@ export default function PwaUpdateNotification() {
     <section aria-live='polite' className='fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-[1000] mx-auto max-w-md rounded-2xl border border-[#d6bc87]/40 bg-[#0d0e11] p-4 text-center text-[#f1eee8] shadow-2xl shadow-black/50'>
       <p className='text-sm font-medium'>Une nouvelle version est disponible.</p>
       <p className='mt-1 text-xs text-[#aaa69e]'>Vos saisies dans les autres onglets ne seront pas rechargées.</p>
-      <button type='button' onClick={applyUpdate} disabled={applying} className='mt-3 rounded-xl bg-[#d6bc87] px-4 py-2 text-sm font-semibold text-[#191714] disabled:cursor-wait disabled:opacity-70'>
+      <button type='button' onClick={applyUpdate} disabled={applying} className='mt-3 rounded-xl bg-graphite px-4 py-2 text-sm font-semibold text-graphite-ink disabled:cursor-wait disabled:opacity-70'>
         {applying ? 'Mise à jour…' : 'Mettre à jour'}
       </button>
     </section>

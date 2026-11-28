@@ -13,7 +13,7 @@ export function CircleAgendaWeek({ events }: { events: { id: string; event_date:
       const scheduled = events.some(event => (event.event_date instanceof Date ? parisDate.format(event.event_date) : event.event_date.slice(0, 10)) === iso)
       return <li key={iso} aria-current={index === 0 ? 'date' : undefined}
         aria-label={fullDate.format(day) + (scheduled ? ', rendez-vous prévu' : '')}
-        className={'rounded-md py-1.5 ' + (index === 0 ? 'bg-[#d6bc87] text-[#191714]' : 'bg-[#191b20] text-[#f1eee8]')}>
+        className={'rounded-md py-1.5 ' + (index === 0 ? 'bg-graphite text-graphite-ink' : 'bg-[#191b20] text-[#f1eee8]')}>
         <span className='block text-[10px] uppercase'>{weekday.format(day).replace('.', '')}</span>
         <span className={'text-sm font-bold ' + (scheduled ? 'underline underline-offset-2' : '')}>{day.getUTCDate()}</span>
       </li>

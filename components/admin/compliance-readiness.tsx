@@ -38,7 +38,7 @@ export function ComplianceReadiness () {
   ]))
 
   return (
-    <section className='mb-8 rounded-2xl border border-[#d6bc87]/20 bg-[#d6bc87]/[0.06] p-5'>
+    <section className='mb-8 rounded-2xl border border-[#d6bc87]/20 bg-graphite p-5'>
       <div className='flex items-start gap-3'>
         <ShieldCheck className='mt-0.5 h-6 w-6 text-[#d6bc87]' />
         <div>
@@ -47,7 +47,7 @@ export function ComplianceReadiness () {
         </div>
       </div>
 
-      {!data.readiness.paymentReady && <p className='mt-4 flex gap-2 rounded-xl border border-amber-400/25 bg-amber-400/10 p-3 text-sm text-amber-100'><AlertTriangle className='h-5 w-5 shrink-0' />Paiement bloqué tant que la configuration juridique est incomplète.</p>}
+      {!data.readiness.paymentReady && <p className='mt-4 flex gap-2 rounded-xl border border-amber-400/25 bg-graphite p-3 text-sm text-amber-100'><AlertTriangle className='h-5 w-5 shrink-0' />Paiement bloqué tant que la configuration juridique est incomplète.</p>}
 
       <div className='mt-5 grid gap-4 lg:grid-cols-2'>
         <div className='rounded-xl border border-white/10 bg-black/15 p-4'>

@@ -168,7 +168,7 @@ export default async function AdminConciergeriePage() {
                   <div className='flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between'>
                     <div>
                       <div className='flex flex-wrap items-center gap-2'>
-                        <span className='rounded-full bg-[#d6bc87] px-3 py-1 text-xs font-black uppercase text-[#191714]'>
+                        <span className='rounded-full bg-graphite px-3 py-1 text-xs font-black uppercase text-graphite-ink'>
                           {requestLabel}
                         </span>
                         <span className='rounded-full border border-white/15 px-3 py-1 text-xs font-bold text-white/75'>
@@ -178,7 +178,7 @@ export default async function AdminConciergeriePage() {
                           className={`rounded-full px-3 py-1 text-xs font-bold ${
                             demande.email_sent
                               ? 'bg-emerald-400/15 text-emerald-200'
-                              : 'bg-amber-400/15 text-amber-200'
+                              : 'bg-graphite text-amber-200'
                           }`}
                         >
                           {demande.email_sent ? 'Email envoyé' : 'Email non confirmé'}
@@ -199,7 +199,7 @@ export default async function AdminConciergeriePage() {
                       {chatLink ? (
                         <Link
                           href={chatLink}
-                          className='rounded-xl bg-[#d6bc87] px-4 py-2 text-sm font-black text-[#191714] transition hover:brightness-110'
+                          className='rounded-xl bg-graphite px-4 py-2 text-sm font-black text-graphite-ink transition hover:brightness-110'
                         >
                           Répondre dans le chat
                         </Link>

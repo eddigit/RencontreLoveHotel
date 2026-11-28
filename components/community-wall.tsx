@@ -326,7 +326,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
           <Button
             type='submit'
             disabled={submitting || !canSubmit}
-            className='h-9 bg-[#d6bc87] px-3 text-xs font-semibold text-[#191714] hover:bg-[#e5d1aa]'
+            className='h-9 bg-graphite px-3 text-xs font-semibold text-graphite-ink hover:bg-graphite-hover'
           >
             <Send className='mr-1.5 h-3.5 w-3.5' />
             {submitting ? 'Publication…' : 'Publier'}
@@ -555,7 +555,7 @@ export function CommunityWall({ currentUserId, currentUserName, currentUserAvata
                       onClick={() => handleCreateComment(post.id)}
                       disabled={!commentDrafts[post.id]?.trim()}
                       size='sm'
-                      className='rounded-full bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'
+                      className='rounded-full bg-graphite text-graphite-ink hover:bg-graphite-hover'
                     >
                       <Send className='h-4 w-4' />
                     </Button>

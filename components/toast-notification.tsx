@@ -72,7 +72,7 @@ export function ToastNotification({
                   className="rounded-full object-cover"
                 />
               ) : (
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">{getIcon()}</div>
+                <div className="h-10 w-10 rounded-full bg-graphite flex items-center justify-center">{getIcon()}</div>
               )}
             </div>
             <div className="flex-1 min-w-0">

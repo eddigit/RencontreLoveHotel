@@ -178,7 +178,7 @@ export default function AdminPage () {
                       <div className='font-bold text-red-300'>{roadmapSummary.issue}</div>
                       <div className='text-muted-foreground'>Pas bons</div>
                     </div>
-                    <div className='rounded border border-[#d6bc87]/20 bg-[#d6bc87]/10 px-2 py-2'>
+                    <div className='rounded border border-[#d6bc87]/20 bg-graphite px-2 py-2'>
                       <div className='font-bold text-[#d6bc87]'>{roadmapSummary.developed}</div>
                       <div className='text-muted-foreground'>Livrés</div>
                     </div>

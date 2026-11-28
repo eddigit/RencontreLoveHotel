@@ -264,7 +264,7 @@ export default function EventsPage () {
               <h1 className='mt-2 text-3xl font-semibold tracking-tight text-[#f4efe5] md:text-4xl'>Événements à venir</h1>
               <p className='mt-2 max-w-2xl text-sm leading-6 text-[#94a3b8]'>Les dates publiques et privées proposées par la communauté.</p>
             </div>
-            <Button asChild className='shrink-0 bg-[#d6bc87] text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-[#e5d1aa]'>
+            <Button asChild className='shrink-0 bg-graphite text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-graphite-hover'>
               <Link href={authUser?.id ? '/events/new' : '/login'}>{authUser?.id ? 'Proposer un événement' : 'Se connecter pour participer'}</Link>
             </Button>
           </header>
@@ -279,7 +279,7 @@ export default function EventsPage () {
                 </p>
               </div>
               <div className='shrink-0'>
-                <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+                <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'>
                   <Link href='/love-rooms?tab=reserve'>Réserver au Love Hôtel</Link>
                 </Button>
               </div>
@@ -315,7 +315,7 @@ export default function EventsPage () {
                     <p className='flex items-center gap-2'><Users className='h-4 w-4 text-[#d6bc87]' />{featuredAttendees} participant{featuredAttendees > 1 ? 's' : ''}</p>
                   </div>
                   <div className='mt-6 flex flex-wrap gap-3'>
-                    <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'><Link href={`/events/${featuredEvent.id}`}>Voir l’événement</Link></Button>
+                    <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'><Link href={`/events/${featuredEvent.id}`}>Voir l’événement</Link></Button>
                     {authUser?.id && <Button variant='outline' className='border-[#3b4257] bg-[#1e222d] text-[#f8fafc] hover:bg-[#34343a] hover:text-white' onClick={() => handleSubscribeToggle(featuredEvent)} disabled={featuredIsFull && !featuredEvent.is_participating}>{featuredEvent.is_participating ? 'Se désinscrire' : featuredIsFull ? 'Complet' : 'Participer'}</Button>}
                     {(authUser?.role === 'admin' || (memberId && featuredEvent.creator_id === memberId)) && <>
                       <Button variant='outline' onClick={() => handleEdit(featuredEvent.id)}>Modifier</Button>
@@ -438,7 +438,7 @@ export default function EventsPage () {
                 <p className='mt-2 max-w-3xl text-sm leading-6 text-[#94a3b8]'>Créer une rencontre autour d’un lieu réel : Love Room à l’heure, Jacuzzi privatif et Chambres rideaux ouverts. Le formulaire existant permet de préciser le format, le lieu et les conditions de participation avant publication.</p>
               </div>
               <div className='flex flex-wrap gap-2'>
-                <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'><Link href={authUser?.id ? '/events/new' : '/login'}>Créer un événement</Link></Button>
+                <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'><Link href={authUser?.id ? '/events/new' : '/login'}>Créer un événement</Link></Button>
                 <Button asChild variant='outline' className='border-[#3b4257] bg-[#1e222d] text-[#f8fafc] hover:bg-[#34343a] hover:text-white'><Link href='/love-rooms'>Réserver une Love Room</Link></Button>
               </div>
             </div>
@@ -477,7 +477,7 @@ export default function EventsPage () {
                   sont visibles directement sur chaque carte.
                 </p>
               </div>
-              <Button asChild className='bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+              <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'>
                 <Link href={authUser?.id ? '/events/new' : '/login'}>Créer un format</Link>
               </Button>
             </div>
@@ -544,7 +544,7 @@ function EmptyEventsState () {
         <p className='mt-2 max-w-xl text-sm leading-6 text-white/60'>
           {EMPTY_EVENTS_STATE.description}
         </p>
-        <Button asChild className='mt-5 bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+        <Button asChild className='mt-5 bg-graphite text-graphite-ink hover:bg-graphite-hover'>
           <Link href='/events/new'>{EMPTY_EVENTS_STATE.cta}</Link>
         </Button>
       </div>

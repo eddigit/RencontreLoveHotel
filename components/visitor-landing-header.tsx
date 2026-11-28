@@ -23,7 +23,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
         {isAuthenticated ? (
           <Link
             href='/discover'
-            className='inline-flex items-center gap-2 rounded-full bg-[#d6bc87] px-4 py-2.5 text-sm font-bold text-[#191714] hover:bg-[#e5d1aa]'
+            className='inline-flex items-center gap-2 rounded-full bg-graphite px-4 py-2.5 text-sm font-bold text-graphite-ink hover:bg-graphite-hover'
           >
             Mon espace
             <ArrowRight className='h-4 w-4' />
@@ -40,7 +40,7 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
             </Link>
             <Link
               href='/register'
-              className='rounded-full bg-[#d6bc87] px-4 py-2.5 text-sm font-bold text-[#191714] hover:bg-[#e5d1aa] sm:px-5'
+              className='rounded-full bg-graphite px-4 py-2.5 text-sm font-bold text-graphite-ink hover:bg-graphite-hover sm:px-5'
             >
               Inscription
             </Link>

@@ -40,7 +40,7 @@ function RolePanel({
     <div className='rounded-xl border border-border/70 bg-background/60 p-4'>
       <div className='mb-4 flex items-center justify-between gap-3'>
         <div className='flex items-center gap-2'>
-          <div className={admin ? 'rounded-lg bg-amber-500/10 p-2 text-amber-500' : 'rounded-lg bg-sky-500/10 p-2 text-sky-500'}>
+          <div className={admin ? 'rounded-lg bg-graphite p-2 text-amber-500' : 'rounded-lg bg-sky-500/10 p-2 text-sky-500'}>
             <Icon className='h-5 w-5' />
           </div>
           <div>
@@ -168,14 +168,14 @@ export function AdminLoginStatus() {
                 <RolePanel title='Utilisateurs' status={data.users} />
               </div>
             ) : (
-              <div className='flex items-center gap-3 rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-amber-600'>
+              <div className='flex items-center gap-3 rounded-lg border border-amber-500/20 bg-graphite p-4 text-amber-600'>
                 <AlertTriangle className='h-5 w-5' />
                 Les données de présence sont momentanément indisponibles.
               </div>
             )}
 
             {data.unknownFailures24h > 0 && (
-              <div className='flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-600'>
+              <div className='flex items-center gap-2 rounded-lg border border-amber-500/20 bg-graphite px-4 py-3 text-sm text-amber-600'>
                 <AlertTriangle className='h-4 w-4' />
                 {data.unknownFailures24h} échec{data.unknownFailures24h > 1 ? 's' : ''} non rattaché{data.unknownFailures24h > 1 ? 's' : ''} à un compte sur 24 h.
               </div>
@@ -242,7 +242,7 @@ export function AdminLoginStatus() {
                   {data.recentLogins.map(login => (
                     <div key={login.id} className='flex flex-col justify-between gap-2 px-4 py-3 sm:flex-row sm:items-center'>
                       <div className='flex min-w-0 items-center gap-3'>
-                        <div className={login.role === 'admin' ? 'rounded-full bg-amber-500/10 p-2 text-amber-500' : 'rounded-full bg-sky-500/10 p-2 text-sky-500'}>
+                        <div className={login.role === 'admin' ? 'rounded-full bg-graphite p-2 text-amber-500' : 'rounded-full bg-sky-500/10 p-2 text-sky-500'}>
                           {login.role === 'admin' ? <ShieldCheck className='h-4 w-4' /> : <UserCheck className='h-4 w-4' />}
                         </div>
                         <div className='min-w-0'>

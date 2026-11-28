@@ -495,7 +495,7 @@ export default function DiscoverPage () {
             <p className='text-[#aaa69e]'>
               Quelques informations sont nécessaires pour proposer des rencontres compatibles.
             </p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#d6bc87] text-white hover:bg-[#d6bc87]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-graphite text-white hover:bg-graphite-hover'>
               Compléter mon profil
             </Button>
           </div>

@@ -79,7 +79,7 @@ export default function AdminEventsPage() {
             </div>
           </div>
           {status && (
-            <div className="mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white">
+            <div className="mb-5 rounded-lg border border-[#d6bc87]/30 bg-graphite px-4 py-3 text-sm text-white">
               {status}
             </div>
           )}

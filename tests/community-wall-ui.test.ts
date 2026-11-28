@@ -13,7 +13,7 @@ describe('community wall UI', () => {
     expect(source).toContain('min-h-[72px]')
     expect(source).toContain('bg-[#0d0e11]')
     expect(source).toContain('bg-[#191b20]')
-    expect(source).toContain('bg-[#d6bc87]')
+    expect(source).toContain('bg-graphite')
     expect(source).toContain("{betweenComposerAndFeed && <div className='mt-4'>{betweenComposerAndFeed}</div>}")
   })
 })

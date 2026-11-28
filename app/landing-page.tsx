@@ -34,13 +34,13 @@ export default function LandingPage() {
             </p>
             <Suspense fallback={null}><PublicCommunityActivity /></Suspense>
             <div className='mt-8 flex flex-wrap gap-3'>
-              <Link href='/register' className='inline-flex items-center gap-2 rounded-full bg-[#d6bc87] px-6 py-3.5 text-sm font-extrabold text-[#191714] transition hover:-translate-y-0.5 hover:bg-[#e5d1aa]'>Rejoindre le cercle <ArrowRight className='h-4 w-4' /></Link>
+              <Link href='/register' className='inline-flex items-center gap-2 rounded-full border border-[#d6bc87]/45 bg-graphite px-6 py-3.5 text-sm font-extrabold text-graphite-ink transition hover:-translate-y-0.5 hover:bg-graphite-hover'>Rejoindre le cercle <ArrowRight className='h-4 w-4' /></Link>
               <Link href='/login' className='inline-flex items-center gap-2 rounded-full border border-[#c9c7c2]/25 px-6 py-3.5 text-sm font-bold text-[#ecebe7] transition hover:border-[#ecebe7]/70 hover:bg-white/[0.06]'>Retrouver mon compte <ArrowRight className='h-4 w-4' /></Link>
             </div>
             <p className='mt-3 text-sm text-[#c9c7c2]/75'>Inscription libre · Parrainage facultatif</p>
           </div>
           <div className='relative mx-auto w-full max-w-3xl lg:ml-auto'>
-            <div className='absolute -inset-5 rounded-[2.4rem] bg-[#d6bc87]/10 blur-3xl' />
+            <div className='absolute -inset-5 rounded-[2.4rem] bg-graphite blur-3xl' />
             <div className='relative aspect-[1.22] overflow-hidden rounded-[2rem] border border-[#f8d29b]/25 shadow-2xl shadow-black/45'>
               <Image
                 src='/soiree-masquee.webp'
@@ -118,7 +118,7 @@ export default function LandingPage() {
       </section>
 
       <section id='hotels' className='relative bg-[#04070b] py-16 text-[#ecebe7] sm:py-20 lg:py-24'>
-        <div className='absolute inset-x-0 top-0 h-px bg-[#b97445]/40' />
+        <div className='absolute inset-x-0 top-0 h-px bg-[#d6bc87]/35' />
         <div className='mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-10'>
           <div className='flex flex-col gap-5 md:flex-row md:items-end md:justify-between'>
             <div className='max-w-2xl'>

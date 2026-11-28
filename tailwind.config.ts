@@ -19,6 +19,7 @@ const config: Config = {
     },
     extend: {
       colors: {
+        graphite: { DEFAULT: "#20232a", hover: "#2b3039", ink: "#efe3c7" },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

@@ -119,7 +119,7 @@ export function EventCard ({
         )}
         <div className='mt-auto grid gap-2 pt-5'>
         <Button
-          className='w-full rounded-xl bg-[#d6bc87] text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-[#e5d1aa]'
+          className='w-full rounded-xl bg-graphite text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.18)] hover:bg-graphite-hover'
           variant={isParticipating ? 'secondary' : 'default'}
           onClick={onSubscribeToggle}
           disabled={actionDisabled}

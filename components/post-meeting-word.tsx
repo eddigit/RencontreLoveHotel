@@ -34,7 +34,7 @@ export function PostMeetingWordForm({
   const [confirmMeeting, setConfirmMeeting] = useState(false)
   const [authorizePublication, setAuthorizePublication] = useState(false)
   return (
-    <section className="rounded-2xl border border-[#d6bc87]/25 bg-[#d6bc87]/[0.06] p-5 text-[#ecebe7]">
+    <section className="rounded-2xl border border-[#d6bc87]/25 bg-graphite p-5 text-[#ecebe7]">
       <h3 className="flex items-center gap-2 font-black">
         <MessageCircleHeart className="h-4 w-4 text-[#d6bc87]" />
         Un mot après rencontre
@@ -102,7 +102,7 @@ export function PostMeetingWordForm({
           disabled={
             busy || !message.trim() || !confirmMeeting || !authorizePublication
           }
-          className="bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]"
+          className="bg-graphite text-graphite-ink hover:bg-graphite-hover"
         >
           <Send className="mr-2 h-4 w-4" />
           Envoyer en privé
@@ -180,7 +180,7 @@ export function PostMeetingWordInbox({
                         }),
                       )
                     }
-                    className="bg-[#d6bc87] text-[#191714]"
+                    className="bg-graphite text-graphite-ink"
                   >
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     Confirmer et publier

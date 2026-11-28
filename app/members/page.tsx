@@ -211,7 +211,7 @@ export default function MembersPage() {
         <LhrV2Shell title='Complétez votre profil' subtitle='Votre profil doit être prêt avant de consulter la communauté.' user={user}>
           <div className='max-w-xl rounded-2xl border border-white/10 bg-white/[0.05] p-6'>
             <p className='text-white/70'>Quelques informations sont nécessaires avant d’accéder aux membres.</p>
-            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-[#d6bc87] hover:bg-[#d6bc87]'>
+            <Button onClick={() => router.push('/onboarding')} className='mt-5 bg-graphite hover:bg-graphite-hover'>
               Compléter mon profil
             </Button>
           </div>
@@ -238,7 +238,7 @@ export default function MembersPage() {
                 <p className='mt-1 text-xs text-[#b9b5ac]'>Quand vous ouvrez une fiche, le membre peut voir votre visite.</p>
               </div>
               <div className='flex flex-wrap items-center gap-2 self-end sm:self-start'>
-                {activeFilterCount > 0 && <span className='rounded-full bg-[#d6bc87]/15 px-2.5 py-1 text-xs font-semibold text-[#d6bc87]'>{activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''}</span>}
+                {activeFilterCount > 0 && <span className='rounded-full bg-graphite px-2.5 py-1 text-xs font-semibold text-[#d6bc87]'>{activeFilterCount} filtre{activeFilterCount > 1 ? 's' : ''} actif{activeFilterCount > 1 ? 's' : ''}</span>}
                 {activeFilterCount > 0 && <Button type='button' variant='ghost' size='sm' onClick={resetFilters} disabled={loading} className='text-[#94a3b8] hover:bg-white/5 hover:text-white'><RotateCcw className='mr-2 h-4 w-4' />Réinitialiser</Button>}
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function MembersPage() {
                     className='h-11 border-[#494136] bg-[#191b20] pl-9 text-[#f8fafc] placeholder:text-[#94a3b8] focus-visible:ring-[#d6bc87]'
                   />
               </div>
-              <Button type='submit' size='icon' disabled={loading} className='h-11 w-11 bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]' aria-label='Lancer la recherche'><Search className='h-4 w-4' /></Button>
+              <Button type='submit' size='icon' disabled={loading} className='h-11 w-11 bg-graphite text-graphite-ink hover:bg-graphite-hover' aria-label='Lancer la recherche'><Search className='h-4 w-4' /></Button>
               <Button ref={filterToggleRef} type='button' variant='outline' onClick={() => setFiltersOpen(open => !open)} aria-expanded={filtersOpen} aria-controls='filtres-avances-membres' aria-label={filtersOpen ? 'Masquer les filtres avancés' : 'Afficher les filtres avancés'} className='h-11 border-[#3b4257] bg-[#191b20] px-3 text-[#f8fafc] hover:bg-[#23262c] hover:text-white'><Filter className='mr-2 h-4 w-4' />Filtres</Button>
             </form>
 

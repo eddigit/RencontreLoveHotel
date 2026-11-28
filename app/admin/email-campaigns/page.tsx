@@ -143,14 +143,14 @@ export default function AdminEmailCampaignsPage () {
                 supprime, banni ou non consentant ne peut entrer dans la file.
               </p>
             </div>
-            <Button disabled className='bg-[#d6bc87] text-[#191714]'>
+            <Button disabled className='bg-graphite text-graphite-ink'>
               <Send className='mr-2 h-4 w-4' />
               Envoi reel verrouille
             </Button>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-graphite px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -270,7 +270,7 @@ export default function AdminEmailCampaignsPage () {
                   <Button
                     type='submit'
                     disabled={saving || !form.name.trim() || !form.subject.trim()}
-                    className='bg-[#d6bc87] text-[#191714]'
+                    className='bg-graphite text-graphite-ink'
                   >
                     {saving ? 'Creation...' : 'Creer le brouillon'}
                   </Button>

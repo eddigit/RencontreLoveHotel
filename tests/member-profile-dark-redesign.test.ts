@@ -10,7 +10,7 @@ describe('member profile dark redesign', () => {
     expect(page).toContain("bg-[#111821]")
     expect(page).toContain("text-[#ecebe7]")
     expect(page).toContain("text-[#c9c7c2]")
-    expect(page).toContain("bg-[#d6bc87]")
+    expect(page).toContain("bg-graphite")
     expect(page).toContain("aspect-square w-20")
     for (const section of ['descriptif', 'gouts', 'galerie', 'mots']) {
       expect(page).toContain(`id='${section}'`)

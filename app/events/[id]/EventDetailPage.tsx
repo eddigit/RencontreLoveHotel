@@ -219,7 +219,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
             {/* Titre et informations principales */}
             <div>
               <h1 className="text-3xl md:text-4xl font-bold mb-4">{event.title}</h1>
-              <div className="mb-6 rounded-xl border border-primary/20 bg-primary/10 p-4">
+              <div className="mb-6 rounded-xl border border-primary/20 bg-graphite p-4">
                 <div className="flex items-center gap-3 text-lg font-semibold">
                   <Calendar className="w-5 h-5 text-primary" />
                   <span>{formattedEventDateTime}</span>

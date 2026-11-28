@@ -34,10 +34,10 @@ function StatCard({ title, value, change, changeLabel, icon, color = 'blue', tre
   const colorClasses = {
     blue: 'bg-blue-500/10 text-blue-600 border-blue-500/20',
     green: 'bg-green-500/10 text-green-600 border-green-500/20',
-    purple: 'bg-[#d6bc87]/10 text-[#d6bc87] border-[#d6bc87]/20',
-    orange: 'bg-orange-500/10 text-orange-600 border-orange-500/20',
+    purple: 'bg-graphite text-[#d6bc87] border-[#d6bc87]/20',
+    orange: 'bg-graphite text-orange-600 border-orange-500/20',
     red: 'bg-red-500/10 text-red-600 border-red-500/20',
-    pink: 'bg-[#d6bc87]/10 text-[#d6bc87] border-[#d6bc87]/20'
+    pink: 'bg-graphite text-[#d6bc87] border-[#d6bc87]/20'
   }
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Activity
@@ -332,11 +332,11 @@ export function AdminRealTimeStats() {
               <div className="text-2xl font-bold text-green-600">{stats.recentActivity.messagesLast24h}</div>
               <div className="text-sm text-green-700">Messages Envoyés</div>
             </div>
-            <div className="text-center p-4 bg-[#d6bc87]/10 rounded-lg">
+            <div className="text-center p-4 bg-graphite rounded-lg">
               <div className="text-2xl font-bold text-[#d6bc87]">{stats.recentActivity.conversationsLast24h}</div>
               <div className="text-sm text-[#d6bc87]">Nouvelles Conversations</div>
             </div>
-            <div className="text-center p-4 bg-orange-500/10 rounded-lg">
+            <div className="text-center rounded-lg bg-graphite p-4">
               <div className="text-2xl font-bold text-orange-600">{stats.recentActivity.eventSubscriptionsLast24h}</div>
               <div className="text-sm text-orange-700">Inscriptions Événements</div>
             </div>

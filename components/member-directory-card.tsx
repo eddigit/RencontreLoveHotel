@@ -59,10 +59,10 @@ export function MemberDirectoryCard ({ member }: { member: DirectoryMember }) {
       </div>
       <div className='flex flex-1 flex-col p-3'>
         <div className='flex flex-wrap gap-1.5 text-[11px] leading-4'>
-          <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 font-medium text-[#e5d1aa]'>{typeLabel}</span>
+          <span className='rounded-full bg-graphite px-2 py-1 font-medium text-[#e5d1aa]'>{typeLabel}</span>
           {orientationLabel(member.orientation) && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>{orientationLabel(member.orientation)}</span>}
           {member.open_to_other_couples && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>Ouvert aux couples</span>}
-          {member.open_curtains && <span className='rounded-full bg-[#d6bc87]/15 px-2 py-1 text-[#e5d1aa]'>Rideaux ouverts</span>}
+          {member.open_curtains && <span className='rounded-full bg-graphite px-2 py-1 text-[#e5d1aa]'>Rideaux ouverts</span>}
           {member.libertine && <span className='rounded-full bg-[#191b20] px-2 py-1 text-[#c1c6da]'>Libertin</span>}
         </div>
         {member.bio && <p className='mt-3 line-clamp-2 text-xs leading-5 text-[#94a3b8]'>{member.bio}</p>}

@@ -320,7 +320,7 @@ export function UserProfileEditor ({
             <div className='mt-3'><MeetingCategories selected={selectedMeetingCategories(form.relationshipIntents, form.bdsmRolesPublic, form.bdsmRoles)} onToggle={value => toggleMatchingSelection('relationshipIntents', value)} /></div>
             <div className='mt-3 grid gap-2 sm:grid-cols-2'>
               {relationshipIntentOptions.filter(option => !['classic', 'libertine', 'bdsm', 'discreet'].includes(option.value)).map(option => (
-                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-[#d6bc87]/15 has-[[data-state=checked]]:text-[#ecd9b0]'>
+                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-graphite has-[[data-state=checked]]:text-[#ecd9b0]'>
                   <Checkbox checked={form.relationshipIntents.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('relationshipIntents', option.value)} />
                   <DesireIcon value={option.value} />
                   {option.label}
@@ -333,7 +333,7 @@ export function UserProfileEditor ({
             <p className='mt-1 text-sm text-white/58'>Facultatif. Utilisé pour le matching, et privé tant que vous ne choisissez pas de l’afficher.</p>
             <div className='mt-3 grid gap-2 sm:grid-cols-2'>
               {bdsmRoleOptions.map(option => (
-                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-[#d6bc87]/15 has-[[data-state=checked]]:text-[#ecd9b0]'>
+                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-graphite has-[[data-state=checked]]:text-[#ecd9b0]'>
                   <Checkbox checked={form.bdsmRoles.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('bdsmRoles', option.value)} />
                   <DesireIcon value={option.value} />
                   {option.label}

@@ -129,7 +129,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
           <div className='absolute inset-0 bg-gradient-to-r from-[#0a0f15] via-[#0a0f15]/40 to-transparent' />
         </div>
         <div className='relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24'>
-          <p className='inline-flex items-center gap-2 rounded-full border border-amber-200/25 bg-amber-200/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-100'>
+          <p className='inline-flex items-center gap-2 rounded-full border border-amber-200/25 bg-graphite px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-amber-100'>
             <MapPin className='h-3.5 w-3.5' /> Guide d’adresses à Paris
           </p>
           <h1 className='mt-5 max-w-3xl font-serif text-4xl font-semibold leading-tight text-white sm:text-6xl'>
@@ -193,7 +193,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
                   <p className='mt-3 max-w-xl text-sm leading-7 text-white/70 sm:text-base'>{active.summary}</p>
                 </div>
               </div>
-              <div className={`mt-6 rounded-2xl border p-4 text-sm leading-6 ${active.confirmed ? 'border-amber-200/25 bg-amber-200/10 text-amber-50' : 'border-white/10 bg-black/15 text-white/65'}`}>
+              <div className={`mt-6 rounded-2xl border p-4 text-sm leading-6 ${active.confirmed ? 'border-amber-200/25 bg-graphite text-amber-50' : 'border-white/10 bg-black/15 text-white/65'}`}>
                 {active.status}
               </div>
               {active.addresses ? (
@@ -211,7 +211,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
                   Site officiel du Love Hôtel <ArrowUpRight className='h-4 w-4' />
                 </a>
               ) : null}
-              <Link href={active.cta.href} className='mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-200 px-5 py-3 text-sm font-extrabold text-[#ecebe7] transition hover:bg-amber-100'>
+              <Link href={active.cta.href} className='mt-6 inline-flex items-center gap-2 rounded-xl border border-amber-200/35 bg-graphite px-5 py-3 text-sm font-extrabold text-[#ecebe7] transition hover:bg-graphite-hover'>
                 {active.cta.label}<ArrowUpRight className='h-4 w-4' />
               </Link>
             </div>

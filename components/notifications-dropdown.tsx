@@ -125,7 +125,7 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
                           className="rounded-full object-cover"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-graphite flex items-center justify-center">
                           <Bell className="h-5 w-5 text-primary" />
                         </div>
                       )}
@@ -146,7 +146,7 @@ export function NotificationsDropdown({ notifications, onMarkAsRead, onMarkAllAs
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span>{notification.time}</span>
                         {(notification.priority === "high" || notification.priority === "critical") && (
-                          <span className="rounded-full bg-[#d6bc87]/15 px-2 py-0.5 text-[#d6bc87]">
+                          <span className="rounded-full bg-graphite px-2 py-0.5 text-[#d6bc87]">
                             {notification.priority}
                           </span>
                         )}

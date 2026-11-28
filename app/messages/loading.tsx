@@ -17,7 +17,7 @@ export default function Loading() {
           </section>
           <section className='hidden p-6 lg:block'>
             <div className='mt-24 h-16 w-3/5 rounded-3xl bg-white/[0.07]' />
-            <div className='ml-auto mt-4 h-20 w-2/5 rounded-3xl bg-[#d6bc87]/20' />
+            <div className='ml-auto mt-4 h-20 w-2/5 rounded-3xl bg-graphite' />
           </section>
         </div>
       </div>

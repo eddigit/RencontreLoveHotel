@@ -256,9 +256,9 @@ body {
 }
 
 .btn-gradient {
-  background: #d6bc87;
-  border: none;
-  color: #191714;
+  background: #20232a;
+  border: 1px solid rgb(214 188 135 / 0.35);
+  color: #efe3c7;
   font-weight: 600;
   transition: all 0.3s ease;
 }

@@ -22,7 +22,7 @@ const pillarLabels = {
 
 const severityClasses = {
   critical: 'border-red-500/35 bg-red-500/10 text-red-100',
-  high: 'border-amber-500/35 bg-amber-500/10 text-amber-100',
+  high: 'border-amber-500/35 bg-graphite text-amber-100',
   medium: 'border-sky-500/35 bg-sky-500/10 text-sky-100',
   low: 'border-emerald-500/35 bg-emerald-500/10 text-emerald-100'
 }
@@ -57,7 +57,7 @@ export function AdminProductDiagnostic() {
 
   return (
     <div className='space-y-8'>
-      <section className='rounded-3xl border border-[#d6bc87]/25 bg-gradient-to-br from-[#d6bc87]/15 via-[#d6bc87]/10 to-black/20 p-6 md:p-8'>
+      <section className='rounded-3xl border border-[#d6bc87]/25 bg-gradient-to-br from-graphite via-graphite to-black/20 p-6 md:p-8'>
         <div className='flex flex-col gap-6 md:flex-row md:items-center md:justify-between'>
           <div>
             <p className='text-xs font-bold uppercase tracking-[0.22em] text-[#d6bc87]'>Pilotage exclusif Love Hotel Rencontre</p>
@@ -72,7 +72,7 @@ export function AdminProductDiagnostic() {
       </section>
 
       {diagnostic.metrics.schemaReady < diagnostic.metrics.schemaExpected ? (
-        <Alert className='border-amber-500/30 bg-amber-500/10 text-amber-50'>
+        <Alert className='border-amber-500/30 bg-graphite text-amber-50'>
           <Database className='h-4 w-4' />
           <AlertTitle>État des migrations</AlertTitle>
           <AlertDescription>{diagnostic.metrics.schemaReady}/{diagnostic.metrics.schemaExpected} éléments de pilotage disponibles. Les métriques absentes sont signalées, jamais maquillées en activité.</AlertDescription>
@@ -106,7 +106,7 @@ export function AdminProductDiagnostic() {
       <section>
         <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
           <div><h2 className='text-2xl font-black text-white'>Plan d'action priorisé</h2><p className='text-sm text-white/55'>Urgence, preuve, impact et prochaine action.</p></div>
-          <Button onClick={recoverProfiles} disabled={isPending} variant='outline' className='border-[#d6bc87]/30 bg-[#d6bc87]/10 text-white'>
+          <Button onClick={recoverProfiles} disabled={isPending} variant='outline' className='border-[#d6bc87]/30 bg-graphite text-white'>
             {isPending ? 'Création…' : 'Créer les profils privés manquants'}
           </Button>
         </div>

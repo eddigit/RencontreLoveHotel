@@ -147,7 +147,7 @@ export function EmailPreferencesEditor ({ preferences, onSave }: Props) {
       </section>
 
       <div className='flex flex-wrap items-center gap-3'>
-        <Button type='submit' disabled={saving} className='rounded-2xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+        <Button type='submit' disabled={saving} className='rounded-2xl bg-graphite text-graphite-ink hover:bg-graphite-hover'>
           <Save className='mr-2 h-4 w-4' />
           {saving ? 'Enregistrement…' : 'Enregistrer mes préférences e-mail'}
         </Button>

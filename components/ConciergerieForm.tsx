@@ -149,7 +149,7 @@ export default function ConciergerieForm() {
                   className={[
                     'relative cursor-pointer rounded-xl border p-3 text-left transition focus-within:ring-2 focus-within:ring-[#d6bc87]',
                     requestType === type.value
-                      ? 'border-[#d6bc87] bg-[#d6bc87]/15 text-[#f4efe5]'
+                      ? 'border-[#d6bc87] bg-graphite text-[#f4efe5]'
                       : 'border-[#494136] bg-[#0d0e11] text-[#ded6ca] hover:border-[#d6bc87]/60 hover:text-[#f4efe5]'
                   ].join(' ')}
                 >
@@ -298,7 +298,7 @@ export default function ConciergerieForm() {
           <button
             type='submit'
             disabled={isSubmitting}
-            className='w-full rounded-xl bg-[#d6bc87] px-5 py-3.5 text-base font-semibold text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.18)] transition hover:bg-[#e5d1aa] disabled:cursor-not-allowed disabled:opacity-60'
+            className='w-full rounded-xl bg-graphite px-5 py-3.5 text-base font-semibold text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.18)] transition hover:bg-graphite-hover disabled:cursor-not-allowed disabled:opacity-60'
           >
             {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande privée'}
           </button>

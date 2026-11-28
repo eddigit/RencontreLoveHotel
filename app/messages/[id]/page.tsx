@@ -852,7 +852,7 @@ export default function ConversationPage ({
               <div className='flex flex-1 items-center justify-center p-6' aria-label='Chargement de la conversation'>
                 <div className='w-full max-w-2xl space-y-4 animate-pulse'>
                   <div className='h-16 w-3/5 rounded-3xl rounded-bl-md bg-white/[0.08]' />
-                  <div className='ml-auto h-20 w-2/5 rounded-3xl rounded-br-md bg-[#d6bc87]/20' />
+                  <div className='ml-auto h-20 w-2/5 rounded-3xl rounded-br-md bg-graphite' />
                   <div className='h-14 w-1/2 rounded-3xl rounded-bl-md bg-white/[0.08]' />
                 </div>
               </div>
@@ -983,7 +983,7 @@ export default function ConversationPage ({
                     type='button'
                     size='sm'
                     onClick={() => scrollToLatest()}
-                    className='absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-[#d6bc87] px-4 text-[#191714] shadow-lg shadow-black/35 hover:bg-[#e5d1aa]'
+                    className='absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-graphite px-4 text-graphite-ink shadow-lg shadow-black/35 hover:bg-graphite-hover'
                     aria-label='Aller aux derniers messages'
                   >
                     <ChevronUp className='mr-2 h-4 w-4 rotate-180' aria-hidden='true' />
@@ -1049,7 +1049,7 @@ export default function ConversationPage ({
                       className={[
                         'h-12 shrink-0 rounded-xl border border-[#454952]/45 px-3',
                         recording
-                          ? 'bg-[#d6bc87]/20 text-[#e5d1aa]'
+                          ? 'bg-graphite text-[#e5d1aa]'
                           : 'bg-transparent text-[#aaa69e] hover:bg-[#23262c] hover:text-[#f1eee8]'
                       ].join(' ')}
                       disabled={uploading || sending || pendingAttachments.length >= 4}
@@ -1067,7 +1067,7 @@ export default function ConversationPage ({
                     />
                     <Button
                       type='submit' aria-label='Envoyer le message'
-                      className='h-12 shrink-0 justify-self-end rounded-xl bg-[#d6bc87] px-3 text-[#191714] shadow-[0_0_16px_rgba(214,188,135,0.25)] hover:bg-[#e5d1aa] sm:px-4'
+                      className='h-12 shrink-0 justify-self-end rounded-xl bg-graphite px-3 text-graphite-ink shadow-[0_0_16px_rgba(214,188,135,0.25)] hover:bg-graphite-hover sm:px-4'
                       disabled={!canSend}
                     >
                       <Send className='h-4 w-4 sm:mr-2' />

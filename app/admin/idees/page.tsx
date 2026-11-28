@@ -47,7 +47,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
             <Lightbulb aria-hidden="true" className="h-9 w-9 shrink-0 text-[#d6bc87]" />
             <div><h2 id="feedback-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">Boîte à idées</h2>
               <p className="mt-1 text-sm text-white/70">Les idées et les problèmes envoyés depuis l’espace membre.</p></div>
-            {data && data.openBugCount > 0 && <span className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-sm font-bold text-amber-100">{data.openBugCount} bug{data.openBugCount > 1 ? 's' : ''} ouvert{data.openBugCount > 1 ? 's' : ''}</span>}
+            {data && data.openBugCount > 0 && <span className="rounded-full border border-amber-300/40 bg-graphite px-3 py-1 text-sm font-bold text-amber-100">{data.openBugCount} bug{data.openBugCount > 1 ? 's' : ''} ouvert{data.openBugCount > 1 ? 's' : ''}</span>}
           </header>
           <form action="/admin/idees" method="get" className="mb-6 grid items-end gap-3 rounded-2xl border border-white/10 bg-white/[.04] p-4 sm:grid-cols-[1fr_1fr_auto]">
             <label className="space-y-1 text-sm font-semibold"><span>Type de retour</span>
@@ -58,7 +58,7 @@ export default async function AdminIdeasPage({ searchParams }: { searchParams: P
               <select key={status ?? 'all'} name="status" defaultValue={status ?? ''} className={controlClass}>
                 <option value="">Tous les statuts</option><option value="open">À lire</option><option value="in_progress">En cours</option><option value="resolved">Traité</option>
               </select></label>
-            <button className="min-h-11 rounded-xl bg-[#d6bc87] px-5 font-bold text-[#14271e] hover:bg-[#b7ffdb]">Filtrer</button>
+            <button className="min-h-11 rounded-xl bg-graphite px-5 font-bold text-graphite-ink hover:bg-graphite-hover">Filtrer</button>
           </form>
           {!data ? (
             <p role="alert" className="rounded-xl border border-rose-300/30 p-4">Les retours n’ont pas pu être chargés. <Link className="underline" href={hrefFor(page)}>Réessayer</Link></p>

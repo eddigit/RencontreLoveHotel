@@ -39,7 +39,7 @@ export function AdminTabs () {
             aria-current={isActive ? 'page' : undefined}
             className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-semibold transition md:px-4 ${
               isActive
-                ? 'bg-[#d6bc87] text-[#191714] shadow-md shadow-[#d6bc87]/15'
+                ? 'bg-graphite text-graphite-ink shadow-md shadow-[#d6bc87]/15'
                 : 'text-white/58 hover:bg-white/[0.06] hover:text-white'
             }`}
           >

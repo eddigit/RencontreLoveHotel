@@ -94,7 +94,7 @@ export function AdminMemberEngagementStats() {
           <Metric label='Messages lus' value={data.messageReceiptsAvailable ? data.messages.read : null} tone='text-[#d6bc87]' />
         </div>
 
-        <div className='rounded-lg border border-amber-500/25 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300'>
+        <div className='rounded-lg border border-amber-500/25 bg-graphite p-4 text-sm text-amber-700 dark:text-amber-300'>
           <div className='flex gap-2 font-semibold'><AlertTriangle className='mt-0.5 h-4 w-4 shrink-0' />Audience web</div>
           <p className='mt-1'>{data.anonymousVisitors.detail} <a className='font-semibold underline' href={data.anonymousVisitors.audienceUrl} target='_blank' rel='noreferrer'>Ouvrir Vercel Analytics</a>.</p>
         </div>

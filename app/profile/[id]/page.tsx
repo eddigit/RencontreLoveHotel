@@ -137,15 +137,15 @@ export default async function ProfilePage ({
                 <div className='mt-2 flex flex-wrap gap-2'>
                   <span className='self-center text-sm text-stone-300'>{directoryProfileTypeLabel(profile)}</span>
                   {photoVerified && <VerifiedProfileBadge />}
-                  {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>
+                  {profile.location && <Badge className='rounded-full border border-[#d6bc87]/45 bg-graphite px-3 py-1.5 text-[#ecebe7]'>
                     <MapPin className='mr-1 h-3.5 w-3.5' />
                     {profile.location}
                   </Badge>}
-                  {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
+                  {profileOnline && <Badge className='rounded-full border border-[#d6bc87]/45 bg-graphite px-3 py-1.5 text-[#ecebe7]'>En ligne</Badge>}
                 </div>
               </div>
             </div>
-            {canShowActions && <a href='#contact' className='inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714] sm:w-auto'>Entrer en contact</a>}
+            {canShowActions && <a href='#contact' className='inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-graphite px-4 text-sm font-bold text-graphite-ink sm:w-auto'>Entrer en contact</a>}
           </div>
           <div className='px-4 pb-5 sm:px-6'>
             <h2 className='mb-2 text-sm font-semibold text-stone-200'>Catégories de rencontre</h2>
@@ -193,7 +193,7 @@ export default async function ProfilePage ({
                 {interests.map((interest: string) => (
                   <Badge
                     key={interest}
-                    className='rounded-full border border-[#d6bc87]/45 bg-[#d6bc87]/10 px-3 py-1.5 text-[#ecebe7]'
+                    className='rounded-full border border-[#d6bc87]/45 bg-graphite px-3 py-1.5 text-[#ecebe7]'
                   >
                     {interest}
                   </Badge>
@@ -232,7 +232,7 @@ export default async function ProfilePage ({
                           if (accepted?.conversationId) redirect(`/messages/${accepted.conversationId}`)
                         }}
                       >
-                        <Button type='submit' className='w-full rounded-2xl bg-[#d6bc87] text-[#191714] hover:bg-[#e5d1aa]'>
+                        <Button type='submit' className='w-full rounded-2xl bg-graphite text-graphite-ink hover:bg-graphite-hover'>
                           Accepter
                         </Button>
                       </form>

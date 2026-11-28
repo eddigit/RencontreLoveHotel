@@ -92,14 +92,14 @@ export default function AdminModerationPage () {
                   claire de chaque action. La messagerie privée complète n’est jamais ouverte en masse.
                 </p>
               </div>
-              <Button asChild className='h-12 shrink-0 bg-[#d6bc87] px-6 font-black text-[#191714]'>
+              <Button asChild className='h-12 shrink-0 bg-graphite px-6 font-black text-graphite-ink'>
                 <Link href='/moderation'>Ouvrir la file sécurisée</Link>
               </Button>
             </div>
           </div>
 
           {status && (
-            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-[#d6bc87]/10 px-4 py-3 text-sm text-white'>
+            <div className='mb-5 rounded-lg border border-[#d6bc87]/30 bg-graphite px-4 py-3 text-sm text-white'>
               {status}
             </div>
           )}
@@ -173,7 +173,7 @@ export default function AdminModerationPage () {
                         className='flex items-center justify-between rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm'
                       >
                         <span className='font-semibold'>{rule.keyword}</span>
-                        <span className='rounded-full bg-[#d6bc87]/20 px-2 py-1 text-xs text-[#d6bc87]'>
+                        <span className='rounded-full bg-graphite px-2 py-1 text-xs text-[#d6bc87]'>
                           {rule.severity}
                         </span>
                       </div>
@@ -204,7 +204,7 @@ export default function AdminModerationPage () {
                             {item.reason}
                           </div>
                           <div className='flex gap-2 text-xs'>
-                            <span className='rounded-full bg-[#d6bc87]/20 px-2 py-1 text-[#d6bc87]'>
+                            <span className='rounded-full bg-graphite px-2 py-1 text-[#d6bc87]'>
                               {item.severity}
                             </span>
                             <span className='rounded-full bg-white/10 px-2 py-1'>

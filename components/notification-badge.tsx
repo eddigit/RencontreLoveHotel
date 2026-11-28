@@ -14,7 +14,7 @@ export function NotificationBadge({ count, variant = "primary", size = "sm" }: N
 
   const badgeVariant =
     variant === "primary"
-      ? "bg-[#d6bc87] text-[#191714] border-0"
+      ? "bg-graphite text-graphite-ink border-0"
       : variant === "secondary"
         ? "bg-[#22242a] text-[#e5d1aa] border-0"
         : "bg-destructive text-destructive-foreground"
