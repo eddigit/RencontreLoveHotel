@@ -25,6 +25,16 @@ export interface RoadmapItem {
 
 export const roadmapItems: RoadmapItem[] = [
   {
+    id: 'matching-recherche-libre',
+    title: 'Décrire une rencontre et recevoir des suggestions réciproques',
+    category: 'Fonctionnel', status: 'planned', priority: 'Moyenne',
+    phase: 'Pilote après la relance', owner: 'Équipe Joug',
+    note: 'Le membre décrit sa recherche en une phrase. L’assistant propose une reformulation modifiable et distingue les souhaits des conditions indispensables. Les quatre catégories restent disponibles comme raccourcis.',
+    impact: 'Suggérer des personnes dont les souhaits déclarés concordent dans les deux sens. Chaque suggestion cite un point commun partageable et permet de préciser la recherche.',
+    nextAction: 'Prototyper sur des profils fictifs, dont des couples aux souhaits différents. Prendre en compte uniquement les informations volontairement fournies pour le matching, respecter les limites et les blocages, et demander une précision si une condition indispensable est inconnue. Évaluer la pertinence avec des membres volontaires avant activation.',
+    updatedAt: '2026-11-28'
+  },
+  {
     id: 'activite-personnelle',
     title: 'Mon activité sur le cercle',
     category: 'Fonctionnel', status: 'planned', priority: 'Moyenne',

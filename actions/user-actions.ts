@@ -276,7 +276,7 @@ export type CommunityMemberDirectoryFilters = {
   orientation?: 'all' | 'hetero' | 'bi' | 'bisexual' | 'homo' | 'gay' | 'lesbian' | 'pansexual'
   meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
   relationshipIntent?: 'all' | typeof relationshipIntentOptions[number]['value']
-  bdsmRole?: 'all' | 'bdsm' | Exclude<typeof bdsmRoleOptions[number]['value'], 'none'>
+  bdsmRole?: 'all' | Exclude<typeof bdsmRoleOptions[number]['value'], 'none'>
   onlineOnly?: boolean
   recent?: boolean
 }
@@ -311,7 +311,7 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   const relationshipIntent = relationshipIntentOptions.some(option => option.value === input.relationshipIntent)
     ? input.relationshipIntent
     : undefined
-  const bdsmRole = input.bdsmRole === 'bdsm' || bdsmRoleOptions.some(option => option.value !== 'none' && option.value === input.bdsmRole)
+  const bdsmRole = bdsmRoleOptions.some(option => option.value !== 'none' && option.value === input.bdsmRole)
     ? input.bdsmRole
     : undefined
 
@@ -348,17 +348,25 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
   }
 
   if (relationshipIntent) {
-    whereClauses.push(`${addParam(relationshipIntent)} = ANY(COALESCE(up.relationship_intents, ARRAY[]::text[]))`)
+    if (relationshipIntent === 'bdsm') {
+      const bdsmIntentPlaceholder = addParam(relationshipIntent)
+      const publicRolesPlaceholder = addParam(genericBdsmRoles)
+      whereClauses.push(`(
+        ${bdsmIntentPlaceholder} = ANY(COALESCE(up.relationship_intents, ARRAY[]::text[]))
+        OR (
+          up.bdsm_roles_public IS TRUE
+          AND COALESCE(up.bdsm_roles, ARRAY[]::text[]) && ${publicRolesPlaceholder}::text[]
+        )
+      )`)
+    } else {
+      whereClauses.push(`${addParam(relationshipIntent)} = ANY(COALESCE(up.relationship_intents, ARRAY[]::text[]))`)
+    }
   }
 
   if (bdsmRole) {
-    // BDSM preferences are searchable only when their owner opted into their public use.
+    // A precise BDSM role is searchable only when its owner opted into its public use.
     whereClauses.push('up.bdsm_roles_public IS TRUE')
-    if (bdsmRole === 'bdsm') {
-      whereClauses.push(`COALESCE(up.bdsm_roles, ARRAY[]::text[]) && ${addParam(genericBdsmRoles)}::text[]`)
-    } else {
-      whereClauses.push(`${addParam(bdsmRole)} = ANY(COALESCE(up.bdsm_roles, ARRAY[]::text[]))`)
-    }
+    whereClauses.push(`${addParam(bdsmRole)} = ANY(COALESCE(up.bdsm_roles, ARRAY[]::text[]))`)
   }
 
   if (input.onlineOnly) {

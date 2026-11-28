@@ -18,7 +18,7 @@ describe('onboarding avatar and relationship preferences', () => {
     expect(form).toContain('seekingProfileTypes')
     expect(form).toContain('relationshipIntents')
     expect(form).toContain('bdsmRoles')
-    expect(form).toContain("toggleArrayValue('bdsmRoles', 'none')")
+    expect(form).toContain("toggleMatchingSelection('bdsmRoles', 'none')")
   })
 
   it('saves onboarding only once from the page', () => {

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Camera, Images, Plus, Save, X } from 'lucide-react'
 import { DesireIcon } from '@/components/desire-icon'
+import { MeetingCategories } from '@/components/meeting-categories'
+import { selectedMeetingCategories } from '@/lib/meeting-categories'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -119,14 +121,22 @@ export function UserProfileEditor ({
   }
 
   function toggleMatchingSelection (field: 'seekingProfileTypes' | 'relationshipIntents' | 'bdsmRoles', value: string) {
-    setForm(current => ({
-      ...current,
-      [field]: field === 'bdsmRoles' && value === 'none'
-        ? (current.bdsmRoles.includes('none') ? [] : ['none'])
-        : (current[field].includes(value)
-            ? current[field].filter((item: string) => item !== value)
-            : [...(field === 'bdsmRoles' ? current[field].filter((item: string) => item !== 'none') : current[field]), value])
-    }))
+    setForm(current => {
+      if (field === 'relationshipIntents' && value === 'bdsm') {
+        const bdsmIsSelected = selectedMeetingCategories(current.relationshipIntents, current.bdsmRolesPublic, current.bdsmRoles).includes('bdsm')
+        return bdsmIsSelected
+          ? { ...current, relationshipIntents: current.relationshipIntents.filter((item: string) => item !== 'bdsm'), bdsmRolesPublic: false }
+          : { ...current, relationshipIntents: [...current.relationshipIntents, 'bdsm'] }
+      }
+      return {
+        ...current,
+        [field]: field === 'bdsmRoles' && value === 'none'
+          ? (current.bdsmRoles.includes('none') ? [] : ['none'])
+          : (current[field].includes(value)
+              ? current[field].filter((item: string) => item !== value)
+              : [...(field === 'bdsmRoles' ? current[field].filter((item: string) => item !== 'none') : current[field]), value])
+      }
+    })
   }
 
   async function handleImageChange (e: React.ChangeEvent<HTMLInputElement>) {
@@ -307,8 +317,9 @@ export function UserProfileEditor ({
           <div className='sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
             <h4 className='font-black'>Intentions de relation</h4>
             <p className='mt-1 text-sm text-white/65'>Chaque envie sélectionnée apparaît sur votre fiche et dans les filtres des membres.</p>
+            <div className='mt-3'><MeetingCategories selected={selectedMeetingCategories(form.relationshipIntents, form.bdsmRolesPublic, form.bdsmRoles)} onToggle={value => toggleMatchingSelection('relationshipIntents', value)} /></div>
             <div className='mt-3 grid gap-2 sm:grid-cols-2'>
-              {relationshipIntentOptions.map(option => (
+              {relationshipIntentOptions.filter(option => !['classic', 'libertine', 'bdsm', 'discreet'].includes(option.value)).map(option => (
                 <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-[#d6bc87]/15 has-[[data-state=checked]]:text-[#ecd9b0]'>
                   <Checkbox checked={form.relationshipIntents.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('relationshipIntents', option.value)} />
                   <DesireIcon value={option.value} />

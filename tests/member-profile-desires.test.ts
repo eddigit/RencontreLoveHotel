@@ -9,6 +9,7 @@ describe('member profile desires', () => {
   const actions = readFileSync('actions/user-actions.ts', 'utf8')
   const consentMigration = readFileSync('migrations/20261128_bdsm_roles_public.sql', 'utf8')
   const intentsMigration = readFileSync('migrations/20261128_relationship_intents_classic_discreet.sql', 'utf8')
+  const bdsmCategoryMigration = readFileSync('migrations/20261128_relationship_intents_bdsm.sql', 'utf8')
 
   it('shares the controlled intent and BDSM option definitions with both forms', () => {
     expect(types).toContain("{ value: 'classic', label: 'Relation classique' }")
@@ -39,6 +40,17 @@ describe('member profile desires', () => {
     expect(intentsMigration).toContain('DROP CONSTRAINT IF EXISTS user_profiles_relationship_intents_check')
     expect(intentsMigration).toContain("ARRAY['classic', 'serious', 'regular', 'casual', 'libertine', 'friendship', 'discreet']::text[]")
     expect(intentsMigration).toContain('COMMIT;')
+  })
+
+  it('offers the generic BDSM category independently from private role publication', () => {
+    expect(types).toContain("{ value: 'bdsm', label: 'Univers BDSM' }")
+    expect(onboarding).toContain('MeetingCategories selected={selectedMeetingCategories(formData.relationshipIntents, formData.bdsmRolesPublic, formData.bdsmRoles)}')
+    expect(editor).toContain('MeetingCategories selected={selectedMeetingCategories(form.relationshipIntents, form.bdsmRolesPublic, form.bdsmRoles)}')
+    expect(onboarding).toContain("current.filter(item => item !== 'bdsm') as OnboardingData['relationshipIntents'], bdsmRolesPublic: false")
+    expect(editor).toContain("relationshipIntents: current.relationshipIntents.filter((item: string) => item !== 'bdsm'), bdsmRolesPublic: false")
+    expect(bdsmCategoryMigration).toContain('BEGIN;')
+    expect(bdsmCategoryMigration).toContain("ARRAY['classic', 'serious', 'regular', 'casual', 'libertine', 'bdsm', 'friendship', 'discreet']::text[]")
+    expect(bdsmCategoryMigration).toContain('COMMIT;')
   })
 
 })

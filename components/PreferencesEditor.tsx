@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import { CalendarHeart, HeartHandshake, Save, Sparkles } from "lucide-react"
+import { DesireIcon } from "./desire-icon"
 import { Button } from "./ui/button"
 import { Input } from "./ui/input"
 import { Checkbox } from "./ui/checkbox"
@@ -102,7 +103,7 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
                 onCheckedChange={value => setForm(f => ({ ...f, [option.key]: value as boolean }))}
               />
               <span>
-                <span className="block font-bold">{option.label}</span>
+                <span className="flex items-center gap-2 font-bold"><DesireIcon value={option.key} className="size-5 shrink-0 text-[#fae092]" />{option.label}</span>
                 <span className="mt-1 block text-sm leading-5 text-[#c9c7c2]">{option.hint}</span>
               </span>
             </label>
@@ -117,7 +118,7 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
             onCheckedChange={value => setForm(f => ({ ...f, prefer_curtain_open: value as boolean }))}
           />
           <span>
-            <span className="block font-bold">Rideaux ouverts</span>
+            <span className="flex items-center gap-2 font-bold"><DesireIcon value="open_curtains" className="size-5 text-[#fae092]" />Rideaux ouverts</span>
             <span className="text-sm text-[#c9c7c2]">Intéressé par les soirées où les chambres peuvent être ouvertes.</span>
           </span>
         </label>
@@ -127,7 +128,7 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
             onCheckedChange={value => setForm(f => ({ ...f, join_exclusive_events: value as boolean }))}
           />
           <span>
-            <span className="block font-bold">Apéro jacuzzi</span>
+            <span className="flex items-center gap-2 font-bold"><DesireIcon value="jacuzzi" className="size-5 text-[#fae092]" />Apéro jacuzzi</span>
             <span className="text-sm text-[#c9c7c2]">Invitations champagne, jacuzzi, couples et petits groupes.</span>
           </span>
         </label>

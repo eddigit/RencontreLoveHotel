@@ -11,18 +11,12 @@ import { Input } from '@/components/ui/input'
 import { useAuth } from '@/contexts/auth-context'
 import { MemberDirectoryCard, orientationLabel, type DirectoryMember } from '@/components/member-directory-card'
 import { DesireIcon } from '@/components/desire-icon'
+import { meetingCategories } from '@/lib/meeting-categories'
 import { bdsmRoleOptions, relationshipIntentOptions } from '@/lib/member-profile-types'
 import {
   searchCommunityMembers,
   type CommunityMemberDirectoryFilters
 } from '@/actions/user-actions'
-
-const categoryShortcuts = [
-  { value: 'classic', label: 'Classique' },
-  { value: 'libertine', label: 'Libertine' },
-  { value: 'bdsm', label: 'BDSM / D·s' },
-  { value: 'discreet', label: 'Discrète' }
-] as const
 
 const initialFilters: CommunityMemberDirectoryFilters = {
   pageSize: 24,
@@ -52,7 +46,7 @@ function isDirectoryRelationshipIntent(value: string | null): value is NonNullab
 }
 
 function isDirectoryBdsmRole(value: string | null): value is NonNullable<CommunityMemberDirectoryFilters['bdsmRole']> {
-  return value === 'all' || value === 'bdsm' || bdsmRoleOptions.some(option => option.value !== 'none' && option.value === value)
+  return value === 'all' || bdsmRoleOptions.some(option => option.value !== 'none' && option.value === value)
 }
 
 function filtersFromSearchParams(searchParams: URLSearchParams) {
@@ -174,9 +168,7 @@ export default function MembersPage() {
   }
 
   const relationshipIntentLabel = relationshipIntentOptions.find(option => option.value === appliedFilters.relationshipIntent)?.label
-  const bdsmRoleLabel = appliedFilters.bdsmRole === 'bdsm'
-    ? 'Affinités BDSM'
-    : bdsmRoleOptions.find(option => option.value === appliedFilters.bdsmRole)?.label
+  const bdsmRoleLabel = bdsmRoleOptions.find(option => option.value === appliedFilters.bdsmRole)?.label
   const appliedCriteria = [
     appliedFilters.search?.trim() ? `Recherche : « ${appliedFilters.search.trim()} »` : null,
     appliedFilters.profileType === 'couple' ? 'Couples' : null,
@@ -269,13 +261,15 @@ export default function MembersPage() {
             </form>
 
             <div role='group' aria-label='Catégories de rencontre' className='mt-3 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap'>
-              {categoryShortcuts.map(({ value, label }) => {
-                const selected = value === 'bdsm' ? Boolean(filters.bdsmRole && filters.bdsmRole !== 'all') : filters.relationshipIntent === value
+              {meetingCategories.map(({ value, label }) => {
+                const selected = filters.relationshipIntent === value
                 return <button key={value} type='button' aria-pressed={selected}
                   className='inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#121318] px-3 py-1 text-sm font-semibold text-stone-200 ring-1 ring-white/10 hover:ring-[#fae092]/50 aria-pressed:text-[#fae092] aria-pressed:ring-[#fae092]'
-                  onClick={() => applyFilters(value === 'bdsm'
-                    ? { ...filters, bdsmRole: selected ? 'all' : 'bdsm' }
-                    : { ...filters, relationshipIntent: selected ? 'all' : value })}>
+                  onClick={() => applyFilters({
+                    ...filters,
+                    relationshipIntent: selected ? 'all' : value,
+                    bdsmRole: value === 'bdsm' ? 'all' : filters.bdsmRole
+                  })}>
                   <DesireIcon value={value} />{label}
                 </button>
               })}
@@ -346,7 +340,6 @@ export default function MembersPage() {
                       className='mt-1 h-10 w-full rounded-md border border-white/10 bg-[#191714] px-3 text-sm text-white'
                     >
                       <option value='all'>Toutes les affinités</option>
-                      <option value='bdsm'>BDSM</option>
                       {bdsmRoleOptions.filter(option => option.value !== 'none').map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </label>

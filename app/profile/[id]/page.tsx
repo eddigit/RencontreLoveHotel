@@ -2,6 +2,8 @@ import { getPublicProfileVerified } from '@/actions/photo-verification-actions'
 import { VerifiedProfileBadge } from '@/components/verified-profile-badge'
 import { parseProfileTags } from '@/lib/profile-likes-dislikes'
 import { DesireIcon } from '@/components/desire-icon'
+import { MeetingCategories } from '@/components/meeting-categories'
+import { meetingCategories, selectedMeetingCategories } from '@/lib/meeting-categories'
 import { publicDesires } from '@/lib/public-desires'
 import { directoryProfileTypeLabel, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 import { PresenceDot } from '@/components/presence-dot'
@@ -74,7 +76,8 @@ export default async function ProfilePage ({
   const dislikes = parseProfileTags(profile.dislikes)
   const targets = parseProfileTags(profile.seeking_profile_types)
   const lookingFor = seekingProfileTypeOptions.filter(option => targets.includes(option.value)).map(option => option.label)
-  const desires = publicDesires(profile)
+  const categories = selectedMeetingCategories(parseProfileTags(profile.relationship_intents), profile.bdsm_roles_public === true, parseProfileTags(profile.bdsm_roles))
+  const desires = publicDesires(profile).filter(desire => !meetingCategories.some(category => category.value === desire.value))
   const profileOnline = isUserRecentlySeen(profile.last_seen_at)
 
   let matchStatus: any = null
@@ -139,6 +142,10 @@ export default async function ProfilePage ({
                 </div>
             </div>
             {canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714]'>Entrer en contact</a>}
+          </div>
+          <div className='px-4 pb-5 sm:px-6'>
+            <h2 className='mb-2 text-sm font-semibold text-stone-200'>Catégories de rencontre</h2>
+            <MeetingCategories selected={categories} />
           </div>
           {desires.length > 0 && <ul aria-label='Envies de rencontre' className='flex flex-wrap gap-2 px-4 pb-5 sm:px-6'>
             {desires.map(({ value, label }) => <li key={value} className='inline-flex items-center gap-2 rounded-full bg-[#272521] px-3 py-1.5 text-sm text-[#ead6aa]'>

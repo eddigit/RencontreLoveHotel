@@ -33,6 +33,7 @@ export const relationshipIntentOptions = [
   { value: 'regular', label: 'Relation régulière' },
   { value: 'casual', label: 'Rencontre occasionnelle' },
   { value: 'libertine', label: 'Relation libertine' },
+  { value: 'bdsm', label: 'Univers BDSM' },
   { value: 'friendship', label: 'Relation amicale' },
   { value: 'discreet', label: 'Rencontre discrète' }
 ] as const

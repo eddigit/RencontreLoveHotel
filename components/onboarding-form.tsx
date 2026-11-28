@@ -13,6 +13,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DesireIcon } from '@/components/desire-icon'
+import { MeetingCategories } from '@/components/meeting-categories'
+import { selectedMeetingCategories } from '@/lib/meeting-categories'
 import {
   bdsmRoleOptions,
   memberIdentityFromStatus,
@@ -33,7 +35,7 @@ export interface OnboardingData {
   coupleComposition: 'mixed' | 'male_male' | 'female_female' | 'other' | ''
   avatarUrl: string
   seekingProfileTypes: SeekingProfileType[]
-  relationshipIntents: Array<'classic' | 'serious' | 'regular' | 'casual' | 'libertine' | 'friendship' | 'discreet'>
+  relationshipIntents: Array<'classic' | 'serious' | 'regular' | 'casual' | 'libertine' | 'bdsm' | 'friendship' | 'discreet'>
   bdsmRoles: Array<'discovery' | 'dominant' | 'submissive' | 'switch' | 'none'>
   bdsmRolesPublic: boolean
   interestedInRestaurant: boolean
@@ -93,9 +95,15 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
     setFormData(previous => ({ ...previous, status, gender, coupleComposition: status === 'couple' ? previous.coupleComposition : '' }))
   }
 
-  const toggleArrayValue = (field: 'seekingProfileTypes' | 'relationshipIntents' | 'bdsmRoles', value: string) => {
+  const toggleMatchingSelection = (field: 'seekingProfileTypes' | 'relationshipIntents' | 'bdsmRoles', value: string) => {
     setFormData(previous => {
       const current = previous[field] as string[]
+      if (field === 'relationshipIntents' && value === 'bdsm') {
+        const bdsmIsSelected = selectedMeetingCategories(previous.relationshipIntents, previous.bdsmRolesPublic, previous.bdsmRoles).includes('bdsm')
+        return bdsmIsSelected
+          ? { ...previous, relationshipIntents: current.filter(item => item !== 'bdsm') as OnboardingData['relationshipIntents'], bdsmRolesPublic: false }
+          : { ...previous, relationshipIntents: [...current, 'bdsm'] as OnboardingData['relationshipIntents'] }
+      }
       if (field === 'bdsmRoles' && value === 'none') {
         return { ...previous, bdsmRoles: current.includes('none') ? [] : ['none'] }
       }
@@ -214,16 +222,16 @@ export function OnboardingForm({ onComplete }: { onComplete: (data: OnboardingDa
 
         {step === 3 && (
           <div className='space-y-6'>
-            <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{seekingProfileTypeOptions.map(option => <Choice key={option.value} id={`seeking-${option.value}`} label={option.label} checked={formData.seekingProfileTypes.includes(option.value)} onChange={() => toggleArrayValue('seekingProfileTypes', option.value)} />)}</div>
-            <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2><p className='text-sm text-white/65'>Vos choix apparaissent sur votre fiche et dans la recherche des membres.</p>{relationshipIntentOptions.map(({ value, label }) => <Choice key={value} id={`intent-${value}`} value={value} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleArrayValue('relationshipIntents', value)} />)}</div>
-            <div className='space-y-3'><div><h2 className='font-bold'>Affinités BDSM</h2><p className='text-sm text-purple-100/65'>Facultatif. Ces rôles servent au matching et restent privés par défaut.</p></div>{bdsmRoleOptions.map(({ value, label }) => <Choice key={value} id={`bdsm-${value}`} value={value} label={label} checked={formData.bdsmRoles.includes(value)} onChange={() => value === 'none' ? toggleArrayValue('bdsmRoles', 'none') : toggleArrayValue('bdsmRoles', value)} />)}<Choice id='bdsm-roles-public' label='Afficher mes affinités BDSM sur ma fiche publique et permettre aux membres de me trouver avec ces filtres' checked={formData.bdsmRolesPublic} onChange={value => updateFormData('bdsmRolesPublic', value)} /></div>
+            <div className='space-y-3'><div><h2 className='font-bold'>Profils recherchés</h2><p className='text-sm text-purple-100/65'>Plusieurs choix possibles. Aucun choix reste permissif.</p></div>{seekingProfileTypeOptions.map(option => <Choice key={option.value} id={`seeking-${option.value}`} label={option.label} checked={formData.seekingProfileTypes.includes(option.value)} onChange={() => toggleMatchingSelection('seekingProfileTypes', option.value)} />)}</div>
+            <div className='space-y-3'><h2 className='font-bold'>Nature de la relation</h2><p className='text-sm text-white/65'>Vos choix apparaissent sur votre fiche et dans la recherche des membres.</p><MeetingCategories selected={selectedMeetingCategories(formData.relationshipIntents, formData.bdsmRolesPublic, formData.bdsmRoles)} onToggle={value => toggleMatchingSelection('relationshipIntents', value)} />{relationshipIntentOptions.filter(option => !['classic', 'libertine', 'bdsm', 'discreet'].includes(option.value)).map(({ value, label }) => <Choice key={value} id={`intent-${value}`} value={value} label={label} checked={formData.relationshipIntents.includes(value)} onChange={() => toggleMatchingSelection('relationshipIntents', value)} />)}</div>
+            <div className='space-y-3'><div><h2 className='font-bold'>Affinités BDSM</h2><p className='text-sm text-purple-100/65'>Facultatif. Ces rôles servent au matching et restent privés par défaut.</p></div>{bdsmRoleOptions.map(({ value, label }) => <Choice key={value} id={`bdsm-${value}`} value={value} label={label} checked={formData.bdsmRoles.includes(value)} onChange={() => value === 'none' ? toggleMatchingSelection('bdsmRoles', 'none') : toggleMatchingSelection('bdsmRoles', value)} />)}<Choice id='bdsm-roles-public' label='Afficher mes affinités BDSM sur ma fiche publique et permettre aux membres de me trouver avec ces filtres' checked={formData.bdsmRolesPublic} onChange={value => updateFormData('bdsmRolesPublic', value)} /></div>
           </div>
         )}
 
         {step === 4 && (
           <div className='space-y-5'>
             <div><h2 className='font-bold'>Vos univers de rencontre</h2><p className='text-sm text-purple-100/65'>Choisissez au moins un univers.</p></div>
-            <div className='space-y-3'>{meetingTypes.map(([value, label]) => <Choice key={value} id={`meeting-${value}`} label={label} checked={formData.meetingTypes[value]} onChange={checked => setMeetingType(value, checked)} />)}</div>
+            <div className='space-y-3'>{meetingTypes.map(([value, label]) => <Choice key={value} id={`meeting-${value}`} value={value} label={label} checked={formData.meetingTypes[value]} onChange={checked => setMeetingType(value, checked)} />)}</div>
             <div className='grid gap-3'><Choice id='restaurant' label='Sorties au restaurant' checked={formData.interestedInRestaurant} onChange={value => updateFormData('interestedInRestaurant', value)} /><Choice id='events' label='Événements du Love Hôtel' checked={formData.interestedInEvents} onChange={value => updateFormData('interestedInEvents', value)} /><Choice id='dating' label='Rencontres via la plateforme' checked={formData.interestedInDating} onChange={value => updateFormData('interestedInDating', value)} /><Choice id='curtain' label='Préférence rideau ouvert' checked={formData.preferCurtainOpen} onChange={value => updateFormData('preferCurtainOpen', value)} /><Choice id='lolib' label='Intérêt pour la monnaie Lolib' checked={formData.interestedInLolib} onChange={value => updateFormData('interestedInLolib', value)} /><Choice id='other-couples' label='Ouvert·e aux couples' checked={formData.openToOtherCouples} onChange={value => updateFormData('openToOtherCouples', value)} /></div>
           </div>
         )}
