@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   icons: { icon: '/favicon.ico', apple: [{ url: '/icons/joug-180.png', sizes: '180x180', type: 'image/png' }] },
   title: 'Joug',
   description:
-    'Rencontres libertines entre adultes à Paris. En solo ou en couple, découvrez la communauté, les Love Rooms du Love Hôtel et les idées de sorties pour un premier rendez-vous.'
+    'Rencontres libertines entre adultes à Paris. En solo ou en couple, découvrez la communauté, les Love Rooms et les idées de sorties pour un premier rendez-vous.'
 }
 
 export const viewport: Viewport = {
