@@ -20,7 +20,7 @@ describe('Discover authenticated shell', () => {
     expect(styles).toContain('--discover-canvas: #04070b')
     expect(styles).toContain('--discover-charcoal: #101113')
     expect(styles).toContain('.stitchDiscoverShell')
-    expect(styles).toContain('--discover-canvas: #121315')
+    expect(styles).toContain('--discover-canvas: #0d0e11')
     expect(styles).toContain('--discover-accent: #d6bc87')
     expect(shell).toContain("href='/discover#boite-a-idees'")
     expect(shell).not.toContain('Cercle actif')
