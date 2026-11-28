@@ -39,7 +39,7 @@ export default function PublicitePage() {
             </div>
 
             <div className="bg-gradient-to-r from-pink-800 to-purple-900 text-white p-6 rounded-lg shadow-md">
-              <h2 className="text-2xl font-bold mb-4">Notre site Love Hôtel</h2>
+              <h2 className="text-2xl font-bold mb-4">Notre site Joug</h2>
               <p className="text-lg mb-4">
                 Bénéficiez d'une exposition quotidienne auprès de{" "}
                 <span className="font-bold text-pink-300">{visiteursJour.toLocaleString()}</span> visiteurs.
@@ -108,7 +108,7 @@ export default function PublicitePage() {
             <h2 className="text-2xl font-bold mb-6">Prêt à augmenter votre visibilité ?</h2>
 
             <div className="flex flex-col md:flex-row justify-center gap-4">
-              <Link href="mailto:publicite@lovehotel.com">
+              <Link href="mailto:jougworld@gmail.com">
                 <Button className="bg-purple-800 hover:bg-purple-900 text-white px-8 py-3 rounded-full">
                   Contactez-nous
                 </Button>

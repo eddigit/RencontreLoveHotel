@@ -136,7 +136,7 @@ export default async function AdminConciergeriePage() {
 
         <div className='mb-8 rounded-3xl border border-white/10 bg-[#1c1d20]/80 p-6 text-white'>
           <p className='text-sm font-black uppercase tracking-[0.2em] text-[#d6bc87]'>
-            Conciergerie Love Hotel
+            Conciergerie Joug
           </p>
           <h1 className='mt-2 text-3xl font-black'>Demandes de conciergerie</h1>
           <p className='mt-3 max-w-3xl text-sm leading-6 text-white/70'>

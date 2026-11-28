@@ -49,7 +49,7 @@ export default async function ConciergeriePage() {
               <div className='relative min-h-[220px] overflow-hidden'>
                   <img
                     src={conciergerieImageUrl}
-                    alt='Conciergerie privée Love Hotel'
+                    alt='Conciergerie privée Joug'
                     className='absolute inset-0 h-full w-full object-cover'
                   />
                   <div className='absolute inset-0 bg-gradient-to-t from-[#0d0e11] via-transparent to-transparent md:bg-gradient-to-r md:from-transparent md:to-[#0d0e11]' />

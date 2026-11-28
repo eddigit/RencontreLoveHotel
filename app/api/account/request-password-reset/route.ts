@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
 
     // Send the email
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || 'no-reply@lovehotel.app',
+      from: process.env.SMTP_FROM || 'no-reply@rencontrelovehotel.com',
       to: user.email,
       subject: subject,
       html: emailBody,

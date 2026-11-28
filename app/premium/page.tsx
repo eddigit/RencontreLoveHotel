@@ -26,7 +26,7 @@ export default function PremiumPage() {
       <section className='relative isolate overflow-hidden'>
         <Image
           src='/paris-event-masquerade.png'
-          alt='Ambiance premium d’une soirée Love Hôtel'
+          alt='Ambiance premium d’une soirée Joug'
           fill
           priority
           className='-z-20 object-cover opacity-45'
@@ -36,7 +36,7 @@ export default function PremiumPage() {
         <div className='mx-auto flex min-h-[620px] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-10'>
           <div className='max-w-3xl'>
             <div className='inline-flex items-center gap-2 rounded-full border border-[#ff8cc8]/25 bg-[#ff3b8b]/15 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-[#ff9bce]'>
-              <Sparkles className='h-4 w-4' /> Expérience Love Hôtel
+              <Sparkles className='h-4 w-4' /> Expérience Joug
             </div>
             <h1 className='mt-6 text-4xl font-black leading-tight sm:text-5xl lg:text-7xl'>
               Plus de possibilités pour passer du virtuel au réel.

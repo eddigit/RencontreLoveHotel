@@ -1,4 +1,4 @@
-// Page for creating a new Love Hotel experience.
+// Page for creating a new experience.
 'use client'
 
 import { useState } from 'react'

@@ -12,7 +12,7 @@ describe('visitor landing redesign', () => {
     expect(shell).toContain('<VisitorLandingHeader')
     expect(shell.indexOf("pathname === '/'")).toBeLessThan(shell.indexOf("<aside "))
     expect(header).toContain("href='/concept'")
-    expect(header).toContain("href='https://lovehotelaparis.fr'")
+    expect(header).not.toContain('lovehotelaparis.fr')
     expect(header).toContain("href='/events'")
     expect(header).toContain("href='/rencontres'")
     expect(header).toContain("href='/login'")

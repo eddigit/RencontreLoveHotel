@@ -128,11 +128,6 @@ export function Header ({ session, user }: HeaderProps) {
                     </Button>
                   </Link>
                 )}
-                <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer'>
-                  <Button variant='ghost' size='sm'>
-                    Vers LoveHotel
-                  </Button>
-                </Link>
               </div>
               <div className='flex items-center gap-2'>
                 {/*<Button
@@ -212,11 +207,6 @@ export function Header ({ session, user }: HeaderProps) {
                 <Link href='/events'>
                   <Button variant='ghost' size='sm'>
                     Événements
-                  </Button>
-                </Link>
-                <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer'>
-                  <Button variant='ghost' size='sm'>
-                    Vers LoveHotel
                   </Button>
                 </Link>
               </div>
@@ -366,23 +356,8 @@ export function Header ({ session, user }: HeaderProps) {
                   <span>Admin</span>
                 </Link>
               )}
-              <Link
-                href='https://lovehotelaparis.fr'
-                target='_blank'
-                rel='noopener noreferrer'
-                className='flex items-center gap-3 p-3 rounded-lg hover:bg-[#2d1155]/50'
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <Heart className='h-5 w-5' />
-                <span>Vers LoveHotel</span>
-              </Link>
             </div>
             <div className='mt-auto pt-4 border-t border-purple-800/30 space-y-2'>
-              <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer'>
-                <Button variant='outline' className='w-full justify-center'>
-                  Vers LoveHotel
-                </Button>
-              </Link>
               <Button
                 variant='ghost'
                 className='w-full justify-start'

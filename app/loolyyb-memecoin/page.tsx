@@ -326,7 +326,7 @@ export default function LoolyyBMemeCoinPage() {
         <div className="container px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-white font-bold text-lg mb-4">Love Hotel</h3>
+              <h3 className="text-white font-bold text-lg mb-4">Joug</h3>
               <p className="text-gray-400 text-sm">
                 L'unique application qui relie rencontres virtuelles et plaisirs réels dans des lieux d'exception.
               </p>
@@ -465,7 +465,7 @@ export default function LoolyyBMemeCoinPage() {
           </div>
 
           <div className="border-t border-[#2d1155] mt-8 pt-8 text-center text-sm text-gray-400">
-            <p>&copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits réservés.</p>
+            <p>&copy; {new Date().getFullYear()} Joug. Tous droits réservés.</p>
           </div>
         </div>
       </div>

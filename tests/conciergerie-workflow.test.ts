@@ -48,7 +48,7 @@ describe('conciergerie workflow', () => {
     expect(shell).not.toContain('Escapade')
     expect(page).toContain('Conciergerie coquine')
     expect(page).toContain('/conciergerie-service.jpg')
-    expect(page).toContain('Conciergerie privée Love Hotel')
+    expect(page).toContain('Conciergerie privée Joug')
     expect(page).not.toContain('/images/conciergerie-service.jpg')
     expect(page).toContain('Faire une demande')
     expect(page).toContain('ConciergerieForm')

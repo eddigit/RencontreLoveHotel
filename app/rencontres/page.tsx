@@ -91,7 +91,7 @@ export default function RencontresPage() {
 
       <section className='mx-auto grid max-w-7xl items-center gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-10 lg:py-24'>
         <div className='relative min-h-96 overflow-hidden rounded-3xl'>
-          <Image src='/paris-event-masquerade.png' alt='Ambiance d’une soirée parisienne Love Hôtel' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 42vw' />
+          <Image src='/paris-event-masquerade.png' alt='Ambiance d’une soirée parisienne Joug' fill className='object-cover' sizes='(max-width: 1024px) 100vw, 42vw' />
         </div>
         <div>
           <ShieldCheck className='h-9 w-9 text-[#ff8cc8]' />

@@ -15,7 +15,7 @@ export type FilterableAdminUser = {
 
 const normalise = (value?: string | null) => value?.trim().toLowerCase() || ''
 
-/** Groups the profile values currently stored in LHR without assuming a fixed enum. */
+/** Groups the profile values currently stored in Joug without assuming a fixed enum. */
 export function getAdminUserCategory (user: Pick<FilterableAdminUser, 'gender' | 'profile_status'>): Exclude<AdminUserFilter, 'all'> {
   const values = `${normalise(user.gender)} ${normalise(user.profile_status)}`
   if (values.includes('couple')) return 'couple'

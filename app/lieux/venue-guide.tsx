@@ -218,7 +218,7 @@ export default function VenueGuide({ requestedCategory }: { requestedCategory?: 
             <aside className='border-t border-white/10 bg-black/20 p-6 sm:p-9 lg:border-l lg:border-t-0'>
               <Sparkles className='h-6 w-6 text-amber-200' />
               <h3 className='mt-4 text-lg font-bold'>Préparer votre sortie</h3>
-              <p className='mt-3 text-sm leading-6 text-white/60'>Découvrez les événements déjà publiés par Love Hotel Rencontre et retrouvez les détails de participation sur chaque fiche.</p>
+              <p className='mt-3 text-sm leading-6 text-white/60'>Découvrez les événements déjà publiés par Joug et retrouvez les détails de participation sur chaque fiche.</p>
               <Link href='/events' className='mt-5 inline-flex items-center gap-2 text-sm font-bold text-amber-200 hover:text-amber-100'>
                 <CalendarDays className='h-4 w-4' /> Voir les événements publiés
               </Link>

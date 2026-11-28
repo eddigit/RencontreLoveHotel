@@ -48,7 +48,7 @@ export async function generateMetadata({ params }: PageProps) {
     
     return {
       title: `${event.title} - Joug`,
-      description: event.description?.substring(0, 160) || 'Découvrez cet événement exclusif chez Love Hotel'
+      description: event.description?.substring(0, 160) || 'Découvrez cet événement exclusif sur Joug'
     }
   } catch (error) {
     return {

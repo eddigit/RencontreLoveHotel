@@ -16,7 +16,7 @@ export default function TarifsPublicitePage() {
     const fields = new FormData(e.currentTarget)
     const subject = `Demande d’espace publicitaire — ${fields.get('plan') || 'Renseignements'}`
     const body = [fields.get('message'), '', fields.get('name'), fields.get('email'), fields.get('phone')].filter(value => value !== null).join('\n')
-    window.location.href = `mailto:publicite@lovehotel.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+    window.location.href = `mailto:jougworld@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 
   }
 
@@ -246,7 +246,7 @@ export default function TarifsPublicitePage() {
             Nous proposons également des formules sur mesure adaptées à vos besoins spécifiques. Contactez-nous
             directement pour discuter de votre projet.
           </p>
-          <a className="font-semibold underline" href="mailto:publicite@lovehotel.com">publicite@lovehotel.com</a>
+          <a className="font-semibold underline" href="mailto:jougworld@gmail.com">jougworld@gmail.com</a>
         </div>
       </div>
     </div>

@@ -102,7 +102,7 @@ async function sendReservationEmail(
   await transporter.sendMail({
     from: process.env.SMTP_FROM || 'noreply@rencontrelovehotel.com',
     to: EVENT_RESERVATION_RECIPIENT_EMAIL,
-    subject: `${actionLabel} - ${event.title || 'Love Hotel'}`,
+    subject: `${actionLabel} - ${event.title || 'Joug'}`,
     html: `
       <h2>${escapeHtml(actionLabel)}</h2>
       <p><strong>Événement :</strong> ${escapeHtml(event.title || 'Sans titre')}</p>

@@ -42,11 +42,11 @@ export default function AdminEmailCampaignsPage () {
   const [audience, setAudience] = useState<EmailAudience>('all_active')
   const [form, setForm] = useState({
     name: 'Invitation apero jacuzzi',
-    subject: 'Une nouvelle experience Love Hotel vous attend',
+    subject: 'Une nouvelle experience vous attend sur Joug',
     bodyHtml:
-      '<p>Bonjour [name],</p><p>Nous preparons une experience rencontre Love Hotel autour des Love Rooms, jacuzzi et rideaux ouverts.</p><p><a href="[cta-url]">Voir les experiences</a></p>',
+      '<p>Bonjour [name],</p><p>Nous preparons une experience rencontre autour des Love Rooms, du jacuzzi et des rideaux ouverts de notre partenaire Love Hotel.</p><p><a href="[cta-url]">Voir les experiences</a></p>',
     bodyText:
-      'Bonjour [name], une experience rencontre Love Hotel vous attend. Voir les experiences : [cta-url]'
+      'Bonjour [name], une experience rencontre vous attend sur Joug. Voir les experiences : [cta-url]'
   })
 
   const audienceFilter = useMemo(() => ({ audience }), [audience])

@@ -87,7 +87,7 @@ export function buildProductDiagnostic(metrics: ProductDiagnosticMetrics): Produ
     severity: 'critical',
     evidence: 'Aucun événement futur n’est actuellement visible.',
     impact: 'La promesse de rencontre réelle ne peut pas convertir sans date disponible.',
-    nextAction: 'Publier au moins deux prochains formats Love Hôtel avec date, capacité et appel à participation.',
+    nextAction: 'Publier au moins deux prochains formats avec date, capacité et appel à participation.',
     effort: 'Moyen'
   })
 

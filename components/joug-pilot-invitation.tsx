@@ -34,9 +34,9 @@ export function JougPilotInvitation({ pilot }: Props) {
             <p className='text-xs font-bold uppercase tracking-[0.16em] text-[#ecebe7]'>Invitation facultative · pilote 30 jours</p>
             <h2 className='mt-1 text-xl font-bold text-[#ecebe7]'>Découvrir Joug.World</h2>
             <p className='mt-1 max-w-2xl text-sm text-[#c9c7c2]'>
-              Joug propose un parcours BDSM pour adultes. Vous choisissez librement de le découvrir. Joug.World est un service distinct : aucun compte, profil, message ou historique LHR n’est transmis.
+              Joug propose un parcours BDSM pour adultes. Vous choisissez librement de le découvrir. Joug.World est un service distinct : aucun compte, profil, message ou historique Joug Rencontre n’est transmis.
             </p>
-            <p className='mt-2 text-xs text-[#c9c7c2]'>Invitation disponible jusqu’au {endLabel}. LHR reste accessible normalement.</p>
+            <p className='mt-2 text-xs text-[#c9c7c2]'>Invitation disponible jusqu’au {endLabel}. Joug Rencontre reste accessible normalement.</p>
           </div>
         </div>
         <a

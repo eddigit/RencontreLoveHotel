@@ -26,7 +26,7 @@ export default function CommunitySafetyPage () {
             <h2 className='text-2xl font-bold'>Des services officiels clairement séparés</h2>
             <p className='mt-3 text-white/72'>
               Les tarifs officiels des événements, Love Rooms et services de conciergerie rémunèrent uniquement
-              les prestations annoncées par Joug ou le Love Hôtel. Ils ne rémunèrent jamais la présence, le consentement
+              les prestations annoncées par Joug ou ses partenaires. Ils ne rémunèrent jamais la présence, le consentement
               ou les actes d’un autre membre.
             </p>
           </section>

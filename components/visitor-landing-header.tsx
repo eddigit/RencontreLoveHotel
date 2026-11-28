@@ -14,7 +14,6 @@ export function VisitorLandingHeader({ isAuthenticated }: { isAuthenticated: boo
 
         <nav className='hidden items-center gap-6 text-sm font-semibold text-[#ded6ca] lg:flex' aria-label='Navigation accueil'>
           <Link href='/concept' className='transition hover:text-[#e5d1aa]'>Le concept</Link>
-          <Link href='https://lovehotelaparis.fr' target='_blank' rel='noopener noreferrer' className='transition hover:text-[#e5d1aa]'>Love Hôtel Paris</Link>
           <Link href='/lieux' className='transition hover:text-[#e5d1aa]'>Les lieux</Link>
           <Link href='/events' className='transition hover:text-[#e5d1aa]'>Expériences</Link>
           <Link href='/rencontres' className='transition hover:text-[#e5d1aa]'>La communauté</Link>

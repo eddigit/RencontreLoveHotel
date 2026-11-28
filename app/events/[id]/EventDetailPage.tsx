@@ -296,7 +296,7 @@ export default function EventDetailPage({ event }: EventDetailPageProps) {
                     {event.creator_name?.charAt(0).toUpperCase() || 'LH'}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-medium">{event.creator_name || 'Love Hotel'}</span>
+                <span className="font-medium">{event.creator_name || 'Joug'}</span>
               </div>
             </div>
           </div>
