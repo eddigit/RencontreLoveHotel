@@ -308,9 +308,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
               </div>
             </header>
           ) : null}
-          <header className={cn('sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#171819]/95 px-3 backdrop-blur-xl sm:px-4 lg:hidden', isMemberShell && styles.mobileHeader, isCircleShell && styles.stitchMobileHeader)}>
+          <header className={cn('sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-[#171819]/95 px-3 backdrop-blur-xl sm:px-4 lg:hidden', styles.compactHeader, isMemberShell && styles.mobileHeader, isCircleShell && styles.stitchMobileHeader)}>
             <Link href={user ? '/discover' : '/'} className='min-w-0 max-w-[min(60vw,230px)]'>
-              <BrandLogo compact priority />
+              <BrandLogo compact inline priority />
             </Link>
             <div className='flex items-center gap-2'>
               {user ? <Link href='/community-safety' aria-label='Ouvrir les règles de la communauté' className='rounded-xl border border-white/12 bg-white/[0.06] p-2 text-[#d6bc87]'><ShieldCheck className='h-5 w-5' aria-hidden /></Link> : null}
@@ -332,17 +332,18 @@ export function SiteShell({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <Dialog.Overlay className='fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm' />
-      <Dialog.Content aria-describedby={undefined} className={cn('fixed inset-y-0 right-0 z-[101] flex w-[min(88vw,360px)] flex-col overflow-y-auto overscroll-contain border-l border-white/10 bg-[#171819] p-4 shadow-2xl', isMemberShell && styles.mobileRail, isCircleShell && styles.stitchMobileRail)}>
-        <Dialog.Title className='sr-only'>Menu de navigation</Dialog.Title>
-        <div className='mb-6 flex items-center justify-between gap-3'>
-          <BrandLogo compact />
-          <Dialog.Close aria-label='Fermer le menu' className='grid size-11 shrink-0 place-items-center rounded-xl border border-white/12 text-white'>
-            <X className='h-5 w-5' />
-          </Dialog.Close>
-        </div>
-        {navigation}
-      </Dialog.Content>
+      <Dialog.Portal>
+        <Dialog.Overlay className='fixed inset-0 z-[100] bg-black/65 backdrop-blur-sm' />
+        <Dialog.Content aria-describedby={undefined} className={styles.menuSheet}>
+          <div className={styles.menuBar}>
+            <Dialog.Title className='text-xl font-bold'>Menu</Dialog.Title>
+            <Dialog.Close aria-label='Fermer le menu' className='grid size-11 place-items-center rounded-full bg-white/[0.07]'>
+              <X className='h-5 w-5' />
+            </Dialog.Close>
+          </div>
+          <div className={styles.menuLinks}>{navigation}</div>
+        </Dialog.Content>
+      </Dialog.Portal>
     </div>
     </Dialog.Root>
   )
