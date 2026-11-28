@@ -82,6 +82,7 @@ const publicPresentationRoutes = new Set([
   '/events',
   '/love-rooms',
   '/lieux',
+  '/mentions-legales',
   '/premium',
   '/privacy',
   '/publicite',

@@ -31,6 +31,12 @@ export function Footer () {
               Sécurité
             </Link>
             <Link
+              href='/mentions-legales'
+              className='hover:text-foreground transition-colors'
+            >
+              Mentions légales
+            </Link>
+            <Link
               href='/terms'
               className='hover:text-foreground transition-colors'
             >

@@ -14,7 +14,7 @@ describe('LHR operational contact governance', () => {
     expect(migration).toContain("SET role = 'admin'")
 
     const terms = readFileSync('app/terms/page.tsx', 'utf8')
-    expect(terms).toContain('lovehotelaparis@gmail.com')
+    expect(terms).toContain('jougworld@gmail.com')
     expect(terms).not.toContain('loolyyb@gmail.com')
   })
 })

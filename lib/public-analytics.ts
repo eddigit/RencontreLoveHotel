@@ -1,6 +1,7 @@
 const PUBLIC_PATHS = new Set([
   '/', '/about', '/concept', '/community-safety', '/events', '/forgot-password',
   '/goodbye', '/lieux', '/login', '/loolyyb', '/loolyyb-memecoin', '/love-rooms',
+  '/mentions-legales',
   '/publicite', '/premium', '/privacy', '/register', '/rencontres',
   '/reset-password', '/tarifs-publicite', '/terms', '/unauthorized',
   '/verify-email', '/verify-email-pending'
