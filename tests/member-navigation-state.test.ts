@@ -15,6 +15,8 @@ describe('member navigation state', () => {
     expect(page).toContain("params.set('profileType'")
     expect(page).toContain("params.set('orientation'")
     expect(page).toContain("params.set('meetingCriterion'")
+    expect(page).toContain("params.set('relationshipIntent'")
+    expect(page).toContain("params.set('bdsmRole'")
     expect(page).toContain("params.set('onlineOnly'")
     expect(page).toContain("params.set('page'")
   })

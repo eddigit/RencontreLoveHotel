@@ -17,7 +17,7 @@ import { calculateProfileCompletion } from '@/lib/profile-completion'
 import { enforceMemberContent } from '@/lib/content-safety-service'
 import { getOwnEmailPreferences, updateOwnEmailPreferences } from '@/actions/email-preference-actions'
 import { EmailPreferencesEditor } from '@/components/email-preferences-editor'
-import { relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
+import { bdsmRoleOptions, relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 import { PhotoVerificationRequest } from '@/components/photo-verification-request'
 import { getOwnPhotoVerificationRequest, withdrawPhotoVerificationRequest } from '@/actions/photo-verification-actions'
 import { getOwnPostMeetingWords, getReceivedPostMeetingWords, respondToPostMeetingWord, withdrawPostMeetingWord } from '@/actions/post-meeting-word-actions'
@@ -56,6 +56,8 @@ async function updateUserProfile (userData: any) {
   }
   const seekingProfileTypes = normalizeSelection(userData.seekingProfileTypes, seekingProfileTypeOptions)
   const relationshipIntents = normalizeSelection(userData.relationshipIntents, relationshipIntentOptions)
+  const bdsmRoles = normalizeSelection(userData.bdsmRoles, bdsmRoleOptions)
+  const bdsmRolesPublic = typeof userData.bdsmRolesPublic === 'boolean' ? userData.bdsmRolesPublic : null
 
   // Update user table
   await sql`
@@ -85,6 +87,8 @@ async function updateUserProfile (userData: any) {
         dislikes = ${JSON.stringify(dislikes)},
         seeking_profile_types = COALESCE(${seekingProfileTypes}::text[], seeking_profile_types),
         relationship_intents = COALESCE(${relationshipIntents}::text[], relationship_intents),
+        bdsm_roles = COALESCE(${bdsmRoles}::text[], bdsm_roles),
+        bdsm_roles_public = COALESCE(${bdsmRolesPublic}::boolean, bdsm_roles_public),
         display_profile = ${
           typeof userData.display_profile === 'boolean'
             ? userData.display_profile
@@ -94,7 +98,7 @@ async function updateUserProfile (userData: any) {
     `
   } else {
     await sql`
-      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, likes, dislikes, status, featured, display_profile, seeking_profile_types, relationship_intents)
+      INSERT INTO user_profiles (id, user_id, age, orientation, location, bio, gender, birthday, interests, likes, dislikes, status, featured, display_profile, seeking_profile_types, relationship_intents, bdsm_roles, bdsm_roles_public)
       VALUES (gen_random_uuid(), ${user.id}, ${userData.age || null}, ${
       userData.orientation || null
     }, ${userData.location || null}, ${userData.bio || null}, ${
@@ -105,7 +109,7 @@ async function updateUserProfile (userData: any) {
       typeof userData.display_profile === 'boolean'
         ? userData.display_profile
         : true
-      }, ${seekingProfileTypes ?? []}, ${relationshipIntents ?? []})
+      }, ${seekingProfileTypes ?? []}, ${relationshipIntents ?? []}, ${bdsmRoles ?? []}, ${bdsmRolesPublic ?? false})
     `
   }
 }
@@ -317,6 +321,8 @@ export default async function ProfilePage ({
     dislikes: parseProfileTags(profile.dislikes),
     seekingProfileTypes: Array.isArray(profile.seeking_profile_types) ? profile.seeking_profile_types : [],
     relationshipIntents: Array.isArray(profile.relationship_intents) ? profile.relationship_intents : [],
+    bdsmRoles: Array.isArray(profile.bdsm_roles) ? profile.bdsm_roles : [],
+    bdsmRolesPublic: profile.bdsm_roles_public === true,
     display_profile:
       typeof profile.display_profile === 'boolean'
         ? profile.display_profile

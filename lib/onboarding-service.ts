@@ -15,19 +15,19 @@ export async function saveOnboardingData(userId: string, data: OnboardingData): 
       `
       INSERT INTO user_profiles (
         id, user_id, status, age, orientation, gender, birthday,
-        couple_composition, seeking_profile_types, relationship_intents, bdsm_roles
+        couple_composition, seeking_profile_types, relationship_intents, bdsm_roles, bdsm_roles_public
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::text[], $10::text[], $11::text[])
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::text[], $10::text[], $11::text[], $12)
       ON CONFLICT (user_id) DO UPDATE
       SET status = $3, age = $4, orientation = $5, gender = $6, birthday = $7,
           couple_composition = $8, seeking_profile_types = $9::text[],
-          relationship_intents = $10::text[], bdsm_roles = $11::text[],
+          relationship_intents = $10::text[], bdsm_roles = $11::text[], bdsm_roles_public = $12,
           updated_at = CURRENT_TIMESTAMP
     `,
       [
         uuidv4(), userId, data.status, data.age, data.orientation, data.gender,
         data.birthday || null, data.coupleComposition || null,
-        data.seekingProfileTypes || [], data.relationshipIntents || [], data.bdsmRoles || []
+        data.seekingProfileTypes || [], data.relationshipIntents || [], data.bdsmRoles || [], data.bdsmRolesPublic === true
       ],
     )
 
@@ -121,7 +121,7 @@ export async function getOnboardingData(userId: string): Promise<OnboardingData 
     const query = `
       SELECT
         p.status, p.age, p.orientation, p.gender, p.birthday, p.couple_composition,
-        p.seeking_profile_types, p.relationship_intents, p.bdsm_roles, u.avatar,
+        p.seeking_profile_types, p.relationship_intents, p.bdsm_roles, p.bdsm_roles_public, u.avatar,
         pref.interested_in_restaurant, pref.interested_in_events,
         pref.interested_in_dating, pref.prefer_curtain_open,
         pref.interested_in_lolib, pref.suggestions,
@@ -155,6 +155,7 @@ export async function getOnboardingData(userId: string): Promise<OnboardingData 
       seekingProfileTypes: data.seeking_profile_types || [],
       relationshipIntents: data.relationship_intents || [],
       bdsmRoles: data.bdsm_roles || [],
+      bdsmRolesPublic: data.bdsm_roles_public === true,
 
       interestedInRestaurant: data.interested_in_restaurant || false,
       interestedInEvents: data.interested_in_events || false,

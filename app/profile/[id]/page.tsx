@@ -1,7 +1,9 @@
 import { getPublicProfileVerified } from '@/actions/photo-verification-actions'
 import { VerifiedProfileBadge } from '@/components/verified-profile-badge'
 import { parseProfileTags } from '@/lib/profile-likes-dislikes'
-import { directoryProfileTypeLabel, relationshipIntentOptions, seekingProfileTypeOptions } from '@/lib/member-profile-types'
+import { DesireIcon } from '@/components/desire-icon'
+import { publicDesires } from '@/lib/public-desires'
+import { directoryProfileTypeLabel, seekingProfileTypeOptions } from '@/lib/member-profile-types'
 import { PresenceDot } from '@/components/presence-dot'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -71,11 +73,8 @@ export default async function ProfilePage ({
   const likes = parseProfileTags(profile.likes)
   const dislikes = parseProfileTags(profile.dislikes)
   const targets = parseProfileTags(profile.seeking_profile_types)
-  const intents = parseProfileTags(profile.relationship_intents)
-  const lookingFor = [
-    ...seekingProfileTypeOptions.filter(option => targets.includes(option.value)),
-    ...relationshipIntentOptions.filter(option => intents.includes(option.value))
-  ].map(option => option.label)
+  const lookingFor = seekingProfileTypeOptions.filter(option => targets.includes(option.value)).map(option => option.label)
+  const desires = publicDesires(profile)
   const profileOnline = isUserRecentlySeen(profile.last_seen_at)
 
   let matchStatus: any = null
@@ -141,6 +140,11 @@ export default async function ProfilePage ({
             </div>
             {canShowActions && <a href='#contact' className='inline-flex min-h-11 items-center rounded-lg bg-[#d6bc87] px-4 text-sm font-bold text-[#191714]'>Entrer en contact</a>}
           </div>
+          {desires.length > 0 && <ul aria-label='Envies de rencontre' className='flex flex-wrap gap-2 px-4 pb-5 sm:px-6'>
+            {desires.map(({ value, label }) => <li key={value} className='inline-flex items-center gap-2 rounded-full bg-[#272521] px-3 py-1.5 text-sm text-[#ead6aa]'>
+              <DesireIcon value={value} className='size-7 shrink-0' />{label}
+            </li>)}
+          </ul>}
         </header>
         <nav aria-label='Sections du profil' className='my-4 flex flex-wrap gap-1 rounded-xl bg-[#19191c] p-1.5 text-sm font-semibold text-[#d6bc87] [&_a]:rounded-lg [&_a]:px-3 [&_a]:py-2 [&_a:hover]:bg-white/10'>
           <a href='#descriptif'>Présentation</a><a href='#gouts'>Goûts et limites</a><a href='#galerie'>Galerie</a><a href='#mots'>Commentaires</a>

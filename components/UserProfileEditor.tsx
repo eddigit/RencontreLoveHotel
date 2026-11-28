@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { Camera, Images, Plus, Save, X } from 'lucide-react'
+import { DesireIcon } from '@/components/desire-icon'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -20,6 +21,7 @@ import Image from 'next/image'
 import { defaultMemberImage } from '@/lib/default-member-image'
 import {
   memberIdentityFromStatus,
+  bdsmRoleOptions,
   profileTypeOptions,
   relationshipIntentOptions,
   seekingProfileTypeOptions,
@@ -67,6 +69,8 @@ export function UserProfileEditor ({
       dislikes: parseTags(user.dislikes),
       seekingProfileTypes: Array.isArray(user.seekingProfileTypes) ? user.seekingProfileTypes : [],
       relationshipIntents: Array.isArray(user.relationshipIntents) ? user.relationshipIntents : [],
+      bdsmRoles: Array.isArray(user.bdsmRoles) ? user.bdsmRoles : [],
+      bdsmRolesPublic: user.bdsmRolesPublic === true,
       avatar: user.avatar || '',
       display_profile:
         typeof user.display_profile === 'boolean' ? user.display_profile : true // default true
@@ -114,12 +118,14 @@ export function UserProfileEditor ({
     })
   }
 
-  function toggleMatchingSelection (field: 'seekingProfileTypes' | 'relationshipIntents', value: string) {
+  function toggleMatchingSelection (field: 'seekingProfileTypes' | 'relationshipIntents' | 'bdsmRoles', value: string) {
     setForm(current => ({
       ...current,
-      [field]: current[field].includes(value)
-        ? current[field].filter((item: string) => item !== value)
-        : [...current[field], value]
+      [field]: field === 'bdsmRoles' && value === 'none'
+        ? (current.bdsmRoles.includes('none') ? [] : ['none'])
+        : (current[field].includes(value)
+            ? current[field].filter((item: string) => item !== value)
+            : [...(field === 'bdsmRoles' ? current[field].filter((item: string) => item !== 'none') : current[field]), value])
     }))
   }
 
@@ -300,14 +306,33 @@ export function UserProfileEditor ({
           </div>
           <div className='sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
             <h4 className='font-black'>Intentions de relation</h4>
+            <p className='mt-1 text-sm text-white/65'>Chaque envie sélectionnée apparaît sur votre fiche et dans les filtres des membres.</p>
             <div className='mt-3 grid gap-2 sm:grid-cols-2'>
               {relationshipIntentOptions.map(option => (
-                <label key={option.value} className='flex items-center gap-2 text-sm'>
+                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-[#d6bc87]/15 has-[[data-state=checked]]:text-[#ecd9b0]'>
                   <Checkbox checked={form.relationshipIntents.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('relationshipIntents', option.value)} />
+                  <DesireIcon value={option.value} />
                   {option.label}
                 </label>
               ))}
             </div>
+          </div>
+          <div className='sm:col-span-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4'>
+            <h4 className='font-black'>Affinités BDSM</h4>
+            <p className='mt-1 text-sm text-white/58'>Facultatif. Utilisé pour le matching, et privé tant que vous ne choisissez pas de l’afficher.</p>
+            <div className='mt-3 grid gap-2 sm:grid-cols-2'>
+              {bdsmRoleOptions.map(option => (
+                <label key={option.value} className='flex min-h-11 cursor-pointer items-center gap-2 rounded-xl bg-white/5 px-3 py-2 text-sm transition-colors hover:bg-white/10 has-[[data-state=checked]]:bg-[#d6bc87]/15 has-[[data-state=checked]]:text-[#ecd9b0]'>
+                  <Checkbox checked={form.bdsmRoles.includes(option.value)} onCheckedChange={() => toggleMatchingSelection('bdsmRoles', option.value)} />
+                  <DesireIcon value={option.value} />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+            <label className='mt-4 flex items-center gap-2 text-sm'>
+              <Checkbox checked={form.bdsmRolesPublic} onCheckedChange={value => setForm(current => ({ ...current, bdsmRolesPublic: value === true }))} />
+              Afficher mes affinités BDSM sur ma fiche publique et permettre aux membres de me trouver avec ces filtres
+            </label>
           </div>
           <div>
             <Select

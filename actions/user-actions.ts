@@ -17,8 +17,13 @@ import { getMemberRelationshipOverview } from '@/lib/member-relationship-service
 import { rankDiscoveryCandidates, rotateDiscoveryBatchWithPhotoPriority } from '@/lib/discovery-ranking'
 import { eligibleMemberPhotoSql } from '@/lib/member-photo'
 import { trackProductEvent, trackProductEvents } from '@/lib/product-events'
-import type { DirectoryProfileType } from '@/lib/member-profile-types'
-import { memberIdentityFromStatus, type MemberStatus } from '@/lib/member-profile-types'
+import {
+  bdsmRoleOptions,
+  memberIdentityFromStatus,
+  relationshipIntentOptions,
+  type DirectoryProfileType,
+  type MemberStatus
+} from '@/lib/member-profile-types'
 import { ensurePrivatePhotoVerificationSchema } from '@/lib/photo-verification-schema'
 import { verifiedPhotoPredicateSql } from '@/lib/photo-verification-badge'
 import { ensureAdminUserStarSchema } from '@/lib/admin-user-star'
@@ -31,6 +36,11 @@ type CommunityMemberStats = {
 }
 
 export async function getUserProfile(userId: string) {
+  return readUserProfile(userId, false)
+}
+
+// Matching may use private preferences on the server; callers receive only the score.
+async function readUserProfile(userId: string, forMatching: boolean) {
   const currentUser = await requireCurrentUser()
   const privateAccess = currentUser.id === userId || currentUser.role === 'admin'
   await ensureProfileLikesDislikesSchema()
@@ -67,7 +77,8 @@ export async function getUserProfile(userId: string) {
       up.couple_composition,
       up.seeking_profile_types,
       up.relationship_intents,
-      up.bdsm_roles
+      CASE WHEN ${privateAccess || forMatching} OR up.bdsm_roles_public IS TRUE THEN up.bdsm_roles ELSE '{}'::text[] END AS bdsm_roles,
+      COALESCE(up.bdsm_roles_public, false) AS bdsm_roles_public
     FROM users u
     LEFT JOIN user_profiles up ON u.id = up.user_id
     WHERE u.id = ${userId} AND (${privateAccess} OR (
@@ -264,9 +275,13 @@ export type CommunityMemberDirectoryFilters = {
   profileType?: DirectoryProfileType
   orientation?: 'all' | 'hetero' | 'bi' | 'bisexual' | 'homo' | 'gay' | 'lesbian' | 'pansexual'
   meetingCriterion?: 'all' | 'open_couples' | 'open_curtains' | 'libertine'
+  relationshipIntent?: 'all' | typeof relationshipIntentOptions[number]['value']
+  bdsmRole?: 'all' | 'bdsm' | Exclude<typeof bdsmRoleOptions[number]['value'], 'none'>
   onlineOnly?: boolean
   recent?: boolean
 }
+
+const genericBdsmRoles = ['discovery', 'dominant', 'submissive', 'switch'] as const
 
 export async function searchCommunityMembers(input: CommunityMemberDirectoryFilters = {}) {
   const currentUser = await requireCurrentUser()
@@ -292,6 +307,13 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     params.push(value)
     return `$${params.length}`
   }
+
+  const relationshipIntent = relationshipIntentOptions.some(option => option.value === input.relationshipIntent)
+    ? input.relationshipIntent
+    : undefined
+  const bdsmRole = input.bdsmRole === 'bdsm' || bdsmRoleOptions.some(option => option.value !== 'none' && option.value === input.bdsmRole)
+    ? input.bdsmRole
+    : undefined
 
   if (input.recent) whereClauses.push("u.created_at >= NOW() - INTERVAL '24 hours'")
   const search = input.search?.trim().toLowerCase()
@@ -323,6 +345,20 @@ export async function searchCommunityMembers(input: CommunityMemberDirectoryFilt
     whereClauses.push('EXISTS (SELECT 1 FROM user_meeting_types umt_filter WHERE umt_filter.user_id = u.id AND umt_filter.open_curtains = TRUE)')
   } else if (input.meetingCriterion === 'libertine') {
     whereClauses.push('EXISTS (SELECT 1 FROM user_meeting_types umt_filter WHERE umt_filter.user_id = u.id AND umt_filter.libertine = TRUE)')
+  }
+
+  if (relationshipIntent) {
+    whereClauses.push(`${addParam(relationshipIntent)} = ANY(COALESCE(up.relationship_intents, ARRAY[]::text[]))`)
+  }
+
+  if (bdsmRole) {
+    // BDSM preferences are searchable only when their owner opted into their public use.
+    whereClauses.push('up.bdsm_roles_public IS TRUE')
+    if (bdsmRole === 'bdsm') {
+      whereClauses.push(`COALESCE(up.bdsm_roles, ARRAY[]::text[]) && ${addParam(genericBdsmRoles)}::text[]`)
+    } else {
+      whereClauses.push(`${addParam(bdsmRole)} = ANY(COALESCE(up.bdsm_roles, ARRAY[]::text[]))`)
+    }
   }
 
   if (input.onlineOnly) {
@@ -632,6 +668,7 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
       up.seeking_profile_types,
       up.relationship_intents,
       up.bdsm_roles,
+      COALESCE((to_jsonb(up)->>'bdsm_roles_public')::boolean, false) AS bdsm_roles_public,
       up.birthday,
       up.bio,
       up.interests,
@@ -719,8 +756,9 @@ export async function getDiscoverProfiles(currentUserId: string, page: number = 
 
       return {
         ...profile,
+        bdsm_roles: profile.bdsm_roles_public ? profile.bdsm_roles : [],
         interests: profile.interests ? JSON.parse(profile.interests) : [],
-        preferences,
+        preferences: { ...preferences, bdsm_roles: profile.bdsm_roles_public ? preferences.bdsm_roles : [] },
         matchScore: currentMatchingProfile ? calculateMatchScore(currentMatchingProfile, matchingProfile) : null,
         matchingEligible: currentMatchingProfile ? isMutuallyTargeted(currentMatchingProfile, matchingProfile) : true,
         impressions14d: Number(profile.viewer_impressions_14d || 0),
@@ -834,7 +872,7 @@ export async function sendMatchRequest(
     }
     // Fetch both user profiles for score calculation
     const requesterProfile = await getUserProfile(requesterId)
-    const receiverProfile = await getUserProfile(receiverId)
+    const receiverProfile = await readUserProfile(receiverId, true)
     let matchScore = null
     const requester = buildMatchingProfile(requesterProfile);
     const receiver = buildMatchingProfile(receiverProfile);

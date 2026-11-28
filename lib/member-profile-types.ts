@@ -28,11 +28,21 @@ export const seekingProfileTypeOptions = [
 ] as const
 
 export const relationshipIntentOptions = [
+  { value: 'classic', label: 'Relation classique' },
   { value: 'serious', label: 'Relation sérieuse' },
   { value: 'regular', label: 'Relation régulière' },
   { value: 'casual', label: 'Rencontre occasionnelle' },
   { value: 'libertine', label: 'Relation libertine' },
-  { value: 'friendship', label: 'Relation amicale' }
+  { value: 'friendship', label: 'Relation amicale' },
+  { value: 'discreet', label: 'Rencontre discrète' }
+] as const
+
+export const bdsmRoleOptions = [
+  { value: 'discovery', label: 'Découverte' },
+  { value: 'dominant', label: 'Dominant·e' },
+  { value: 'submissive', label: 'Soumis·e' },
+  { value: 'switch', label: 'Switch' },
+  { value: 'none', label: 'Sans BDSM' }
 ] as const
 
 export function memberIdentityFromStatus(status: MemberStatus) {
