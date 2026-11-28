@@ -442,7 +442,7 @@ function buildCalendarHref(event: Event) {
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Love Hotel Rencontre//Events//FR',
+    'PRODID:-//Joug//Events//FR',
     'BEGIN:VEVENT',
     `UID:${event.id}@rencontrelovehotel.com`,
     `DTSTART:${formatIcsDate(startDate)}`,

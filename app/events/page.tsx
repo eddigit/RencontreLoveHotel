@@ -457,7 +457,7 @@ export default function EventsPage () {
               </Link>
               <Link href='/love-rooms' className='group rounded-2xl border border-[#2b3040] bg-[#16181f] p-5 transition hover:border-[#d6bc87]/60 hover:bg-[#1e222d]'>
                 <p className='text-sm font-semibold text-[#f8fafc]'>Explorer les Love Rooms</p>
-                <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>Consultez les disponibilités et les détails des Love Rooms proposées sur LHR.</p>
+                <p className='mt-2 text-sm leading-6 text-[#94a3b8]'>Consultez les disponibilités et les détails des Love Rooms proposées sur Joug.</p>
                 <span className='mt-4 inline-block text-sm font-semibold text-[#ffb3b2] group-hover:text-white'>Voir les Love Rooms →</span>
               </Link>
             </div>

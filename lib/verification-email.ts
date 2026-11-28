@@ -50,9 +50,9 @@ export async function sendVerificationEmail({
   await transporter.sendMail({
     from: process.env.SMTP_FROM || 'no-reply@rencontrelovehotel.com',
     to: email,
-    subject: 'Vérifiez votre adresse email — Love Hotel Rencontre',
+    subject: 'Vérifiez votre adresse email — Joug',
     html: `
-      <p>Bienvenue sur Love Hotel Rencontre.</p>
+      <p>Bienvenue sur Joug.</p>
       <p>Confirmez votre adresse email pour activer votre compte :</p>
       <p><a href="${verificationLink}">Vérifier mon adresse email</a></p>
       <p>Ce lien personnel expire dans une heure et ne peut être utilisé qu’une fois.</p>

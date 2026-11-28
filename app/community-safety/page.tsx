@@ -13,7 +13,7 @@ export default function CommunitySafetyPage () {
           <section>
             <h2 className='text-2xl font-bold'>Aucune prestation sexuelle rémunérée</h2>
             <p className='mt-3 text-white/72'>
-              LHR est une communauté de rencontres entre adultes, pas une place de marché de services sexuels.
+              Joug est une communauté de rencontres entre adultes, pas une place de marché de services sexuels.
               Il est interdit de proposer, demander, promouvoir ou négocier un acte ou un rendez-vous sexuel
               contre argent, cadeau, hébergement, transport, service ou avantage quelconque.
             </p>
@@ -26,7 +26,7 @@ export default function CommunitySafetyPage () {
             <h2 className='text-2xl font-bold'>Des services officiels clairement séparés</h2>
             <p className='mt-3 text-white/72'>
               Les tarifs officiels des événements, Love Rooms et services de conciergerie rémunèrent uniquement
-              les prestations annoncées par LHR ou le Love Hôtel. Ils ne rémunèrent jamais la présence, le consentement
+              les prestations annoncées par Joug ou le Love Hôtel. Ils ne rémunèrent jamais la présence, le consentement
               ou les actes d’un autre membre.
             </p>
           </section>
@@ -52,7 +52,7 @@ export default function CommunitySafetyPage () {
           <section>
             <h2 className='text-2xl font-bold'>Signaler et protéger</h2>
             <p className='mt-3 text-white/72'>
-              Chaque membre peut bloquer immédiatement un compte et signaler une sollicitation. LHR peut préserver les
+              Chaque membre peut bloquer immédiatement un compte et signaler une sollicitation. Joug peut préserver les
               éléments strictement nécessaires et les transmettre aux autorités compétentes lorsque la loi l’exige ou
               l’autorise. Aucun partenariat institutionnel n’est revendiqué sans convention réelle.
             </p>

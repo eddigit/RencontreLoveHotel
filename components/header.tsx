@@ -71,7 +71,7 @@ export function Header ({ session, user }: HeaderProps) {
             href={isLoggedIn ? '/discover' : '/'}
             className='z-10'
           >
-            <span className='font-bold text-lg'>Love Hotel rencontre</span>
+            <span className='font-bold text-lg'>Joug</span>
           </Link>
           {isLoggedIn ? (
             <>

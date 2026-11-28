@@ -101,7 +101,7 @@ export async function sendMemberActivityEmail(input: MemberActivityEmailInput) {
       from: process.env.SMTP_FROM || 'no-reply@rencontrelovehotel.com',
       to: recipient.email,
       subject: input.subject,
-      text: `${input.text}\n\nOuvrir Love Hotel Rencontre : ${appUrl(input.path)}`
+      text: `${input.text}\n\nOuvrir Joug : ${appUrl(input.path)}`
     })
     await sql.query(`UPDATE member_activity_email_deliveries SET status = 'sent', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [claim.id])
     return { sent: true }

@@ -22,7 +22,7 @@ const priorities: Array<{ value: NotificationPriority; label: string }> = [
 
 export default function AdminInternalMessagesPage () {
   const { user } = useAuth()
-  const [title, setTitle] = useState('Nouvelle annonce Love Hotel')
+  const [title, setTitle] = useState('Nouvelle annonce Joug')
   const [description, setDescription] = useState('')
   const [link, setLink] = useState('/events')
   const [priority, setPriority] = useState<NotificationPriority>('normal')

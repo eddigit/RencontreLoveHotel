@@ -27,7 +27,7 @@ export default function ConceptPage() {
     <article className='min-h-screen bg-[#0a0f15] px-5 py-12 text-[#f8f1eb] sm:px-10 lg:py-20'>
       <div className='mx-auto max-w-5xl'>
         <h1 className='max-w-3xl font-serif text-5xl leading-[1.04] sm:text-7xl'>Une rencontre que vous choisissez ensemble.</h1>
-        <p className='mt-6 max-w-2xl text-lg leading-8 text-white/75'>Love Hotel Rencontre est un cercle de célibataires et de couples curieux de rencontres libertines. Retrouvez-vous autour d’une table ou d’une soirée, explorez les lieux référencés et inscrivez-vous aux événements qui vous attirent.</p>
+        <p className='mt-6 max-w-2xl text-lg leading-8 text-white/75'>Joug est un cercle de célibataires et de couples curieux de rencontres libertines. Retrouvez-vous autour d’une table ou d’une soirée, explorez les lieux référencés et inscrivez-vous aux événements qui vous attirent.</p>
         <div className='mt-14 divide-y divide-white/15 border-y border-white/15'>
           {questions.map(question => (
             <section key={question.href} className='grid gap-4 py-8 sm:grid-cols-2 sm:gap-12'>

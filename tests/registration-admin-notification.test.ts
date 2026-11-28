@@ -48,7 +48,7 @@ describe('registration admin notification', () => {
       expect.objectContaining({
         from: 'no-reply@example.test',
         to: 'admin@example.test',
-        subject: 'Nouvelle inscription — Love Hotel Rencontre',
+        subject: 'Nouvelle inscription — Joug',
         html: expect.stringContaining('Membre Test')
       })
     )

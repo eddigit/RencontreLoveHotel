@@ -366,7 +366,7 @@ async function sendConciergerieEmail(
       from: process.env.SMTP_FROM || 'noreply@rencontrelovehotel.com',
       to: recipientEmail,
       replyTo: request.email,
-      subject: `[Love Hotel Rencontre] Conciergerie érotique - ${request.requestTypeLabel}`,
+      subject: `[Joug] Conciergerie érotique - ${request.requestTypeLabel}`,
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.55;color:#24112f">
           <h2>Nouvelle demande de conciergerie érotique</h2>

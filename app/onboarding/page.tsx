@@ -76,7 +76,7 @@ export default function OnboardingPage () {
         <div className='container py-8 md:py-12 flex-1 flex flex-col items-center justify-center'>
           <div className='w-full max-w-lg mb-6 text-center'>
             <h1 className='text-2xl md:text-3xl font-bold text-white mb-2'>
-              Bienvenue sur Love Hôtel Rencontre
+              Bienvenue sur Joug
             </h1>
             <p className='text-purple-200/80'>
               Complétez votre profil pour trouver des personnes qui vous

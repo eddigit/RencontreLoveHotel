@@ -38,7 +38,7 @@ export function AdminProductDiagnostic() {
       setDiagnostic(await getProductDiagnostic())
       setError(null)
     } catch {
-      setError('Le diagnostic LHR est momentanément indisponible.')
+      setError('Le diagnostic Joug est momentanément indisponible.')
     }
   }
 
@@ -53,15 +53,15 @@ export function AdminProductDiagnostic() {
   }
 
   if (error) return <Alert variant='destructive'><AlertTriangle className='h-4 w-4' /><AlertTitle>Diagnostic indisponible</AlertTitle><AlertDescription>{error}</AlertDescription></Alert>
-  if (!diagnostic) return <div className='flex items-center gap-3 rounded-2xl border border-white/10 p-8 text-white/65'><RefreshCw className='h-5 w-5 animate-spin' />Calcul du diagnostic LHR…</div>
+  if (!diagnostic) return <div className='flex items-center gap-3 rounded-2xl border border-white/10 p-8 text-white/65'><RefreshCw className='h-5 w-5 animate-spin' />Calcul du diagnostic Joug…</div>
 
   return (
     <div className='space-y-8'>
       <section className='rounded-3xl border border-[#d6bc87]/25 bg-gradient-to-br from-graphite via-graphite to-black/20 p-6 md:p-8'>
         <div className='flex flex-col gap-6 md:flex-row md:items-center md:justify-between'>
           <div>
-            <p className='text-xs font-bold uppercase tracking-[0.22em] text-[#d6bc87]'>Pilotage exclusif Love Hotel Rencontre</p>
-            <h1 className='mt-2 text-3xl font-black text-white'>Cockpit Produit & Croissance LHR</h1>
+            <p className='text-xs font-bold uppercase tracking-[0.22em] text-[#d6bc87]'>Pilotage exclusif Joug</p>
+            <h1 className='mt-2 text-3xl font-black text-white'>Cockpit Produit & Croissance Joug</h1>
             <p className='mt-2 max-w-3xl text-sm text-white/65'>Des comptes jusqu’aux rencontres réelles : chaque alerte repose sur les données du projet.</p>
           </div>
           <div className='rounded-3xl border border-white/10 bg-black/25 px-8 py-5 text-center'>

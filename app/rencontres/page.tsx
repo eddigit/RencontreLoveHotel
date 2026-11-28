@@ -26,7 +26,7 @@ export default function RencontresPage() {
       <section className='relative isolate overflow-hidden'>
         <Image
           src='/paris-event-limousine.png'
-          alt='Paris de nuit, cadre des rencontres Love Hôtel'
+          alt='Paris de nuit, cadre des rencontres Joug'
           fill
           priority
           className='-z-20 object-cover opacity-40'
@@ -35,7 +35,7 @@ export default function RencontresPage() {
         <div className='absolute inset-0 -z-10 bg-[linear-gradient(90deg,#120821_4%,rgba(18,8,33,0.88)_46%,rgba(18,8,33,0.4)),linear-gradient(0deg,#120821,transparent_45%)]' />
         <div className='mx-auto flex min-h-[640px] max-w-7xl items-center px-4 py-20 sm:px-6 lg:px-10'>
           <div className='max-w-3xl'>
-            <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff8cc8]'>Rencontres Love Hôtel</p>
+            <p className='text-xs font-black uppercase tracking-[0.24em] text-[#ff8cc8]'>Rencontres Joug</p>
             <h1 className='mt-5 text-4xl font-black leading-tight sm:text-5xl lg:text-7xl'>
               Avec qui aimeriez-vous partager vos envies ?
             </h1>

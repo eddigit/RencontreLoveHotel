@@ -26,8 +26,8 @@ import { PostMeetingWordInbox } from '@/components/post-meeting-word'
 import { ensureProfileLikesDislikesSchema, normalizeProfileTags, parseProfileTags } from '@/lib/profile-likes-dislikes'
 
 export const metadata: Metadata = {
-  title: 'Profil | Love Hotel Rencontre',
-  description: 'Gérez votre profil Love Hotel Rencontre'
+  title: 'Profil | Joug',
+  description: 'Gérez votre profil Joug'
 }
 
 async function updateUserProfile (userData: any) {
@@ -393,7 +393,7 @@ export default async function ProfilePage ({
         user={dbUser}
         eyebrow='Espace membre'
         title='Profil matching'
-        subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations Love Hotel.'
+        subtitle='Renseignez les champs qui améliorent la compatibilité, les demandes de match et les invitations.'
         action={
           <Button asChild className='bg-graphite text-graphite-ink hover:bg-graphite-hover'>
             <Link href='/discover'>

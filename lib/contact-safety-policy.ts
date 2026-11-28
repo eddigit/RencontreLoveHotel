@@ -123,7 +123,7 @@ export class ContactSafetyError extends Error {
   readonly evaluation: SafetyEvaluation
 
   constructor(evaluation: SafetyEvaluation) {
-    super('Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.')
+    super('Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans Joug.')
     this.name = 'ContactSafetyError'
     this.evaluation = evaluation
   }

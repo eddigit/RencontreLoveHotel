@@ -13,7 +13,7 @@ describe('admin product diagnostic cockpit UI', () => {
     const component = readFileSync('components/admin-product-diagnostic.tsx', 'utf8')
 
     expect(page).toContain("<ProtectedRoute allowedRoles={['admin']}>")
-    expect(component).toContain('Cockpit Produit & Croissance LHR')
+    expect(component).toContain('Cockpit Produit & Croissance Joug')
     expect(component).toContain("Plan d'action priorisé")
     expect(component).toContain('Créer les profils privés manquants')
     expect(component).toContain('État des migrations')

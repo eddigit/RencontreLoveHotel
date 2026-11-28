@@ -86,7 +86,7 @@ interface ConversationDetails {
   other_user_online?: boolean
 }
 
-const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans LHR.'
+const CONTACT_SAFETY_EXPLANATION = 'Pour votre sécurité, les coordonnées et moyens de contact externes ne peuvent pas être partagés. Poursuivez votre échange dans Joug.'
 
 function memberFacingError (error: unknown, fallback: string) {
   return error instanceof Error && error.message.toLowerCase().includes('coordonnées')

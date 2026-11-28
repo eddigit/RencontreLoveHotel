@@ -147,7 +147,7 @@ export function PreferencesEditor({ preferences, meetingTypes, additionalOptions
           value={form.suggestions}
           onChange={handleChange}
           className="h-12 rounded-2xl border-white/10 bg-white/[0.06] text-white placeholder:text-white/40"
-          placeholder="Suggestions ou envies à proposer à l’équipe Love Hotel"
+          placeholder="Suggestions ou envies à proposer à l’équipe Joug"
         />
       </section>
 

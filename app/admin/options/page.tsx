@@ -26,10 +26,10 @@ const activeEventCategoriesFallback =
   'jacuzzi|Apéro jacuzzi 2 à 4 couples\nopen_curtains|Rideaux ouverts 2 ou 3 chambres'
 const activeEventCategoryValues = new Set(['jacuzzi', 'open_curtains'])
 
-const defaultVerificationSubject = 'Vérifiez votre adresse email sur Love Hotel'
+const defaultVerificationSubject = 'Vérifiez votre adresse email sur Joug'
 const defaultVerificationBody = `Bonjour [name],
 
-Merci de vous être inscrit sur Love Hotel !
+Merci de vous être inscrit sur Joug !
 
 Veuillez cliquer sur le lien ci-dessous pour vérifier votre adresse email :
 
@@ -37,9 +37,9 @@ Veuillez cliquer sur le lien ci-dessous pour vérifier votre adresse email :
 
 Si vous n'avez pas créé de compte, ignorez cet email.
 
-L'équipe Love Hotel`
+L'équipe Joug`
 
-const defaultResetSubject = 'Réinitialisez votre mot de passe sur Love Hotel'
+const defaultResetSubject = 'Réinitialisez votre mot de passe sur Joug'
 const defaultResetBody = `Bonjour [name],
 
 Vous avez demandé à réinitialiser votre mot de passe.
@@ -50,7 +50,7 @@ Veuillez cliquer sur le lien ci-dessous pour réinitialiser votre mot de passe :
 
 Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
 
-L'équipe Love Hotel`
+L'équipe Joug`
 
 type EventCategory = {
   value: string

@@ -101,7 +101,7 @@ export function EmailPreferencesEditor ({ preferences, onSave }: Props) {
               Actualités et invitations
             </label>
             <p className='mt-1 text-sm leading-5 text-[#c9c7c2]'>
-              Recevoir les actualités, nouveautés et invitations de Love Hotel Rencontre.
+              Recevoir les actualités, nouveautés et invitations de Joug.
             </p>
           </div>
         </div>

@@ -25,9 +25,9 @@ export async function POST(req: NextRequest) {
   await updateUserResetToken(user.id, token);
 
   // Fetch email template
-  const subjectTemplate = (await getOption("password_reset_email_subject")) || "Réinitialisez votre mot de passe sur Love Hotel";
+  const subjectTemplate = (await getOption("password_reset_email_subject")) || "Réinitialisez votre mot de passe sur Joug";
   const bodyTemplate = (await getOption("password_reset_email_body")) ||
-    `Bonjour [name],\n\nVous avez demandé à réinitialiser votre mot de passe.\n\nVeuillez cliquer sur le lien ci-dessous pour réinitialiser votre mot de passe :\n\n[reset-link]\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Love Hotel`;
+    `Bonjour [name],\n\nVous avez demandé à réinitialiser votre mot de passe.\n\nVeuillez cliquer sur le lien ci-dessous pour réinitialiser votre mot de passe :\n\n[reset-link]\n\nSi vous n'avez pas demandé cette réinitialisation, ignorez cet email.\n\nL'équipe Joug`;
 
   // Replace placeholders
   const subject = subjectTemplate.replace(/\[name\]/g, user.name || "").replace(/\[reset-link\]/g, resetUrl);

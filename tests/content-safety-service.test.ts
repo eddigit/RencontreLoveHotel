@@ -60,7 +60,7 @@ describe('content safety enforcement service', () => {
     expect(createAppNotification).toHaveBeenCalledWith(expect.objectContaining({
       userId: 'admin-1',
       title: 'Alerte de sécurité communautaire',
-      description: 'Des tentatives répétées de sortie de la messagerie LHR nécessitent une revue humaine.'
+      description: 'Des tentatives répétées de sortie de la messagerie Joug nécessitent une revue humaine.'
     }))
   })
 })

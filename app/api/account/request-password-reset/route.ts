@@ -44,9 +44,9 @@ export async function POST(req: NextRequest) {
 
     // Fetch email templates
     // You'll need to ensure these option names match what's in your admin setup and database
-    const subjectTemplate = await getOption("password_reset_email_subject") || "Réinitialisation de votre mot de passe Love Hotel";
+    const subjectTemplate = await getOption("password_reset_email_subject") || "Réinitialisation de votre mot de passe Joug";
     const bodyTemplate = await getOption("password_reset_email_body") ||
-      `Bonjour [name],<br><br>Vous avez demandé une réinitialisation de mot de passe pour votre compte Love Hotel.<br><br>Veuillez cliquer sur le lien ci-dessous pour choisir un nouveau mot de passe :<br><a href="[reset-link]">[reset-link]</a><br><br>Ce lien expirera dans une heure.<br><br>Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet email.<br><br>L'équipe Love Hotel`;
+      `Bonjour [name],<br><br>Vous avez demandé une réinitialisation de mot de passe pour votre compte Joug.<br><br>Veuillez cliquer sur le lien ci-dessous pour choisir un nouveau mot de passe :<br><a href="[reset-link]">[reset-link]</a><br><br>Ce lien expirera dans une heure.<br><br>Si vous n'avez pas demandé cette réinitialisation, veuillez ignorer cet email.<br><br>L'équipe Joug`;
 
     const resetLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 

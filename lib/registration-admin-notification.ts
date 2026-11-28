@@ -55,7 +55,7 @@ export async function sendRegistrationAdminNotification({
   await transporter.sendMail({
     from: process.env.SMTP_FROM || 'no-reply@rencontrelovehotel.com',
     to: recipient,
-    subject: 'Nouvelle inscription — Love Hotel Rencontre',
+    subject: 'Nouvelle inscription — Joug',
     html: `
       <p>Une nouvelle adhérente vient de créer un compte.</p>
       <ul>

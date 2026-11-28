@@ -60,9 +60,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     ['actor_id', 'actor_role', 'purpose', 'resource_type', 'resource_id', 'accessed_at'].map(csvCell).join(','),
     ...accessLog.map(row => [row.actor_id, row.actor_role, row.purpose, row.resource_type, row.resource_id, row.accessed_at].map(csvCell).join(','))
   ].join('\n')
-  const reportHtml = `<!doctype html><html lang="fr"><meta charset="utf-8"><title>Dossier LHR ${html(id)}</title>
+  const reportHtml = `<!doctype html><html lang="fr"><meta charset="utf-8"><title>Dossier Joug ${html(id)}</title>
   <style>body{font:15px/1.55 system-ui;max-width:1100px;margin:40px auto;padding:0 24px;color:#19121d}h1,h2{color:#631343}.card{border:1px solid #ddd;border-radius:12px;padding:16px;margin:12px 0}.meta{color:#665b68}.message{border-left:4px solid #b62d78;padding:8px 14px;margin:10px 0;white-space:pre-wrap}.alert{border-left-color:#c62828}</style>
-  <h1>Dossier probatoire de modération LHR</h1><p class="meta">Dossier ${html(id)} — généré ${html(generatedAt)} — empreintes dans manifest.json.</p>
+  <h1>Dossier probatoire de modération Joug</h1><p class="meta">Dossier ${html(id)} — généré ${html(generatedAt)} — empreintes dans manifest.json.</p>
   <div class="card"><h2>Profil figé</h2><p><strong>${html(investigation.name)}</strong> — ${html(investigation.email)}</p><p>Compte : ${html(investigation.account_status)} · banni : ${html(investigation.is_banned)}</p></div>
   <h2>Alertes (${alerts.length})</h2>${alerts.map(row => `<div class="card alert"><strong>${html(row.severity)} — ${html(row.reason)}</strong><p>${html(row.excerpt)}</p><small>${html(row.created_at)}</small></div>`).join('')}
   <h2>Conversations (${messages.length} messages)</h2>${messages.map(row => `<div class="message"><strong>${html(row.sender_name)}</strong> · ${html(row.created_at)}<br>${html(row.content)}</div>`).join('')}
@@ -109,7 +109,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   return new Response(new Uint8Array(archive), {
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="lhr-moderation-${id}-${generatedAt.slice(0, 10)}.zip"`,
+      'Content-Disposition': `attachment; filename="joug-moderation-${id}-${generatedAt.slice(0, 10)}.zip"`,
       'Cache-Control': 'no-store',
       'X-Evidence-SHA256': manifestSha256
     }

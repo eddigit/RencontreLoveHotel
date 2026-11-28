@@ -8,7 +8,7 @@ export function Footer () {
         <div className='flex flex-col md:flex-row justify-between items-center gap-4 md:gap-8'>
           <div className='flex items-center gap-2'>
             <Heart className='h-5 w-5 text-primary' />
-            <span className='font-bold text-lg'>Love Hotel Rencontres</span>
+            <span className='font-bold text-lg'>Joug</span>
           </div>
 
           <nav className='flex flex-wrap justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground'>
@@ -52,7 +52,7 @@ export function Footer () {
 
           <div className='flex flex-col items-center gap-1 text-sm text-muted-foreground md:items-end'>
             <span>
-              &copy; {new Date().getFullYear()} Love Hotel Rencontres. Tous droits
+              &copy; {new Date().getFullYear()} Joug. Tous droits
               réservés.
             </span>
           </div>

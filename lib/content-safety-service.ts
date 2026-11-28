@@ -92,7 +92,7 @@ export async function enforceMemberContent(
       userId: reviewer.id,
       type: 'contact_safety_alert',
       title: 'Alerte de sécurité communautaire',
-      description: 'Des tentatives répétées de sortie de la messagerie LHR nécessitent une revue humaine.',
+      description: 'Des tentatives répétées de sortie de la messagerie Joug nécessitent une revue humaine.',
       link: investigation?.id ? `/moderation/${investigation.id}` : '/admin/moderation',
       priority: 'high',
       category: 'moderation',
