@@ -72,7 +72,7 @@
 }
 
 .discoverHeader {
-  background: rgb(24 25 26 / 0.95);
+  background: var(--joug-gold-edge), var(--joug-graphite-light), #101115;
   backdrop-filter: blur(18px);
 }
 
@@ -115,7 +115,7 @@
 }
 
 .mobileHeader {
-  background: var(--discover-paper) !important;
+  background: var(--joug-gold-edge), var(--joug-graphite-light), var(--discover-paper) !important;
   border-color: var(--discover-line);
   color: var(--discover-ink);
 }
@@ -162,7 +162,7 @@
   --discover-ink: #ecebe7;
   --discover-muted: #c9c7c2;
   --discover-accent: #ecebe7;
-  background: var(--discover-paper);
+  background: var(--joug-graphite-light), var(--discover-paper);
   color: var(--discover-ink);
 }
 
@@ -306,8 +306,8 @@
 }
 
 .stitchDiscoverShell .navigationLinkActive {
-  background: #1a1c21;
-  box-shadow: inset 3px 0 0 var(--discover-accent);
+  background: var(--joug-gold-light), #181a20;
+  box-shadow: inset 2px 0 var(--discover-accent), 0 0 12px rgb(224 194 128 / 0.05);
   color: var(--discover-ink);
 }
 
@@ -315,7 +315,7 @@
 
 .stitchPanel { background: var(--discover-canvas) !important; }
 
-.stitchMobileHeader { border-bottom-width: 0; background: var(--discover-paper) !important; }
+.stitchMobileHeader { border-bottom-width: 0; background: var(--joug-gold-edge), var(--joug-graphite-light), #101115 !important; }
 .stitchMobileScrim { background: rgb(18 19 24 / 0.72); }
 .stitchMobileRail { background: var(--discover-charcoal) !important; }
 

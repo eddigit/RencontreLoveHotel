@@ -21,7 +21,7 @@ export default function LandingPage() {
   return (
     <div className='overflow-hidden bg-[#04070b] text-[#ecebe7] selection:bg-[#cdb984] selection:text-[#04070b]'>
       <section id='concept' className='relative isolate overflow-hidden border-b border-[#cdb984]/15'>
-        <div className='absolute inset-0 -z-20 bg-[radial-gradient(circle_at_10%_15%,rgba(98,105,118,0.18),transparent_31%),radial-gradient(circle_at_85%_18%,rgba(86,93,105,0.13),transparent_23%),linear-gradient(115deg,#0a0f15,#04070b_58%,#111821)]' />
+        <div className='absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_48%_0%,rgba(112,125,148,0.29),transparent_48%),radial-gradient(circle_at_85%_18%,rgba(86,93,105,0.13),transparent_23%),linear-gradient(115deg,#0a0f15,#04070b_58%,#111821)]' />
         <div className='absolute left-[8%] top-16 -z-10 h-72 w-72 rounded-full border border-[#cdb984]/15 blur-[1px]' />
         <div className='mx-auto grid w-full max-w-[1440px] items-center gap-10 px-5 py-10 sm:px-8 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16 lg:px-12 lg:py-20'>
           <div className='max-w-xl lg:py-6'>

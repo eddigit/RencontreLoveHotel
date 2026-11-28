@@ -5,6 +5,9 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --joug-gold-edge: linear-gradient(90deg, transparent 15%, rgb(233 209 152 / 0.52) 50%, transparent 85%) center bottom / 100% 1px no-repeat;
+    --joug-graphite-light: radial-gradient(ellipse 52% 150% at 52% -22%, rgb(112 125 148 / 0.32), transparent 78%);
+    --joug-gold-light: radial-gradient(ellipse 4rem 125% at 0% 50%, rgb(235 208 145 / 0.17), transparent 85%);
     --background: 225 13% 6%;
     --foreground: 48 12% 92%;
     --card: 213 35% 6%;
@@ -55,6 +58,13 @@ body {
   * {
     @apply border-border;
   }
+}
+
+.joug-lit-header {
+  background-image: linear-gradient(90deg, transparent 15%, rgb(233 209 152 / 0.52) 50%, transparent 85%), var(--joug-graphite-light);
+  background-position: center bottom, center;
+  background-size: 100% 1px, cover;
+  background-repeat: no-repeat;
 }
 
 /* Styles pour les conteneurs */

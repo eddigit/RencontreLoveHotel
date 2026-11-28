@@ -111,7 +111,7 @@ export default async function ProfilePage ({
           {canShowActions && <ProfileVisitTracker profileUserId={String(profile.user_id)} />}
         </div>
         <header className='overflow-hidden rounded-2xl bg-[#141519]'>
-          <div aria-hidden='true' className='h-24 bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
+          <div aria-hidden='true' className='h-24 bg-[#16181d] bg-cover bg-[center_48%] saturate-[.35] sm:h-36' style={{backgroundImage: "var(--joug-graphite-light), linear-gradient(0deg, #141519, #12131870 75%), url('/guide-love-rooms.webp')"}} />
           <div className='relative -mt-8 flex flex-wrap items-end gap-x-5 gap-y-4 px-4 pb-5 sm:px-6'>
             <div className='flex min-w-0 flex-1 items-end gap-3 sm:gap-5'>
               <div className='relative aspect-square w-20 shrink-0 rounded-full bg-[#111214] ring-4 ring-[#141519] sm:w-32'>
